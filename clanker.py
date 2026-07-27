@@ -192,22 +192,11 @@ class SessionService:
         return {"last_msg": "hello from ss"}
 
 class KeyboardService:   
-    def handle_key(self, key: str) -> None:
-        btn = self.button_map.get(key)
-        if btn is None:
-            return
-
-        if key == btn.primary_letter:
-            btn.primary_action(btn.primary_letter)
-        elif key == btn.secondary_letter:
-            btn.shift_action(btn.secondary_letter)
-
     def domain_key_primary(self, btn_primary: str | None) -> None:
         if btn_primary is None:
             self.selected_num_btn_primary_letter = None
             for btn in [b for b in self.button_map.values() if b.type == "prompt_btn"]:
                 btn.inhabitant = None
-            return
 
         referenced_btn = self.button_map[btn_primary]
         if referenced_btn.type != "num_btn":
@@ -223,8 +212,25 @@ class KeyboardService:
             for prompt_btn, prompt in zip(prompt_buttons, referenced_btn.inhabitant.prompts):
                 prompt_btn.inhabitant = prompt
 
-    def domain_key_secondary(self, btn: Button) -> None:
+    def domain_key_secondary(self, btn_secondary: str) -> None:
         pass
+
+    def prompt_key_primary(self, btn: Button) -> Prompt:
+        return btn.inhabitant
+
+    def prompt_key_secondary(self, btn_secondary: str) -> None:
+        pass
+
+
+    def handle_key(self, key: str) -> None:
+        btn = self.button_map.get(key)
+        if btn is None:# in future raise, make it explicit
+            return
+
+        if key == btn.primary_letter:
+            btn.primary_action(btn.primary_letter)
+        elif key == btn.secondary_letter:
+            btn.shift_action(btn.secondary_letter)
 
     def _build_ui_repl_map(self) -> dict[str, str]:
         repl_map = {}

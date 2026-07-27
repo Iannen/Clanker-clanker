@@ -1,4 +1,3 @@
-=== ship.sh ===
 #!/usr/bin/env bash
 # set -e is removed intentionally so we can handle rollbacks manually on failure
 set -uo pipefail
