@@ -169,7 +169,9 @@ class GameEngine:
                 repl_map = self.kb._build_ui_repl_map() | self.session._build_ui_repl_map()
                 view_str = self.renderer.render_ui(MAIN_CONSOLE_TEMPLATE, repl_map) 
                 self.io.display(view_str) 
-                key = self.io.get_key() 
+                key = self.io.get_key()
+                result = self.kb.handle_key(key)
+
             except UserCancelNotice: 
                 break
             except BaseNoticeEx as notice:
@@ -190,6 +192,39 @@ class SessionService:
         return {"last_msg": "hello from ss"}
 
 class KeyboardService:   
+    def handle_key(self, key: str) -> None:
+        btn = self.button_map.get(key)
+        if btn is None:
+            return
+
+        if key == btn.primary_letter:
+            btn.primary_action(btn.primary_letter)
+        elif key == btn.secondary_letter:
+            btn.shift_action(btn.secondary_letter)
+
+    def domain_key_primary(self, btn_primary: str | None) -> None:
+        if btn_primary is None:
+            self.selected_num_btn_primary_letter = None
+            for btn in [b for b in self.button_map.values() if b.type == "prompt_btn"]:
+                btn.inhabitant = None
+            return
+
+        referenced_btn = self.button_map[btn_primary]
+        if referenced_btn.type != "num_btn":
+            raise ValueError("Selected button is not a number button")
+
+        self.selected_num_btn_primary_letter = btn_primary
+        prompt_buttons = [btn for btn in self.button_map.values() if btn.type == "prompt_btn"]
+
+        if referenced_btn.inhabitant is None:
+            for btn in prompt_buttons:
+                btn.inhabitant = None
+        else:
+            for prompt_btn, prompt in zip(prompt_buttons, referenced_btn.inhabitant.prompts):
+                prompt_btn.inhabitant = prompt
+
+    def domain_key_secondary(self, btn: Button) -> None:
+        pass
 
     def _build_ui_repl_map(self) -> dict[str, str]:
         repl_map = {}
@@ -236,7 +271,13 @@ class KeyboardService:
             )
             
             for prim, sec in zip(row["primary"], row["secondary"]):
-                btn = Button(type=btn_type, primary_letter=prim, secondary_letter=sec)
+                btn = Button(
+                    type=btn_type,
+                    primary_letter=prim,
+                    secondary_letter=sec,
+                    primary_action=self.domain_key_primary if btn_type == "num_btn" else None,
+                    shift_action=self.domain_key_secondary if btn_type == "num_btn" else None,
+                )
                 self.button_map[prim] = btn
                 self.button_map[sec] = btn
 
@@ -244,33 +285,13 @@ class KeyboardService:
         for letter, domain in zip(domain_primaries, config.domains):
             self.button_map[letter].inhabitant = domain
 
-        self._set_selected_num_btn(config.active_num_btn)
+        self.domain_key_primary(config.active_num_btn)
 
     def save_config(self, raw_config: dict) -> None:
         config = Config.model_validate(raw_config)
         self.files.write_json(Config.DEFAULT_REL_PATH, config.model_dump())
 
-    def _set_selected_num_btn(self, btn_primary: str | None) -> None:
-        self.selected_num_btn_primary_letter = btn_primary
-        prompt_buttons = [btn for btn in self.button_map.values() if btn.type == 'prompt_btn']
 
-        if btn_primary is None or btn_primary not in self.button_map:
-            self.selected_num_btn_primary_letter = None
-            for btn in prompt_buttons:
-                btn.inhabitant = None
-            return
-
-        referenced_btn = self.button_map[btn_primary]
-
-        if referenced_btn.type != 'num_btn':
-            raise ValueError("Selected button is not a number button")
-
-        if referenced_btn.inhabitant is None:
-            for btn in prompt_buttons:
-                btn.inhabitant = None
-        else:
-            for prompt_btn, prompt in zip(prompt_buttons, referenced_btn.inhabitant.prompts):
-                prompt_btn.inhabitant = prompt
 
 class OutputAssemblyService:
     def _hydrate(self, template: str, replacements: dict[str, str]) -> str:
@@ -446,38 +467,6 @@ class FileBridge(Bridge):
 
 
 """ 5. String templates, defaults & similar """ 
-
-MAIN_CONSOLE_TEMPLATE_OLD = r"""
-┌───────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ CLANKER CONTROL CONSOLE v1.0                                                                      │
-├───────────────────────────────────────────────────────────────────────────────────────────────────┤
-│  Domain specialists:                                                                              │
-│  ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐                                      │
-│  │ 1 │ │ 2 │ │ 3 │ │ 4 │ │ 5 │ │ 6 │ │ 7 │ │ 8 │ │ 9 │ │ 0 │                                      │
-│  └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘                                      │
-├───────────────────────────────────────────────────────┬───────────────────────────────────────────┤
-│  KEY MATRIX                                           │ {ds_name}                                 │
-│  ┌───┐ ┌───┐ ┌───┐ ┌───┐                              │ ───────────────────────────────────────── │
-│  │ q │ │ w │ │ e │ │ r │                              │  q: {pr_q_name}                           │
-│  └───┘ └───┘ └───┘ └───┘                              │  w: {pr_w_name}                           │
-│    ┌───┐ ┌───┐ ┌───┐ ┌───┐                            │  e: {pr_e_name}                           │
-│    │ a │ │ s │ │ d │ │ f │                            │  r: {pr_r_name}                           │
-│    └───┘ └───┘ └───┘ └───┘                            │                                           │
-├───────────────────────────────────────────────────────┼───────────────────────────────────────────┤
-│ STATUS                                                │ CONSOLE OUTPUT / ASCII ART                │
-│ ───────────────────────────────────────────────────── │ ───────────────────────────────────────── │
-│  a: <not decided>      s: <not decided>               │                                           │
-│  d: <not decided>      f: <not decided>               │                  \_\_                     │
-│  ───────────────────────────────────────────────────  │               .-'   `-.                   │
-│  Shift + A-F: Inspect Raw / Override                  │              /  .---. \                   │
-│                                                       │             |  /     \ |                  │
-│                                                       │             |  \     / |                  │
-│                                                       │              \  `---' /                   │
-│                                                       │               `-.____.-'                  │
-├───────────────────────────────────────────────────────┴───────────────────────────────────────────┤
-│ > {last_msg}                                                                                      │
-└───────────────────────────────────────────────────────────────────────────────────────────────────┘
-""".lstrip('\n')
 
 MAIN_CONSOLE_TEMPLATE = r"""
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
