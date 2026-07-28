@@ -32,9 +32,15 @@
           },
           "prompt_fragments": [
             {
-              "id": "init_task",
-              "type": "doc",
-              "resolver": "default_resolver"
+              "id": "script_file_only",
+              "type": "file_set",
+              "resolver": {
+                "sorter": "path_asc",
+                "inclusion_roots": [
+                  "clanker.py"
+                ],
+                "exclusion_roots": []
+              }
             }
           ]
         }

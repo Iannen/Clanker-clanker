@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 from __future__ import annotations
+
+import base64
+from enum import Enum, StrEnum
 import json
 import os
+from pathlib import Path
 import re
 import sys
 import termios
 import tty
-from enum import Enum
-from pathlib import Path
 from typing import Callable, ClassVar
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -102,11 +105,27 @@ class SymbolSet(BaseStrictModel):
     self_closing_tag: str
     self_closing_no_attr: str
 
+# 1. The Resolver Model with its own nested Sorter Enum
+class FileSetResolver(BaseStrictModel):
+    class Sorter(StrEnum):
+        PATH_ASC = "path_asc"
+        PATH_DESC = "path_desc"
+        DEPENDENCY_GRAPH = "dependency_graph"
 
+    sorter: Sorter = Sorter.PATH_ASC
+    inclusion_roots: list[str] = []
+    exclusion_roots: list[str] = []
+
+
+# 2. PromptFragment with its own nested Type Enum
 class PromptFragment(BaseStrictModel):
+    class Type(StrEnum):
+        FILE_SET = "file_set"
+        STATIC_TEXT = "static_text"
+
     id: str
-    type: str
-    resolver: str
+    type: Type
+    resolver: FileSetResolver  # Resolvers can also be typed specifically
 
 class Prompt(BaseStrictModel):
     name: str
@@ -170,7 +189,11 @@ class GameEngine:
                 view_str = self.renderer.render_ui(MAIN_CONSOLE_TEMPLATE, repl_map) 
                 self.io.display(view_str) 
                 key = self.io.get_key()
-                result = self.kb.handle_key(key)
+                prompt = self.kb.handle_key(key)
+                #todo: if prompt is none, skip rest + actionmsg to use
+                compiledprompt = self.renderer.build_prompt(prompt)
+                lines_count = self.io.pushtoclipboard(compiledprompt)
+                self.action_result = ActionResultMsg(f"Copied {lines_count} lines to clipboard") # the toast!
 
             except UserCancelNotice: 
                 break
@@ -215,8 +238,8 @@ class KeyboardService:
     def domain_key_secondary(self, btn_secondary: str) -> None:
         pass
 
-    def prompt_key_primary(self, btn: Button) -> Prompt:
-        return btn.inhabitant
+    def prompt_key_primary(self, btn_primary) -> Prompt:
+        return self.button_map[btn_primary].inhabitant
 
     def prompt_key_secondary(self, btn_secondary: str) -> None:
         pass
@@ -228,9 +251,10 @@ class KeyboardService:
             return
 
         if key == btn.primary_letter:
-            btn.primary_action(btn.primary_letter)
+            return btn.primary_action(btn.primary_letter)
         elif key == btn.secondary_letter:
-            btn.shift_action(btn.secondary_letter)
+            return btn.shift_action(btn.primary_letter)
+        return None
 
     def _build_ui_repl_map(self) -> dict[str, str]:
         repl_map = {}
@@ -277,12 +301,22 @@ class KeyboardService:
             )
             
             for prim, sec in zip(row["primary"], row["secondary"]):
+                primary_action = None
+                shift_action = None
+
+                if btn_type == "num_btn":
+                    primary_action = self.domain_key_primary
+                    shift_action = self.domain_key_secondary
+                elif btn_type == "prompt_btn":
+                    primary_action = self.prompt_key_primary
+                    shift_action = self.prompt_key_secondary
+
                 btn = Button(
                     type=btn_type,
                     primary_letter=prim,
                     secondary_letter=sec,
-                    primary_action=self.domain_key_primary if btn_type == "num_btn" else None,
-                    shift_action=self.domain_key_secondary if btn_type == "num_btn" else None,
+                    primary_action=primary_action,
+                    shift_action=shift_action,
                 )
                 self.button_map[prim] = btn
                 self.button_map[sec] = btn
@@ -297,8 +331,6 @@ class KeyboardService:
         config = Config.model_validate(raw_config)
         self.files.write_json(Config.DEFAULT_REL_PATH, config.model_dump())
 
-
-
 class OutputAssemblyService:
     def _hydrate(self, template: str, replacements: dict[str, str]) -> str:
         token = SystemKeys.DELIM.value
@@ -310,20 +342,35 @@ class OutputAssemblyService:
 
     def build_prompt(self, prompt_config: Prompt) -> str:
         symbols = prompt_config.symbol_set
+        # here we create replacements by a comprehension of the promptfragments.
+        # we map the id on the key, on the value we map _resolve(type, resolver)
 
-        replacements = {
-            "testdoc": "talk like a pirate!"
+        replacements: dict[str, str] = {
+            fragment.id: self._resolve(fragment.type, fragment.resolver)
+            for fragment in prompt_config.prompt_fragments
         }
 
         prompt = (
-            _PromptBuilder(symbols=symbols)
+            _PromptBuilder(prompt_config.symbol_set)
             .add_open_tag("runtime", attr=": kindly oblige if noobject")
                 .add_open_tag("msg-from-runtime-author", attr="kindly serve the function of the runtime")
-                .add_doc("document-tag", "testdoc", attr="will it work? arg ordering is wonky")
+                .add_doc("document-tag", "script_file_only", attr="the clank script")
             .close_current_tag()
         )
 
         return self._hydrate(prompt.consume(), replacements)
+
+    def _resolve(self, type_: str, resolver: FileSetResolver) -> str:
+        if type_ == PromptFragment.Type.FILE_SET: # or simply "file_set"
+            sorter = resolver.sorter
+            included = self.files.expand_paths(resolver.inclusion_roots)
+            excluded = self.files.expand_paths(resolver.exclusion_roots)
+            paths = included - excluded
+
+            return "..."
+
+        raise ValueError(f"Unsupported fragment type: {type_}")
+
 
     def render_ui(self, template: str, replacements: dict[str, str]) -> str:
         return self._hydrate(template, replacements)
@@ -332,6 +379,9 @@ class IOService:
     def display(self, ui_string: str) -> None:
         self.io_bridge.clear()
         self.io_bridge.write(f"{ui_string}\n")
+
+    def pushtoclipboard(self, text_content: str) -> int:
+        return self.io_bridge.pushtoclipboard(text_content)
 
     def get_key(self) -> str:
         ch = self.io_bridge.read_char()
@@ -442,6 +492,12 @@ class IOBridge(Bridge):
     def clear(self) -> None:
         os.system("clear")
 
+    def pushtoclipboard(self, text_content: str) -> int:
+        payload = base64.b64encode(text_content.encode("utf-8")).decode("utf-8")
+        sys.stdout.write(f"\033]52;c;{payload}\007")
+        sys.stdout.flush()
+        return len(text_content.splitlines())
+
     def write(self, text: str) -> None:
         print(text, end="", flush=True)
 
@@ -470,6 +526,32 @@ class FileBridge(Bridge):
         target_path.parent.mkdir(parents=True, exist_ok=True)
         with open(target_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
+
+    def expand_paths(self, rel_roots: list[str | Path]) -> set[Path]:
+        """
+        Given a list of relative paths (dirs or files), returns a set of all
+        resolved relative Path objects. Directories are recursively expanded.
+        """
+        resolved_files: set[Path] = set()
+        base_dir = self.base_path_provider()
+
+        for root_str in rel_roots:
+            rel_path = Path(root_str)
+            full_path = base_dir / rel_path
+
+            if not full_path.exists():
+                raise FileNotFoundError(rel_path)
+
+            if full_path.is_file():
+                resolved_files.add(rel_path)
+            elif full_path.is_dir():
+                # Traverse directory recursively
+                for file_path in full_path.rglob("*"):
+                    if file_path.is_file():
+                        # Store relative to base_dir so set operations match nicely
+                        resolved_files.add(file_path.relative_to(base_dir))
+
+        return resolved_files
 
 
 """ 5. String templates, defaults & similar """ 
@@ -550,9 +632,13 @@ CLANK_CONFIG = {
                     },
                     "prompt_fragments": [
                         {
-                            "id": "init_task",
-                            "type": "doc",
-                            "resolver": "default_resolver"
+                            "id": "script_file_only",
+                            "type": "file_set",
+                            "resolver": {
+                                "sorter": "path_asc",
+                                "inclusion_roots": ["clanker.py"],
+                                "exclusion_roots": []
+                            }
                         }
                     ]
                 }
@@ -589,6 +675,7 @@ class InstanceFactory:
         self.kb.files = self.files
 
         self.renderer = OutputAssemblyService()
+        self.renderer.files = self.files
 
     def create_game_engine(self) -> GameEngine:
         engine = GameEngine()
@@ -629,9 +716,10 @@ antipatterns:
     - wastefull empty lines 
 """ 
 """
+i am currently pursuing prompt generation, and my goal now is to do a proper insertion into the one prompt in clank config
 
-## when running ##
-make domain switching work.
-then make prompt gen buttons work.
-adapt to my current workflow -> accelerating devving
+the insertion is a prompt fragment type of file set, and its resolver has path ascending sorting, inclusion root of clanker.py and no exclusions
+
+but lets review the current state in light of this goal first! pls return opinion on readiness to proceed.
+
 """
