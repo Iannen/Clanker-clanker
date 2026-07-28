@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import base64
 from enum import Enum, StrEnum
-import json
+from ruamel.yaml import YAML
 import os
 from pathlib import Path
 import re
@@ -77,7 +77,7 @@ class BaseStrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 class Config(BaseStrictModel):
-    DEFAULT_REL_PATH: ClassVar[Path] = Path(".clanker/config.json")
+    DEFAULT_REL_PATH: ClassVar[Path] = Path(".clanker/config.yaml")
     DEFAULT_ASSETS_DIR: ClassVar[Path] = Path(".clanker/assets")
 
     active_num_btn: str = "1"
@@ -313,7 +313,7 @@ class KeyboardService:
 
     def get_config(self) -> Config:
         try:
-            raw_data = self.files.read_json(Config.DEFAULT_REL_PATH)
+            raw_data = self.files.read_yaml(Config.DEFAULT_REL_PATH)
             return Config.model_validate(raw_data)
         except FileNotFoundError:
             raise NoConfigNotice
@@ -343,7 +343,7 @@ class KeyboardService:
             btn.inhabitant = domain
     def save_config(self, raw_config: dict) -> None:
         config = Config.model_validate(raw_config)
-        self.files.write_json(Config.DEFAULT_REL_PATH, config.model_dump(mode="json"))
+        self.files.write_yaml(Config.DEFAULT_REL_PATH, config.model_dump(mode="json"))
 """
         self.button_map = {}
         for row_key, row in config.rows.items():
@@ -568,19 +568,22 @@ class IOBridge(Bridge):
 
 class FileBridge(Bridge):
 
-    def read_json(self, rel_path: Path) -> dict:
-        target_path = self.base_path_provider() / rel_path 
+    def __init__(self) -> None:
+        self.yaml = YAML()
+
+    def read_yaml(self, rel_path: Path) -> dict:
+        target_path = self.base_path_provider() / rel_path
         with open(target_path, "r", encoding="utf-8") as f:
-            return json.load(f)
+            return self.yaml.load(f)
 
     def is_cwd_script_dir(self) -> bool:
         return self.base_path_provider().resolve() == Path(__file__).parent.resolve()
     
-    def write_json(self, rel_path: Path, data: dict) -> None:
+    def write_yaml(self, rel_path: Path, data: dict) -> None:
         target_path = self.base_path_provider() / rel_path
         target_path.parent.mkdir(parents=True, exist_ok=True)
         with open(target_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
+            self.yaml.dump(data, f)
 
     def read_content(self, rel_path: Path) -> str:
         target_path = self.base_path_provider() / rel_path
