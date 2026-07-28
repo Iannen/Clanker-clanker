@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-
 import base64
 from enum import Enum, StrEnum
 from ruamel.yaml import YAML
@@ -11,27 +10,147 @@ import sys
 import termios
 import tty
 from typing import Callable, ClassVar
-
 from pydantic import BaseModel, ConfigDict, Field
 
+""" 1. Templates, Default Configs & UI Strings """
 
-"""
-TOC
-    1. Exceptions result objects, enums 
-    2. Application Core - Engine & subjects
-    3. Services
-    4. Bridge  
-    5. String templates
-    6. DI, Main and Entrypoint
+MAIN_CONSOLE_TEMPLATE = r"""
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                                                         │
+│    § 10   §  § 20   §  § 30   §  § 40   §  § 50   §  § 60   §  § 70   §  § 80   §  § 90   §  § 00   §                   │
+│    § 11   §  § 21   §  § 31   §  § 41   §  § 51   §  § 61   §  § 71   §  § 81   §  § 91   §  § 01   §                   │
+│    § 12   §  § 22   §  § 32   §  § 42   §  § 52   §  § 62   §  § 72   §  § 82   §  § 92   §  § 02   §                   │
+│    § 13   §  § 23   §  § 33   §  § 43   §  § 53   §  § 63   §  § 73   §  § 83   §  § 93   §  § 03   §                   │
+│    § 14   §  § 24   §  § 34   §  § 44   §  § 54   §  § 64   §  § 74   §  § 84   §  § 94   §  § 04   §                   │
+│                                                                                                                         │
+│     § q0   §  § w0   §  § e0   §  § r0   §                                                                              │
+│     § q1   §  § w1   §  § e1   §  § r1   §                                                                              │
+│     § q2   §  § w2   §  § e2   §  § r2   §                                                                              │
+│     § q3   §  § w3   §  § e3   §  § r3   §                                                                              │
+│     § q4   §  § w4   §  § e4   §  § r4   §                                                                              │
+│                                                                                                                         │
+│      § a0   §  § s0   §  § d0   §  § f0   §                                                                             │
+│      § a1   §  § s1   §  § d1   §  § f1   §                                                                             │
+│      § a2   §  § s2   §  § d2   §  § f2   §                                                                             │
+│      § a3   §  § s3   §  § d3   §  § f3   §                                                                             │
+│      § a4   §  § s4   §  § d4   §  § f4   §                                                                             │
+│                                                                                                                         │
+│                                                                                                                         │
+│                                                                                                                         │
+│                                                                                                                         │
+│                                                                                                                         │
+│                                                                                                                         │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 """
 
-""" 1. Exceptions result objects, enums 
-We never use defensive coding anywhere. we always use execptions, that we may declare for the purpose.
+HIGHLIGHTED_BTN = r"""
+ vvvvvv
+┌──────┐
+│  §   │
+└──────┘
+ §§§§§§
+"""
+ACTIVE_BTN = r"""
+
+┌──────┐
+│  §   │
+└──────┘
+ §§§§§§
+"""
+INACTIVE_BTN = r"""
+
+
+   §
+────────
+ §§§§§§
 """
 
-class ActionResultMsg:
-    def __init__(self, message: str):
-        self.message = message
+CLANK_CONFIG_YAML = r"""
+active_num_btn: "1"
+rows:
+  domain_row:
+    primary: "1234567890"
+    secondary: '!"#¤%&/()='
+  prompt_row:
+    primary: "qwer"
+    secondary: "QWER"
+  action_row:
+    primary: "asdf"
+    secondary: "ASDF"
+domains:
+  - name: "Main script"
+    plan: null
+    prompts:
+      - name: "config-dev"
+        symbol_set: &default_symbols
+          indent: "  "
+          arrow_indent: "=>"
+          open_tag: "<{tag} {attr}>"
+          open_tag_no_attr: "<{tag}>"
+          closed_tag: "</{tag}>"
+          self_closing_tag: "<{tag} {attr} />"
+          self_closing_no_attr: "<{tag} />"
+        prompt_fragments:
+          - id: "general_rules"
+            type: "document"
+            path: ".clanker/assets/general-rules.md"
+          - id: "config_development"
+            type: "document"
+            path: ".clanker/assets/config_development_instructions.md"
+          - id: "script_file_only"
+            type: "file_set"
+            resolver:
+              sorter: "path_asc"
+              inclusion_roots: ["clanker.py"]
+              exclusion_roots: []
+
+      - name: "script-dev"
+        symbol_set: *default_symbols
+        prompt_fragments:
+          - id: "general_rules"
+            type: "document"
+            path: ".clanker/assets/general-rules.md"
+          - id: "script_dev"
+            type: "document"
+            path: ".clanker/assets/script_dev_instructions.md"
+          - id: "script_file_only"
+            type: "file_set"
+            resolver:
+              sorter: "path_asc"
+              inclusion_roots: ["clanker.py"]
+              exclusion_roots: []
+
+      - name: "debloat"
+        symbol_set: *default_symbols
+        prompt_fragments:
+          - id: "general_rules"
+            type: "document"
+            path: ".clanker/assets/general-rules.md"
+          - id: "debloat"
+            type: "document"
+            path: ".clanker/assets/debloat_instructions.md"
+          - id: "script_file_only"
+            type: "file_set"
+            resolver:
+              sorter: "path_asc"
+              inclusion_roots: ["clanker.py"]
+              exclusion_roots: []
+"""
+
+CLANK_CONFIG = YAML().load(CLANK_CONFIG_YAML)
+
+
+DEFAULT_CONFIG = {
+    "active_num_btn": "1",
+    "rows": {
+        "domain_row": {"primary": "1234567890", "secondary": '!"#¤%&/()='},
+        "prompt_row": {"primary": "qwer", "secondary": "QWER"},
+        "action_row": {"primary": "asdf", "secondary": "ASDF"}
+    },
+    "domains": []
+}
+
+""" 2. Base Classes & Main function """
 
 class BaseAppEx(Exception):
     ADOPTED_NOTICES: tuple[type[Exception], ...] = (FileNotFoundError, PermissionError)
@@ -48,6 +167,67 @@ class BaseAppEx(Exception):
 
 class BaseFailureEx(BaseAppEx): pass
 class BaseNoticeEx(BaseAppEx): pass
+
+class BaseStrictModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+class Bridge:
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        for attr_name, attr_value in list(cls.__dict__.items()):
+            if callable(attr_value) and not attr_name.startswith("_"):
+                setattr(cls, attr_name, cls._wrap_safely(attr_value))
+
+    @staticmethod
+    def _wrap_safely(fn):
+        def wrapper(*args, **kwargs):
+            try:
+                return fn(*args, **kwargs)
+            except BaseAppEx.ADOPTED_NOTICES:
+                raise
+            except BaseNoticeEx:
+                raise
+            except Exception as ex:
+                raise BridgeLeakageFailure(f"Fatal bridge error in [{fn.__qualname__}]: {ex}") from ex
+        return wrapper
+
+def main():
+    try:
+        files = FileBridge()
+        files.base_path_provider = lambda: Path.cwd()
+        io_bridge = IOBridge()
+
+        session = SessionService()
+        session.files = files
+
+        io = IOService()
+        io.io_bridge = io_bridge
+
+        kb = KeyboardService()
+        kb.files = files
+
+        renderer = OutputAssemblyService()
+        renderer.files = files
+
+        engine = GameEngine()
+        engine.kb = kb
+        engine.io = io
+        engine.session = session
+        engine.renderer = renderer
+
+        exit_msg = engine.run()
+        print(f"App exited: {exit_msg.message}")
+
+    except BaseFailureEx as ex:
+        err_msg = getattr(ex, "message", None) or str(ex) or ex.__class__.__name__
+        sys.stderr.write(f"Failure: {err_msg}\n")
+        sys.exit(1)
+
+""" 3. Exceptions, Result Objects, Enums """
+
+class ActionResultMsg:
+    def __init__(self, message: str):
+        self.message = message
 
 class MissedNoticeFailure(BaseFailureEx): pass
 class BaseExInstantiationAttempt(BaseFailureEx): pass
@@ -70,11 +250,7 @@ class SystemKeys(Enum):
     BACKSPACE_ALT = "\x08"
     ESC = "\x1b"
 
-""" 2. App abstractions
-"""
-
-class BaseStrictModel(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+""" 4. App Abstractions (Models & Engine) """
 
 class Config(BaseStrictModel):
     DEFAULT_REL_PATH: ClassVar[Path] = Path(".clanker/config.yaml")
@@ -87,17 +263,7 @@ class Config(BaseStrictModel):
 class Plan(BaseStrictModel):
     name: str = ""
     pass
-"""
-    "symbols": {
-        "indent": "  ",
-        "arrow_indent": "=>",
-        "open_tag": "<{tag} {attr}>",
-        "open_tag_no_attr": "<{tag}>",
-        "closed_tag": "</{tag}>",
-        "self_closing_tag": "<{tag} {attr} />",
-        "self_closing_no_attr": "<{tag} />",
-    }
-"""
+
 class SymbolSet(BaseStrictModel):
     indent: str
     arrow_indent: str
@@ -107,7 +273,6 @@ class SymbolSet(BaseStrictModel):
     self_closing_tag: str
     self_closing_no_attr: str
 
-# 1. The Resolver Model with its own nested Sorter Enum
 class FileSetResolver(BaseStrictModel):
     class Sorter(StrEnum):
         PATH_ASC = "path_asc"
@@ -118,13 +283,10 @@ class FileSetResolver(BaseStrictModel):
     inclusion_roots: list[str] = []
     exclusion_roots: list[str] = []
 
-
-# 2. PromptFragment with its own nested Type Enum
 class PromptFragment(BaseStrictModel):
     class Type(StrEnum):
         FILE_SET = "file_set"
         DOCUMENT = "document"
-
     id: str
     type: Type
     path: Path | None = None
@@ -196,9 +358,7 @@ class GameEngine:
                 view_str = self.renderer.render_ui(MAIN_CONSOLE_TEMPLATE, repl_map) 
                 self.io.display(view_str) 
                 key = self.io.get_key()
-                ## this should now give a msg right away, so we can just store that and l'complete ?
                 self.msg = self.kb.handle_key(key)
-
             except UserCancelNotice: 
                 break
             except BaseNoticeEx as notice:
@@ -210,55 +370,48 @@ class GameEngine:
         return ActionResultMsg("Shutdown requested")
 
     def wire_num_row_handlers(self) -> None:
-        for btn in self.kb.button_map.values():
-            if btn.type == "num_btn":
-                btn.primary_action = lambda key: self.set_selected_num_btn(key)
-                btn.shift_action = lambda key: exec("raise NotImplementedError")
+        for btn in self.kb.get_unique_buttons("num_btn"):
+            btn.primary_action = lambda key: self.set_selected_num_btn(key)
+            btn.shift_action = lambda key: exec("raise NotImplementedError")
 
     def set_selected_num_btn(self, key: str | None) -> ActionResultMsg:
         if key is None:
-            self.kb.selected_num_btn_primary_letter = None
-            for btn in [b for b in self.kb.button_map.values() if b.type != "num_btn"]:
-                btn.inhabitant = None
-                btn.primary_action = None
-                btn.shift_action = None
-            return ActionResultMsg("Selection cleared")
-
-        referenced_btn = self.kb.button_map[key]
-        if referenced_btn.type != "num_btn":
-            raise ValueError("Selected button is not a number button")
+            case = "none"
+        else:
+            ref_btn = self.kb.button_map[key]
+            if ref_btn.type != "num_btn":
+                raise ValueError("Selected button is not a number button")
+            case = "empty" if ref_btn.inhabitant is None else "inhabited"
 
         self.kb.selected_num_btn_primary_letter = key
-        prompt_buttons = [btn for btn in self.kb.button_map.values() if btn.type == "prompt_btn"]
-        action_buttons = [btn for btn in self.kb.button_map.values() if btn.type == "action_btn"]
+        prompt_btns = self.kb.get_unique_buttons("prompt_btn")
+        action_btns = self.kb.get_unique_buttons("action_btn")
 
-        if referenced_btn.inhabitant is None:
-            for btn in prompt_buttons + action_buttons:
-                btn.inhabitant = None
-                btn.primary_action = None
-                btn.shift_action = None
-            domain_name = "None"
-        else:
-            for prompt_btn, prompt in zip(prompt_buttons, referenced_btn.inhabitant.prompts):
-                prompt_btn.inhabitant = prompt
-                prompt_btn.primary_action = lambda k: self.compile_prompt_to_clipboard(k)
-                prompt_btn.shift_action = lambda key: exec("raise NotImplementedError")
+        if case == "inhabited":
+            for p_btn, prompt in zip(prompt_btns, ref_btn.inhabitant.prompts):
+                p_btn.inhabitant = prompt
+                p_btn.primary_action = self.compile_prompt_to_clipboard
+                p_btn.shift_action = lambda k: exec("raise NotImplementedError")
 
-            for action_btn in action_buttons:
-                action_btn.primary_action = lambda key: exec("raise NotImplementedError")
-                action_btn.shift_action = lambda key: exec("raise NotImplementedError")
+            for a_btn in action_btns:
+                a_btn.primary_action = a_btn.shift_action = lambda k: exec("raise NotImplementedError")
 
-            domain_name = referenced_btn.inhabitant.name
+            return ActionResultMsg(f"Domain '{ref_btn.inhabitant.name}' on key '{key}' selected")
 
-        return ActionResultMsg(f"Domain '{domain_name}' on key '{key}' selected")
+        for b in prompt_btns + action_btns:
+            b.inhabitant = b.primary_action = b.shift_action = None
+
+        msg = "Selection cleared" if case == "none" else f"Domain 'None' on key '{key}' selected"
+        return ActionResultMsg(msg)
 
     def compile_prompt_to_clipboard(self, key) -> ActionResultMsg:
-        button = self.kb.button_map[key]
-        compiledprompt = self.renderer.build_prompt(button.inhabitant)
+        compiledprompt = self.renderer.build_prompt(
+            self.kb.button_map[key].inhabitant
+        )
         lines_count = self.io.pushtoclipboard(compiledprompt)
         return ActionResultMsg(f"Copied {lines_count} lines to clipboard")
 
-""" 3. Services """
+""" 5. Services """
 
 class SessionService:
     def is_cwd_script_dir(self) -> bool:
@@ -268,9 +421,11 @@ class SessionService:
         return {"last_msg": "hello from ss"}
 
 class KeyboardService:
-
-
-
+    def get_unique_buttons(self, btn_type: str | None = None) -> list[Button]:
+        unique = {btn.primary_letter: btn for btn in self.button_map.values()}.values()
+        if btn_type is None:
+            return list(unique)
+        return [btn for btn in unique if btn.type == btn_type]
     def handle_key(self, key: str) -> None:
         btn = self.button_map.get(key)
         if btn is None:# in future raise, make it explicit
@@ -283,8 +438,7 @@ class KeyboardService:
 
     def _build_ui_repl_map(self) -> dict[str, str]:
         repl_map = {}
-        unique_buttons = {id(btn): btn for btn in self.button_map.values()}.values()
-        for btn in unique_buttons:
+        for btn in self.get_unique_buttons():
             label = ""
             template = INACTIVE_BTN
 
@@ -336,49 +490,13 @@ class KeyboardService:
                     self.button_map[sec] = btn
 
     def populate_num_keys(self, domains: list[Domain]) -> None:
-        num_buttons = [btn for btn in self.button_map.values() if btn.type == "num_btn"]
-        unique_num_buttons = [btn for k, btn in self.button_map.items() if k == btn.primary_letter and btn.type == "num_btn"]
-
-        for btn, domain in zip(unique_num_buttons, domains):
+        for btn, domain in zip(self.get_unique_buttons("num_btn"), domains):
             btn.inhabitant = domain
+
     def save_config(self, raw_config: dict) -> None:
         config = Config.model_validate(raw_config)
         self.files.write_yaml(Config.DEFAULT_REL_PATH, config.model_dump(mode="json"))
-"""
-        self.button_map = {}
-        for row_key, row in config.rows.items():
-            btn_type = (
-                "num_btn" if row_key == "domain_row" 
-                else ("prompt_btn" if row_key == "prompt_row" else "action_btn")
-            )
-            
-            for prim, sec in zip(row["primary"], row["secondary"]):
-                primary_action = None
-                shift_action = None
 
-                if btn_type == "num_btn":
-                    primary_action = self.domain_key_primary
-                    shift_action = self.domain_key_secondary
-                elif btn_type == "prompt_btn":
-                    primary_action = self.prompt_key_primary
-                    shift_action = self.prompt_key_secondary
-
-                btn = Button(
-                    type=btn_type,
-                    primary_letter=prim,
-                    secondary_letter=sec,
-                    primary_action=primary_action,
-                    shift_action=shift_action,
-                )
-                self.button_map[prim] = btn
-                self.button_map[sec] = btn
-
-        domain_primaries = config.rows["domain_row"]["primary"]
-        for letter, domain in zip(domain_primaries, config.domains):
-            self.button_map[letter].inhabitant = domain
-
-        self.domain_key_primary(config.active_num_btn)
-"""
 class OutputAssemblyService:
     def _hydrate(self, template: str, replacements: dict[str, str]) -> str:
         token = SystemKeys.DELIM.value
@@ -488,8 +606,9 @@ class _PromptBuilder:
 
     def add_open_tag(self, tag: str, attr: str | None = None) -> _PromptBuilder:
         indent = self.symbols.indent * len(self._stack)
-        tmpl = self.symbols.open_tag if attr else self.symbols.open_tag_no_attr
-        self._lines.append(f"{indent}{tmpl.format(tag=tag, attr=attr)}")
+        self._lines.append(
+            f"{indent}{(self.symbols.open_tag if attr else self.symbols.open_tag_no_attr).format(tag=tag, attr=attr)}"
+        )
         self._stack.append(tag)
         return self
 
@@ -497,14 +616,16 @@ class _PromptBuilder:
         if self._stack:
             tag = self._stack.pop()
             indent = self.symbols.indent * len(self._stack)
-            tmpl = self.symbols.closed_tag
-            self._lines.append(f"{indent}{tmpl.format(tag=tag)}")
+            self._lines.append(
+                f"{indent}{self.symbols.closed_tag.format(tag=tag)}"
+            )
         return self
 
     def add_single_tag(self, tag: str, attr: str | None = None) -> _PromptBuilder:
         indent = self.symbols.indent * len(self._stack)
-        tmpl = self.symbols.self_closing_tag if attr else self.symbols.self_closing_no_attr
-        self._lines.append(f"{indent}{tmpl.format(tag=tag, attr=attr)}")
+        self._lines.append(
+            f"{indent}{(self.symbols.self_closing_tag if attr else self.symbols.self_closing_no_attr).format(tag=tag, attr=attr)}"
+        )
         return self
 
     def add_doc(self, tag: str, token_key: str, attr: str | None = None) -> _PromptBuilder:
@@ -520,28 +641,7 @@ class _PromptBuilder:
             self.close_current_tag()
         return "\n".join(self._lines)
 
-""" 4. Bridge """
-
-class Bridge:
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        for attr_name, attr_value in list(cls.__dict__.items()):
-            if callable(attr_value) and not attr_name.startswith("_"):
-                setattr(cls, attr_name, cls._wrap_safely(attr_value))
-
-    @staticmethod
-    def _wrap_safely(fn): 
-    
-        def wrapper(*args, **kwargs):
-            try:
-                return fn(*args, **kwargs)
-            except BaseAppEx.ADOPTED_NOTICES:
-                raise
-            except BaseNoticeEx:
-                raise
-            except Exception as ex:
-                raise BridgeLeakageFailure(f"Fatal bridge error in [{fn.__qualname__}]: {ex}") from ex
-        return wrapper
+""" 6. Bridge """
 
 class IOBridge(Bridge): 
     def clear(self) -> None:
@@ -608,165 +708,13 @@ class FileBridge(Bridge):
             if full_path.is_file():
                 resolved_files.add(rel_path)
             elif full_path.is_dir():
-                # Traverse directory recursively
                 for file_path in full_path.rglob("*"):
                     if file_path.is_file():
-                        # Store relative to base_dir so set operations match nicely
                         resolved_files.add(file_path.relative_to(base_dir))
 
         return resolved_files
 
-
-""" 5. String templates, defaults & similar """ 
-
-MAIN_CONSOLE_TEMPLATE = r"""
-┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                                                                                                         │
-│    § 10   §  § 20   §  § 30   §  § 40   §  § 50   §  § 60   §  § 70   §  § 80   §  § 90   §  § 00   §                   │
-│    § 11   §  § 21   §  § 31   §  § 41   §  § 51   §  § 61   §  § 71   §  § 81   §  § 91   §  § 01   §                   │
-│    § 12   §  § 22   §  § 32   §  § 42   §  § 52   §  § 62   §  § 72   §  § 82   §  § 92   §  § 02   §                   │
-│    § 13   §  § 23   §  § 33   §  § 43   §  § 53   §  § 63   §  § 73   §  § 83   §  § 93   §  § 03   §                   │
-│    § 14   §  § 24   §  § 34   §  § 44   §  § 54   §  § 64   §  § 74   §  § 84   §  § 94   §  § 04   §                   │
-│                                                                                                                         │
-│     § q0   §  § w0   §  § e0   §  § r0   §                                                                              │
-│     § q1   §  § w1   §  § e1   §  § r1   §                                                                              │
-│     § q2   §  § w2   §  § e2   §  § r2   §                                                                              │
-│     § q3   §  § w3   §  § e3   §  § r3   §                                                                              │
-│     § q4   §  § w4   §  § e4   §  § r4   §                                                                              │
-│                                                                                                                         │
-│      § a0   §  § s0   §  § d0   §  § f0   §                                                                             │
-│      § a1   §  § s1   §  § d1   §  § f1   §                                                                             │
-│      § a2   §  § s2   §  § d2   §  § f2   §                                                                             │
-│      § a3   §  § s3   §  § d3   §  § f3   §                                                                             │
-│      § a4   §  § s4   §  § d4   §  § f4   §                                                                             │
-│                                                                                                                         │
-│                                                                                                                         │
-│                                                                                                                         │
-│                                                                                                                         │
-│                                                                                                                         │
-│                                                                                                                         │
-└─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-""" 
-
-HIGHLIGHTED_BTN = r"""
- vvvvvv 
-┌──────┐
-│  §   │
-└──────┘
- §§§§§§ 
-"""
-ACTIVE_BTN = r"""
-        
-┌──────┐
-│  §   │
-└──────┘
- §§§§§§ 
-"""
-INACTIVE_BTN = r"""
-        
-        
-   §    
-────────
- §§§§§§ 
-"""
-
-CLANK_CONFIG = {
-    "active_num_btn": "1",
-    "rows": {
-        "domain_row": {"primary": "1234567890", "secondary": '!"#¤%&/()='},
-        "prompt_row": {"primary": "qwer", "secondary": "QWER"},
-        "action_row": {"primary": "asdf", "secondary": "ASDF"}
-    },
-    "domains": [
-        {
-            "name": "Main script",
-            "plan": None,
-            "prompts": [
-                {
-                    "name": "TaskRunnerPrompt",
-                    "symbol_set": {
-                        "indent": "  ",
-                        "arrow_indent": "=>",
-                        "open_tag": "<{tag} {attr}>",
-                        "open_tag_no_attr": "<{tag}>",
-                        "closed_tag": "</{tag}>",
-                        "self_closing_tag": "<{tag} {attr} />",
-                        "self_closing_no_attr": "<{tag} />"
-                    },
-                    "prompt_fragments": [
-                        {
-                            "id": "general_rules",
-                            "type": "document",
-                            "path": ".clanker/assets/general-rules.md"
-                        },
-                        {
-                            "id": "rest_rules",
-                            "type": "document",
-                            "path": ".clanker/assets/rest-rules.md"
-                        },
-                        {
-                            "id": "script_file_only",
-                            "type": "file_set",
-                            "resolver": {
-                                "sorter": "path_asc",
-                                "inclusion_roots": ["clanker.py"],
-                                "exclusion_roots": []
-                            }
-                        }
-                    ]
-                }
-            ]
-        }
-    ]
-}
-
-DEFAULT_CONFIG = {
-    "active_num_btn": "1",
-    "rows": {
-        "domain_row": {"primary": "1234567890", "secondary": '!"#¤%&/()='},
-        "prompt_row": {"primary": "qwer", "secondary": "QWER"},
-        "action_row": {"primary": "asdf", "secondary": "ASDF"}
-    },
-    "domains": []
-}
-
-""" 6. DI, Main and Entrypoint """
-
-class InstanceFactory:
-    def __init__(self):
-        self.files = FileBridge()
-        self.files.base_path_provider = lambda: Path.cwd()
-        self.io_bridge = IOBridge()
-
-        self.session = SessionService()
-        self.session.files = self.files
-
-        self.io = IOService()
-        self.io.io_bridge = self.io_bridge
-
-        self.kb = KeyboardService()
-        self.kb.files = self.files
-
-        self.renderer = OutputAssemblyService()
-        self.renderer.files = self.files
-
-    def create_game_engine(self) -> GameEngine:
-        engine = GameEngine()
-        engine.kb = self.kb
-        engine.io = self.io
-        engine.session = self.session
-        engine.renderer = self.renderer
-        return engine
-
-def main():
-    try:
-        engine = InstanceFactory().create_game_engine()
-        exit_msg = engine.run()
-        print(f"Byebye: {exit_msg.message}")
-    except BaseFailureEx as ex:
-        err_msg = getattr(ex, "message", None) or str(ex) or ex.__class__.__name__
-        sys.stderr.write(f"Failure: {err_msg}\n")
-        sys.exit(1)
+""" 7. Script Entrypoint """
 
 if __name__ == "__main__":
     main()
