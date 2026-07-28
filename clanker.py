@@ -41,16 +41,17 @@ class BaseAppEx(Exception):
         return super().__new__(cls)
     @classmethod
     def _validate_instantiation(cls, args: tuple, kwargs: dict) -> None:
-        if cls.__name__.startswith("Base"):
-            raise BaseExInstantiationAttempt
-        if args or kwargs:
-            raise BaseExInstantiationAttempt
+        if cls is BaseAppEx:
+            raise BaseExInstantiationAttempt(cls.__name__)
+        if cls is BaseNoticeEx and (args or kwargs):
+            raise IllegalNoticeArgs(cls.__name__)
 
 class BaseFailureEx(BaseAppEx): pass
 class BaseNoticeEx(BaseAppEx): pass
 
 class MissedNoticeFailure(BaseFailureEx): pass
 class BaseExInstantiationAttempt(BaseFailureEx): pass
+class IllegalNoticeArgs(BaseFailureEx): pass
 class BridgeLeakageFailure(BaseFailureEx): pass
 class NotImplementedFailure(BaseFailureEx): pass
 class UncaughtAdoptedNoticeFailure(BaseFailureEx): pass
@@ -77,6 +78,7 @@ class BaseStrictModel(BaseModel):
 
 class Config(BaseStrictModel):
     DEFAULT_REL_PATH: ClassVar[Path] = Path(".clanker/config.json")
+    DEFAULT_ASSETS_DIR: ClassVar[Path] = Path(".clanker/assets")
 
     active_num_btn: str = "1"
     rows: dict[str, dict[str, str]]
@@ -121,11 +123,12 @@ class FileSetResolver(BaseStrictModel):
 class PromptFragment(BaseStrictModel):
     class Type(StrEnum):
         FILE_SET = "file_set"
-        STATIC_TEXT = "static_text"
+        DOCUMENT = "document"
 
     id: str
     type: Type
-    resolver: FileSetResolver  # Resolvers can also be typed specifically
+    path: Path | None = None
+    resolver: FileSetResolver | None = None
 
 class Prompt(BaseStrictModel):
     name: str
@@ -166,13 +169,17 @@ class GameEngine:
 
     def bootstrap(self) -> "GameEngine":
         try:
-            self.kb.load_config()
+            cfg = self.kb.get_config()
+            self.kb.build_button_map(cfg.rows)
+            self.kb.populate_num_keys(cfg.domains)
+            self.wire_num_row_handlers()
+            self.set_selected_num_btn(cfg.active_num_btn)
         except NoConfigNotice:
             try:
                 self.io.get_confirmation("Config missing. Create default config?")
                 raw_config = CLANK_CONFIG if self.session.is_cwd_script_dir() else DEFAULT_CONFIG
                 self.kb.save_config(raw_config)
-                self.kb.load_config()
+                self.bootstrap()
             except UserDeclineNotice:
                 raise BootstrapDeclineNotice
 
@@ -189,11 +196,8 @@ class GameEngine:
                 view_str = self.renderer.render_ui(MAIN_CONSOLE_TEMPLATE, repl_map) 
                 self.io.display(view_str) 
                 key = self.io.get_key()
-                prompt = self.kb.handle_key(key)
-                #todo: if prompt is none, skip rest + actionmsg to use
-                compiledprompt = self.renderer.build_prompt(prompt)
-                lines_count = self.io.pushtoclipboard(compiledprompt)
-                self.action_result = ActionResultMsg(f"Copied {lines_count} lines to clipboard") # the toast!
+                ## this should now give a msg right away, so we can just store that and l'complete ?
+                self.msg = self.kb.handle_key(key)
 
             except UserCancelNotice: 
                 break
@@ -205,6 +209,55 @@ class GameEngine:
                 raise
         return ActionResultMsg("Shutdown requested")
 
+    def wire_num_row_handlers(self) -> None:
+        for btn in self.kb.button_map.values():
+            if btn.type == "num_btn":
+                btn.primary_action = lambda key: self.set_selected_num_btn(key)
+                btn.shift_action = lambda key: exec("raise NotImplementedError")
+
+    def set_selected_num_btn(self, key: str | None) -> ActionResultMsg:
+        if key is None:
+            self.kb.selected_num_btn_primary_letter = None
+            for btn in [b for b in self.kb.button_map.values() if b.type != "num_btn"]:
+                btn.inhabitant = None
+                btn.primary_action = None
+                btn.shift_action = None
+            return ActionResultMsg("Selection cleared")
+
+        referenced_btn = self.kb.button_map[key]
+        if referenced_btn.type != "num_btn":
+            raise ValueError("Selected button is not a number button")
+
+        self.kb.selected_num_btn_primary_letter = key
+        prompt_buttons = [btn for btn in self.kb.button_map.values() if btn.type == "prompt_btn"]
+        action_buttons = [btn for btn in self.kb.button_map.values() if btn.type == "action_btn"]
+
+        if referenced_btn.inhabitant is None:
+            for btn in prompt_buttons + action_buttons:
+                btn.inhabitant = None
+                btn.primary_action = None
+                btn.shift_action = None
+            domain_name = "None"
+        else:
+            for prompt_btn, prompt in zip(prompt_buttons, referenced_btn.inhabitant.prompts):
+                prompt_btn.inhabitant = prompt
+                prompt_btn.primary_action = lambda k: self.compile_prompt_to_clipboard(k)
+                prompt_btn.shift_action = lambda key: exec("raise NotImplementedError")
+
+            for action_btn in action_buttons:
+                action_btn.primary_action = lambda key: exec("raise NotImplementedError")
+                action_btn.shift_action = lambda key: exec("raise NotImplementedError")
+
+            domain_name = referenced_btn.inhabitant.name
+
+        return ActionResultMsg(f"Domain '{domain_name}' on key '{key}' selected")
+
+    def compile_prompt_to_clipboard(self, key) -> ActionResultMsg:
+        button = self.kb.button_map[key]
+        compiledprompt = self.renderer.build_prompt(button.inhabitant)
+        lines_count = self.io.pushtoclipboard(compiledprompt)
+        return ActionResultMsg(f"Copied {lines_count} lines to clipboard")
+
 """ 3. Services """
 
 class SessionService:
@@ -214,35 +267,8 @@ class SessionService:
     def _build_ui_repl_map(self) -> dict:
         return {"last_msg": "hello from ss"}
 
-class KeyboardService:   
-    def domain_key_primary(self, btn_primary: str | None) -> None:
-        if btn_primary is None:
-            self.selected_num_btn_primary_letter = None
-            for btn in [b for b in self.button_map.values() if b.type == "prompt_btn"]:
-                btn.inhabitant = None
+class KeyboardService:
 
-        referenced_btn = self.button_map[btn_primary]
-        if referenced_btn.type != "num_btn":
-            raise ValueError("Selected button is not a number button")
-
-        self.selected_num_btn_primary_letter = btn_primary
-        prompt_buttons = [btn for btn in self.button_map.values() if btn.type == "prompt_btn"]
-
-        if referenced_btn.inhabitant is None:
-            for btn in prompt_buttons:
-                btn.inhabitant = None
-        else:
-            for prompt_btn, prompt in zip(prompt_buttons, referenced_btn.inhabitant.prompts):
-                prompt_btn.inhabitant = prompt
-
-    def domain_key_secondary(self, btn_secondary: str) -> None:
-        pass
-
-    def prompt_key_primary(self, btn_primary) -> Prompt:
-        return self.button_map[btn_primary].inhabitant
-
-    def prompt_key_secondary(self, btn_secondary: str) -> None:
-        pass
 
 
     def handle_key(self, key: str) -> None:
@@ -254,7 +280,6 @@ class KeyboardService:
             return btn.primary_action(btn.primary_letter)
         elif key == btn.secondary_letter:
             return btn.shift_action(btn.primary_letter)
-        return None
 
     def _build_ui_repl_map(self) -> dict[str, str]:
         repl_map = {}
@@ -286,13 +311,40 @@ class KeyboardService:
         return repl_map
 
 
-    def load_config(self) -> None:
+    def get_config(self) -> Config:
         try:
             raw_data = self.files.read_json(Config.DEFAULT_REL_PATH)
-            config = Config.model_validate(raw_data)
+            return Config.model_validate(raw_data)
         except FileNotFoundError:
             raise NoConfigNotice
 
+    def build_button_map(self, rows: dict[str, dict[str, str]]) -> None:
+            self.button_map = {}
+            for row_key, row in rows.items():
+                btn_type = (
+                    "num_btn" if row_key == "domain_row"
+                    else ("prompt_btn" if row_key == "prompt_row" else "action_btn")
+                )
+
+                for prim, sec in zip(row["primary"], row["secondary"]):
+                    btn = Button(
+                        type=btn_type,
+                        primary_letter=prim,
+                        secondary_letter=sec,
+                    )
+                    self.button_map[prim] = btn
+                    self.button_map[sec] = btn
+
+    def populate_num_keys(self, domains: list[Domain]) -> None:
+        num_buttons = [btn for btn in self.button_map.values() if btn.type == "num_btn"]
+        unique_num_buttons = [btn for k, btn in self.button_map.items() if k == btn.primary_letter and btn.type == "num_btn"]
+
+        for btn, domain in zip(unique_num_buttons, domains):
+            btn.inhabitant = domain
+    def save_config(self, raw_config: dict) -> None:
+        config = Config.model_validate(raw_config)
+        self.files.write_json(Config.DEFAULT_REL_PATH, config.model_dump(mode="json"))
+"""
         self.button_map = {}
         for row_key, row in config.rows.items():
             btn_type = (
@@ -326,11 +378,7 @@ class KeyboardService:
             self.button_map[letter].inhabitant = domain
 
         self.domain_key_primary(config.active_num_btn)
-
-    def save_config(self, raw_config: dict) -> None:
-        config = Config.model_validate(raw_config)
-        self.files.write_json(Config.DEFAULT_REL_PATH, config.model_dump())
-
+"""
 class OutputAssemblyService:
     def _hydrate(self, template: str, replacements: dict[str, str]) -> str:
         token = SystemKeys.DELIM.value
@@ -341,35 +389,42 @@ class OutputAssemblyService:
         )
 
     def build_prompt(self, prompt_config: Prompt) -> str:
-        symbols = prompt_config.symbol_set
-        # here we create replacements by a comprehension of the promptfragments.
-        # we map the id on the key, on the value we map _resolve(type, resolver)
-
         replacements: dict[str, str] = {
-            fragment.id: self._resolve(fragment.type, fragment.resolver)
+            fragment.id: self._resolve(fragment)
             for fragment in prompt_config.prompt_fragments
         }
 
-        prompt = (
+        builder = (
             _PromptBuilder(prompt_config.symbol_set)
             .add_open_tag("runtime", attr=": kindly oblige if noobject")
-                .add_open_tag("msg-from-runtime-author", attr="kindly serve the function of the runtime")
-                .add_doc("document-tag", "script_file_only", attr="the clank script")
-            .close_current_tag()
+            .add_open_tag("msg-from-runtime-author", attr="kindly serve the function of the runtime")
         )
 
-        return self._hydrate(prompt.consume(), replacements)
+        for fragment in prompt_config.prompt_fragments:
+            builder.add_doc("document-tag", fragment.id, attr=f"fragment: {fragment.id}")
 
-    def _resolve(self, type_: str, resolver: FileSetResolver) -> str:
-        if type_ == PromptFragment.Type.FILE_SET: # or simply "file_set"
-            sorter = resolver.sorter
-            included = self.files.expand_paths(resolver.inclusion_roots)
-            excluded = self.files.expand_paths(resolver.exclusion_roots)
-            paths = included - excluded
+        builder.close_current_tag()
 
-            return "..."
+        return self._hydrate(builder.consume(), replacements)
 
-        raise ValueError(f"Unsupported fragment type: {type_}")
+    def _resolve(self, fragment: PromptFragment) -> str:
+        if fragment.type == PromptFragment.Type.DOCUMENT:
+            if not fragment.path:
+                raise ValueError(f"Document fragment '{fragment.id}' missing path")
+            return self.files.read_content(fragment.path)
+
+        if fragment.type == PromptFragment.Type.FILE_SET:
+            if not fragment.resolver:
+                raise ValueError(f"File set fragment '{fragment.id}' missing resolver")
+            included = self.files.expand_paths(fragment.resolver.inclusion_roots)
+            excluded = self.files.expand_paths(fragment.resolver.exclusion_roots)
+            paths = sorted(included - excluded)
+
+            tree_header = "\n".join(f"├── {p}" for p in paths)
+            file_blocks = [f"--- {p} ---\n{self.files.read_content(p)}" for p in paths]
+            return f"{tree_header}\n\n" + "\n\n".join(file_blocks)
+
+        raise ValueError(f"Unsupported fragment type: {fragment.type}")
 
 
     def render_ui(self, template: str, replacements: dict[str, str]) -> str:
@@ -527,6 +582,11 @@ class FileBridge(Bridge):
         with open(target_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
+    def read_content(self, rel_path: Path) -> str:
+        target_path = self.base_path_provider() / rel_path
+        with open(target_path, "r", encoding="utf-8") as f:
+            return f.read()
+
     def expand_paths(self, rel_roots: list[str | Path]) -> set[Path]:
         """
         Given a list of relative paths (dirs or files), returns a set of all
@@ -632,6 +692,16 @@ CLANK_CONFIG = {
                     },
                     "prompt_fragments": [
                         {
+                            "id": "general_rules",
+                            "type": "document",
+                            "path": ".clanker/assets/general-rules.md"
+                        },
+                        {
+                            "id": "rest_rules",
+                            "type": "document",
+                            "path": ".clanker/assets/rest-rules.md"
+                        },
+                        {
                             "id": "script_file_only",
                             "type": "file_set",
                             "resolver": {
@@ -691,35 +761,9 @@ def main():
         exit_msg = engine.run()
         print(f"Byebye: {exit_msg.message}")
     except BaseFailureEx as ex:
-        sys.stderr.write(f"Failure: {ex}\n")
+        err_msg = getattr(ex, "message", None) or str(ex) or ex.__class__.__name__
+        sys.stderr.write(f"Failure: {err_msg}\n")
         sys.exit(1)
 
 if __name__ == "__main__":
     main()
-
-"""
-Rules
-    - i want discussion with competent counterpart on my terms
-    - focus on what i want
-    - never return code or script to me unsolicited.
-    - you should always ask for clarification or seek resolution, and never be afraid to speak truth
-output instructions
-    - retain docstrings & pattern implied
-    - do not introduce docstrings. any 
-    - copyable markdown block to my spec. sometimes several in a row, other times full file.
-    - never output code without explicit directive to do so
-antipatterns:
-    - unwarranted assignments in methods
-        -> use available reference
-    - defensive inline guarding
-        -> update exception system 
-    - wastefull empty lines 
-""" 
-"""
-i am currently pursuing prompt generation, and my goal now is to do a proper insertion into the one prompt in clank config
-
-the insertion is a prompt fragment type of file set, and its resolver has path ascending sorting, inclusion root of clanker.py and no exclusions
-
-but lets review the current state in light of this goal first! pls return opinion on readiness to proceed.
-
-"""
