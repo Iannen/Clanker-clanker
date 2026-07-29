@@ -14,6 +14,21 @@ from pydantic import BaseModel, ConfigDict, Field
 
 """ 1. Templates, Default Configs & UI Strings """
 
+DEFAULT_PROMPT_TEMPLATE = r"""
+<runtime : kindly oblige if noobject>
+  <msg-from-runtime-author kindly serve the function of the runtime>
+    <document-tag fragment: general_rules>
+§general_rules§
+    </document-tag>
+    <document-tag fragment: script_dev>
+§script_dev§
+    </document-tag>
+    <document-tag fragment: script_file_only>
+§script_file_only§
+    </document-tag>
+  </msg-from-runtime-author>
+</runtime>"""
+
 MAIN_CONSOLE_TEMPLATE = r"""
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 │                                                                                                                         │
@@ -153,60 +168,109 @@ DEFAULT_CONFIG = {
 """ 2. Base Classes & Main function """
 
 class BaseAppEx(Exception):
-    ADOPTED_NOTICES: tuple[type[Exception], ...] = (FileNotFoundError, PermissionError)
 
     def __new__(cls, *args, **kwargs):
-        cls._validate_instantiation(args, kwargs)
-        return super().__new__(cls)
-    @classmethod
-    def _validate_instantiation(cls, args: tuple, kwargs: dict) -> None:
         if cls is BaseAppEx:
             raise BaseExInstantiationAttempt(cls.__name__)
         if cls is BaseNoticeEx and (args or kwargs):
             raise IllegalNoticeArgs(cls.__name__)
+        return super().__new__(cls)
+
+    ADOPTED_NOTICES: tuple[type[Exception], ...] = ( # list would be prettier
+        FileNotFoundError,
+        PermissionError
+    )
+
+    @classmethod
+    def wrap_bridge_call(cls, fn, *args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except cls.ADOPTED_NOTICES:
+            raise
+        except BaseNoticeEx:
+            raise
+        except Exception as ex:
+            raise BridgeLeakageFailure() from ex
+
+    @classmethod
+    def reraise_as_failure(cls, ex: Exception) -> None:
+        if isinstance(ex, BaseFailureEx):
+            raise
+        if isinstance(ex, BaseNoticeEx):
+            raise MissedNoticeFailure(f"Missed notice: {ex}") from ex
+        if isinstance(ex, BaseAppEx.ADOPTED_NOTICES):
+            raise UncaughtAdoptedNoticeFailure(f"Adopted notice failure: [{type(ex).__name__}] {ex}") from ex
+        else:
+            raise UncaughtUnexpectedFailure(f"[{type(ex).__name__}] {ex}") from ex
+
+    @classmethod
+    def print_traceback_and_exit(cls, ex: Exception) -> None:
+        """Formats failure details, prints the underlying stack trace if present, and exits."""
+        cause = getattr(ex, "__cause__", None)
+        err_detail = str(ex) if str(ex) else ex.__class__.__name__
+
+        sys.stderr.write(f"\n[FAILURE] {err_detail}\n")
+
+        if cause:
+            sys.stderr.write("\n--- Underlying Stack Trace ---\n")
+            traceback.print_exception(type(cause), cause, cause.__traceback__)
+
+        sys.exit(1)
 
 class BaseFailureEx(BaseAppEx): pass
 class BaseNoticeEx(BaseAppEx): pass
 
-class BaseStrictModel(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+class Engine:
+    def run(self) -> str:
+        try:
+            bootstrap_res_msg = self._bootstrap_application()
+            self._add_to_board(bootstrap_res_msg)
+            while True:
+                cmd_key = self._display_ui_to_user() # use pipeline method. we need contributors in scope.
+                cmd_res_msg = self._dispatch_cmd(cmd_key)
+                self._add_to_board(cmd_res_msg)
+        except ProgramExitNotice as exit_request:
+            return exit_request.get_compliance_msg()
+        except Exception as any_other_ex:
+            BaseAppEx.reraise_as_failure(any_other_ex)
+
+    def _bootstrap_application(self) -> ActionResultMsg:
+        raise NotImplementedError
+    def _display_ui_to_user(self) -> str:
+        raise NotImplementedError
+
+    def _dispatch_cmd(self, key: str) -> ActionResultMsg:
+        raise NotImplementedError
+    def _add_to_board(self, msg: ActionResultMsg | None) -> None:
+        raise NotImplementedError
 
 class Bridge:
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
+    def __init_subclass__(cls):
         for attr_name, attr_value in list(cls.__dict__.items()):
             if callable(attr_value) and not attr_name.startswith("_"):
                 setattr(cls, attr_name, cls._wrap_safely(attr_value))
-
     @staticmethod
     def _wrap_safely(fn):
         def wrapper(*args, **kwargs):
-            try:
-                return fn(*args, **kwargs)
-            except BaseAppEx.ADOPTED_NOTICES:
-                raise
-            except BaseNoticeEx:
-                raise
-            except Exception as ex:
-                raise BridgeLeakageFailure(f"Fatal bridge error in [{fn.__qualname__}]: {ex}") from ex
+            return BaseAppEx.wrap_bridge_call(fn, *args, **kwargs)
         return wrapper
+
+class BaseStrictModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
 
 def main():
     try:
         files = FileBridge()
-        files.base_path_provider = lambda: Path.cwd()
         io_bridge = IOBridge()
 
         session = SessionService()
-        session.files = files
-
-        io = IOService()
-        io.io_bridge = io_bridge
-
         kb = KeyboardService()
-        kb.files = files
-
+        io = IOService()
         renderer = OutputAssemblyService()
+
+        session.files = files
+        io.io_bridge = io_bridge
+        kb.files = files
         renderer.files = files
 
         engine = GameEngine()
@@ -216,13 +280,19 @@ def main():
         engine.renderer = renderer
 
         exit_msg = engine.run()
-        print(f"App exited: {exit_msg.message}")
-
+        print(exit_msg)
     except BaseFailureEx as ex:
-        err_msg = getattr(ex, "message", None) or str(ex) or ex.__class__.__name__
-        sys.stderr.write(f"Failure: {err_msg}\n")
-        sys.exit(1)
+        BaseAppEx.print_traceback_and_exit(ex)
 
+    """
+    except BaseFailureEx as ex:
+        cause = getattr(ex, "__cause__", None)
+        sys.stderr.write(f"\n[FAILURE] {ex}\n")
+        if cause:
+            sys.stderr.write("\n--- Underlying Stack Trace ---\n")
+            traceback.print_exception(type(cause), cause, cause.__traceback__)
+        sys.exit(1)
+    """
 """ 3. Exceptions, Result Objects, Enums """
 
 class ActionResultMsg:
@@ -235,11 +305,15 @@ class IllegalNoticeArgs(BaseFailureEx): pass
 class BridgeLeakageFailure(BaseFailureEx): pass
 class NotImplementedFailure(BaseFailureEx): pass
 class UncaughtAdoptedNoticeFailure(BaseFailureEx): pass
+class UncaughtUnexpectedFailure(BaseFailureEx): pass
+
 
 class UserCancelNotice(BaseNoticeEx): pass
 class UserDeclineNotice(BaseNoticeEx): pass
 class BootstrapDeclineNotice(BaseNoticeEx): pass
-class ProgramExitNotice(BaseNoticeEx): pass
+class ProgramExitNotice(BaseNoticeEx):
+    def get_compliance_msg(self):
+        return "Program exited"
 class NoConfigNotice(BaseNoticeEx): pass
 
 class SystemKeys(Enum):  
@@ -327,47 +401,36 @@ class Button(BaseModel):
         ]
         return {f"{self.primary_letter}{idx}": line for idx, line in enumerate(mapped_lines)}
 
-class GameEngine:
+class GameEngine(Engine):
 
-    def bootstrap(self) -> "GameEngine":
+    def _bootstrap_application(self) -> ActionResultMsg:
         try:
-            cfg = self.kb.get_config()
+            cfg = self.session.get_config()
             self.kb.build_button_map(cfg.rows)
             self.kb.populate_num_keys(cfg.domains)
             self.wire_num_row_handlers()
             self.set_selected_num_btn(cfg.active_num_btn)
+            return ActionResultMsg("Bootstrap completed successfully")
         except NoConfigNotice:
             try:
                 self.io.get_confirmation("Config missing. Create default config?")
-                raw_config = CLANK_CONFIG if self.session.is_cwd_script_dir() else DEFAULT_CONFIG
-                self.kb.save_config(raw_config)
-                self.bootstrap()
+                config = CLANK_CONFIG if self.session.is_cwd_script_dir() else DEFAULT_CONFIG
+                self.session.save_config(config)
+                return self._bootstrap_application()
             except UserDeclineNotice:
-                raise BootstrapDeclineNotice
+                raise ProgramExitNotice
 
-    def run(self) -> ActionResultMsg:
-        try:
-            self.bootstrap()
-            self.action_result = ActionResultMsg('Bootstrap completed successfully') 
-        except BootstrapDeclineNotice:
-            return ActionResultMsg("Bootstrap cancelled by user")
+    def _display_ui_to_user(self) -> str:
+        repl_map = self.kb._build_ui_repl_map() | self.session._build_ui_repl_map()
+        view_str = self.renderer.render_ui(MAIN_CONSOLE_TEMPLATE, repl_map)
+        self.io.display(view_str)
+        return self.io.get_key()
 
-        while True:
-            try:
-                repl_map = self.kb._build_ui_repl_map() | self.session._build_ui_repl_map()
-                view_str = self.renderer.render_ui(MAIN_CONSOLE_TEMPLATE, repl_map) 
-                self.io.display(view_str) 
-                key = self.io.get_key()
-                self.msg = self.kb.handle_key(key)
-            except UserCancelNotice: 
-                break
-            except BaseNoticeEx as notice:
-                raise MissedNoticeFailure from notice
-            except BaseAppEx.ADOPTED_NOTICES as notice:
-                raise UncaughtAdoptedNoticeFailure from notice
-            except BaseFailureEx:
-                raise
-        return ActionResultMsg("Shutdown requested")
+    def _dispatch_cmd(self, key: str) -> ActionResultMsg:
+        return self.kb.handle_key(key)
+
+    def _add_to_board(self, msg: ActionResultMsg | None) -> None:
+        self.msg = msg
 
     def wire_num_row_handlers(self) -> None:
         for btn in self.kb.get_unique_buttons("num_btn"):
@@ -404,12 +467,46 @@ class GameEngine:
         msg = "Selection cleared" if case == "none" else f"Domain 'None' on key '{key}' selected"
         return ActionResultMsg(msg)
 
-    def compile_prompt_to_clipboard(self, key) -> ActionResultMsg:
-        compiledprompt = self.renderer.build_prompt(
-            self.kb.button_map[key].inhabitant
-        )
-        lines_count = self.io.pushtoclipboard(compiledprompt)
+    def compile_prompt_to_clipboard(self, key: str) -> ActionResultMsg:
+        btn = self.kb.button_map.get(key)
+        if btn is None or btn.inhabitant is None:
+            return ActionResultMsg(f"No prompt assigned to key '{key}'")
+
+        compiled_prompt = self.renderer.build_prompt(btn.inhabitant)
+        lines_count = self.io.pushtoclipboard(compiled_prompt)
         return ActionResultMsg(f"Copied {lines_count} lines to clipboard")
+
+    def _display_frame_get_cmd_key(self, ui_frame: str) -> str:
+        self.io.display(ui_frame)
+        return self.io.get_key()
+
+    def _execute_cmd(self, key: str) -> ActionResultMsg:
+        return self._dispatch_cmd(key)
+
+    def _process_res_object(self, msg: ActionResultMsg | None) -> None:
+        self._add_to_board(msg)
+
+    """ on the way in
+    def _get_render_output(self, subject) -> str: # lets say subject is a tuple of stuff. like (Enumval, prompt, session) and (kbservice, session). these guys need to reserve space on template, and also they have data for it.
+        contributors = self._get_ui_contributors(subject) # there can be some resolution going on, ena we not have a contributor set
+        template = self._get_template(contributors, subject) # the template is built to suit the demands of contributors
+        repl_map = self._get_repl_map(contributors, subject) # the data of the contributors is collected
+        return self._render(template, repl_map) # and inserted into the template which is returned immediately.
+
+    def _get_template(self, contributors: list, subject) -> str:
+        for c in contributors:
+            if hasattr(c, "prompt_fragments"):
+                return self.renderer.get_prompt_template(c)
+        return MAIN_CONSOLE_TEMPLATE
+
+    def _get_repl_map(self, contributors: list, subject) -> dict[str, str]:
+        merged = {}
+        ...
+        return merged
+
+    def _render(self, template: str, repl_map: dict[str, str]) -> str:
+        return self.renderer.render_ui(template, repl_map)
+    """
 
 """ 5. Services """
 
@@ -417,24 +514,40 @@ class SessionService:
     def is_cwd_script_dir(self) -> bool:
         return self.files.is_cwd_script_dir()
 
+    def get_config(self) -> Config:
+        try:
+            raw_data = self.files.read_yaml(Config.DEFAULT_REL_PATH)
+            return Config.model_validate(raw_data)
+        except FileNotFoundError:
+            raise NoConfigNotice
+
+    def save_config(self, raw_config: dict) -> None:
+        config = Config.model_validate(raw_config)
+        self.files.write_yaml(Config.DEFAULT_REL_PATH, config.model_dump(mode="json"))
+
     def _build_ui_repl_map(self) -> dict:
         return {"last_msg": "hello from ss"}
 
+# new name proposal: CommandRouter
 class KeyboardService:
+
     def get_unique_buttons(self, btn_type: str | None = None) -> list[Button]:
         unique = {btn.primary_letter: btn for btn in self.button_map.values()}.values()
         if btn_type is None:
             return list(unique)
         return [btn for btn in unique if btn.type == btn_type]
-    def handle_key(self, key: str) -> None:
-        btn = self.button_map.get(key)
-        if btn is None:# in future raise, make it explicit
-            return
 
-        if key == btn.primary_letter:
+    def handle_key(self, key: str) -> ActionResultMsg | None:
+        btn = self.button_map.get(key)
+        if btn is None:
+            return None
+
+        if key == btn.primary_letter and callable(btn.primary_action):
             return btn.primary_action(btn.primary_letter)
-        elif key == btn.secondary_letter:
+        elif key == btn.secondary_letter and callable(btn.shift_action):
             return btn.shift_action(btn.primary_letter)
+
+        return ActionResultMsg(f"No action bound to key '{key}'")
 
     def _build_ui_repl_map(self) -> dict[str, str]:
         repl_map = {}
@@ -464,14 +577,6 @@ class KeyboardService:
 
         return repl_map
 
-
-    def get_config(self) -> Config:
-        try:
-            raw_data = self.files.read_yaml(Config.DEFAULT_REL_PATH)
-            return Config.model_validate(raw_data)
-        except FileNotFoundError:
-            raise NoConfigNotice
-
     def build_button_map(self, rows: dict[str, dict[str, str]]) -> None:
             self.button_map = {}
             for row_key, row in rows.items():
@@ -492,10 +597,6 @@ class KeyboardService:
     def populate_num_keys(self, domains: list[Domain]) -> None:
         for btn, domain in zip(self.get_unique_buttons("num_btn"), domains):
             btn.inhabitant = domain
-
-    def save_config(self, raw_config: dict) -> None:
-        config = Config.model_validate(raw_config)
-        self.files.write_yaml(Config.DEFAULT_REL_PATH, config.model_dump(mode="json"))
 
 class OutputAssemblyService:
     def _hydrate(self, template: str, replacements: dict[str, str]) -> str:
@@ -559,7 +660,7 @@ class IOService:
     def get_key(self) -> str:
         ch = self.io_bridge.read_char()
         if ch in (SystemKeys.CTRL_C.value, SystemKeys.ESC.value):
-            raise UserCancelNotice
+            raise ProgramExitNotice
         return ch
 
     def get_confirmation(self, prompt_msg: str, required_phrase: str = "") -> None:
@@ -597,7 +698,6 @@ class IOService:
                 self.io_bridge.write(ch)
 
 class _PromptBuilder:
-    """Private helper for OutputAssemblyService utilizing SymbolSet domain model."""
 
     def __init__(self, symbols: SymbolSet):
         self.symbols = symbols
@@ -670,33 +770,28 @@ class FileBridge(Bridge):
 
     def __init__(self) -> None:
         self.yaml = YAML()
+        self.base_path = Path.cwd()
 
     def read_yaml(self, rel_path: Path) -> dict:
-        target_path = self.base_path_provider() / rel_path
-        with open(target_path, "r", encoding="utf-8") as f:
+        with open(self.base_path / rel_path, "r", encoding="utf-8") as f:
             return self.yaml.load(f)
 
     def is_cwd_script_dir(self) -> bool:
-        return self.base_path_provider().resolve() == Path(__file__).parent.resolve()
+        return self.base_path.resolve() == Path(__file__).parent.resolve()
     
     def write_yaml(self, rel_path: Path, data: dict) -> None:
-        target_path = self.base_path_provider() / rel_path
+        target_path = self.base_path / rel_path
         target_path.parent.mkdir(parents=True, exist_ok=True)
         with open(target_path, "w", encoding="utf-8") as f:
             self.yaml.dump(data, f)
 
     def read_content(self, rel_path: Path) -> str:
-        target_path = self.base_path_provider() / rel_path
-        with open(target_path, "r", encoding="utf-8") as f:
+        with open(self.base_path / rel_path, "r", encoding="utf-8") as f:
             return f.read()
 
     def expand_paths(self, rel_roots: list[str | Path]) -> set[Path]:
-        """
-        Given a list of relative paths (dirs or files), returns a set of all
-        resolved relative Path objects. Directories are recursively expanded.
-        """
         resolved_files: set[Path] = set()
-        base_dir = self.base_path_provider()
+        base_dir = self.base_path
 
         for root_str in rel_roots:
             rel_path = Path(root_str)

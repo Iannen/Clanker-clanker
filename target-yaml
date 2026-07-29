@@ -1,137 +1,134 @@
-# ==========================================
-# FILE PATH: .clanker/config.yaml
-# ==========================================
-kb_spec:
-  active_num_btn: null
-  rows:
-    domain_row:
-      primary: "1234567890"
-      secondary: '!"#¤%&/()='
-    prompt_row:
-      primary: "qwer"
-      secondary: "QWER"
-    action_row:
-      primary: "asdf"
-      secondary: "ASDF"
+active_num_btn: "1"
+
+rows:
+  domain_row:
+    primary: "1234567890"
+    secondary: '!"#¤%&/()='
+  prompt_row:
+    primary: "qwer"
+    secondary: "QWER"
+  action_row:
+    primary: "asdf"
+    secondary: "ASDF"
+
+symbol_sets:
+  default_symbols:
+    indent: "  "
+    arrow_indent: "=>"
+    open_tag: "<{tag} {attr}>"
+    open_tag_no_attr: "<{tag}>"
+    closed_tag: "</{tag}>"
+    self_closing_tag: "<{tag} {attr} />"
+    self_closing_no_attr: "<{tag} />"
+
+prompt_fragments:
+  general_rules:
+    type: document
+    path: .clanker/assets/general-rules.md
+  config_development:
+    type: document
+    path: .clanker/assets/config_development_instructions.md
+  script_dev:
+    type: document
+    path: .clanker/assets/script_dev_instructions.md
+  debloat:
+    type: document
+    path: .clanker/assets/debloat_instructions.md
+  backlog_doc:
+    type: document
+    path: .clanker/documents/backlog.md
+  script_file_only:
+    type: file_set
+    resolver:
+      sorter: path_asc
+      inclusion_roots:
+        - clanker.py
+      exclusion_roots: []
 
 domains:
-  - "domains/src-dev.yaml"
+  - name: Main script
+    plan: null
+    prompts:
+      - name: config-dev
+        symbol_set: default_symbols
+        fragments:
+          - general_rules
+          - config_development
+          - script_file_only
+
+      - name: script-dev
+        symbol_set: default_symbols
+        fragments:
+          - general_rules
+          - script_dev
+          - script_file_only
+
+      - name: debloat
+        symbol_set: default_symbols
+        fragments:
+          - general_rules
+          - debloat
+          - script_file_only
+
+  - name: Backlog
+    plan: null
+    prompts:
+      - name: backlog-review
+        symbol_set: default_symbols
+        fragments:
+          - general_rules
+          - backlog_doc
 
 
-# ==========================================
-# FILE PATH: .clanker/domains/src-dev.yaml
-# ==========================================
-name: "Source Development"
-plan:
-  name: "src-dev-plan"
-prompts:
-  - "prompts/src-general.yaml"
-  - "prompts/src-anti-pattern-policing.yaml"
+
+bootstrap diagram. main to engine correct.then engine to sessionservice. then engine to kbservice. then bootstrap done
+needs fixing to display that
+                  ┌────────────────────────┐
+                  │      main()            │
+                  └──────────┬─────────────┘
+                             │
+                             ▼
+ ┌────────────────────────────────────────────────────────┐
+ │                   GameEngine (The Bus)                 │
+ └──────┬────────────────────┬────────────────────┬───────┘
+        │                    │                    │
+        │ 1. Read Config     │ 2. Build UI        │ 3. Key Handler
+        ▼                    ▼                    ▼
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│ KeyboardSvc  │     │ OutputAssembly│    │  IOService   │
+│              │     │   Service    │     │              │
+│ - Button Map │     │              │     │ - Display UI │
+│ - Handlers   │     │ - Hydrate UI │     │ - Read Char  │
+└──────────────┘     └──────────────┘     └──────────────┘
 
 
-# ==========================================
-# FILE PATH: .clanker/prompts/src-general.yaml
-# ==========================================
-# Prompt 1: Base prompt (Context + Target Source Code)
-name: "src-general"
-symbol_set: "symbols/xml-style.yaml"
-prompt_fragments:
-  - "fragments/general-introduction.yaml"
-  - "fragments/script-file-only.yaml"
-  - "fragments/general-conversation-purpose.yaml"
-  
+cmd handling diagram. engine to (sessionservice, kbservice) to build repl map. then to renderer for view string, then to IO to display, then to IO to listen for key, then finally route to cmd.
+needs fixing to display that
+ ┌────────────────────────────────────────────────────────┐
+ │                   GameEngine (The Bus)                 │
+ └──────┬────────────────────┬────────────────────┬───────┘
+        │                    │                    │
+        │ 1. Read Config     │ 2. Build UI        │ 3. Key Handler
+        ▼                    ▼                    ▼
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│ KeyboardSvc  │     │ OutputAssembly│    │  IOService   │
+│              │     │   Service    │     │              │
+│ - Button Map │     │              │     │ - Display UI │
+│ - Handlers   │     │ - Hydrate UI │     │ - Read Char  │
+└──────────────┘     └──────────────┘     └──────────────┘
 
 
-# ==========================================
-# FILE PATH: .clanker/prompts/src-anti-pattern-policing.yaml
-# ==========================================
-# Prompt 2: Extended prompt (Base Stack + Anti-Pattern Overlay)
-name: "src-anti-pattern-policing"
-symbol_set: "symbols/xml-style.yaml"
-prompt_fragments:
-  - "fragments/general-introduction.yaml"
-  - "fragments/script-file-only.yaml"
-  - "fragments/antipattern-police-instruction.yaml"
-
-
-# ==========================================
-# FILE PATH: .clanker/symbols/xml-style.yaml
-# ==========================================
-indent: "  "
-arrow_indent: "=>"
-open_tag: "<{tag} {attr}>"
-open_tag_no_attr: "<{tag}>"
-closed_tag: "</{tag}>"
-self_closing_tag: "<{tag} {attr} />"
-self_closing_no_attr: "<{tag} />"
-
-
-# ==========================================
-# FILE PATH: .clanker/fragments/general-introduction.yaml
-# ==========================================
-id: "general_introduction"
-type: "document"
-path: "assets/general-rules.md"
-
-
-# ==========================================
-# FILE PATH: .clanker/fragments/general-conversation-purpose.yaml
-# ==========================================
-id: "general_conversation_purpose"
-type: "document"
-path: "assets/conversation-purpose.md"
-
-
-# ==========================================
-# FILE PATH: .clanker/fragments/antipattern-police-instruction.yaml
-# ==========================================
-id: "antipattern_police_instruction"
-type: "document"
-path: "assets/src-anti-pattern-policing.md"
-
-
-# ==========================================
-# FILE PATH: .clanker/fragments/script-file-only.yaml
-# ==========================================
-id: "script_file_only"
-type: "file_set"
-resolver:
-  sorter: "path_asc"
-  inclusion_roots:
-    - "clanker.py"
-  exclusion_roots: []
-
-
-# ==========================================
-# FILE PATH: .clanker/assets/general-rules.md
-# ==========================================
-# Rules
-- i want discussion with competent counterpart on my terms
-- focus on what i want
-- never return code or script to me unsolicited.
-- you should always ask for clarification or seek resolution, and never be afraid to speak truth
-
-
-# ==========================================
-# FILE PATH: .clanker/assets/conversation-purpose.md
-# ==========================================
-# Purpose
-- Collaboratively refine system architecture and file boundaries.
-- Keep responses concise, analytical, and aligned with requested intent.
-
-
-# ==========================================
-# FILE PATH: .clanker/assets/src-anti-pattern-policing.md
-# ==========================================
-# Output Instructions
-- retain docstrings & pattern implied
-- do not introduce docstrings
-- copyable markdown block to my spec. sometimes several in a row, other times full file.
-- never output code without explicit directive to do so
-
-# Antipatterns
-- unwarranted assignments in methods
-    -> use available reference
-- defensive inline guarding
-    -> update exception system
-- wasteful empty lines
+diagram displaying prompt handler flow of engine.
+current implementation goes against no-service chatter rules, so we donthave a proper diagram to display yet.
+ ┌────────────────────────────────────────────────────────┐
+ │                   GameEngine (The Bus)                 │
+ └──────┬────────────────────┬────────────────────┬───────┘
+        │                    │                    │
+        │ 1. Read Config     │ 2. Build UI        │ 3. Key Handler
+        ▼                    ▼                    ▼
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│ KeyboardSvc  │     │ OutputAssembly│    │  IOService   │
+│              │     │   Service    │     │              │
+│ - Button Map │     │              │     │ - Display UI │
+│ - Handlers   │     │ - Hydrate UI │     │ - Read Char  │
+└──────────────┘     └──────────────┘     └──────────────┘
