@@ -80,9 +80,7 @@ INACTIVE_BTN = r"""
 ────────
  §§§§§§ 
 """
-
 CLANK_CONFIG_YAML = r"""
-active_num_btn: "1"
 rows:
   domain_row:
     primary: "1234567890"
@@ -98,14 +96,6 @@ domains:
     plan: null
     prompts:
       - name: "config-dev"
-        symbol_set: &default_symbols
-          indent: "  "
-          arrow_indent: "=>"
-          open_tag: "<{tag} {attr}>"
-          open_tag_no_attr: "<{tag}>"
-          closed_tag: "</{tag}>"
-          self_closing_tag: "<{tag} {attr} />"
-          self_closing_no_attr: "<{tag} />"
         prompt_fragments:
           - id: "general_rules"
             type: "document"
@@ -121,7 +111,6 @@ domains:
               exclusion_roots: []
 
       - name: "script-dev"
-        symbol_set: *default_symbols
         prompt_fragments:
           - id: "general_rules"
             type: "document"
@@ -137,7 +126,6 @@ domains:
               exclusion_roots: []
 
       - name: "debloat"
-        symbol_set: *default_symbols
         prompt_fragments:
           - id: "general_rules"
             type: "document"
@@ -157,7 +145,6 @@ CLANK_CONFIG = YAML().load(CLANK_CONFIG_YAML)
 
 
 DEFAULT_CONFIG = {
-    "active_num_btn": "1",
     "rows": {
         "domain_row": {"primary": "1234567890", "secondary": '!"#¤%&/()='},
         "prompt_row": {"primary": "qwer", "secondary": "QWER"},
@@ -264,17 +251,14 @@ def main():
         io_bridge = IOBridge()
 
         session = SessionService()
-        kb = KeyboardService()
         io = IOService()
         renderer = OutputAssemblyService()
 
         session.files = files
         io.io_bridge = io_bridge
-        kb.files = files
         renderer.files = files
 
         engine = GameEngine()
-        engine.kb = kb
         engine.io = io
         engine.session = session
         engine.renderer = renderer
@@ -283,7 +267,6 @@ def main():
         print(exit_msg)
     except BaseFailureEx as ex:
         BaseAppEx.print_traceback_and_exit(ex)
-
 """ 3. Exceptions, Result Objects, Enums """
 
 class ActionResultMsg:
@@ -321,7 +304,6 @@ class Config(BaseStrictModel):
     DEFAULT_REL_PATH: ClassVar[Path] = Path(".clanker/config.yaml")
     DEFAULT_ASSETS_DIR: ClassVar[Path] = Path(".clanker/assets")
 
-    active_num_btn: str = "1"
     rows: dict[str, dict[str, str]]
     domains: list[Domain] = []
 
@@ -345,17 +327,7 @@ class PromptFragment(BaseStrictModel):
 
 class Prompt(BaseStrictModel):
     name: str
-    symbol_set: SymbolSet
     prompt_fragments: list[PromptFragment] = []
-
-class SymbolSet(BaseStrictModel):
-    indent: str
-    arrow_indent: str
-    open_tag: str
-    open_tag_no_attr: str
-    closed_tag: str
-    self_closing_tag: str
-    self_closing_no_attr: str
 
 class FileSetResolver(BaseStrictModel):
     class Sorter(StrEnum):
@@ -390,15 +362,81 @@ class Button(BaseModel):
         ]
         return {f"{self.primary_letter}{idx}": line for idx, line in enumerate(mapped_lines)}
 
+class Keyboard(BaseModel):
+    model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True)
+    button_map: dict[str, Button] = Field(default_factory=dict)
+    selected_num_btn_primary_letter: str | None = None
+
+    def get_unique_buttons(self, btn_type: str | None = None) -> list[Button]:
+        unique = {btn.primary_letter: btn for btn in self.button_map.values()}.values()
+        if btn_type is None:
+            return list(unique)
+        return [btn for btn in unique if btn.type == btn_type]
+
+    def handle_key(self, key: str) -> ActionResultMsg | None:
+        btn = self.button_map.get(key)
+        if btn is None:
+            return None
+        if key == btn.primary_letter and callable(btn.primary_action):
+            return btn.primary_action(btn.primary_letter)
+        elif key == btn.secondary_letter and callable(btn.shift_action):
+            return btn.shift_action(btn.primary_letter)
+        return ActionResultMsg(f"No action bound to key '{key}'")
+
+    def build(self, cfg: Config) -> None:
+        self.button_map = {}
+        for row_key, row in cfg.rows.items():
+            btn_type = (
+                "num_btn" if row_key == "domain_row"
+                else ("prompt_btn" if row_key == "prompt_row" else "action_btn")
+            )
+
+            for prim, sec in zip(row["primary"], row["secondary"]):
+                btn = Button(
+                    type=btn_type,
+                    primary_letter=prim,
+                    secondary_letter=sec,
+                )
+                self.button_map[prim] = btn
+                self.button_map[sec] = btn
+
+        for btn, domain in zip(self.get_unique_buttons("num_btn"), cfg.domains):
+            btn.inhabitant = domain
+        return self
+
+    def build_ui_repl_map(self) -> dict[str, str]:
+        repl_map = {}
+        for btn in self.get_unique_buttons():
+            label = ""
+            template = INACTIVE_BTN
+            if btn.type == "num_btn":
+                if btn.primary_letter == self.selected_num_btn_primary_letter:
+                    template = HIGHLIGHTED_BTN
+                    label = btn.inhabitant.name if btn.inhabitant else ""
+                elif btn.inhabitant:
+                    template = ACTIVE_BTN
+                    label = btn.inhabitant.name
+
+            elif btn.type == "prompt_btn":
+                if btn.inhabitant:
+                    template = ACTIVE_BTN
+                    label = btn.inhabitant.name
+
+            elif btn.type == "action_btn":
+                if btn.inhabitant:
+                    template = ACTIVE_BTN
+                    label = getattr(btn.inhabitant, "name", str(btn.inhabitant))
+
+            repl_map |= btn.get_repl_map(label, template)
+        return repl_map
+
 class GameEngine(Engine):
 
     def _bootstrap_application(self) -> ActionResultMsg:
         try:
-            cfg = self.session.get_config()
-            self.kb.build_button_map(cfg.rows)
-            self.kb.populate_num_keys(cfg.domains)
+            self.kb = self.session.get_keyboard()
             self.wire_num_row_handlers()
-            self.set_selected_num_btn(cfg.active_num_btn)
+            self.set_selected_num_btn(None)
             return ActionResultMsg("Bootstrap completed successfully")
         except NoConfigNotice:
             try:
@@ -410,7 +448,7 @@ class GameEngine(Engine):
                 raise ProgramExitNotice
 
     def _display_ui_to_user(self) -> str:
-        repl_map = self.kb._build_ui_repl_map() | self.session._build_ui_repl_map()
+        repl_map = self.kb.build_ui_repl_map() | self.session.build_ui_repl_map()
         view_str = self.renderer.hydrate(MAIN_CONSOLE_TEMPLATE, repl_map)
         self.io.display(view_str)
         return self.io.get_key()
@@ -481,41 +519,14 @@ class GameEngine(Engine):
 """ 5. Services """
 
 class SessionService:
-
-    def get_unique_buttons(self, btn_type: str | None = None) -> list[Button]:
-        unique = {btn.primary_letter: btn for btn in self.button_map.values()}.values()
-        if btn_type is None:
-            return list(unique)
-        return [btn for btn in unique if btn.type == btn_type]
-
-    def _build_button_map(self, rows: dict[str, dict[str, str]]) -> None:
-            self.button_map = {}
-            for row_key, row in rows.items():
-                btn_type = (
-                    "num_btn" if row_key == "domain_row"
-                    else ("prompt_btn" if row_key == "prompt_row" else "action_btn")
-                )
-
-                for prim, sec in zip(row["primary"], row["secondary"]):
-                    btn = Button(
-                        type=btn_type,
-                        primary_letter=prim,
-                        secondary_letter=sec,
-                    )
-                    self.button_map[prim] = btn
-                    self.button_map[sec] = btn
-
-    def _populate_num_keys(self, domains: list[Domain]) -> None:
-        for btn, domain in zip(self.get_unique_buttons("num_btn"), domains):
-            btn.inhabitant = domain
-
-
-
+    def get_keyboard(self) -> Keyboard:
+        cfg = self._get_config()
+        return Keyboard().build(cfg)
+    
     def is_cwd_script_dir(self) -> bool:
         return self.files.is_cwd_script_dir()
 
-    
-    def get_config(self) -> Config:
+    def _get_config(self) -> Config:
         try:
             raw_data = self.files.read_yaml(Config.DEFAULT_REL_PATH)
             return Config.model_validate(raw_data) 
@@ -526,78 +537,9 @@ class SessionService:
         config = Config.model_validate(raw_config)
         self.files.write_yaml(Config.DEFAULT_REL_PATH, config.model_dump(mode="json"))
 
-    def _build_ui_repl_map(self) -> dict:
+    def build_ui_repl_map(self) -> dict:
         return {"last_msg": "hello from ss"}
 
-class KeyboardService:
-    
-    def get_unique_buttons(self, btn_type: str | None = None) -> list[Button]:
-        unique = {btn.primary_letter: btn for btn in self.button_map.values()}.values()
-        if btn_type is None:
-            return list(unique)
-        return [btn for btn in unique if btn.type == btn_type]
-    
-    def handle_key(self, key: str) -> ActionResultMsg | None:
-        btn = self.button_map.get(key)
-        if btn is None:
-            return None
-
-        if key == btn.primary_letter and callable(btn.primary_action):
-            return btn.primary_action(btn.primary_letter)
-        elif key == btn.secondary_letter and callable(btn.shift_action):
-            return btn.shift_action(btn.primary_letter)
-
-        return ActionResultMsg(f"No action bound to key '{key}'")
-
-    def _build_ui_repl_map(self) -> dict[str, str]:
-        repl_map = {}
-        for btn in self.get_unique_buttons():
-            label = ""
-            template = INACTIVE_BTN
-
-            if btn.type == "num_btn":
-                if btn.primary_letter == getattr(self, "selected_num_btn_primary_letter", None):
-                    template = HIGHLIGHTED_BTN
-                    label = btn.inhabitant.name if btn.inhabitant else ""
-                elif btn.inhabitant:
-                    template = ACTIVE_BTN
-                    label = btn.inhabitant.name
-
-            elif btn.type == "prompt_btn":
-                if btn.inhabitant:
-                    template = ACTIVE_BTN
-                    label = btn.inhabitant.name
-
-            elif btn.type == "action_btn":
-                if btn.inhabitant:
-                    template = ACTIVE_BTN
-                    label = getattr(btn.inhabitant, "name", str(btn.inhabitant))
-
-            repl_map |= btn.get_repl_map(label, template)
-
-        return repl_map
-    
-    def build_button_map(self, rows: dict[str, dict[str, str]]) -> None:
-            self.button_map = {}
-            for row_key, row in rows.items():
-                btn_type = (
-                    "num_btn" if row_key == "domain_row"
-                    else ("prompt_btn" if row_key == "prompt_row" else "action_btn")
-                )
-
-                for prim, sec in zip(row["primary"], row["secondary"]):
-                    btn = Button(
-                        type=btn_type,
-                        primary_letter=prim,
-                        secondary_letter=sec,
-                    )
-                    self.button_map[prim] = btn
-                    self.button_map[sec] = btn
-
-    def populate_num_keys(self, domains: list[Domain]) -> None:
-        for btn, domain in zip(self.get_unique_buttons("num_btn"), domains):
-            btn.inhabitant = domain
-    
 class OutputAssemblyService:
 
     def hydrate(self, template: str, replacements: dict[str, str]) -> str:

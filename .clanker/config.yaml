@@ -1,4 +1,3 @@
-active_num_btn: '1'
 rows:
   domain_row:
     primary: '1234567890'
@@ -14,14 +13,6 @@ domains:
   plan:
   prompts:
   - name: config-dev
-    symbol_set:
-      indent: '  '
-      arrow_indent: =>
-      open_tag: <{tag} {attr}>
-      open_tag_no_attr: <{tag}>
-      closed_tag: </{tag}>
-      self_closing_tag: <{tag} {attr} />
-      self_closing_no_attr: <{tag} />
     prompt_fragments:
     - id: general_rules
       type: document
@@ -40,14 +31,6 @@ domains:
         - clanker.py
         exclusion_roots: []
   - name: script-dev
-    symbol_set:
-      indent: '  '
-      arrow_indent: =>
-      open_tag: <{tag} {attr}>
-      open_tag_no_attr: <{tag}>
-      closed_tag: </{tag}>
-      self_closing_tag: <{tag} {attr} />
-      self_closing_no_attr: <{tag} />
     prompt_fragments:
     - id: general_rules
       type: document
@@ -66,14 +49,6 @@ domains:
         - clanker.py
         exclusion_roots: []
   - name: debloat
-    symbol_set:
-      indent: '  '
-      arrow_indent: =>
-      open_tag: <{tag} {attr}>
-      open_tag_no_attr: <{tag}>
-      closed_tag: </{tag}>
-      self_closing_tag: <{tag} {attr} />
-      self_closing_no_attr: <{tag} />
     prompt_fragments:
     - id: general_rules
       type: document

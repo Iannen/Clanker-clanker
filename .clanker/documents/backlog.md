@@ -28,26 +28,28 @@ Most relevant stuff:
          - return hydrated app data tree to engine.
 
    II: MEDIUM TERM GOALS
-      - keyboard changed from 'service' to data object. 
-         - kb is no longer part of di, and is not instantiated in main. 
-         - Sessionservice gets the responsibility of delivering the finished KB to engine on boot.
-            -> we just want to get all the init inside sessionservice. no need to reach for end state.
-         - engine sees some changes to bootstrap calls, and perhaps some to account for kb not beeing part of di. probably very little.
+
+      - [x] Refactor Keyboard to Data Object & Consolidate Bootstrap Creation
+         - Transformed `KeyboardService` into a Pydantic `Keyboard` data object in Section 4 (Data Models) and removed it from DI setup in `main()`.
+         - Shifted full responsibility for instantiating, building, and wiring `Keyboard` into `SessionService.get_keyboard()`, streamlining `GameEngine._bootstrap_application()`.
+
+      - [ ] Keyboard dynamic config integration: prepare `Keyboard` creation to accept dynamic config inputs as state assembly moves toward `.clanker/configs`.
+
+      - [ ] Split the uniconfig into several files.
+         - this means declaring a drizzle of bottom level yaml files in the script, to replace the big one seen today.
+         - and aligning other code too im sure
+      
+      - [ ] Split the CLANK_DEFAULT_CONFIG into several files. makes sessionservice reassemble into dict that can be used as per now.
+         -  [ ] a single split is first goal. I guess the cg domains can go out into another file.
+
+      - [x] Consolidate in sessionservice prior to further work there
+         - [x] Consolidate Keyboard Initialization in `clanker.py`
+               - Replaced `build_button_map()` and `populate_num_keys()` with a single `build(cfg: Config)` method on `Keyboard`.
+               - Updated `SessionService.get_keyboard()` to pass `cfg` directly into `Keyboard.build(cfg)`.
+         - [x]Deleted symbolset from the datamodel
 
    III: IMMEDIATE GOALS
 
-         a. Rename `KeyboardService` -> `Keyboard`, change it to pydantic dc. move it from services to data model section of file.
-            - retains the same functionality. lets not clean the teacup while we juggle it.
-            - the pydantic class must be flexible for now, we just want to get it working without some strictness weighting us down.
-
-         b. Give Sessionservice the responsibility of creating kb and returning it to calling engine
-               - 'get_keyboard' to replace current get_config role in engine bootstrap.
-               - 'get_keyboard' simply reuses existing methods of session and the renamed keyboard class to serve engine letting ex bubble.
-
-         c. engine now populates self.kb from the sessionservice call rather than have it be done in DI setup in main()
-            - if kb contract is the same, then perhaps engine does not need alignment beyond its bootstrap method.
-
-         d. KeyboardService does not appear in DI setup any more. i dont think it uses the .files it was given anyway         
 
 Back of pipeline stuff:
 
