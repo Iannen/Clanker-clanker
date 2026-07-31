@@ -1,12 +1,25 @@
 Most relevant stuff:
 
-- PROMPT ASSEMBLY & TEMPLATE NORMALIZATION (PIPELINE CONSOLIDATION)
-   a. Normalize prompt and ui template origin to be multiline strings (like ui is now)
-      - logic involved with _Promptbuilder becomes redundant
-   b. find a solution to the repl map aquistition step. it differs for the two. prompt has no good service to turn to
-   c. `OutputAssemblyService` now becomes reduces to just the convert method. perhaps it can do the work for the prompt, after all? it can have two hats, letting gameengine orchestrate it.
-   d. then each flow does a different thing with the output.
-   d. result: Prompt generation and UI rendering are unified under a single declarative template-hydration pipeline, eliminating dynamic tag overhead and ~60 lines of builder logic.
+- FIX SHIP WHITESPACE SHYTE
+- MOVE CONTROL OF PROMPT GEN OUT FROM OUTPUTASSEMBLYSERVICE INTO GAMEENGINE, STANDARDIZING RENDER PIPELINES
+   a. [x] Standardize both UI rendering and Prompt compilation to share a single public hydration endpoint: `OutputAssemblyService.hydrate(template, repl_map)`.
+   b. [x] Refactor `OutputAssemblyService` to expose fragment resolution via a dedicated map builder (`get_repl_map(prompt_config)`), removing internal template selection and dynamic XML generation.
+   c. [x] Completely eliminate `_PromptBuilder` and redundant `SymbolSet` tag assembly logic across the pipeline.
+   d. [x] Shift template ownership and flow orchestration to `GameEngine`:
+      - UI Flow: `GameEngine` collects UI map -> calls `OAS.hydrate(MAIN_CONSOLE_TEMPLATE, repl_map)` -> outputs to UI.
+      - Prompt Flow: `GameEngine` requests fragment map via `OAS.build_prompt_repl_map(prompt)` -> calls `OAS.hydrate(DEFAULT_PROMPT_TEMPLATE, repl_map)` -> pushes to clipboard.
+   e. [x] Result: Unified, stateless declarative template-hydration pipeline with zero dynamic builder overhead and clean separation of concerns.
+
+- PIVOT ARCHITECTURE: REFACTOR APP TO GET DATA AS YML CONFIGS
+   -> keyboard changed from 'service' to data object. 
+   -> kb is no longer part of di, and is not instantiated in main. Sessionservice gets the responsibility of delivering the finished KB to engine on boot.
+      -> we have two datashapes:
+         -> on disk the data exists as yaml files
+         -> in the app the data has the shape of a tree, quite like now.
+      -> Sessionservice converts from filestate to treestate in the most general way possible
+         -> the distribution of domains onto buttons requires a 'step out' of generalization.
+   -> there is no saving of configs. user edits configs outside app, via llm.  
+
 
 - Bugs
     a. arrow keys interpreted as esc
@@ -21,11 +34,6 @@ Back of pipeline stuff:
    c. Update OutputAssemblyService to render dynamic UI widths.
    d. result: Terminal console dynamically renders layouts based on arbitrary row key counts without template coupling.
 
-- LOWER-LAYER BRIDGE ONE-SHOT STABILIZATION
-   a. Finalize FileBridge and IOBridge exception boundaries (`ADOPTED_NOTICES`).
-   b. Validate terminal raw-mode restoration during system exit signals.
-   c. One-shot generate bottom-layer implementations and standard entrypoint.
-   d. result: Low-level bridge layer and entrypoint are completely stabilized, fully integrated, and error-safe.
 
 Recently achieved(:
 

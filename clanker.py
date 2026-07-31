@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 import sys
 import termios
+import traceback
 import tty
 from typing import Callable, ClassVar
 from pydantic import BaseModel, ConfigDict, Field
@@ -59,25 +60,25 @@ MAIN_CONSOLE_TEMPLATE = r"""
 """
 
 HIGHLIGHTED_BTN = r"""
- vvvvvv
+ vvvvvv 
 ┌──────┐
 │  §   │
 └──────┘
- §§§§§§
+ §§§§§§ 
 """
 ACTIVE_BTN = r"""
-
+        
 ┌──────┐
 │  §   │
 └──────┘
- §§§§§§
+ §§§§§§ 
 """
 INACTIVE_BTN = r"""
-
-
-   §
+        
+        
+   §    
 ────────
- §§§§§§
+ §§§§§§ 
 """
 
 CLANK_CONFIG_YAML = r"""
@@ -205,7 +206,6 @@ class BaseAppEx(Exception):
 
     @classmethod
     def print_traceback_and_exit(cls, ex: Exception) -> None:
-        """Formats failure details, prints the underlying stack trace if present, and exits."""
         cause = getattr(ex, "__cause__", None)
         err_detail = str(ex) if str(ex) else ex.__class__.__name__
 
@@ -284,15 +284,6 @@ def main():
     except BaseFailureEx as ex:
         BaseAppEx.print_traceback_and_exit(ex)
 
-    """
-    except BaseFailureEx as ex:
-        cause = getattr(ex, "__cause__", None)
-        sys.stderr.write(f"\n[FAILURE] {ex}\n")
-        if cause:
-            sys.stderr.write("\n--- Underlying Stack Trace ---\n")
-            traceback.print_exception(type(cause), cause, cause.__traceback__)
-        sys.exit(1)
-    """
 """ 3. Exceptions, Result Objects, Enums """
 
 class ActionResultMsg:
@@ -334,9 +325,28 @@ class Config(BaseStrictModel):
     rows: dict[str, dict[str, str]]
     domains: list[Domain] = []
 
+class Domain(BaseStrictModel):
+    name: str
+    plan: Plan | None = None
+    prompts: list[Prompt] = []
+
 class Plan(BaseStrictModel):
     name: str = ""
     pass
+
+class PromptFragment(BaseStrictModel):
+    class Type(StrEnum):
+        FILE_SET = "file_set"
+        DOCUMENT = "document"
+    id: str
+    type: Type
+    path: Path | None = None
+    resolver: FileSetResolver | None = None
+
+class Prompt(BaseStrictModel):
+    name: str
+    symbol_set: SymbolSet
+    prompt_fragments: list[PromptFragment] = []
 
 class SymbolSet(BaseStrictModel):
     indent: str
@@ -356,27 +366,6 @@ class FileSetResolver(BaseStrictModel):
     sorter: Sorter = Sorter.PATH_ASC
     inclusion_roots: list[str] = []
     exclusion_roots: list[str] = []
-
-class PromptFragment(BaseStrictModel):
-    class Type(StrEnum):
-        FILE_SET = "file_set"
-        DOCUMENT = "document"
-    id: str
-    type: Type
-    path: Path | None = None
-    resolver: FileSetResolver | None = None
-
-class Prompt(BaseStrictModel):
-    name: str
-    symbol_set: SymbolSet
-    prompt_fragments: list[PromptFragment] = []
-
-
-class Domain(BaseStrictModel):
-    name: str
-    plan: Plan | None = None
-    prompts: list[Prompt] = []
-
 
 class Button(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True)
@@ -422,7 +411,7 @@ class GameEngine(Engine):
 
     def _display_ui_to_user(self) -> str:
         repl_map = self.kb._build_ui_repl_map() | self.session._build_ui_repl_map()
-        view_str = self.renderer.render_ui(MAIN_CONSOLE_TEMPLATE, repl_map)
+        view_str = self.renderer.hydrate(MAIN_CONSOLE_TEMPLATE, repl_map)
         self.io.display(view_str)
         return self.io.get_key()
 
@@ -472,7 +461,10 @@ class GameEngine(Engine):
         if btn is None or btn.inhabitant is None:
             return ActionResultMsg(f"No prompt assigned to key '{key}'")
 
-        compiled_prompt = self.renderer.build_prompt(btn.inhabitant)
+        compiled_prompt = self.renderer.hydrate(
+            DEFAULT_PROMPT_TEMPLATE, 
+            self.renderer.get_repl_map(btn.inhabitant)
+        )
         lines_count = self.io.pushtoclipboard(compiled_prompt)
         return ActionResultMsg(f"Copied {lines_count} lines to clipboard")
 
@@ -486,41 +478,50 @@ class GameEngine(Engine):
     def _process_res_object(self, msg: ActionResultMsg | None) -> None:
         self._add_to_board(msg)
 
-    """ on the way in
-    def _get_render_output(self, subject) -> str: # lets say subject is a tuple of stuff. like (Enumval, prompt, session) and (kbservice, session). these guys need to reserve space on template, and also they have data for it.
-        contributors = self._get_ui_contributors(subject) # there can be some resolution going on, ena we not have a contributor set
-        template = self._get_template(contributors, subject) # the template is built to suit the demands of contributors
-        repl_map = self._get_repl_map(contributors, subject) # the data of the contributors is collected
-        return self._render(template, repl_map) # and inserted into the template which is returned immediately.
-
-    def _get_template(self, contributors: list, subject) -> str:
-        for c in contributors:
-            if hasattr(c, "prompt_fragments"):
-                return self.renderer.get_prompt_template(c)
-        return MAIN_CONSOLE_TEMPLATE
-
-    def _get_repl_map(self, contributors: list, subject) -> dict[str, str]:
-        merged = {}
-        ...
-        return merged
-
-    def _render(self, template: str, repl_map: dict[str, str]) -> str:
-        return self.renderer.render_ui(template, repl_map)
-    """
-
 """ 5. Services """
 
 class SessionService:
+
+    def get_unique_buttons(self, btn_type: str | None = None) -> list[Button]:
+        unique = {btn.primary_letter: btn for btn in self.button_map.values()}.values()
+        if btn_type is None:
+            return list(unique)
+        return [btn for btn in unique if btn.type == btn_type]
+
+    def _build_button_map(self, rows: dict[str, dict[str, str]]) -> None:
+            self.button_map = {}
+            for row_key, row in rows.items():
+                btn_type = (
+                    "num_btn" if row_key == "domain_row"
+                    else ("prompt_btn" if row_key == "prompt_row" else "action_btn")
+                )
+
+                for prim, sec in zip(row["primary"], row["secondary"]):
+                    btn = Button(
+                        type=btn_type,
+                        primary_letter=prim,
+                        secondary_letter=sec,
+                    )
+                    self.button_map[prim] = btn
+                    self.button_map[sec] = btn
+
+    def _populate_num_keys(self, domains: list[Domain]) -> None:
+        for btn, domain in zip(self.get_unique_buttons("num_btn"), domains):
+            btn.inhabitant = domain
+
+
+
     def is_cwd_script_dir(self) -> bool:
         return self.files.is_cwd_script_dir()
 
+    
     def get_config(self) -> Config:
         try:
             raw_data = self.files.read_yaml(Config.DEFAULT_REL_PATH)
-            return Config.model_validate(raw_data)
+            return Config.model_validate(raw_data) 
         except FileNotFoundError:
             raise NoConfigNotice
-
+    
     def save_config(self, raw_config: dict) -> None:
         config = Config.model_validate(raw_config)
         self.files.write_yaml(Config.DEFAULT_REL_PATH, config.model_dump(mode="json"))
@@ -530,13 +531,13 @@ class SessionService:
 
 # new name proposal: CommandRouter
 class KeyboardService:
-
+    
     def get_unique_buttons(self, btn_type: str | None = None) -> list[Button]:
         unique = {btn.primary_letter: btn for btn in self.button_map.values()}.values()
         if btn_type is None:
             return list(unique)
         return [btn for btn in unique if btn.type == btn_type]
-
+    
     def handle_key(self, key: str) -> ActionResultMsg | None:
         btn = self.button_map.get(key)
         if btn is None:
@@ -576,7 +577,7 @@ class KeyboardService:
             repl_map |= btn.get_repl_map(label, template)
 
         return repl_map
-
+    
     def build_button_map(self, rows: dict[str, dict[str, str]]) -> None:
             self.button_map = {}
             for row_key, row in rows.items():
@@ -597,35 +598,23 @@ class KeyboardService:
     def populate_num_keys(self, domains: list[Domain]) -> None:
         for btn, domain in zip(self.get_unique_buttons("num_btn"), domains):
             btn.inhabitant = domain
-
+    
 class OutputAssemblyService:
-    def _hydrate(self, template: str, replacements: dict[str, str]) -> str:
+
+    def hydrate(self, template: str, replacements: dict[str, str]) -> str:
         token = SystemKeys.DELIM.value
         pattern = re.compile(rf"{token}([^{token}]+){token}")
         return pattern.sub(
             lambda m: replacements.get(m.group(1).strip(), m.group(0)),
             template
         )
-
-    def build_prompt(self, prompt_config: Prompt) -> str:
+    def get_repl_map(self, prompt_config: Prompt) -> dict[str, str]:
         replacements: dict[str, str] = {
             fragment.id: self._resolve(fragment)
             for fragment in prompt_config.prompt_fragments
         }
-
-        builder = (
-            _PromptBuilder(prompt_config.symbol_set)
-            .add_open_tag("runtime", attr=": kindly oblige if noobject")
-            .add_open_tag("msg-from-runtime-author", attr="kindly serve the function of the runtime")
-        )
-
-        for fragment in prompt_config.prompt_fragments:
-            builder.add_doc("document-tag", fragment.id, attr=f"fragment: {fragment.id}")
-
-        builder.close_current_tag()
-
-        return self._hydrate(builder.consume(), replacements)
-
+        return replacements
+        
     def _resolve(self, fragment: PromptFragment) -> str:
         if fragment.type == PromptFragment.Type.DOCUMENT:
             if not fragment.path:
@@ -644,10 +633,6 @@ class OutputAssemblyService:
             return f"{tree_header}\n\n" + "\n\n".join(file_blocks)
 
         raise ValueError(f"Unsupported fragment type: {fragment.type}")
-
-
-    def render_ui(self, template: str, replacements: dict[str, str]) -> str:
-        return self._hydrate(template, replacements)
 
 class IOService: 
     def display(self, ui_string: str) -> None:
@@ -696,50 +681,6 @@ class IOService:
             elif ch.isprintable():
                 buffer += ch
                 self.io_bridge.write(ch)
-
-class _PromptBuilder:
-
-    def __init__(self, symbols: SymbolSet):
-        self.symbols = symbols
-        self._lines: list[str] = []
-        self._stack: list[str] = []
-
-    def add_open_tag(self, tag: str, attr: str | None = None) -> _PromptBuilder:
-        indent = self.symbols.indent * len(self._stack)
-        self._lines.append(
-            f"{indent}{(self.symbols.open_tag if attr else self.symbols.open_tag_no_attr).format(tag=tag, attr=attr)}"
-        )
-        self._stack.append(tag)
-        return self
-
-    def close_current_tag(self) -> _PromptBuilder:
-        if self._stack:
-            tag = self._stack.pop()
-            indent = self.symbols.indent * len(self._stack)
-            self._lines.append(
-                f"{indent}{self.symbols.closed_tag.format(tag=tag)}"
-            )
-        return self
-
-    def add_single_tag(self, tag: str, attr: str | None = None) -> _PromptBuilder:
-        indent = self.symbols.indent * len(self._stack)
-        self._lines.append(
-            f"{indent}{(self.symbols.self_closing_tag if attr else self.symbols.self_closing_no_attr).format(tag=tag, attr=attr)}"
-        )
-        return self
-
-    def add_doc(self, tag: str, token_key: str, attr: str | None = None) -> _PromptBuilder:
-        token = SystemKeys.DELIM.value
-        self.add_open_tag(tag, attr)
-        indent = self.symbols.indent * len(self._stack)
-        self._lines.append(f"{indent}{token}{token_key}{token}")
-        self.close_current_tag()
-        return self
-
-    def consume(self) -> str:
-        while self._stack:
-            self.close_current_tag()
-        return "\n".join(self._lines)
 
 """ 6. Bridge """
 
