@@ -529,7 +529,6 @@ class SessionService:
     def _build_ui_repl_map(self) -> dict:
         return {"last_msg": "hello from ss"}
 
-# new name proposal: CommandRouter
 class KeyboardService:
     
     def get_unique_buttons(self, btn_type: str | None = None) -> list[Button]:

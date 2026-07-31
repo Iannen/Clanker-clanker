@@ -12,6 +12,8 @@ This applies for when the user wants an output, typically for the duration of yo
         - You may ask permission if you think it natural
     - *General output format instruction*
         - for sake of readability and usability, when an output request is fulfilled, then please oblige:
-            - inside a copyable box
-            - which contains not triple backticks internal to it
+            - a header. full path if file (always indicate if full file or not), or other name
+            - then content inside a copyable box
+                - which contains not triple backticks internal to it
+
 Subsequent communication is then on a normal dialogue format, untill next output is requested.
