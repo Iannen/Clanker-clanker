@@ -363,6 +363,7 @@ class Button(BaseModel):
         return {f"{self.primary_letter}{idx}": line for idx, line in enumerate(mapped_lines)}
 
 class Keyboard(BaseModel):
+    CONFIGS_DIR: ClassVar[Path] = Path(".clanker/configs")
     model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True)
     button_map: dict[str, Button] = Field(default_factory=dict)
     selected_num_btn_primary_letter: str | None = None
@@ -434,9 +435,11 @@ class GameEngine(Engine):
 
     def _bootstrap_application(self) -> ActionResultMsg:
         try:
-            self.kb = self.session.get_keyboard()
+            whatsessiongivesonboot = self.session.get_keyboard()
+            self.kb = whatsessiongivesonboot
             self.wire_num_row_handlers()
             self.set_selected_num_btn(None)
+            self.session_save_it_back_again_yall(whatsessiongivesonboot)
             return ActionResultMsg("Bootstrap completed successfully")
         except NoConfigNotice:
             try:
@@ -532,13 +535,34 @@ class SessionService:
             return Config.model_validate(raw_data) 
         except FileNotFoundError:
             raise NoConfigNotice
-    
+
     def save_config(self, raw_config: dict) -> None:
         config = Config.model_validate(raw_config)
         self.files.write_yaml(Config.DEFAULT_REL_PATH, config.model_dump(mode="json"))
 
-    def build_ui_repl_map(self) -> dict:
-        return {"last_msg": "hello from ss"}
+    def session_save_it_back_again_yall(self, kb: Keyboard) -> None:
+        instances: list[tuple[str, tuple[str, dict]]] = []
+
+        def walk(node) -> None:
+            if isinstance(node, BaseStrictModel):
+                name = getattr(node, "id", getattr(node, "name", str(node)))
+                instances.append((name, (node.__class__.__name__, node.model_dump(mode="json"))))
+
+            if isinstance(node, dict):
+                for val in node.values():
+                    walk(val)
+            elif isinstance(node, (list, tuple, set)):
+                for item in node:
+                    walk(item)
+            elif isinstance(node, BaseStrictModel):
+                for val in node.__dict__.values():
+                    walk(val)
+        walk(kb)
+        base_path = Path(kb.path) 
+
+        for name, (cls_name, data_dict) in instances:
+            file_path = kb.CONFIGS_DIR / cls_name / f"{name}.yml"
+            self.files.write_yaml(file_path, data_dict)
 
 class OutputAssemblyService:
 
