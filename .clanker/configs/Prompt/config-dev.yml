@@ -1,0 +1,18 @@
+name: config-dev
+prompt_fragments:
+- id: general_rules
+  type: document
+  path: .clanker/assets/general-rules.md
+  resolver:
+- id: config_development
+  type: document
+  path: .clanker/assets/config_development_instructions.md
+  resolver:
+- id: script_file_only
+  type: file_set
+  path:
+  resolver:
+    sorter: path_asc
+    inclusion_roots:
+    - clanker.py
+    exclusion_roots: []

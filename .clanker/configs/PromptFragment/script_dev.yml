@@ -1,0 +1,4 @@
+id: script_dev
+type: document
+path: .clanker/assets/script_dev_instructions.md
+resolver:

@@ -10,22 +10,22 @@ import sys
 import termios
 import traceback
 import tty
-from typing import Callable, ClassVar, Any
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from typing import Callable, ClassVar
+from pydantic import BaseModel, ConfigDict, Field
 
 """ 1. Templates, Default Configs & UI Strings """
 
 DEFAULT_PROMPT_TEMPLATE = r"""
 <runtime : kindly oblige if noobject>
   <msg-from-runtime-author kindly serve the function of the runtime>
-    <document-tag fragment: domain_instruction>
-§domain_instruction§
+    <document-tag fragment: general_rules>
+§general_rules§
     </document-tag>
-    <document-tag fragment: prompt_instruction>
-§prompt_instruction§
+    <document-tag fragment: script_dev>
+§script_dev§
     </document-tag>
-    <document-tag fragment: repo_content>
-§repo_content§
+    <document-tag fragment: script_file_only>
+§script_file_only§
     </document-tag>
   </msg-from-runtime-author>
 </runtime>"""
@@ -83,7 +83,6 @@ INACTIVE_BTN = r"""
 CLANK_CONFIG_YAML = r"""
 kb_def: 
     render: 
-      name: "ui"
       template: "ui_template"
       resolvers:
         - { type: "kb_info" }
@@ -100,35 +99,29 @@ kb_def:
 
 domains:
 - name: "script-dev"
-  plan: 
-    name: "script_development_plan"
   renders:
     - name: 'script-dev'
       template: "prompt_template"
       resolvers:
-        - { id: "domain_instruction", type: "document-retrieval", file: "general-rules.md" }
-        - { id: "prompt_instruction", type: "document-retrieval", file: "script_dev_instructions.md" }
-        - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [], sorting: "normal" }
+        - { type: "document-retrieval", file: "general-rules.md" }
+        - { type: "document-retrieval", file: "script_dev_instructions.md" }
+        - { type: "repo_content", includes: ["clanker.py"], excludes: [], sorting: "normal" }
 - name: "config-dev"
-  plan: 
-    name: "config_development_plan"
   renders:
     - name: 'config-dev'
       template: "prompt_template"
       resolvers:
-        - { id: "domain_instruction", type: "document-retrieval", file: "general-rules.md" }
-        - { id: "prompt_instruction", type: "document-retrieval", file: "config_development_instructions.md" }
-        - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [], sorting: "normal" }
+        - { type: "document-retrieval", file: "general-rules.md" }
+        - { type: "document-retrieval", file: "config_development_instructions.md" }
+        - { type: "repo_content", includes: ["clanker.py"], excludes: [], sorting: "normal" }
 - name: "debloat"
-  plan: 
-    name: "debloat_plan"
   renders:
     - name: 'debloat'
       template: "prompt_template"
       resolvers:
-        - { id: "domain_instruction", type: "document-retrieval", file: "general-rules.md" }
-        - { id: "prompt_instruction", type: "document-retrieval", file: "debloat_instructions.md" }
-        - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [], sorting: "normal" }
+        - { type: "document-retrieval", file: "general-rules.md" }
+        - { type: "document-retrieval", file: "debloat_instructions.md" }
+        - { type: "repo_content", includes: ["clanker.py"], excludes: [], sorting: "normal" }
 """
 
 CLANK_CONFIG = YAML().load(CLANK_CONFIG_YAML)
@@ -293,10 +286,22 @@ class SystemKeys(Enum):
 class Plan(Constructed):
     name: str = ""
 
+
+class DocumentRetrievalResolver(Constructed):
+    type: str = "document-retrieval"
+    file: Path
+
+
+class RepoContentResolver(Constructed):
+    type: str = "repo_content"
+    includes: list[str] = []
+    excludes: list[str] = []
+    sorting: str = "normal"
+
 class Render(Constructed):
     name: str
     template: str
-    resolvers: list[Resolver] = []
+    resolvers: list[DocumentRetrievalResolver | RepoContentResolver] = []
 
 class Domain(Constructed):
     name: str
@@ -310,34 +315,8 @@ class Config(Constructed):
     layout: str
     domains: list[str]
 
-class Resolver(BaseModel):
-    class Type(str, Enum):
-        DOCUMENT_RETRIEVAL = "document-retrieval"
-        REPO_CONTENT = "repo_content"
-        KB_INFO = "kb_info"
-    id: str
-    type: Type
-    payload: dict[str, Any] = {}
-
-    @model_validator(mode="before")
-    @classmethod
-    def extract_payload(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            raw = data.copy()
-            res_id = raw.pop("id", "")
-            res_type = raw.pop("type", None)
-            return {
-                "id": res_id,
-                "type": res_type,
-                "payload": raw
-            }
-        return data
 
 class Button(Constructed):
-    model_config = ConfigDict(
-        extra="forbid",
-        arbitrary_types_allowed=True  # <--- Allows Callable/functions specifically on Button
-    )
     type: str 
     primary_letter: str
     secondary_letter: str
@@ -362,9 +341,7 @@ class Button(Constructed):
 class Keyboard(Constructed):
     CONFIGS_DIR: ClassVar[Path] = Path(".clanker/configs")
     button_map: dict[str, Button] = Field(default_factory=dict)
-    render: Render 
     selected_num_btn_primary_letter: str | None = None
-
 
     def get_unique_buttons(self, btn_type: str | None = None) -> list[Button]:
         unique = {btn.primary_letter: btn for btn in self.button_map.values()}.values()
@@ -476,9 +453,11 @@ class GameEngine(Engine):
         btn = self.kb.button_map.get(key)
         if btn is None or btn.inhabitant is None:
             return ActionResultMsg(f"No prompt assigned to key '{key}'")
-        repl_map = self.renderer.get_repl_map(btn.inhabitant)
-        template = self.renderer.get_template(btn.inhabitant)
-        compiled_prompt = self.renderer.hydrate(template, repl_map)
+
+        compiled_prompt = self.renderer.hydrate(
+            DEFAULT_PROMPT_TEMPLATE, 
+            self.renderer.get_repl_map(btn.inhabitant)
+        )
         lines_count = self.io.pushtoclipboard(compiled_prompt)
         return ActionResultMsg(f"Copied {lines_count} lines to clipboard")
 
@@ -495,52 +474,62 @@ class GameEngine(Engine):
 """ 5. Services """
 
 class SessionService:
+
     def get_keyboard(self) -> Keyboard:
         raw_yaml = self._get_raw_config()
+        
+        cfg_dict = raw_yaml.get("config", {})
+        target_layout_name = cfg_dict.get("layout", "default")
+        domain_specs = cfg_dict.get("domains", ["*"])
 
-        kb_def = raw_yaml["kb_def"]
-        rows = kb_def["rows"]
-        raw_domains = raw_yaml["domains"]
+        # Find active layout dict
+        layouts = raw_yaml.get("layouts", [])
+        active_layout_dict = next(
+            (l for l in layouts if l.get("name") == target_layout_name), 
+            layouts[0] if layouts else {}
+        )
 
-        # Parse raw domain dictionaries into Domain model instances
-        parsed_domains = [Domain.model_validate(domain) for domain in raw_domains]
+        # Filter active domain dicts
+        all_domains = raw_yaml.get("domains", [])
+        if "*" in domain_specs:
+            active_domain_dicts = all_domains
+        else:
+            active_domain_dicts = [d for d in all_domains if d.get("name") in domain_specs]
 
+        # 2. Rearrange dicts into target Keyboard layout shape
         button_map = {}
+        rows = active_layout_dict.get("rows", {})
 
         for row_key, row in rows.items():
             btn_type = (
-                "num_btn"
-                if row_key == "domain_row"
+                "num_btn" if row_key == "domain_row"
                 else ("prompt_btn" if row_key == "prompt_row" else "action_btn")
             )
 
-            primary_keys = row["primary"]
-            secondary_keys = row["secondary"]
+            primary_keys = row.get("primary", "")
+            secondary_keys = row.get("secondary", "")
 
             for prim, sec in zip(primary_keys, secondary_keys):
-                btn_obj = Button(
-                    type=btn_type,
-                    primary_letter=prim,
-                    secondary_letter=sec,
-                    inhabitant=None,
-                )
-                button_map[prim] = btn_obj
-                button_map[sec] = btn_obj
+                btn_dict = {
+                    "type": btn_type,
+                    "primary_letter": prim,
+                    "secondary_letter": sec,
+                    "inhabitant": None
+                }
+                button_map[prim] = btn_dict
+                button_map[sec] = btn_dict
 
-        domain_primaries = rows["domain_row"]["primary"]
-
-        # Assign instantiated Domain objects to number row buttons
-        for idx, domain_obj in enumerate(parsed_domains):
-            if idx < len(domain_primaries):
-                prim_char = domain_primaries[idx]
-                button_map[prim_char].inhabitant = domain_obj
-
-        return Keyboard.model_validate(
-            {
-                "button_map": button_map,
-                "render": kb_def["render"],
-            }
+        # Assign domain dicts as inhabitants to unique num_btns
+        unique_num_btn_keys = dict.fromkeys(
+            b["primary_letter"] for b in button_map.values() if b["type"] == "num_btn"
         )
+        
+        for key, domain_dict in zip(unique_num_btn_keys, active_domain_dicts):
+            button_map[key]["inhabitant"] = domain_dict
+
+        # 3. Feed the consolidated dict tree directly into Keyboard validation
+        keyboard_data = {"button_map": button_map}
+        return Keyboard.model_validate(keyboard_data)
 
     def is_cwd_script_dir(self) -> bool:
         return self.files.is_cwd_script_dir()
@@ -558,10 +547,7 @@ class SessionService:
         return {}
 
 class OutputAssemblyService:
-    BUILTIN_TEMPLATES: ClassVar[dict[str, str]] = {
-        "prompt_template": DEFAULT_PROMPT_TEMPLATE,
-        "ui_template": MAIN_CONSOLE_TEMPLATE,
-    }
+
     def hydrate(self, template: str, replacements: dict[str, str]) -> str:
         token = SystemKeys.DELIM.value
         pattern = re.compile(rf"{token}([^{token}]+){token}")
@@ -569,49 +555,32 @@ class OutputAssemblyService:
             lambda m: replacements.get(m.group(1).strip(), m.group(0)),
             template
         )
-    def get_repl_map(self, render: Render) -> dict[str, str]:
-        replacements: dict[str, str] = {}
-        for resolver in render.resolvers:
-            res_id, content = self._resolve(resolver)
-            if res_id:
-                replacements[res_id] = content
+    def get_repl_map(self, prompt_config: Prompt) -> dict[str, str]:
+        replacements: dict[str, str] = {
+            fragment.id: self._resolve(fragment)
+            for fragment in prompt_config.prompt_fragments
+        }
         return replacements
+        
+    def _resolve(self, fragment: PromptFragment) -> str:
+        if fragment.type == PromptFragment.Type.DOCUMENT:
+            if not fragment.path:
+                raise ValueError(f"Document fragment '{fragment.id}' missing path")
+            return self.files.read_content(fragment.path)
 
-    def get_template(self, render: Render) -> str:
-        asset_path = Config.DEFAULT_ASSETS_DIR / render.template
-        try:
-            return self.files.read_content(asset_path)
-        except (FileNotFoundError, OSError):
-            return self.BUILTIN_TEMPLATES[render.template]
-
-    def _resolve(self, resolver: Resolver) -> tuple[str, str]:
-        if not resolver.id:
-            return "", ""
-
-        if resolver.type == Resolver.Type.DOCUMENT_RETRIEVAL:
-            filename = resolver.payload.get("file")
-            if not filename:
-                raise ValueError(f"Resolver '{resolver.id}' missing 'file' payload")
-            asset_path = Config.DEFAULT_ASSETS_DIR / filename
-            content = self.files.read_content(asset_path)
-            return resolver.id, content
-
-        if resolver.type == Resolver.Type.REPO_CONTENT:
-            includes = resolver.payload.get("includes", [])
-            excludes = resolver.payload.get("excludes", [])
-            included = self.files.expand_paths(includes)
-            excluded = self.files.expand_paths(excludes)
+        if fragment.type == PromptFragment.Type.FILE_SET:
+            if not fragment.resolver:
+                raise ValueError(f"File set fragment '{fragment.id}' missing resolver")
+            included = self.files.expand_paths(fragment.resolver.inclusion_roots)
+            excluded = self.files.expand_paths(fragment.resolver.exclusion_roots)
             paths = sorted(included - excluded)
 
             tree_header = "\n".join(f"├── {p}" for p in paths)
             file_blocks = [f"--- {p} ---\n{self.files.read_content(p)}" for p in paths]
-            content = f"{tree_header}\n\n" + "\n\n".join(file_blocks)
-            return resolver.id, content
+            return f"{tree_header}\n\n" + "\n\n".join(file_blocks)
 
-        if resolver.type == Resolver.Type.KB_INFO:
-            return resolver.id, ""
-        raise ValueError(f"Unsupported resolver type: {resolver.type}")
-        
+        raise ValueError(f"Unsupported fragment type: {fragment.type}")
+
 class IOService: 
     def display(self, ui_string: str) -> None:
         self.io_bridge.clear()

@@ -34,10 +34,6 @@ Most relevant stuff:
          - Shifted full responsibility for instantiating, building, and wiring `Keyboard` into `SessionService.get_keyboard()`, streamlining `GameEngine._bootstrap_application()`.
 
       - [ ] Keyboard dynamic config integration: prepare `Keyboard` creation to accept dynamic config inputs as state assembly moves toward `.clanker/configs`.
-
-      - [ ] Split the uniconfig into several files.
-         - this means declaring a drizzle of bottom level yaml files in the script, to replace the big one seen today.
-         - and aligning other code too im sure
       
       - [ ] Split the CLANK_DEFAULT_CONFIG into several files. makes sessionservice reassemble into dict that can be used as per now.
          -  [ ] a single split is first goal. I guess the cg domains can go out into another file.
@@ -49,7 +45,54 @@ Most relevant stuff:
          - [x]Deleted symbolset from the datamodel
 
    III: IMMEDIATE GOALS
+      - [ ] Update all data objects (`Button`, `Keyboard`, sub-models) to inherit strictly from `BaseStrictModel`.
+      - [ ] Use below proposed yaml structure to align dataclasses one at a time. the idea is to make all required but no other changes.
+'''
+config: 
+  layout: 'default'
+  domains: '§' 
 
+layouts: 
+  - name: "default"
+    render: "main_ui_render"    
+    rows: 
+      - domain_row:
+          primary: "1234567890"
+          secondary: '!"#¤%&/()='
+      - prompt_row:
+          primary: "qwer"
+          secondary: "QWER"
+      - action_row:
+          primary: "asdf"
+          secondary: "ASDF"
+
+domains:
+- name: "script-dev"  
+  renders:
+    - name: 'script-dev'
+      template: "prompt_template"
+      resolvers:
+        - { type: "document-retrieval", file: "general-rules.md" }
+        - { type: "document-retrieval", file: "script_dev_instructions.md" }
+        - { type: "repo_content", includes: ["clanker.py"], excludes: [], sorting: "normal" }
+- name: "config-dev"  
+  renders:
+    - name: 'config-dev'
+      template: "prompt_template"
+      resolvers:
+        - { type: "document-retrieval", file: "general-rules.md" }
+        - { type: "document-retrieval", file: "config_development_instructions.md" }
+        - { type: "repo_content", includes: ["clanker.py"], excludes: [], sorting: "normal" }
+- name: "debloat"  
+  renders:
+    - name: 'debloat'
+      template: "prompt_template"
+      resolvers:
+        - { type: "document-retrieval", file: "general-rules.md" }
+        - { type: "document-retrieval", file: "debloat_instructions.md" }
+        - { type: "repo_content", includes: ["clanker.py"], excludes: [], sorting: "normal" }
+  
+'''
 
 Back of pipeline stuff:
 

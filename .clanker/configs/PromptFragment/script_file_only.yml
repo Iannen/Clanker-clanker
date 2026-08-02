@@ -1,0 +1,8 @@
+id: script_file_only
+type: file_set
+path:
+resolver:
+  sorter: path_asc
+  inclusion_roots:
+  - clanker.py
+  exclusion_roots: []
