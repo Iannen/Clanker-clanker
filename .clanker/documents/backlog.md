@@ -1,102 +1,10 @@
-Most relevant stuff:
+I. Long term goals
 
-- PIVOT ARCHITECTURE: REFACTOR APP TO GET DATA AS YML CONFIGS
+II. Medium term goals
 
-   I: END GOALS
+III. Immediate goals
 
-      1. Two data shapes. One is from yaml config files in .clanker/configs. the other is the hydrated app datatree 
-         - the llm can assist the user with rapid dev of configs. 
-
-      2. Dynamic resolution of config files path to app data Tree, inside a boot service.
-         a: eat up all files into map of dicts (name -> dict)
-         b: pass over dicts, add prereqs to str list dict.reqs given an analysis of dict member key name and value:
-            - the name says the type of it. so 'domain' and 'domains' singular or list of domain instances.
-            - the value then says the members of it:
-               - singulars can be null if pydantic dc allows it. 
-               - list of strings is interpreted as named instances of the type.
-                  example: 'prompt_fragments = []' -> all frags, 'prompt_fragments = [frag1, frag2,..] -> frags in that order
-               -  yaml vals that conforms to a certain regex allows us to migrate zip statements out from python and into the configs:
-                  - 'populated_num_btns' : 'zip_add(num_btns, domains)'
-         - Resolution Rules
-            - Match Rule: member_type == singular(member_key_name) (so 'domains' and 'domain' -> class Domain)
-            - Singulars: Enforced by Pydantic model as nullable (None) or strictly required.
-            - Lists: Never null.
-               - Empty []: Automatically populates with ALL discovered instances of that type.
-               - Populated ["a", "b"]: Populates ONLY specified items in written order.
-                  - Missing items trigger validation failure.
-               - zip_add causes the second to be member of first
-         - return hydrated app data tree to engine.
-
-   II: MEDIUM TERM GOALS
-
-      - [x] Refactor Keyboard to Data Object & Consolidate Bootstrap Creation
-         - Transformed `KeyboardService` into a Pydantic `Keyboard` data object in Section 4 (Data Models) and removed it from DI setup in `main()`.
-         - Shifted full responsibility for instantiating, building, and wiring `Keyboard` into `SessionService.get_keyboard()`, streamlining `GameEngine._bootstrap_application()`.
-
-      - [ ] Keyboard dynamic config integration: prepare `Keyboard` creation to accept dynamic config inputs as state assembly moves toward `.clanker/configs`.
-      
-      - [ ] Split the CLANK_DEFAULT_CONFIG into several files. makes sessionservice reassemble into dict that can be used as per now.
-         -  [ ] a single split is first goal. I guess the cg domains can go out into another file.
-
-      - [x] Consolidate in sessionservice prior to further work there
-         - [x] Consolidate Keyboard Initialization in `clanker.py`
-               - Replaced `build_button_map()` and `populate_num_keys()` with a single `build(cfg: Config)` method on `Keyboard`.
-               - Updated `SessionService.get_keyboard()` to pass `cfg` directly into `Keyboard.build(cfg)`.
-         - [x]Deleted symbolset from the datamodel
-
-   III: IMMEDIATE GOALS
-      - [ ] Update all data objects (`Button`, `Keyboard`, sub-models) to inherit strictly from `BaseStrictModel`.
-      - [ ] Use below proposed yaml structure to align dataclasses one at a time. the idea is to make all required but no other changes.
-'''
-config: 
-  layout: 'default'
-  domains: '§' 
-
-layouts: 
-  - name: "default"
-    render: "main_ui_render"    
-    rows: 
-      - domain_row:
-          primary: "1234567890"
-          secondary: '!"#¤%&/()='
-      - prompt_row:
-          primary: "qwer"
-          secondary: "QWER"
-      - action_row:
-          primary: "asdf"
-          secondary: "ASDF"
-
-domains:
-- name: "script-dev"  
-  renders:
-    - name: 'script-dev'
-      template: "prompt_template"
-      resolvers:
-        - { type: "document-retrieval", file: "general-rules.md" }
-        - { type: "document-retrieval", file: "script_dev_instructions.md" }
-        - { type: "repo_content", includes: ["clanker.py"], excludes: [], sorting: "normal" }
-- name: "config-dev"  
-  renders:
-    - name: 'config-dev'
-      template: "prompt_template"
-      resolvers:
-        - { type: "document-retrieval", file: "general-rules.md" }
-        - { type: "document-retrieval", file: "config_development_instructions.md" }
-        - { type: "repo_content", includes: ["clanker.py"], excludes: [], sorting: "normal" }
-- name: "debloat"  
-  renders:
-    - name: 'debloat'
-      template: "prompt_template"
-      resolvers:
-        - { type: "document-retrieval", file: "general-rules.md" }
-        - { type: "document-retrieval", file: "debloat_instructions.md" }
-        - { type: "repo_content", includes: ["clanker.py"], excludes: [], sorting: "normal" }
-  
-'''
-
-Back of pipeline stuff:
-
-- MOVE SELECTED BTN STUFF & HANDLERS INSIDE KB. MAYB IT JUST TAKES CONFIG RATHER THAN B ORCHESTRATED
+IV. Idea bucker:
 
 - DYNAMIC GRID RENDERING ENGINE (EXTENSIBILITY PREREQUISITE)
    a. Decouple layout rendering from hardcoded MAIN_CONSOLE_TEMPLATE tokens.
@@ -104,10 +12,11 @@ Back of pipeline stuff:
    c. Update OutputAssemblyService to render dynamic UI widths.
    d. result: Terminal console dynamically renders layouts based on arbitrary row key counts without template coupling.
 
-- Bugs
-    a. arrow keys interpreted as esc
+V. Bugs
+   - arrow keys interpreted as esc
 
-Recently achieved(:
+
+HISTORY STASH (insert below)
 
 I:    RESOLVE BASE PATH BINDING
       - Replaced dynamic runtime path injection at startup with an immutable base path locked in during bridge initialization.
@@ -128,3 +37,9 @@ IV.   STANDARDIZE RENDER PIPELINES & SHIFT PROMPT GEN TO GAME ENGINE
       - Shifted flow orchestration and template ownership to `GameEngine`, extracting fragment resolution into a dedicated map builder (`get_repl_map(prompt_config)`).
       - Completely removed internal template selection, dynamic XML generation, `_PromptBuilder`, and redundant `SymbolSet` tag assembly logic.
       - Result: Unified, stateless declarative template-hydration pipeline with zero dynamic builder overhead and clean separation of concerns.
+
+V.    YML + BOOT WORK / RENDER PIPELINE STANDARDIZATION
+      - Established dual data representation: raw YAML files in .clanker/configs and hydrated App Data Tree via strict Pydantic models.
+      - Built dynamic BootService to ingest configs, resolve types, apply list hydration rules, and execute zip_add directives.
+      - Consolidated Keyboard data object lifecycle into SessionService.get_keyboard() and removed legacy KeyboardService dependency.
+      - Removed deprecated SymbolSet datamodels and enforced strict model validation across runtime objects.

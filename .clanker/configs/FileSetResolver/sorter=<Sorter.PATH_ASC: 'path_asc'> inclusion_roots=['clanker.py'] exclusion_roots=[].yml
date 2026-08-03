@@ -1,4 +1,0 @@
-sorter: path_asc
-inclusion_roots:
-- clanker.py
-exclusion_roots: []
