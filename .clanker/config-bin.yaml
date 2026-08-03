@@ -1,0 +1,58 @@
+rows:
+  domain_row:
+    primary: "1234567890"
+    secondary: '!"#¤%&/()='
+  prompt_row:
+    primary: "qwer"
+    secondary: "QWER"
+  action_row:
+    primary: "asdf"
+    secondary: "ASDF"
+domains:
+  - name: "Main script"
+    plan: null
+    prompts:
+      - name: "config-dev"
+        prompt_fragments:
+          - id: "general_rules"
+            type: "document"
+            path: ".clanker/assets/general-rules.md"
+          - id: "config_development"
+            type: "document"
+            path: ".clanker/assets/config_development_instructions.md"
+          - id: "script_file_only"
+            type: "file_set"
+            resolver:
+              sorter: "path_asc"
+              inclusion_roots: ["clanker.py"]
+              exclusion_roots: []
+
+      - name: "script-dev"
+        prompt_fragments:
+          - id: "general_rules"
+            type: "document"
+            path: ".clanker/assets/general-rules.md"
+          - id: "script_dev"
+            type: "document"
+            path: ".clanker/assets/script_dev_instructions.md"
+          - id: "script_file_only"
+            type: "file_set"
+            resolver:
+              sorter: "path_asc"
+              inclusion_roots: ["clanker.py"]
+              exclusion_roots: []
+
+      - name: "debloat"
+        prompt_fragments:
+          - id: "general_rules"
+            type: "document"
+            path: ".clanker/assets/general-rules.md"
+          - id: "debloat"
+            type: "document"
+            path: ".clanker/assets/debloat_instructions.md"
+          - id: "script_file_only"
+            type: "file_set"
+            resolver:
+              sorter: "path_asc"
+              inclusion_roots: ["clanker.py"]
+              exclusion_roots: []

@@ -3,7 +3,7 @@ kb_def:
     name: ui
     template: ui_template
     resolvers:
-    - {id: ui, type: kb_info}
+    - {type: kb_info}
   rows:
     domain_row:
       primary: '1234567890'

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 import base64
-from enum import Enum, StrEnum
+from enum import Enum
 from ruamel.yaml import YAML
 import os
 from pathlib import Path
@@ -86,7 +86,7 @@ kb_def:
       name: "ui"
       template: "ui_template"
       resolvers:
-        - { type: "kb_info" }
+        - { id: "ui", type: "kb_info" }
     rows:
       domain_row:
         primary: "1234567890"
@@ -146,14 +146,12 @@ DEFAULT_CONFIG = {
 """ 2. Base Classes & Main function """
 
 class BaseAppEx(Exception):
-
     def __new__(cls, *args, **kwargs):
         if cls is BaseAppEx:
             raise BaseExInstantiationAttempt(cls.__name__)
         if cls is BaseNoticeEx and (args or kwargs):
             raise IllegalNoticeArgs(cls.__name__)
         return super().__new__(cls)
-
     ADOPTED_NOTICES: tuple[type[Exception], ...] = ( # list would be prettier
         FileNotFoundError,
         PermissionError
@@ -185,13 +183,10 @@ class BaseAppEx(Exception):
     def print_traceback_and_exit(cls, ex: Exception) -> None:
         cause = getattr(ex, "__cause__", None)
         err_detail = str(ex) if str(ex) else ex.__class__.__name__
-
         sys.stderr.write(f"\n[FAILURE] {err_detail}\n")
-
         if cause:
             sys.stderr.write("\n--- Underlying Stack Trace ---\n")
             traceback.print_exception(type(cause), cause, cause.__traceback__)
-
         sys.exit(1)
 
 class BaseFailureEx(BaseAppEx): pass
@@ -203,23 +198,13 @@ class Engine:
             bootstrap_res_msg = self._bootstrap_application()
             self._add_to_board(bootstrap_res_msg)
             while True:
-                cmd_key = self._display_ui_to_user() # use pipeline method. we need contributors in scope.
+                cmd_key = self._display_ui_to_user() 
                 cmd_res_msg = self._dispatch_cmd(cmd_key)
                 self._add_to_board(cmd_res_msg)
         except ProgramExitNotice as exit_request:
             return exit_request.get_compliance_msg()
         except Exception as any_other_ex:
             BaseAppEx.reraise_as_failure(any_other_ex)
-
-    def _bootstrap_application(self) -> ActionResultMsg:
-        raise NotImplementedError
-    def _display_ui_to_user(self) -> str:
-        raise NotImplementedError
-
-    def _dispatch_cmd(self, key: str) -> ActionResultMsg:
-        raise NotImplementedError
-    def _add_to_board(self, msg: ActionResultMsg | None) -> None:
-        raise NotImplementedError
 
 class Bridge:
     def __init_subclass__(cls):
@@ -257,6 +242,7 @@ def main():
         print(exit_msg)
     except BaseFailureEx as ex:
         BaseAppEx.print_traceback_and_exit(ex)
+
 """ 3. Exceptions, Result Objects, Enums """
 
 class ActionResultMsg:
@@ -365,7 +351,6 @@ class Keyboard(Constructed):
     render: Render 
     selected_num_btn_primary_letter: str | None = None
 
-
     def get_unique_buttons(self, btn_type: str | None = None) -> list[Button]:
         unique = {btn.primary_letter: btn for btn in self.button_map.values()}.values()
         if btn_type is None:
@@ -411,10 +396,9 @@ class Keyboard(Constructed):
 class GameEngine(Engine):
     def _bootstrap_application(self) -> ActionResultMsg:
         try:
-            whatsessiongivesonboot = self.session.get_keyboard()
-            self.kb = whatsessiongivesonboot
-            self.wire_num_row_handlers()
-            self.set_selected_num_btn(None)
+            self.kb = self.session.get_keyboard()
+            self._wire_num_row_handlers()
+            self._set_selected_num_btn(None)
             return ActionResultMsg("Bootstrap completed successfully")
         except NoConfigNotice:
             try:
@@ -425,24 +409,18 @@ class GameEngine(Engine):
             except UserDeclineNotice:
                 raise ProgramExitNotice
 
-    def _display_ui_to_user(self) -> str:
-        repl_map = self.kb.build_ui_repl_map() | self.session.build_ui_repl_map()
-        view_str = self.renderer.hydrate(MAIN_CONSOLE_TEMPLATE, repl_map)
-        self.io.display(view_str)
-        return self.io.get_key()
-
     def _dispatch_cmd(self, key: str) -> ActionResultMsg:
         return self.kb.handle_key(key)
 
     def _add_to_board(self, msg: ActionResultMsg | None) -> None:
         self.msg = msg
 
-    def wire_num_row_handlers(self) -> None:
+    def _wire_num_row_handlers(self) -> None:
         for btn in self.kb.get_unique_buttons("num_btn"):
-            btn.primary_action = lambda key: self.set_selected_num_btn(key)
-            btn.shift_action = lambda key: exec("raise NotImplementedError")
+            btn.primary_action = self._set_selected_num_btn
+            btn.shift_action = lambda k: exec("raise NotImplementedError")
 
-    def set_selected_num_btn(self, key: str | None) -> ActionResultMsg:
+    def _set_selected_num_btn(self, key: str | None) -> ActionResultMsg:
         if key is None:
             case = "none"
         else:
@@ -458,7 +436,7 @@ class GameEngine(Engine):
         if case == "inhabited":
             for p_btn, prompt in zip(prompt_btns, ref_btn.inhabitant.renders):
                 p_btn.inhabitant = prompt
-                p_btn.primary_action = self.compile_prompt_to_clipboard
+                p_btn.primary_action = self._compile_prompt_to_clipboard
                 p_btn.shift_action = lambda k: exec("raise NotImplementedError")
 
             for a_btn in action_btns:
@@ -472,25 +450,23 @@ class GameEngine(Engine):
         msg = "Selection cleared" if case == "none" else f"Domain 'None' on key '{key}' selected"
         return ActionResultMsg(msg)
 
-    def compile_prompt_to_clipboard(self, key: str) -> ActionResultMsg:
+    def _display_ui_to_user(self) -> str:
+        view_str = self._render(self.kb, self.kb.render)
+        self.io.display(view_str)
+        return self.io.get_key()
+
+    def _compile_prompt_to_clipboard(self, key: str) -> ActionResultMsg:
         btn = self.kb.button_map.get(key)
         if btn is None or btn.inhabitant is None:
             return ActionResultMsg(f"No prompt assigned to key '{key}'")
-        repl_map = self.renderer.get_repl_map(btn.inhabitant)
-        template = self.renderer.get_template(btn.inhabitant)
-        compiled_prompt = self.renderer.hydrate(template, repl_map)
+        compiled_prompt = self._render(self.kb, btn.inhabitant)
         lines_count = self.io.pushtoclipboard(compiled_prompt)
         return ActionResultMsg(f"Copied {lines_count} lines to clipboard")
 
-    def _display_frame_get_cmd_key(self, ui_frame: str) -> str:
-        self.io.display(ui_frame)
-        return self.io.get_key()
-
-    def _execute_cmd(self, key: str) -> ActionResultMsg:
-        return self._dispatch_cmd(key)
-
-    def _process_res_object(self, msg: ActionResultMsg | None) -> None:
-        self._add_to_board(msg)
+    def _render(self, kb: Keyboard, render: Render):
+        template = self.renderer.get_template(render)
+        repl_map = self.renderer.get_repl_map(kb, render)
+        return self.renderer.hydrate(template, repl_map)
 
 """ 5. Services """
 
@@ -502,7 +478,6 @@ class SessionService:
         rows = kb_def["rows"]
         raw_domains = raw_yaml["domains"]
 
-        # Parse raw domain dictionaries into Domain model instances
         parsed_domains = [Domain.model_validate(domain) for domain in raw_domains]
 
         button_map = {}
@@ -529,7 +504,6 @@ class SessionService:
 
         domain_primaries = rows["domain_row"]["primary"]
 
-        # Assign instantiated Domain objects to number row buttons
         for idx, domain_obj in enumerate(parsed_domains):
             if idx < len(domain_primaries):
                 prim_char = domain_primaries[idx]
@@ -554,9 +528,6 @@ class SessionService:
     def save_config(self, raw_config: dict) -> None:
         self.files.write_yaml(Config.DEFAULT_REL_PATH, raw_config)
 
-    def build_ui_repl_map(self) -> dict[str, str]:
-        return {}
-
 class OutputAssemblyService:
     BUILTIN_TEMPLATES: ClassVar[dict[str, str]] = {
         "prompt_template": DEFAULT_PROMPT_TEMPLATE,
@@ -569,13 +540,6 @@ class OutputAssemblyService:
             lambda m: replacements.get(m.group(1).strip(), m.group(0)),
             template
         )
-    def get_repl_map(self, render: Render) -> dict[str, str]:
-        replacements: dict[str, str] = {}
-        for resolver in render.resolvers:
-            res_id, content = self._resolve(resolver)
-            if res_id:
-                replacements[res_id] = content
-        return replacements
 
     def get_template(self, render: Render) -> str:
         asset_path = Config.DEFAULT_ASSETS_DIR / render.template
@@ -584,17 +548,21 @@ class OutputAssemblyService:
         except (FileNotFoundError, OSError):
             return self.BUILTIN_TEMPLATES[render.template]
 
-    def _resolve(self, resolver: Resolver) -> tuple[str, str]:
-        if not resolver.id:
-            return "", ""
+    def get_repl_map(self, keyboard: Keyboard, render: Render) -> dict[str, str]:
+        replacements: dict[str, str] = {}
+        for resolver in render.resolvers:
+            for key, val in self._resolve(resolver, keyboard):
+                replacements[key] = val
+        return replacements
 
+    def _resolve(self, resolver: Resolver, keyboard: Keyboard) -> list[tuple[str, str]]:
         if resolver.type == Resolver.Type.DOCUMENT_RETRIEVAL:
             filename = resolver.payload.get("file")
             if not filename:
                 raise ValueError(f"Resolver '{resolver.id}' missing 'file' payload")
             asset_path = Config.DEFAULT_ASSETS_DIR / filename
             content = self.files.read_content(asset_path)
-            return resolver.id, content
+            return [(resolver.id, content)]
 
         if resolver.type == Resolver.Type.REPO_CONTENT:
             includes = resolver.payload.get("includes", [])
@@ -606,12 +574,13 @@ class OutputAssemblyService:
             tree_header = "\n".join(f"├── {p}" for p in paths)
             file_blocks = [f"--- {p} ---\n{self.files.read_content(p)}" for p in paths]
             content = f"{tree_header}\n\n" + "\n\n".join(file_blocks)
-            return resolver.id, content
+            return [(resolver.id, content)]
 
         if resolver.type == Resolver.Type.KB_INFO:
-            return resolver.id, ""
+            return list(keyboard.build_ui_repl_map().items())
+
         raise ValueError(f"Unsupported resolver type: {resolver.type}")
-        
+
 class IOService: 
     def display(self, ui_string: str) -> None:
         self.io_bridge.clear()
@@ -686,7 +655,6 @@ class IOBridge(Bridge):
         return ch
 
 class FileBridge(Bridge):
-
     def __init__(self) -> None:
         self.yaml = YAML()
         self.base_path = Path.cwd()
