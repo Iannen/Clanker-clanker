@@ -1,0 +1,1 @@
+Focus on trimming redundant code, removing obsolete abstractions, and simplifying runtime execution paths.

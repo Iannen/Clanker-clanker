@@ -18,17 +18,43 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 DEFAULT_PROMPT_TEMPLATE = r"""
 <runtime : kindly oblige if noobject>
   <msg-from-runtime-author kindly serve the function of the runtime>
+    <document-tag fragment: base_instruction>
+§base_instruction§
+    </document-tag>
     <document-tag fragment: domain_instruction>
 §domain_instruction§
     </document-tag>
     <document-tag fragment: prompt_instruction>
 §prompt_instruction§
     </document-tag>
+    <document-tag fragment: backlog>
+§backlog§
+    </document-tag>
     <document-tag fragment: repo_content>
 §repo_content§
     </document-tag>
   </msg-from-runtime-author>
 </runtime>"""
+
+DEFAULT_BACKLOG_TEMPLATE = r"""
+I. Long term goals
+
+II. Medium term goals
+
+III. Immediate goals
+      - Explore the nature of the current repository. 
+      - Is it new? Then bootstrap a new project
+      - Does it have content? Then analyze with user
+
+IV. Idea bucket:
+
+V. Known Bugs
+
+HISTORY STASH (insert below)
+
+I: Initialized .clank directory 
+    - ran clanker in repo directory
+"""
 
 MAIN_CONSOLE_TEMPLATE = r"""
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -80,13 +106,18 @@ INACTIVE_BTN = r"""
 ────────
  §§§§§§ 
 """
+
 CLANK_CONFIG_YAML = r"""
 kb_def: 
     render: 
       name: "ui"
       template: "ui_template"
+      inherit_base: false
+      inherit_domain: false
       resolvers:
         - { id: "ui", type: "kb_info" }
+    resolvers:
+      - { id: "base_instruction", type: "document-retrieval", file: "general-rules.md" }
     rows:
       domain_row:
         primary: "1234567890"
@@ -102,46 +133,81 @@ domains:
 - name: "script-dev"
   plan: 
     name: "script_development_plan"
+  resolvers:
+    - { id: "domain_instruction", type: "document-retrieval", file: "domain-script-dev.md" }
   renders:
     - name: 'script-dev'
       template: "prompt_template"
       resolvers:
-        - { id: "domain_instruction", type: "document-retrieval", file: "general-rules.md" }
         - { id: "prompt_instruction", type: "document-retrieval", file: "script_dev_instructions.md" }
+        - { id: "backlog", type: "document-retrieval", file: "backlog.md" }
         - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [], sorting: "normal" }
+
 - name: "config-dev"
   plan: 
     name: "config_development_plan"
+  resolvers:
+    - { id: "domain_instruction", type: "document-retrieval", file: "domain-config-dev.md" }
   renders:
     - name: 'config-dev'
       template: "prompt_template"
       resolvers:
-        - { id: "domain_instruction", type: "document-retrieval", file: "general-rules.md" }
-        - { id: "prompt_instruction", type: "document-retrieval", file: "config_development_instructions.md" }
+        - { id: "prompt_instruction", type: "document-retrieval", file: "config-development-instructions.md" }
+        - { id: "backlog", type: "document-retrieval", file: "backlog.md" }
         - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [], sorting: "normal" }
+
 - name: "debloat"
   plan: 
     name: "debloat_plan"
+  resolvers:
+    - { id: "domain_instruction", type: "document-retrieval", file: "domain-debloat.md" }
   renders:
     - name: 'debloat'
       template: "prompt_template"
       resolvers:
-        - { id: "domain_instruction", type: "document-retrieval", file: "general-rules.md" }
-        - { id: "prompt_instruction", type: "document-retrieval", file: "debloat_instructions.md" }
+        - { id: "prompt_instruction", type: "document-retrieval", file: "debloat-instructions.md" }
+        - { id: "backlog", type: "document-retrieval", file: "backlog.md" }
         - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [], sorting: "normal" }
 """
 
 CLANK_CONFIG = YAML().load(CLANK_CONFIG_YAML)
 
+DEFAULT_CONFIG = r"""
+kb_def: 
+    render: 
+      name: "ui"
+      template: "ui_template"
+      resolvers:
+        - { id: "ui", type: "kb_info" }
+    resolvers:
+      - { id: "base_instruction", type: "document-retrieval", file: "general-rules.md" }
+    rows:
+      domain_row:
+        primary: "1234567890"
+        secondary: '!"#¤%&/()='
+      prompt_row:
+        primary: "qwer"
+        secondary: "QWER"
+      action_row:
+        primary: "asdf"
+        secondary: "ASDF"
 
-DEFAULT_CONFIG = {
-    "rows": {
-        "domain_row": {"primary": "1234567890", "secondary": '!"#¤%&/()='},
-        "prompt_row": {"primary": "qwer", "secondary": "QWER"},
-        "action_row": {"primary": "asdf", "secondary": "ASDF"}
-    },
-    "domains": []
-}
+domains:
+- name: "bootstrap"
+  plan: 
+    name: "bootstrap_plan"
+  resolvers:
+    - { id: "domain_instruction", type: "document-retrieval", file: "domain-bootstrap.md" }
+  renders:
+    - name: 'bootstrap'
+      template: "prompt_template"
+      resolvers:
+        - { id: "prompt_instruction", type: "document-retrieval", file: "bootstrap-instructions.md" }
+        - { id: "backlog", type: "document-retrieval", file: "backlog.md" }
+        - { id: "repo_content", type: "repo_content", includes: ["."], excludes: [".clanker"], sorting: "normal" }
+"""
+
+DEFAULT_CONFIG = YAML().load(DEFAULT_CONFIG)
 
 """ 2. Base Classes & Main function """
 
@@ -152,7 +218,7 @@ class BaseAppEx(Exception):
         if cls is BaseNoticeEx and (args or kwargs):
             raise IllegalNoticeArgs(cls.__name__)
         return super().__new__(cls)
-    ADOPTED_NOTICES: tuple[type[Exception], ...] = ( # list would be prettier
+    ADOPTED_NOTICES: tuple[type[Exception], ...] = ( 
         FileNotFoundError,
         PermissionError
     )
@@ -283,11 +349,14 @@ class Render(Constructed):
     name: str
     template: str
     resolvers: list[Resolver] = []
+    inherit_base: bool = True
+    inherit_domain: bool = True
 
 class Domain(Constructed):
     name: str
     plan: Plan | None = None
     renders: list[Render] = []
+    resolvers: list[Resolver] = []
 
 class Config(Constructed):
     DEFAULT_REL_PATH: ClassVar[Path] = Path(".clanker/config.yaml")
@@ -322,7 +391,7 @@ class Resolver(BaseModel):
 class Button(Constructed):
     model_config = ConfigDict(
         extra="forbid",
-        arbitrary_types_allowed=True  # <--- Allows Callable/functions specifically on Button
+        arbitrary_types_allowed=True  
     )
     type: str 
     primary_letter: str
@@ -349,6 +418,7 @@ class Keyboard(Constructed):
     CONFIGS_DIR: ClassVar[Path] = Path(".clanker/configs")
     button_map: dict[str, Button] = Field(default_factory=dict)
     render: Render 
+    resolvers: list[Resolver] = []
     selected_num_btn_primary_letter: str | None = None
 
     def get_unique_buttons(self, btn_type: str | None = None) -> list[Button]:
@@ -402,13 +472,11 @@ class GameEngine(Engine):
             return ActionResultMsg("Bootstrap completed successfully")
         except NoConfigNotice:
             try:
-                self.io.get_confirmation("Config missing. Create default config?")
-                config = CLANK_CONFIG if self.session.is_cwd_script_dir() else DEFAULT_CONFIG
-                self.session.save_config(config)
+                self.io.get_confirmation("Directory not initialized as clank repo - do so?")
+                self.session.initialize_workspace()
                 return self._bootstrap_application()
             except UserDeclineNotice:
                 raise ProgramExitNotice
-
     def _dispatch_cmd(self, key: str) -> ActionResultMsg:
         return self.kb.handle_key(key)
 
@@ -513,6 +581,7 @@ class SessionService:
             {
                 "button_map": button_map,
                 "render": kb_def["render"],
+                "resolvers": kb_def.get("resolvers"),
             }
         )
 
@@ -525,8 +594,12 @@ class SessionService:
         except FileNotFoundError:
             raise NoConfigNotice
 
-    def save_config(self, raw_config: dict) -> None:
-        self.files.write_yaml(Config.DEFAULT_REL_PATH, raw_config)
+    def initialize_workspace(self) -> None:
+        config = CLANK_CONFIG if self.files.is_cwd_script_dir() else DEFAULT_CONFIG
+        self.files.write_yaml(Config.DEFAULT_REL_PATH, config)
+        
+        backlog_path = Config.DEFAULT_ASSETS_DIR / "backlog.md"
+        self.files.write_content(backlog_path, DEFAULT_BACKLOG_TEMPLATE)
 
 class OutputAssemblyService:
     BUILTIN_TEMPLATES: ClassVar[dict[str, str]] = {
@@ -549,8 +622,16 @@ class OutputAssemblyService:
             return self.BUILTIN_TEMPLATES[render.template]
 
     def get_repl_map(self, keyboard: Keyboard, render: Render) -> dict[str, str]:
+        active_resolvers: list[Resolver] = []
+        if render.inherit_base:
+            active_resolvers.extend(keyboard.resolvers)
+        if render.inherit_domain and keyboard.selected_num_btn_primary_letter:
+            active_btn = keyboard.button_map.get(keyboard.selected_num_btn_primary_letter)
+            if active_btn and isinstance(active_btn.inhabitant, Domain):
+                active_resolvers.extend(active_btn.inhabitant.resolvers)
+        active_resolvers.extend(render.resolvers)
         replacements: dict[str, str] = {}
-        for resolver in render.resolvers:
+        for resolver in active_resolvers:
             for key, val in self._resolve(resolver, keyboard):
                 replacements[key] = val
         return replacements
@@ -561,7 +642,10 @@ class OutputAssemblyService:
             if not filename:
                 raise ValueError(f"Resolver '{resolver.id}' missing 'file' payload")
             asset_path = Config.DEFAULT_ASSETS_DIR / filename
-            content = self.files.read_content(asset_path)
+            try:
+                content = self.files.read_content(asset_path)
+            except FileNotFoundError:
+                content = f"[{resolver.id}: No content found at '{filename}']"
             return [(resolver.id, content)]
 
         if resolver.type == Resolver.Type.REPO_CONTENT:
@@ -675,6 +759,12 @@ class FileBridge(Bridge):
     def read_content(self, rel_path: Path) -> str:
         with open(self.base_path / rel_path, "r", encoding="utf-8") as f:
             return f.read()
+
+    def write_content(self, rel_path: Path, content: str) -> None:
+        target_path = self.base_path / rel_path
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(target_path, "w", encoding="utf-8") as f:
+            f.write(content)
 
     def expand_paths(self, rel_roots: list[str | Path]) -> set[Path]:
         resolved_files: set[Path] = set()

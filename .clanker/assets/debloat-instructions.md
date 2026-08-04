@@ -1,4 +1,3 @@
-
 # Objective
 Refactor and optimize `clanker.py` to minimize token overhead, reclaim vertical space, and eliminate technical debt while strictly maintaining 100% behavioral parity and API compatibility.
 

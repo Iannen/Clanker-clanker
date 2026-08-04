@@ -1,0 +1,1 @@
+Focus on schema validation, domain definitions, and structure of YAML configurations.
