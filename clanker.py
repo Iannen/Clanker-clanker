@@ -15,28 +15,19 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 """ 1. Templates, Default Configs & UI Strings """
 
-DEFAULT_PROMPT_TEMPLATE = r"""
+PROMPT_TEMPLATE = r"""
 <runtime : kindly oblige if noobject>
   <msg-from-runtime-author kindly serve the function of the runtime>
-    <document-tag fragment: base_instruction>
-§base_instruction§
-    </document-tag>
-    <document-tag fragment: domain_instruction>
-§domain_instruction§
-    </document-tag>
-    <document-tag fragment: prompt_instruction>
-§prompt_instruction§
-    </document-tag>
-    <document-tag fragment: backlog>
-§backlog§
-    </document-tag>
+§base_fragments§
+§domain_fragments§
+§prompt_fragments§
     <document-tag fragment: repo_content>
 §repo_content§
     </document-tag>
   </msg-from-runtime-author>
 </runtime>"""
 
-DEFAULT_BACKLOG_TEMPLATE = r"""
+BACKLOG_TEMPL = r"""
 I. Long term goals
 
 II. Medium term goals
@@ -56,7 +47,7 @@ I: Initialized .clank directory
     - ran clanker in repo directory
 """
 
-MAIN_CONSOLE_TEMPLATE = r"""
+UI_TEMPL = r"""
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 │                                                                                                                         │
 │    § 10   §  § 20   §  § 30   §  § 40   §  § 50   §  § 60   §  § 70   §  § 80   §  § 90   §  § 00   §                   │
@@ -78,14 +69,10 @@ MAIN_CONSOLE_TEMPLATE = r"""
 │      § a4   §  § s4   §  § d4   §  § f4   §                                                                             │
 │                                                                                                                         │
 │                                                                                                                         │
-│                                                                                                                         │
-│                                                                                                                         │
-│                                                                                                                         │
-│                                                                                                                         │
 └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 """
 
-HIGHLIGHTED_BTN = r"""
+HL_BTN = r"""
  vvvvvv 
 ┌──────┐
 │  §   │
@@ -107,116 +94,91 @@ INACTIVE_BTN = r"""
  §§§§§§ 
 """
 
-CLANK_CONFIG_YAML = r"""
+KB_DEF = r"""
 kb_def: 
-    render: 
-      name: "ui"
-      template: "ui_template"
-      inherit_base: false
-      inherit_domain: false
-      resolvers:
-        - { id: "ui", type: "kb_info" }
+  render: 
+    name: "ui"
+    template: "ui_template"
     resolvers:
-      - { id: "base_instruction", type: "document-retrieval", file: "general-rules.md" }
-    rows:
-      domain_row:
-        primary: "1234567890"
-        secondary: '!"#¤%&/()='
-      prompt_row:
-        primary: "qwer"
-        secondary: "QWER"
-      action_row:
-        primary: "asdf"
-        secondary: "ASDF"
+      - { id: "ui", type: "kb_info" }
+  resolvers:
+    - id: "base_fragments"
+      type: "multi-document-retrieval"
+      files: ["general-rules.md"]
+  rows:
+    domain_row:
+      primary: "1234567890"
+      secondary: '!"#¤%&/()='
+    prompt_row:
+      primary: "qwer"
+      secondary: "QWER"
+    action_row:
+      primary: "asdf"
+      secondary: "ASDF"
+"""
 
+CLANK_DOMAINS = r"""
 domains:
 - name: "script-dev"
-  plan: 
-    name: "script_development_plan"
+  plan: { name: "script_development_plan" }
   resolvers:
-    - { id: "domain_instruction", type: "document-retrieval", file: "domain-script-dev.md" }
+    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["domain-script-dev.md"] }
   renders:
     - name: 'script-dev'
       template: "prompt_template"
       resolvers:
-        - { id: "prompt_instruction", type: "document-retrieval", file: "prompt-script-dev.md" }
-        - { id: "backlog", type: "document-retrieval", file: "backlog.md" }
+        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["prompt-script-dev.md", "backlog.md"] }
         - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [], sorting: "normal" }
 
 - name: "config-dev"
-  plan: 
-    name: "config_development_plan"
+  plan: { name: "config_development_plan" }
   resolvers:
-    - { id: "domain_instruction", type: "document-retrieval", file: "domain-config-dev.md" }
+    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["domain-config-dev.md"] }
   renders:
     - name: 'config-dev'
       template: "prompt_template"
       resolvers:
-        - { id: "prompt_instruction", type: "document-retrieval", file: "config-development-instructions.md" }
-        - { id: "backlog", type: "document-retrieval", file: "backlog.md" }
+        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["config-development-instructions.md"] }
         - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [], sorting: "normal" }
 
 - name: "debloat"
-  plan: 
-    name: "debloat_plan"
+  plan: { name: "debloat_plan" }
   resolvers:
-    - { id: "domain_instruction", type: "document-retrieval", file: "domain-debloat.md" }
+    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["domain-debloat.md"] }
   renders:
     - name: 'debloat'
       template: "prompt_template"
       resolvers:
-        - { id: "prompt_instruction", type: "document-retrieval", file: "debloat-instructions.md" }
-        - { id: "backlog", type: "document-retrieval", file: "backlog.md" }
+        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["debloat-instructions.md"] }
         - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [], sorting: "normal" }
 """
 
-CLANK_CONFIG = YAML().load(CLANK_CONFIG_YAML)
-
-DEFAULT_CONFIG = r"""
-kb_def: 
-    render: 
-      name: "ui"
-      template: "ui_template"
-      resolvers:
-        - { id: "ui", type: "kb_info" }
-    resolvers:
-      - { id: "base_instruction", type: "document-retrieval", file: "general-rules.md" }
-    rows:
-      domain_row:
-        primary: "1234567890"
-        secondary: '!"#¤%&/()='
-      prompt_row:
-        primary: "qwer"
-        secondary: "QWER"
-      action_row:
-        primary: "asdf"
-        secondary: "ASDF"
-
+DEFAULT_DOMAINS = r"""
 domains:
 - name: "bootstrap"
-  plan: 
-    name: "bootstrap_plan"
+  plan: { name: "bootstrap_plan" }
   resolvers:
-    - { id: "domain_instruction", type: "document-retrieval", file: "domain-bootstrap.md" }
+    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["domain-bootstrap.md"] }
   renders:
     - name: 'bootstrap'
       template: "prompt_template"
       resolvers:
-        - { id: "prompt_instruction", type: "document-retrieval", file: "bootstrap-instructions.md" }
-        - { id: "backlog", type: "document-retrieval", file: "backlog.md" }
+        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["bootstrap-instructions.md", "backlog.md"] }
         - { id: "repo_content", type: "repo_content", includes: ["."], excludes: [".clanker"], sorting: "normal" }
 """
 
-DEFAULT_CONFIG = YAML().load(DEFAULT_CONFIG)
+yaml_parser = YAML()
+CLANK_CONFIG = yaml_parser.load(KB_DEF + CLANK_DOMAINS)
+DEFAULT_CONFIG = yaml_parser.load(KB_DEF + DEFAULT_DOMAINS)
 
 """ 2. Base Classes & Main function """
 
-class BaseAppEx(Exception):
+class BaseEx(Exception):
     def __new__(cls, *args, **kwargs):
-        if cls is BaseAppEx:
-            raise BaseExInstantiationAttempt(cls.__name__)
-        if cls is BaseNoticeEx and (args or kwargs):
-            raise IllegalNoticeArgs(cls.__name__)
+        if cls is BaseEx:
+            raise BaseExInstantiation(cls.__name__)
+        if cls is Notice and (args or kwargs):
+            raise NoticeArgs(cls.__name__)
         return super().__new__(cls)
     ADOPTED_NOTICES: tuple[type[Exception], ...] = ( 
         FileNotFoundError,
@@ -229,21 +191,21 @@ class BaseAppEx(Exception):
             return fn(*args, **kwargs)
         except cls.ADOPTED_NOTICES:
             raise
-        except BaseNoticeEx:
+        except Notice:
             raise
         except Exception as ex:
-            raise BridgeLeakageFailure() from ex
+            raise BridgeLeakage() from ex
 
     @classmethod
     def reraise_as_failure(cls, ex: Exception) -> None:
-        if isinstance(ex, BaseFailureEx):
+        if isinstance(ex, Failure):
             raise
-        if isinstance(ex, BaseNoticeEx):
-            raise MissedNoticeFailure(f"Missed notice: {ex}") from ex
-        if isinstance(ex, BaseAppEx.ADOPTED_NOTICES):
-            raise UncaughtAdoptedNoticeFailure(f"Adopted notice failure: [{type(ex).__name__}] {ex}") from ex
+        if isinstance(ex, Notice):
+            raise MissedNotice(f"Missed notice: {ex}") from ex
+        if isinstance(ex, BaseEx.ADOPTED_NOTICES):
+            raise MissedAdoptedNotice(f"Adopted notice failure: [{type(ex).__name__}] {ex}") from ex
         else:
-            raise UncaughtUnexpectedFailure(f"[{type(ex).__name__}] {ex}") from ex
+            raise UnexpectedEx(f"[{type(ex).__name__}] {ex}") from ex
 
     @classmethod
     def print_traceback_and_exit(cls, ex: Exception) -> None:
@@ -255,22 +217,21 @@ class BaseAppEx(Exception):
             traceback.print_exception(type(cause), cause, cause.__traceback__)
         sys.exit(1)
 
-class BaseFailureEx(BaseAppEx): pass
-class BaseNoticeEx(BaseAppEx): pass
+class Failure(BaseEx): pass
+class Notice(BaseEx): pass
 
 class Engine:
     def run(self) -> str:
         try:
-            bootstrap_res_msg = self._bootstrap_application()
-            self._add_to_board(bootstrap_res_msg)
+            self._add_to_board(self._bootstrap())
             while True:
-                cmd_key = self._display_ui_to_user() 
+                cmd_key = self._display_ui()
                 cmd_res_msg = self._dispatch_cmd(cmd_key)
                 self._add_to_board(cmd_res_msg)
-        except ProgramExitNotice as exit_request:
+        except ProgramExit as exit_request:
             return exit_request.get_compliance_msg()
-        except Exception as any_other_ex:
-            BaseAppEx.reraise_as_failure(any_other_ex)
+        except Exception as other_ex:
+            BaseEx.reraise_as_failure(other_ex)
 
 class Bridge:
     def __init_subclass__(cls):
@@ -280,7 +241,7 @@ class Bridge:
     @staticmethod
     def _wrap_safely(fn):
         def wrapper(*args, **kwargs):
-            return BaseAppEx.wrap_bridge_call(fn, *args, **kwargs)
+            return BaseEx.wrap_bridge_call(fn, *args, **kwargs)
         return wrapper
 
 class Constructed(BaseModel):
@@ -293,7 +254,7 @@ def main():
 
         session = SessionService()
         io = IOService()
-        renderer = OutputAssemblyService()
+        renderer = AssemblyService()
 
         session.files = files
         io.io_bridge = io_bridge
@@ -306,31 +267,28 @@ def main():
 
         exit_msg = engine.run()
         print(exit_msg)
-    except BaseFailureEx as ex:
-        BaseAppEx.print_traceback_and_exit(ex)
+    except Failure as ex:
+        BaseEx.print_traceback_and_exit(ex)
 
 """ 3. Exceptions, Result Objects, Enums """
 
-class ActionResultMsg:
+class ActionResult:
     def __init__(self, message: str):
         self.message = message
 
-class MissedNoticeFailure(BaseFailureEx): pass
-class BaseExInstantiationAttempt(BaseFailureEx): pass
-class IllegalNoticeArgs(BaseFailureEx): pass
-class BridgeLeakageFailure(BaseFailureEx): pass
-class NotImplementedFailure(BaseFailureEx): pass
-class UncaughtAdoptedNoticeFailure(BaseFailureEx): pass
-class UncaughtUnexpectedFailure(BaseFailureEx): pass
+class MissedNotice(Failure): pass
+class BaseExInstantiation(Failure): pass
+class NoticeArgs(Failure): pass
+class BridgeLeakage(Failure): pass
+class NotImplemented(Failure): pass
+class MissedAdoptedNotice(Failure): pass
+class UnexpectedEx(Failure): pass
 
-
-class UserCancelNotice(BaseNoticeEx): pass
-class UserDeclineNotice(BaseNoticeEx): pass
-class BootstrapDeclineNotice(BaseNoticeEx): pass
-class ProgramExitNotice(BaseNoticeEx):
+class UserDecline(Notice): pass
+class ProgramExit(Notice):
     def get_compliance_msg(self):
         return "Program exited"
-class NoConfigNotice(BaseNoticeEx): pass
+class NoConfig(Notice): pass
 
 class SystemKeys(Enum):  
     DELIM = "§"
@@ -361,13 +319,12 @@ class Domain(Constructed):
 class Config(Constructed):
     DEFAULT_REL_PATH: ClassVar[Path] = Path(".clanker/config.yaml")
     DEFAULT_ASSETS_DIR: ClassVar[Path] = Path(".clanker/assets")
-
     layout: str
     domains: list[str]
 
 class Resolver(BaseModel):
     class Type(str, Enum):
-        DOCUMENT_RETRIEVAL = "document-retrieval"
+        MULTI_DOC = "multi-document-retrieval"
         REPO_CONTENT = "repo_content"
         KB_INFO = "kb_info"
     id: str
@@ -379,11 +336,9 @@ class Resolver(BaseModel):
     def extract_payload(cls, data: Any) -> Any:
         if isinstance(data, dict):
             raw = data.copy()
-            res_id = raw.pop("id", "")
-            res_type = raw.pop("type", None)
             return {
-                "id": res_id,
-                "type": res_type,
+                "id": raw.pop("id", ""),
+                "type": raw.pop("type", None),
                 "payload": raw
             }
         return data
@@ -403,23 +358,21 @@ class Button(Constructed):
     def get_repl_map(self, label: str, template: str) -> dict[str, str]:
         lines = template.strip("\n").splitlines()
         norm_label = (label + "      ")[:6]
-        token = SystemKeys.DELIM.value
-        
+
         mapped_lines = [
             lines[0],
             lines[1],
-            lines[2].replace(token, self.primary_letter, 1),
+            lines[2].replace(SystemKeys.DELIM.value, self.primary_letter, 1),
             lines[3],
-            lines[4].replace(token * 6, norm_label, 1),
+            lines[4].replace(SystemKeys.DELIM.value * 6, norm_label, 1),
         ]
         return {f"{self.primary_letter}{idx}": line for idx, line in enumerate(mapped_lines)}
 
 class Keyboard(Constructed):
-    CONFIGS_DIR: ClassVar[Path] = Path(".clanker/configs")
     button_map: dict[str, Button] = Field(default_factory=dict)
     render: Render 
     resolvers: list[Resolver] = []
-    selected_num_btn_primary_letter: str | None = None
+    selected_key: str | None = None
 
     def get_unique_buttons(self, btn_type: str | None = None) -> list[Button]:
         unique = {btn.primary_letter: btn for btn in self.button_map.values()}.values()
@@ -427,7 +380,7 @@ class Keyboard(Constructed):
             return list(unique)
         return [btn for btn in unique if btn.type == btn_type]
 
-    def handle_key(self, key: str) -> ActionResultMsg | None:
+    def handle_key(self, key: str) -> ActionResult | None:
         btn = self.button_map.get(key)
         if btn is None:
             return None
@@ -435,27 +388,27 @@ class Keyboard(Constructed):
             return btn.primary_action(btn.primary_letter)
         elif key == btn.secondary_letter and callable(btn.shift_action):
             return btn.shift_action(btn.primary_letter)
-        return ActionResultMsg(f"No action bound to key '{key}'")
+        return ActionResult(f"No action bound to key '{key}'")
 
     def build_ui_repl_map(self) -> dict[str, str]:
         repl_map = {}
         for btn in self.get_unique_buttons():
             label = ""
             template = INACTIVE_BTN
-            if btn.type == "num_btn":
-                if btn.primary_letter == self.selected_num_btn_primary_letter:
-                    template = HIGHLIGHTED_BTN
+            if btn.type == "domain_row":
+                if btn.primary_letter == self.selected_key:
+                    template = HL_BTN
                     label = btn.inhabitant.name if btn.inhabitant else ""
                 elif btn.inhabitant:
                     template = ACTIVE_BTN
                     label = btn.inhabitant.name
 
-            elif btn.type == "prompt_btn":
+            elif btn.type == "prompt_row":
                 if btn.inhabitant:
                     template = ACTIVE_BTN
                     label = btn.inhabitant.name
 
-            elif btn.type == "action_btn":
+            elif btn.type == "action_row":
                 if btn.inhabitant:
                     template = ACTIVE_BTN
                     label = getattr(btn.inhabitant, "name", str(btn.inhabitant))
@@ -464,72 +417,70 @@ class Keyboard(Constructed):
         return repl_map
 
 class GameEngine(Engine):
-    def _bootstrap_application(self) -> ActionResultMsg:
+    def _bootstrap(self) -> ActionResult:
         try:
             self.kb = self.session.get_keyboard()
-            self._wire_num_row_handlers()
+            self._wire_num_row()
             self._set_selected_num_btn(None)
-            return ActionResultMsg("Bootstrap completed successfully")
-        except NoConfigNotice:
+            return ActionResult("Bootstrap completed successfully")
+        except NoConfig:
             try:
                 self.io.get_confirmation("Directory not initialized as clank repo - do so?")
                 self.session.initialize_workspace()
-                return self._bootstrap_application()
-            except UserDeclineNotice:
-                raise ProgramExitNotice
-    def _dispatch_cmd(self, key: str) -> ActionResultMsg:
+                return self._bootstrap()
+            except UserDecline:
+                raise ProgramExit
+    def _dispatch_cmd(self, key: str) -> ActionResult:
         return self.kb.handle_key(key)
 
-    def _add_to_board(self, msg: ActionResultMsg | None) -> None:
+    def _add_to_board(self, msg: ActionResult | None) -> None:
         self.msg = msg
 
-    def _wire_num_row_handlers(self) -> None:
-        for btn in self.kb.get_unique_buttons("num_btn"):
+    def _wire_num_row(self) -> None:
+        for btn in self.kb.get_unique_buttons("domain_row"):
             btn.primary_action = self._set_selected_num_btn
             btn.shift_action = lambda k: exec("raise NotImplementedError")
 
-    def _set_selected_num_btn(self, key: str | None) -> ActionResultMsg:
+    def _set_selected_num_btn(self, key: str | None) -> ActionResult:
         if key is None:
             case = "none"
         else:
             ref_btn = self.kb.button_map[key]
-            if ref_btn.type != "num_btn":
+            if ref_btn.type != "domain_row":
                 raise ValueError("Selected button is not a number button")
             case = "empty" if ref_btn.inhabitant is None else "inhabited"
 
-        self.kb.selected_num_btn_primary_letter = key
-        prompt_btns = self.kb.get_unique_buttons("prompt_btn")
-        action_btns = self.kb.get_unique_buttons("action_btn")
+        self.kb.selected_key = key
+        prompt_btns = self.kb.get_unique_buttons("prompt_row")
+        action_btns = self.kb.get_unique_buttons("action_row")
 
         if case == "inhabited":
             for p_btn, prompt in zip(prompt_btns, ref_btn.inhabitant.renders):
                 p_btn.inhabitant = prompt
-                p_btn.primary_action = self._compile_prompt_to_clipboard
+                p_btn.primary_action = self._compile_to_clipboard
                 p_btn.shift_action = lambda k: exec("raise NotImplementedError")
 
             for a_btn in action_btns:
                 a_btn.primary_action = a_btn.shift_action = lambda k: exec("raise NotImplementedError")
 
-            return ActionResultMsg(f"Domain '{ref_btn.inhabitant.name}' on key '{key}' selected")
+            return ActionResult(f"Domain '{ref_btn.inhabitant.name}' on key '{key}' selected")
 
         for b in prompt_btns + action_btns:
             b.inhabitant = b.primary_action = b.shift_action = None
 
         msg = "Selection cleared" if case == "none" else f"Domain 'None' on key '{key}' selected"
-        return ActionResultMsg(msg)
+        return ActionResult(msg)
 
-    def _display_ui_to_user(self) -> str:
-        view_str = self._render(self.kb, self.kb.render)
-        self.io.display(view_str)
+    def _display_ui(self) -> str:
+        self.io.display(self._render(self.kb, self.kb.render))
         return self.io.get_key()
 
-    def _compile_prompt_to_clipboard(self, key: str) -> ActionResultMsg:
+    def _compile_to_clipboard(self, key: str) -> ActionResult:
         btn = self.kb.button_map.get(key)
         if btn is None or btn.inhabitant is None:
-            return ActionResultMsg(f"No prompt assigned to key '{key}'")
-        compiled_prompt = self._render(self.kb, btn.inhabitant)
-        lines_count = self.io.pushtoclipboard(compiled_prompt)
-        return ActionResultMsg(f"Copied {lines_count} lines to clipboard")
+            return ActionResult(f"No prompt assigned to key '{key}'")
+        lines_count = self.io.to_clipboard(self._render(self.kb, btn.inhabitant))
+        return ActionResult(f"Copied {lines_count} lines to clipboard")
 
     def _render(self, kb: Keyboard, render: Render):
         template = self.renderer.get_template(render)
@@ -539,60 +490,27 @@ class GameEngine(Engine):
 """ 5. Services """
 
 class SessionService:
+
     def get_keyboard(self) -> Keyboard:
-        raw_yaml = self._get_raw_config()
-
-        kb_def = raw_yaml["kb_def"]
-        rows = kb_def["rows"]
-        raw_domains = raw_yaml["domains"]
-
-        parsed_domains = [Domain.model_validate(domain) for domain in raw_domains]
-
-        button_map = {}
-
-        for row_key, row in rows.items():
-            btn_type = (
-                "num_btn"
-                if row_key == "domain_row"
-                else ("prompt_btn" if row_key == "prompt_row" else "action_btn")
-            )
-
-            primary_keys = row["primary"]
-            secondary_keys = row["secondary"]
-
-            for prim, sec in zip(primary_keys, secondary_keys):
-                btn_obj = Button(
-                    type=btn_type,
-                    primary_letter=prim,
-                    secondary_letter=sec,
-                    inhabitant=None,
-                )
-                button_map[prim] = btn_obj
-                button_map[sec] = btn_obj
-
-        domain_primaries = rows["domain_row"]["primary"]
-
-        for idx, domain_obj in enumerate(parsed_domains):
-            if idx < len(domain_primaries):
-                prim_char = domain_primaries[idx]
-                button_map[prim_char].inhabitant = domain_obj
-
-        return Keyboard.model_validate(
-            {
-                "button_map": button_map,
-                "render": kb_def["render"],
-                "resolvers": kb_def.get("resolvers"),
-            }
-        )
-
-    def is_cwd_script_dir(self) -> bool:
-        return self.files.is_cwd_script_dir()
-
-    def _get_raw_config(self) -> dict:
         try:
-            return self.files.read_yaml(Config.DEFAULT_REL_PATH)
+            raw_yaml = CLANK_CONFIG if self.files.is_cwd_script_dir() else self.files.read_yaml(Config.DEFAULT_REL_PATH)
         except FileNotFoundError:
-            raise NoConfigNotice
+            raise NoConfig
+        button_map = {}
+        for row_key, row in raw_yaml["kb_def"]["rows"].items():
+            for prim, sec in zip(row["primary"], row["secondary"]):
+                button_map[prim] = button_map[sec] = Button(
+                    type=row_key, primary_letter=prim, secondary_letter=sec, inhabitant=None
+                )
+
+        for prim_char, d in zip(raw_yaml["kb_def"]["rows"]["domain_row"]["primary"], raw_yaml["domains"]):
+            button_map[prim_char].inhabitant = Domain.model_validate(d)
+
+        return Keyboard.model_validate({
+            "button_map": button_map,
+            "render": raw_yaml["kb_def"]["render"],
+            "resolvers": raw_yaml["kb_def"].get("resolvers"),
+        })
 
     def initialize_workspace(self) -> None:
         config = CLANK_CONFIG if self.files.is_cwd_script_dir() else DEFAULT_CONFIG
@@ -600,12 +518,12 @@ class SessionService:
         
         backlog_path = Config.DEFAULT_ASSETS_DIR / "backlog.md"
         if not (self.files.base_path / backlog_path).exists():
-            self.files.write_content(backlog_path, DEFAULT_BACKLOG_TEMPLATE)
+            self.files.write_content(backlog_path, BACKLOG_TEMPL)
 
-class OutputAssemblyService:
+class AssemblyService:
     BUILTIN_TEMPLATES: ClassVar[dict[str, str]] = {
-        "prompt_template": DEFAULT_PROMPT_TEMPLATE,
-        "ui_template": MAIN_CONSOLE_TEMPLATE,
+        "prompt_template": PROMPT_TEMPLATE,
+        "ui_template": UI_TEMPL,
     }
     def hydrate(self, template: str, replacements: dict[str, str]) -> str:
         token = SystemKeys.DELIM.value
@@ -616,9 +534,8 @@ class OutputAssemblyService:
         )
 
     def get_template(self, render: Render) -> str:
-        asset_path = Config.DEFAULT_ASSETS_DIR / render.template
         try:
-            return self.files.read_content(asset_path)
+            return self.files.read_content(Config.DEFAULT_ASSETS_DIR / render.template)
         except (FileNotFoundError, OSError):
             return self.BUILTIN_TEMPLATES[render.template]
 
@@ -626,8 +543,8 @@ class OutputAssemblyService:
         active_resolvers: list[Resolver] = []
         if render.inherit_base:
             active_resolvers.extend(keyboard.resolvers)
-        if render.inherit_domain and keyboard.selected_num_btn_primary_letter:
-            active_btn = keyboard.button_map.get(keyboard.selected_num_btn_primary_letter)
+        if render.inherit_domain and keyboard.selected_key:
+            active_btn = keyboard.button_map.get(keyboard.selected_key)
             if active_btn and isinstance(active_btn.inhabitant, Domain):
                 active_resolvers.extend(active_btn.inhabitant.resolvers)
         active_resolvers.extend(render.resolvers)
@@ -637,33 +554,31 @@ class OutputAssemblyService:
                 replacements[key] = val
         return replacements
 
+
     def _resolve(self, resolver: Resolver, keyboard: Keyboard) -> list[tuple[str, str]]:
-        if resolver.type == Resolver.Type.DOCUMENT_RETRIEVAL:
-            filename = resolver.payload.get("file")
-            if not filename:
-                raise ValueError(f"Resolver '{resolver.id}' missing 'file' payload")
-            asset_path = Config.DEFAULT_ASSETS_DIR / filename
-            try:
-                content = self.files.read_content(asset_path)
-            except FileNotFoundError:
-                content = f"[{resolver.id}: No content found at '{filename}']"
-            return [(resolver.id, content)]
+        if resolver.type == Resolver.Type.MULTI_DOC:
+            fragments = []
+            for filename in resolver.payload.get("files", []):
+                tag_name = Path(filename).stem.replace("-", "_")
+                try:
+                    content = self.files.read_content(Config.DEFAULT_ASSETS_DIR / filename)
+                except FileNotFoundError:
+                    content = f"[{resolver.id}: No content found at '{filename}']"
+                fragments.append(f"    <document-tag fragment: {tag_name}>\n{content}\n    </document-tag>")
+            return [(resolver.id, "\n".join(fragments))]
 
         if resolver.type == Resolver.Type.REPO_CONTENT:
-            includes = resolver.payload.get("includes", [])
-            excludes = resolver.payload.get("excludes", [])
-            included = self.files.expand_paths(includes)
-            excluded = self.files.expand_paths(excludes)
-            paths = sorted(included - excluded)
-
+            paths = sorted(
+                self.files.expand_paths(resolver.payload.get("includes", [])) - 
+                self.files.expand_paths(resolver.payload.get("excludes", []))
+            )
             tree_header = "\n".join(f"├── {p}" for p in paths)
             file_blocks = [f"--- {p} ---\n{self.files.read_content(p)}" for p in paths]
-            content = f"{tree_header}\n\n" + "\n\n".join(file_blocks)
-            return [(resolver.id, content)]
+            return [(resolver.id, f"{tree_header}\n\n" + "\n\n".join(file_blocks))]
 
         if resolver.type == Resolver.Type.KB_INFO:
             return list(keyboard.build_ui_repl_map().items())
-
+        # le crime
         raise ValueError(f"Unsupported resolver type: {resolver.type}")
 
 class IOService: 
@@ -671,13 +586,13 @@ class IOService:
         self.io_bridge.clear()
         self.io_bridge.write(f"{ui_string}\n")
 
-    def pushtoclipboard(self, text_content: str) -> int:
-        return self.io_bridge.pushtoclipboard(text_content)
+    def to_clipboard(self, text_content: str) -> int:
+        return self.io_bridge.to_clipboard(text_content)
 
     def get_key(self) -> str:
         ch = self.io_bridge.read_char()
         if ch in (SystemKeys.CTRL_C.value, SystemKeys.ESC.value):
-            raise ProgramExitNotice
+            raise ProgramExit
         return ch
 
     def get_confirmation(self, prompt_msg: str, required_phrase: str = "") -> None:
@@ -696,7 +611,7 @@ class IOService:
             ch = self.io_bridge.read_char()
 
             if ch in (SystemKeys.CTRL_C.value, SystemKeys.ESC.value):
-                raise UserDeclineNotice
+                raise UserDecline
 
             if ch == SystemKeys.CTRL_D.value:
                 if buffer == required_phrase:
@@ -720,7 +635,7 @@ class IOBridge(Bridge):
     def clear(self) -> None:
         os.system("clear")
 
-    def pushtoclipboard(self, text_content: str) -> int:
+    def to_clipboard(self, text_content: str) -> int:
         payload = base64.b64encode(text_content.encode("utf-8")).decode("utf-8")
         sys.stdout.write(f"\033]52;c;{payload}\007")
         sys.stdout.flush()
@@ -745,8 +660,7 @@ class FileBridge(Bridge):
         self.base_path = Path.cwd()
 
     def read_yaml(self, rel_path: Path) -> dict:
-        with open(self.base_path / rel_path, "r", encoding="utf-8") as f:
-            return self.yaml.load(f)
+        return self.yaml.load((self.base_path / rel_path).read_text(encoding="utf-8"))
 
     def is_cwd_script_dir(self) -> bool:
         return self.base_path.resolve() == Path(__file__).parent.resolve()
@@ -758,22 +672,18 @@ class FileBridge(Bridge):
             self.yaml.dump(data, f)
 
     def read_content(self, rel_path: Path) -> str:
-        with open(self.base_path / rel_path, "r", encoding="utf-8") as f:
-            return f.read()
+        return (self.base_path / rel_path).read_text(encoding="utf-8")
 
     def write_content(self, rel_path: Path, content: str) -> None:
         target_path = self.base_path / rel_path
         target_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(target_path, "w", encoding="utf-8") as f:
-            f.write(content)
+        target_path.write_text(content, encoding="utf-8")
 
     def expand_paths(self, rel_roots: list[str | Path]) -> set[Path]:
         resolved_files: set[Path] = set()
-        base_dir = self.base_path
-
         for root_str in rel_roots:
             rel_path = Path(root_str)
-            full_path = base_dir / rel_path
+            full_path = self.base_path / rel_path
 
             if not full_path.exists():
                 raise FileNotFoundError(rel_path)
@@ -783,8 +693,7 @@ class FileBridge(Bridge):
             elif full_path.is_dir():
                 for file_path in full_path.rglob("*"):
                     if file_path.is_file():
-                        resolved_files.add(file_path.relative_to(base_dir))
-
+                        resolved_files.add(file_path.relative_to(self.base_path))
         return resolved_files
 
 """ 7. Script Entrypoint """

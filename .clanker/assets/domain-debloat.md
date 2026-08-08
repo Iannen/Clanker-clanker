@@ -1,1 +1,4 @@
-Focus on trimming redundant code, removing obsolete abstractions, and simplifying runtime execution paths.
+- Focus on trimming redundant code, removing obsolete abstractions, and simplifying runtime execution paths.
+- Apply YAGNI principles: eliminate speculative generality, unused dynamic mechanisms, and single-implementer interfaces.
+- Prioritize structural density over micro-optimizations; focus on dead paths, static data duplication, and layer flattening rather than cosmetic changes.
+- Preserve strict functional equivalence unless feature removal is explicitly requested.
