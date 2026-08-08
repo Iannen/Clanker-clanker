@@ -139,7 +139,7 @@ domains:
     - name: 'script-dev'
       template: "prompt_template"
       resolvers:
-        - { id: "prompt_instruction", type: "document-retrieval", file: "script_dev_instructions.md" }
+        - { id: "prompt_instruction", type: "document-retrieval", file: "prompt-script-dev.md" }
         - { id: "backlog", type: "document-retrieval", file: "backlog.md" }
         - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [], sorting: "normal" }
 
@@ -599,7 +599,8 @@ class SessionService:
         self.files.write_yaml(Config.DEFAULT_REL_PATH, config)
         
         backlog_path = Config.DEFAULT_ASSETS_DIR / "backlog.md"
-        self.files.write_content(backlog_path, DEFAULT_BACKLOG_TEMPLATE)
+        if not (self.files.base_path / backlog_path).exists():
+            self.files.write_content(backlog_path, DEFAULT_BACKLOG_TEMPLATE)
 
 class OutputAssemblyService:
     BUILTIN_TEMPLATES: ClassVar[dict[str, str]] = {

@@ -1,0 +1,68 @@
+kb_def:
+  render:
+    name: ui
+    template: ui_template
+    inherit_base: false
+    inherit_domain: false
+    resolvers:
+    - {id: ui, type: kb_info}
+  resolvers:
+  - {id: base_instruction, type: document-retrieval, file: general-rules.md}
+  rows:
+    domain_row:
+      primary: '1234567890'
+      secondary: '!"#¤%&/()='
+    prompt_row:
+      primary: qwer
+      secondary: QWER
+    action_row:
+      primary: asdf
+      secondary: ASDF
+
+domains:
+- name: script-dev
+  plan:
+    name: script_development_plan
+  resolvers:
+  - {id: domain_instruction, type: document-retrieval, file: 
+      domain-script-dev.md}
+  renders:
+  - name: script-dev
+    template: prompt_template
+    resolvers:
+    - {id: prompt_instruction, type: document-retrieval, file: 
+        prompt-script-dev.md}
+    - {id: backlog, type: document-retrieval, file: backlog.md}
+    - {id: repo_content, type: repo_content, includes: [clanker.py], excludes: [],
+      sorting: normal}
+
+- name: config-dev
+  plan:
+    name: config_development_plan
+  resolvers:
+  - {id: domain_instruction, type: document-retrieval, file: 
+      domain-config-dev.md}
+  renders:
+  - name: config-dev
+    template: prompt_template
+    resolvers:
+    - {id: prompt_instruction, type: document-retrieval, file: 
+        config-development-instructions.md}
+    - {id: backlog, type: document-retrieval, file: backlog.md}
+    - {id: repo_content, type: repo_content, includes: [clanker.py], excludes: [],
+      sorting: normal}
+
+- name: debloat
+  plan:
+    name: debloat_plan
+  resolvers:
+  - {id: domain_instruction, type: document-retrieval, file: domain-debloat.md}
+  renders:
+  - name: debloat
+    template: prompt_template
+    resolvers:
+    - {id: prompt_instruction, type: document-retrieval, file: 
+        debloat-instructions.md}
+    - {id: backlog, type: document-retrieval, file: backlog.md}
+    - {id: repo_content, type: repo_content, includes: [clanker.py], excludes: [],
+      sorting: normal}
