@@ -14,21 +14,15 @@ fail() {
 # ============================================================
 
 # Basic environment checks
-git rev-parse --is-inside-work-tree >/dev/null 2>&1 || fail "Not inside a git repository."
-git rev-parse --verify HEAD >/dev/null 2>&1          || fail "Repository has no commits."
-git config user.name >/dev/null 2>&1                 || fail "Git user.name not configured."
-git config user.email >/dev/null 2>&1                || fail "Git user.email not configured."
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 || fail "Not inside a git repository ($PWD)."
+git rev-parse --verify HEAD >/dev/null 2>&1          || fail "Repository has no commits ($PWD)."
+git config user.name >/dev/null 2>&1                 || fail "Git user.name not configured ($PWD)."
+git config user.email >/dev/null 2>&1                || fail "Git user.email not configured ($PWD)."
 
-# Git state checks
+git ls-files -u | grep -q .                          && fail "Unresolved merge conflicts detected ($PWD)."
 
-# git diff skipped cuz whitespace deemed not an issue & it kept blocking dev work
-# git diff --check >/dev/null 2>&1                     || fail "Whitespace or patch errors detected."
-
-
-git ls-files -u | grep -q .                          && fail "Unresolved merge conflicts detected."
-
-branch=$(git symbolic-ref --quiet --short HEAD)      || fail "Detached HEAD."
-git rev-parse --abbrev-ref --symbolic-full-name "@{u}" >/dev/null 2>&1 || fail "No upstream branch configured."
+branch=$(git symbolic-ref --quiet --short HEAD)      || fail "Detached HEAD ($PWD)."
+git rev-parse --abbrev-ref --symbolic-full-name "@{u}" >/dev/null 2>&1 || fail "No upstream branch configured ($PWD)."
 
 for state in MERGE_HEAD REBASE_HEAD CHERRY_PICK_HEAD REVERT_HEAD BISECT_LOG; do
     [ -e "$(git rev-parse --git-dir)/$state" ]        && fail "Git operation in progress: $state"

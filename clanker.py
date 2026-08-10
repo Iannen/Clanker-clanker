@@ -128,7 +128,7 @@ domains:
       template: "prompt_template"
       resolvers:
         - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["prompt-script-dev.md", "backlog.md"] }
-        - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [], sorting: "normal" }
+        - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
 
 - name: "config-dev"
   plan: { name: "config_development_plan" }
@@ -139,7 +139,7 @@ domains:
       template: "prompt_template"
       resolvers:
         - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["config-development-instructions.md"] }
-        - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [], sorting: "normal" }
+        - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
 
 - name: "debloat"
   plan: { name: "debloat_plan" }
@@ -150,7 +150,7 @@ domains:
       template: "prompt_template"
       resolvers:
         - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["debloat-instructions.md"] }
-        - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [], sorting: "normal" }
+        - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
 """
 
 DEFAULT_DOMAINS = r"""
@@ -164,7 +164,7 @@ domains:
       template: "prompt_template"
       resolvers:
         - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["bootstrap-instructions.md", "backlog.md"] }
-        - { id: "repo_content", type: "repo_content", includes: ["."], excludes: [".clanker"], sorting: "normal" }
+        - { id: "repo_content", type: "repo_content", includes: ["."], excludes: [".clanker", ".git"], sorting: "normal" }
 """
 
 yaml_parser = YAML()
@@ -182,7 +182,8 @@ class BaseEx(Exception):
         return super().__new__(cls)
     ADOPTED_NOTICES: tuple[type[Exception], ...] = ( 
         FileNotFoundError,
-        PermissionError
+        PermissionError,
+        UnicodeDecodeError
     )
 
     @classmethod
@@ -280,6 +281,7 @@ class MissedNotice(Failure): pass
 class BaseExInstantiation(Failure): pass
 class NoticeArgs(Failure): pass
 class BridgeLeakage(Failure): pass
+class BadFile(Failure): pass
 class NotImplemented(Failure): pass
 class MissedAdoptedNotice(Failure): pass
 class UnexpectedEx(Failure): pass
@@ -454,6 +456,9 @@ class GameEngine(Engine):
         prompt_btns = self.kb.get_unique_buttons("prompt_row")
         action_btns = self.kb.get_unique_buttons("action_row")
 
+        for b in prompt_btns + action_btns:
+            b.inhabitant = b.primary_action = b.shift_action = None
+
         if case == "inhabited":
             for p_btn, prompt in zip(prompt_btns, ref_btn.inhabitant.renders):
                 p_btn.inhabitant = prompt
@@ -566,7 +571,7 @@ class AssemblyService:
                     content = f"[{resolver.id}: No content found at '{filename}']"
                 fragments.append(f"    <document-tag fragment: {tag_name}>\n{content}\n    </document-tag>")
             return [(resolver.id, "\n".join(fragments))]
-
+        """
         if resolver.type == Resolver.Type.REPO_CONTENT:
             paths = sorted(
                 self.files.expand_paths(resolver.payload.get("includes", [])) - 
@@ -575,6 +580,23 @@ class AssemblyService:
             tree_header = "\n".join(f"├── {p}" for p in paths)
             file_blocks = [f"--- {p} ---\n{self.files.read_content(p)}" for p in paths]
             return [(resolver.id, f"{tree_header}\n\n" + "\n\n".join(file_blocks))]
+        """
+        if resolver.type == Resolver.Type.REPO_CONTENT:
+            paths = sorted(
+                self.files.expand_paths(resolver.payload.get("includes", [])) - 
+                self.files.expand_paths(resolver.payload.get("excludes", []))
+            )
+            tree_header = "\n".join(f"├── {p}" for p in paths)
+            file_blocks = []
+            for p in paths:
+                try:
+                    content = self.files.read_content(p)
+                    file_blocks.append(f"--- {p} ---\n{content}")
+                except UnicodeDecodeError as ex:
+                    pass
+
+            return [(resolver.id, f"{tree_header}\n\n" + "\n\n".join(file_blocks))]
+
 
         if resolver.type == Resolver.Type.KB_INFO:
             return list(keyboard.build_ui_repl_map().items())
@@ -663,7 +685,7 @@ class FileBridge(Bridge):
         return self.yaml.load((self.base_path / rel_path).read_text(encoding="utf-8"))
 
     def is_cwd_script_dir(self) -> bool:
-        return self.base_path.resolve() == Path(__file__).parent.resolve()
+        return self.base_path.resolve() == Path(os.path.realpath(__file__)).parent.resolve()
     
     def write_yaml(self, rel_path: Path, data: dict) -> None:
         target_path = self.base_path / rel_path
