@@ -1,21 +1,37 @@
 # Clanker
 
-Clanker is a lightweight terminal-based repository development utility.
-The aim of the project is to elevate the browser based copy/paste vibecoding experience in a vendor agnostic manner.
+Clanker is a lightweight, terminal-based repository development utility designed to elevate the browser-based copy/paste vibe coding experience in a vendor-agnostic manner.
 
-### Two Modes of Operation
+### Why
 
-- **Workspace Mode**: Run Clanker in any project repository to automatically gather file trees, project rules, and backlogs into clipboard-ready prompt payloads.
-- **Self-Improvement Mode**: Use Clanker’s built-in development domains to refactor, debloat, and iterate on Clanker itself.
+For the hell of it. We all love tooling here.
 
-### Key Features
+---
 
-- **Keyboard-Driven Flow**: Select domains with number keys and compile prompt contexts instantly with row shortcuts.
-- **Automated Context Packaging**: Bundles workspace files, instructions, and target code into structured contexts for AI models.
-- **Clipboard First**: Packages everything into standard system clipboards without leaving the terminal.
+### Highlights
+
+- **Self-Refining Loop**: You can use Clanker on Clanker itself to refactor, debloat, and evolve the tool as you see fit. 
+- **Language & Domain Agnostic**: Works on any plain text files in a repository—code, configs, documentation, or non-coding text projects.
+- **Keyboard-Driven Flow**: Quickly switch active task domains and package repo context directly to your clipboard in a single keystroke.
+
+---
 
 ### Usage
 
-1. Run `clanker` in your root project directory.
-2. Press `1`–`0` to choose an active task domain.
-3. Tap prompt keys (`q`, `w`, `e`, `r`) to package context directly to your clipboard.
+1. Run `clanker` in any repository root.
+2. Select an active working domain using the number keys (`1`–`0`).
+3. Tap a prompt key (`q`, `w`, `e`, `r`) to compile the relevant repository state, task backlogs, and instructions directly into your clipboard.
+4. Paste into your browser-based AI model of choice.
+
+---
+
+### Installation (linux only)
+
+```bash
+# Clone the repository
+git clone [https://github.com/your-username/clanker.git](https://github.com/your-username/clanker.git)
+cd clanker
+
+# Make executable or alias to your PATH
+chmod +x clanker.py
+ln -s "$(pwd)/clanker.py" /usr/local/bin/clanker
