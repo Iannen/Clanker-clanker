@@ -1,32 +1,3 @@
-0: Dropbox
-only 1 rualmel yml instance required i think
-
-I. Long term goals
-
-II. Medium term goals (appears successful)
-  - Refactor document retrieval to dynamic multi-file fragments
-      - Add `multi-document-retrieval` resolver handling to `OutputAssemblyService` in `clanker.py`
-      - Simplify `DEFAULT_PROMPT_TEMPLATE` to expect aggregated fragment slot
-      - Migrate domain render configs in default YAMLs to use the new resolver format
-
-  - Make clank_conf work from internal - not requiring external conf
-      - So I dont have to juggle 2x confs
-     
-III. Immediate goals
-  - Extend Resolver model & execution path in clanker.py
-      - Add MULTI_DOCUMENT_RETRIEVAL to Resolver.Type enum
-      - Implement multi-file resolution logic with fragment tag formatting in OutputAssemblyService._resolve()
-  - Simplify prompt template & embedded YAML definitions
-      - Reduce DEFAULT_PROMPT_TEMPLATE to use aggregated fragment slot (§prompt_fragments§)
-      - Migrate CLANK_CONFIG_YAML and DEFAULT_CONFIG render resolvers to multi-document-retrieval payload
-  - Synchronize active workspace configuration
-      - Update .clanker/config.yaml to match new resolver syntax
-
-IV. Idea bucket:
-
-V. Known Bugs
-- arrow keys interpreted as esc
-
 HISTORY STASH (insert below)
 I:    RESOLVE BASE PATH BINDING
       - Replaced dynamic runtime path injection at startup with an immutable base path locked in during bridge initialization.
@@ -55,8 +26,16 @@ V.    YML + BOOT WORK / RENDER PIPELINE STANDARDIZATION
       - Removed deprecated SymbolSet datamodels and enforced strict model validation across runtime objects.
 
 VI.   MULTI-DOCUMENT FRAGMENT RETRIEVAL & INTERNAL CONFIG FALLBACK
-      - Added MULTI_DOCUMENT_RETRIEVAL to Resolver.Type enum and implemented dynamic tag-wrapping multi-file resolution in OutputAssemblyService._resolve().
-      - Standardized prompt templates around dynamic fragment placeholders (§base_fragments§, §domain_fragments§, §prompt_fragments§).
-      - Migrated CLANK_CONFIG_YAML and DEFAULT_CONFIG render resolvers to leverage the new multi-document retrieval schema.
-      - Updated SessionService._get_raw_config() to bypass disk IO when executing from script directory, defaulting directly to in-memory CLANK_CONFIG.
-      - Result: Eliminated duplicate configuration maintenance in repo root while enabling completely dynamic, extensible multi-file prompt assembly.
+      - Added MULTI_DOC (`multi-document-retrieval`) to Resolver.Type and implemented dynamic multi-file resolution with per-document fragment tags in OutputAssemblyService._resolve().
+      - Standardized prompt assembly around aggregated fragment placeholders (§base_fragments§, §domain_fragments§, §prompt_fragments§).
+      - Migrated CLANK_DOMAINS and DEFAULT_DOMAINS render resolvers to the multi-document retrieval schema, including multi-file prompt fragments such as prompt-script-dev.md + backlog.md.
+      - Embedded CLANK_CONFIG as the internal configuration source when executing from the script directory, eliminating the need to maintain a duplicate external configuration for the development/runtime environment.
+      - Result: Dynamic, extensible multi-file prompt assembly with centralized internal configuration and no duplicate configuration maintenance.
+
+VII. FLATTENED ASSET RETRIEVAL BY FILENAME
+      - MULTI_DOC resolver now builds a name→path map over the entire assets directory tree.
+      - Lookup is by basename only; user can freely reorganize subfolders without updating resolver file lists.
+      
+VIII. SCRIPT-DEV DOMAIN PROMPT ORGANIZATION
+      - Replaced single monolithic render with three explicit flows: bl-add, bl-impl, bl-drain.
+      - Each flow pulls the appropriate instruction fragment + backlog (+ history for drain).

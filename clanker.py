@@ -117,7 +117,7 @@ kb_def:
       secondary: "ASDF"
 """
 
-CLANK_DOMAINS = r"""
+CLANK_DOMAINS2 = r"""
 domains:
 - name: "script-dev"
   plan: { name: "script_development_plan" }
@@ -129,6 +129,51 @@ domains:
       resolvers:
         - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["prompt-script-dev.md", "backlog.md"] }
         - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
+
+- name: "config-dev"
+  plan: { name: "config_development_plan" }
+  resolvers:
+    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["domain-config-dev.md"] }
+  renders:
+    - name: 'config-dev'
+      template: "prompt_template"
+      resolvers:
+        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["config-development-instructions.md"] }
+        - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
+
+- name: "debloat"
+  plan: { name: "debloat_plan" }
+  resolvers:
+    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["domain-debloat.md"] }
+  renders:
+    - name: 'debloat'
+      template: "prompt_template"
+      resolvers:
+        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["debloat-instructions.md"] }
+        - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
+"""
+CLANK_DOMAINS = r"""
+domains:
+- name: "script-dev"
+  plan: { name: "script_development_plan" }
+  resolvers:
+    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["domain-script-dev.md"] }
+    - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
+  renders:
+    - name: 'bl-add'
+      template: "prompt_template"
+      resolvers:
+        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["add-to-backlog.md", "backlog.md"] }
+
+    - name: 'bl-impl'
+      template: "prompt_template"
+      resolvers:
+        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["implement-from-bl.md", "backlog.md"] }
+
+    - name: 'bl-drain'
+      template: "prompt_template"
+      resolvers:
+        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["drain-from-bl.md", "backlog.md", "history-doc.md"] }
 
 - name: "config-dev"
   plan: { name: "config_development_plan" }
@@ -561,6 +606,7 @@ class AssemblyService:
 
 
     def _resolve(self, resolver: Resolver, keyboard: Keyboard) -> list[tuple[str, str]]:
+        """
         if resolver.type == Resolver.Type.MULTI_DOC:
             fragments = []
             for filename in resolver.payload.get("files", []):
@@ -572,15 +618,22 @@ class AssemblyService:
                 fragments.append(f"    <document-tag fragment: {tag_name}>\n{content}\n    </document-tag>")
             return [(resolver.id, "\n".join(fragments))]
         """
-        if resolver.type == Resolver.Type.REPO_CONTENT:
-            paths = sorted(
-                self.files.expand_paths(resolver.payload.get("includes", [])) - 
-                self.files.expand_paths(resolver.payload.get("excludes", []))
-            )
-            tree_header = "\n".join(f"├── {p}" for p in paths)
-            file_blocks = [f"--- {p} ---\n{self.files.read_content(p)}" for p in paths]
-            return [(resolver.id, f"{tree_header}\n\n" + "\n\n".join(file_blocks))]
-        """
+        if resolver.type == Resolver.Type.MULTI_DOC:
+            fragments = []
+            asset_map = {path.name: path for path in self.files.expand_paths([Config.DEFAULT_ASSETS_DIR])}
+
+            for filename in resolver.payload.get("files", []):
+                basename = Path(filename).name
+                tag_name = Path(filename).stem.replace("-", "_")
+                
+                target_path = asset_map.get(basename)
+                if target_path:
+                    content = self.files.read_content(target_path)
+                else:
+                    content = f"[{resolver.id}: No content found at '{filename}']"
+                fragments.append(f"    <document-tag fragment: {tag_name}>\n{content}\n    </document-tag>")
+            return [(resolver.id, "\n".join(fragments))]
+
         if resolver.type == Resolver.Type.REPO_CONTENT:
             paths = sorted(
                 self.files.expand_paths(resolver.payload.get("includes", [])) - 
