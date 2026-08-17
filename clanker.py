@@ -161,6 +161,16 @@ domains:
       resolvers:
         - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["debloat-instructions.md"] }
         - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
+
+- name: "presentation"
+  plan: { name: "presentation_plan" }
+  resolvers:
+    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["domain-presentation.md"] }
+  renders:
+    - name: 'readme'
+      template: "prompt_template"
+      resolvers:
+        - { id: "repo_content", type: "repo_content", includes: [clanker.py, README.md, ship.sh], sorting: "normal" }
 """
 
 DEFAULT_DOMAINS = r"""
