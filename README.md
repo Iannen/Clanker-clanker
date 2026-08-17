@@ -14,9 +14,14 @@ For the hell of it. We all love tooling here, right?
 
 ### II: Highlights
 
-- **YAML-Driven Prompt Configuration**: Let the LLM write your prompt definitions and supporting assets.
-- **Self-Refining Loop**: Use Clanker on Clanker itself to refactor, debloat, and evolve the tool as you see fit.
-- **Keyboard-Driven Flow**: Quickly switch active task domains and package repo context directly to your clipboard in a single keystroke.
+- **YAML-Driven Prompt Configuration**: 
+    - Let the LLM write your YAML - configuring domains of interest with prompts to suit your workflows
+- **Self-Refining Loop**: 
+    - Use Clanker on itself to refactor, debloat, and evolve the tool as you see fit.
+- **Keyboard-Driven Flow**: 
+    1. Numkeys 1-0 -> select a domain
+    2. QWER -> fetch a prompt to the clipboard
+    3. Paste & go
 
 ---
 
@@ -28,7 +33,7 @@ For the hell of it. We all love tooling here, right?
 Step right into my shoes with the current set of supporting markdown assets and my DIY project documentation.
 
 ```bash
-git clone [https://github.com/Iannen/Clanker-clanker.git](https://github.com/Iannen/Clanker-clanker.git)
+git clone https://github.com/Iannen/Clanker-clanker.git
 cd Clanker-clanker
 ```
 
@@ -52,6 +57,6 @@ Run the app, grab a prompt, and feed it to your model:
 
 ```bash
 clank
-# Press '1', then 'q'.
-# Your prompt is now on your clipboard. Paste it into your browser LLM and ask: "What in the world is this?"
+# Press '4', then 'q'.
 ```
+A prompt is now on your clipboard. Give this to some LLM and ask it what in the world this is.
