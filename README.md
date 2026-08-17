@@ -1,23 +1,21 @@
 # Clanker
 
-> **Terminal-based vibe coding utility**
+Clanker is a lightweight terminal-based repository development utility.
+The aim of the project is to elevate the browser based copy/paste vibecoding experience in a vendor agnostic manner.
 
-Clanker is a lightweight, terminal-driven tool designed to streamline prompt assembly, context aggregation, and workflow execution directly from your command line.
+### Two Modes of Operation
 
----
+- **Workspace Mode**: Run Clanker in any project repository to automatically gather file trees, project rules, and backlogs into clipboard-ready prompt payloads.
+- **Self-Improvement Mode**: Use Clanker’s built-in development domains to refactor, debloat, and iterate on Clanker itself.
 
-### Features
+### Key Features
 
-- **Keyboard-Driven UI:** Fast, row-based terminal interface for domain and prompt selection.
-- **Context Resolvers:** Automatically gather and bundle workspace files, repo trees, and asset fragments into prompt contexts.
-- **Clipboard Integration:** Instantly copy compiled prompt payloads ready for model interaction.
-- **Configurable Workflows:** Easily define custom domains, plan templates, and file boundaries using standard YAML.
+- **Keyboard-Driven Flow**: Select domains with number keys and compile prompt contexts instantly with row shortcuts.
+- **Automated Context Packaging**: Bundles workspace files, instructions, and target code into structured contexts for AI models.
+- **Clipboard First**: Packages everything into standard system clipboards without leaving the terminal.
 
----
+### Usage
 
-### Quick Start
-
-1. **Initialize Workspace**
-   Run `clanker` in your project directory:
-   ```bash
-   clanker
+1. Run `clanker` in your root project directory.
+2. Press `1`–`0` to choose an active task domain.
+3. Tap prompt keys (`q`, `w`, `e`, `r`) to package context directly to your clipboard.
