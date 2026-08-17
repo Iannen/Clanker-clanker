@@ -117,41 +117,6 @@ kb_def:
       secondary: "ASDF"
 """
 
-CLANK_DOMAINS2 = r"""
-domains:
-- name: "script-dev"
-  plan: { name: "script_development_plan" }
-  resolvers:
-    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["domain-script-dev.md"] }
-  renders:
-    - name: 'script-dev'
-      template: "prompt_template"
-      resolvers:
-        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["prompt-script-dev.md", "backlog.md"] }
-        - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
-
-- name: "config-dev"
-  plan: { name: "config_development_plan" }
-  resolvers:
-    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["domain-config-dev.md"] }
-  renders:
-    - name: 'config-dev'
-      template: "prompt_template"
-      resolvers:
-        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["config-development-instructions.md"] }
-        - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
-
-- name: "debloat"
-  plan: { name: "debloat_plan" }
-  resolvers:
-    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["domain-debloat.md"] }
-  renders:
-    - name: 'debloat'
-      template: "prompt_template"
-      resolvers:
-        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["debloat-instructions.md"] }
-        - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
-"""
 CLANK_DOMAINS = r"""
 domains:
 - name: "script-dev"
@@ -606,18 +571,6 @@ class AssemblyService:
 
 
     def _resolve(self, resolver: Resolver, keyboard: Keyboard) -> list[tuple[str, str]]:
-        """
-        if resolver.type == Resolver.Type.MULTI_DOC:
-            fragments = []
-            for filename in resolver.payload.get("files", []):
-                tag_name = Path(filename).stem.replace("-", "_")
-                try:
-                    content = self.files.read_content(Config.DEFAULT_ASSETS_DIR / filename)
-                except FileNotFoundError:
-                    content = f"[{resolver.id}: No content found at '{filename}']"
-                fragments.append(f"    <document-tag fragment: {tag_name}>\n{content}\n    </document-tag>")
-            return [(resolver.id, "\n".join(fragments))]
-        """
         if resolver.type == Resolver.Type.MULTI_DOC:
             fragments = []
             asset_map = {path.name: path for path in self.files.expand_paths([Config.DEFAULT_ASSETS_DIR])}
