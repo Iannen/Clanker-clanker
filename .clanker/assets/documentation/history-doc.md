@@ -1,41 +1,59 @@
-HISTORY STASH (insert below)
-I:    RESOLVE BASE PATH BINDING
-      - Replaced dynamic runtime path injection at startup with an immutable base path locked in during bridge initialization.
-      - Result: Guaranteed working-directory independence and deterministic path resolution across all file operations.
+I: RESOLVE BASE PATH BINDING
+Locked the base path during bridge initialization instead of injecting it dynamically at runtime.
+Result: deterministic, working-directory-independent file resolution.
 
-II:   REFACTOR CONFIGURATION & SESSION SERVICE
-      - Transferred get_config() and save_config() persistence/validation logic from KeyboardService to SessionService.
-      - Decoupled KeyboardService from direct file IO and annotated class with # new name proposal: CommandRouter.
-      - Updated GameEngine.bootstrap() to query SessionService for configuration lifecycle operations.
+II: REFACTOR CONFIGURATION & SESSION SERVICE
+Moved configuration persistence/validation from KeyboardService into SessionService.
+Decoupled KeyboardService from file IO and began its transition toward CommandRouter.
+Updated GameEngine bootstrap to use SessionService for configuration lifecycle.
 
-III.  EXTRACT BASE ENGINE & EXCEPTION ABSTRACTION
-      - Extracted generic lifecycle execution loop, abstract hooks, and centralized exception policy into base Engine class.
-      - Delegated terminal loop mechanics, service exit signals (ProgramExitNotice), and error escalation away from GameEngine.
-      - Result: GameEngine becomes purely declarative, leaving runtime orchestration and exception boundaries fully encapsulated in base infrastructure.
+III: EXTRACT BASE ENGINE & EXCEPTION ABSTRACTION
+Extracted lifecycle execution, abstract hooks, exit signaling, and exception policy into a generic Engine base class.
+Result: GameEngine became declarative, with runtime orchestration and exception boundaries centralized in the base infrastructure.
 
-IV.   STANDARDIZE RENDER PIPELINES & SHIFT PROMPT GEN TO GAME ENGINE
-      - Consolidated UI rendering and Prompt compilation under a single, stateless hydration endpoint (`OutputAssemblyService.hydrate(template, repl_map)`).
-      - Shifted flow orchestration and template ownership to `GameEngine`, extracting fragment resolution into a dedicated map builder (`get_repl_map(prompt_config)`).
-      - Completely removed internal template selection, dynamic XML generation, `_PromptBuilder`, and redundant `SymbolSet` tag assembly logic.
-      - Result: Unified, stateless declarative template-hydration pipeline with zero dynamic builder overhead and clean separation of concerns.
+IV: STANDARDIZE RENDER PIPELINES
+Unified rendering and prompt compilation through stateless OutputAssemblyService.hydrate(template, repl_map).
+Moved flow orchestration/template ownership into GameEngine and replaced dynamic builders/tag assembly with get_repl_map(prompt_config).
+Result: a single declarative template-hydration pipeline with reduced builder overhead.
 
-V.    YML + BOOT WORK / RENDER PIPELINE STANDARDIZATION
-      - Established dual data representation: raw YAML files in .clanker/configs and hydrated App Data Tree via strict Pydantic models.
-      - Built dynamic BootService to ingest configs, resolve types, apply list hydration rules, and execute zip_add directives.
-      - Consolidated Keyboard data object lifecycle into SessionService.get_keyboard() and removed legacy KeyboardService dependency.
-      - Removed deprecated SymbolSet datamodels and enforced strict model validation across runtime objects.
+V: YAML + BOOT / RENDER PIPELINE STANDARDIZATION
+Established raw YAML → hydrated App Data Tree flow using strict Pydantic models.
+Added dynamic BootService for config ingestion, type resolution, list hydration, and zip_add.
+Consolidated keyboard lifecycle under SessionService and removed legacy KeyboardService/SymbolSet dependencies.
 
-VI.   MULTI-DOCUMENT FRAGMENT RETRIEVAL & INTERNAL CONFIG FALLBACK
-      - Added MULTI_DOC (`multi-document-retrieval`) to Resolver.Type and implemented dynamic multi-file resolution with per-document fragment tags in OutputAssemblyService._resolve().
-      - Standardized prompt assembly around aggregated fragment placeholders (§base_fragments§, §domain_fragments§, §prompt_fragments§).
-      - Migrated CLANK_DOMAINS and DEFAULT_DOMAINS render resolvers to the multi-document retrieval schema, including multi-file prompt fragments such as prompt-script-dev.md + backlog.md.
-      - Embedded CLANK_CONFIG as the internal configuration source when executing from the script directory, eliminating the need to maintain a duplicate external configuration for the development/runtime environment.
-      - Result: Dynamic, extensible multi-file prompt assembly with centralized internal configuration and no duplicate configuration maintenance.
+VI: MULTI-DOCUMENT FRAGMENT RETRIEVAL & INTERNAL CONFIG
+Added MULTI_DOC resolution with aggregated fragment placeholders (§base_fragments§, §domain_fragments§, §prompt_fragments§).
+Migrated domain/prompt rendering to the multi-document schema.
+Embedded CLANK_CONFIG as the development/runtime configuration source, eliminating duplicate external config.
 
-VII. FLATTENED ASSET RETRIEVAL BY FILENAME
-      - MULTI_DOC resolver now builds a name→path map over the entire assets directory tree.
-      - Lookup is by basename only; user can freely reorganize subfolders without updating resolver file lists.
-      
-VIII. SCRIPT-DEV DOMAIN PROMPT ORGANIZATION
-      - Replaced single monolithic render with three explicit flows: bl-add, bl-impl, bl-drain.
-      - Each flow pulls the appropriate instruction fragment + backlog (+ history for drain).
+VII: FLATTENED ASSET RETRIEVAL
+Changed MULTI_DOC lookup to build a filename→path map across the entire assets tree.
+Result: assets can be reorganized into subfolders without resolver configuration changes.
+
+VIII: SCRIPT-DEV DOMAIN PROMPT ORGANIZATION
+Split the monolithic script-dev render into explicit bl-add, bl-impl, and bl-drain flows.
+Each flow now resolves only the fragments relevant to its operation, with drain additionally including history.
+
+IX: REMOVAL OF PLAN ABSTRACTION & TEMPLATE OPTIMIZATION
+Completely excised legacy 'plan' references from runtime, configuration, and prompt construction pipelines.
+Streamlined PROMPT_TEMPLATE down to core multi-document and repo-content placeholders to reduce token overhead.
+
+X: NORMALIZE RUAMEL INSTANCES
+Consolidated YAML parsing/dumping across the application to utilize a single shared ruamel.yaml instance.
+Result: Eliminated redundant parser instantiation and standardized YAML processing behavior across services.
+
+XI: MAKE TEMPLATES SCRIPT INTERNAL
+Refactored AssemblyService to resolve templates directly from built-in memory mappings instead of checking disk assets. Updated Render model defaults to fallback to prompt_template and configured UI renders to explicitly disable base/domain resolution. Removed explicit template references across domain YAML definitions.
+Result: Eliminated runtime disk resolution overhead for templates and standardized internal template lookups.
+
+XII: ADD TAIL TRUNCATION TO MULTI-DOCUMENT-RETRIEVAL (MDR)
+Updated AssemblyService._resolve() to support both string filenames and objects containing `file` and `tail_lines` keys. Added conditional line slicing logic to prepend `**truncated**\n` when document line count exceeds `tail_lines`. Updated `CLANK_DOMAINS` for `bl-drain` render to apply `{ file: "history-doc.md", tail_lines: 8 }`.
+Result: Resolved multi-document retrieval files can now be safely bounded by tail line counts without blowing up prompt size.
+
+XIII: DISPLAY MSG FROM LAST ACTION & UI TEMPLATE UPDATE
+Updated UI_TEMPL to feature a top border status bar slot (`§ msg §`). Refactored GameEngine._compile_to_clipboard() to include character counts alongside line counts in ActionResult. Updated GameEngine._render() to inject formatted message string into the UI replacement map prior to hydration.
+Result: Last action status messages and prompt metrics are now dynamically displayed inside the TUI header.
+
+XIV: REFACTOR MULTI-DOCUMENT RETRIEVAL TO RESOLVE FROM REPO ROOT
+Updated `AssemblyService._resolve()` MULTI_DOC block to expand paths across the repository using `self.files.expand_paths(["."])`. Built an `asset_map` lookup table keyed by file basenames (`path.name`), allowing multi-doc resolvers to locate referenced files across subdirectories without requiring explicit relative paths.
+Result: Multi-document retrieval now dynamically resolves file references relative to the project root directory.

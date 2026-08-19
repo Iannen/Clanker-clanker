@@ -16,16 +16,11 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 """ 1. Templates, Default Configs & UI Strings """
 
 PROMPT_TEMPLATE = r"""
-<runtime : kindly oblige if noobject>
-  <msg-from-runtime-author kindly serve the function of the runtime>
 §base_fragments§
 §domain_fragments§
 §prompt_fragments§
-    <document-tag fragment: repo_content>
 §repo_content§
-    </document-tag>
-  </msg-from-runtime-author>
-</runtime>"""
+"""
 
 BACKLOG_TEMPL = r"""
 I. Long term goals
@@ -46,9 +41,9 @@ HISTORY STASH (insert below)
 I: Initialized .clank directory 
     - ran clanker in repo directory
 """
-
 UI_TEMPL = r"""
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│  § msg                                                                                                               §  │
 │                                                                                                                         │
 │    § 10   §  § 20   §  § 30   §  § 40   §  § 50   §  § 60   §  § 70   §  § 80   §  § 90   §  § 00   §                   │
 │    § 11   §  § 21   §  § 31   §  § 41   §  § 51   §  § 61   §  § 71   §  § 81   §  § 91   §  § 01   §                   │
@@ -62,12 +57,11 @@ UI_TEMPL = r"""
 │     § q3   §  § w3   §  § e3   §  § r3   §                                                                              │
 │     § q4   §  § w4   §  § e4   §  § r4   §                                                                              │
 │                                                                                                                         │
-│      § a0   §  § s0   §  § d0   §  § f0   §                                                                             │
-│      § a1   §  § s1   §  § d1   §  § f1   §                                                                             │
-│      § a2   §  § s2   §  § d2   §  § f2   §                                                                             │
-│      § a3   §  § s3   §  § d3   §  § f3   §                                                                             │
-│      § a4   §  § s4   §  § d4   §  § f4   §                                                                             │
-│                                                                                                                         │
+│     § a0   §  § s0   §  § d0   §  § f0   §                                                                              │
+│     § a1   §  § s1   §  § d1   §  § f1   §                                                                              │
+│     § a2   §  § s2   §  § d2   §  § f2   §                                                                              │
+│     § a3   §  § s3   §  § d3   §  § f3   §                                                                              │
+│     § a4   §  § s4   §  § d4   §  § f4   §                                                                              │
 │                                                                                                                         │
 └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 """
@@ -99,6 +93,8 @@ kb_def:
   render: 
     name: "ui"
     template: "ui_template"
+    inherit_base: false
+    inherit_domain: false
     resolvers:
       - { id: "ui", type: "kb_info" }
   resolvers:
@@ -120,76 +116,65 @@ kb_def:
 CLANK_DOMAINS = r"""
 domains:
 - name: "script-dev"
-  plan: { name: "script_development_plan" }
   resolvers:
     - { id: "domain_fragments", type: "multi-document-retrieval", files: ["domain-script-dev.md"] }
     - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
   renders:
     - name: 'bl-add'
-      template: "prompt_template"
       resolvers:
         - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["add-to-backlog.md", "backlog.md"] }
 
     - name: 'bl-impl'
-      template: "prompt_template"
       resolvers:
         - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["implement-from-bl.md", "backlog.md"] }
 
     - name: 'bl-drain'
-      template: "prompt_template"
       resolvers:
-        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["drain-from-bl.md", "backlog.md", "history-doc.md"] }
+        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["drain-from-bl.md", "backlog.md", {"file": "history-doc.md", "tail_lines": 8}] }
+
 
 - name: "config-dev"
-  plan: { name: "config_development_plan" }
   resolvers:
     - { id: "domain_fragments", type: "multi-document-retrieval", files: ["domain-config-dev.md"] }
   renders:
     - name: 'config-dev'
-      template: "prompt_template"
       resolvers:
         - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["config-development-instructions.md"] }
         - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
 
 - name: "debloat"
-  plan: { name: "debloat_plan" }
   resolvers:
     - { id: "domain_fragments", type: "multi-document-retrieval", files: ["domain-debloat.md"] }
   renders:
     - name: 'debloat'
-      template: "prompt_template"
       resolvers:
         - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["debloat-instructions.md"] }
         - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
 
 - name: "presentation"
-  plan: { name: "presentation_plan" }
   resolvers:
-    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["domain-presentation.md"] }
+    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["README.md", "domain-presentation.md"] }
   renders:
     - name: 'readme'
-      template: "prompt_template"
       resolvers:
-        - { id: "repo_content", type: "repo_content", includes: [clanker.py, README.md, ship.sh], sorting: "normal" }
+        - { id: "repo_content", type: "repo_content", includes: [ship.sh, clanker.py], sorting: "normal" }
 """
 
 DEFAULT_DOMAINS = r"""
 domains:
 - name: "bootstrap"
-  plan: { name: "bootstrap_plan" }
   resolvers:
     - { id: "domain_fragments", type: "multi-document-retrieval", files: ["domain-bootstrap.md"] }
   renders:
     - name: 'bootstrap'
-      template: "prompt_template"
       resolvers:
         - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["bootstrap-instructions.md", "backlog.md"] }
         - { id: "repo_content", type: "repo_content", includes: ["."], excludes: [".clanker", ".git"], sorting: "normal" }
 """
 
-yaml_parser = YAML()
-CLANK_CONFIG = yaml_parser.load(KB_DEF + CLANK_DOMAINS)
-DEFAULT_CONFIG = yaml_parser.load(KB_DEF + DEFAULT_DOMAINS)
+yaml = YAML()
+CLANK_CONFIG = yaml.load(KB_DEF + CLANK_DOMAINS)
+DEFAULT_CONFIG = yaml.load(KB_DEF + DEFAULT_DOMAINS)
 
 """ 2. Base Classes & Main function """
 
@@ -297,6 +282,10 @@ class ActionResult:
     def __init__(self, message: str):
         self.message = message
 
+    def get_msg(self) -> str:
+        width = 117
+        return f"{self.message:<{width}}"[:width]
+
 class MissedNotice(Failure): pass
 class BaseExInstantiation(Failure): pass
 class NoticeArgs(Failure): pass
@@ -322,19 +311,15 @@ class SystemKeys(Enum):
 
 """ 4. App Abstractions (Models & Engine) """
 
-class Plan(Constructed):
-    name: str = ""
-
 class Render(Constructed):
     name: str
-    template: str
+    template: str = "prompt_template"
     resolvers: list[Resolver] = []
     inherit_base: bool = True
     inherit_domain: bool = True
 
 class Domain(Constructed):
     name: str
-    plan: Plan | None = None
     renders: list[Render] = []
     resolvers: list[Resolver] = []
 
@@ -490,9 +475,6 @@ class GameEngine(Engine):
 
             return ActionResult(f"Domain '{ref_btn.inhabitant.name}' on key '{key}' selected")
 
-        for b in prompt_btns + action_btns:
-            b.inhabitant = b.primary_action = b.shift_action = None
-
         msg = "Selection cleared" if case == "none" else f"Domain 'None' on key '{key}' selected"
         return ActionResult(msg)
 
@@ -504,12 +486,15 @@ class GameEngine(Engine):
         btn = self.kb.button_map.get(key)
         if btn is None or btn.inhabitant is None:
             return ActionResult(f"No prompt assigned to key '{key}'")
-        lines_count = self.io.to_clipboard(self._render(self.kb, btn.inhabitant))
-        return ActionResult(f"Copied {lines_count} lines to clipboard")
+        rendered_text = self._render(self.kb, btn.inhabitant)
+        lines_count = self.io.to_clipboard(rendered_text)
+        char_count = len(rendered_text)
+        return ActionResult(f"Copied {lines_count} lines ({char_count} chars) to clipboard")
 
     def _render(self, kb: Keyboard, render: Render):
         template = self.renderer.get_template(render)
         repl_map = self.renderer.get_repl_map(kb, render)
+        repl_map["msg"] = self.msg.get_msg()
         return self.renderer.hydrate(template, repl_map)
 
 """ 5. Services """
@@ -557,18 +542,14 @@ class AssemblyService:
             lambda m: replacements.get(m.group(1).strip(), m.group(0)),
             template
         )
-
     def get_template(self, render: Render) -> str:
-        try:
-            return self.files.read_content(Config.DEFAULT_ASSETS_DIR / render.template)
-        except (FileNotFoundError, OSError):
-            return self.BUILTIN_TEMPLATES[render.template]
+        return self.BUILTIN_TEMPLATES[render.template]
 
     def get_repl_map(self, keyboard: Keyboard, render: Render) -> dict[str, str]:
         active_resolvers: list[Resolver] = []
         if render.inherit_base:
             active_resolvers.extend(keyboard.resolvers)
-        if render.inherit_domain and keyboard.selected_key:
+        if render.inherit_domain:
             active_btn = keyboard.button_map.get(keyboard.selected_key)
             if active_btn and isinstance(active_btn.inhabitant, Domain):
                 active_resolvers.extend(active_btn.inhabitant.resolvers)
@@ -581,38 +562,53 @@ class AssemblyService:
 
 
     def _resolve(self, resolver: Resolver, keyboard: Keyboard) -> list[tuple[str, str]]:
+
         if resolver.type == Resolver.Type.MULTI_DOC:
             fragments = []
-            asset_map = {path.name: path for path in self.files.expand_paths([Config.DEFAULT_ASSETS_DIR])}
+            repo_paths = self.files.expand_paths(["."])
+            asset_map = {path.name: path for path in repo_paths}
 
-            for filename in resolver.payload.get("files", []):
+            for item in resolver.payload.get("files", []):
+                if isinstance(item, dict):
+                    filename = item.get("file", "")
+                    tail_lines = item.get("tail_lines")
+                else:
+                    filename = item
+                    tail_lines = None
+
                 basename = Path(filename).name
-                tag_name = Path(filename).stem.replace("-", "_")
-                
                 target_path = asset_map.get(basename)
+                
                 if target_path:
                     content = self.files.read_content(target_path)
+                    if tail_lines is not None:
+                        lines = content.splitlines()
+                        if len(lines) > tail_lines:
+                            content = "**truncated**\n" + "\n".join(lines[-tail_lines:])
                 else:
                     content = f"[{resolver.id}: No content found at '{filename}']"
-                fragments.append(f"    <document-tag fragment: {tag_name}>\n{content}\n    </document-tag>")
-            return [(resolver.id, "\n".join(fragments))]
-
+                    
+                fragments.append(f"<{basename}>\n{content}\n</{basename}>")
+                
+            return [(resolver.id, "\n\n".join(fragments))]
         if resolver.type == Resolver.Type.REPO_CONTENT:
             paths = sorted(
                 self.files.expand_paths(resolver.payload.get("includes", [])) - 
                 self.files.expand_paths(resolver.payload.get("excludes", []))
             )
-            tree_header = "\n".join(f"├── {p}" for p in paths)
+            
+            tree_header = f"<tree>\n" + "\n".join(f"├── {p}" for p in paths) + "\n</tree>"
+            
             file_blocks = []
             for p in paths:
                 try:
-                    content = self.files.read_content(p)
-                    file_blocks.append(f"--- {p} ---\n{content}")
-                except UnicodeDecodeError as ex:
+                    content = self.files.read_content(p).rstrip()  
+                    file_blocks.append(f"<{p}>\n{content}\n</{p}>")
+                except UnicodeDecodeError:
                     pass
 
-            return [(resolver.id, f"{tree_header}\n\n" + "\n\n".join(file_blocks))]
-
+            inner_content = tree_header + "\n" + "\n".join(file_blocks)
+            return [(resolver.id, f"<repo-content>\n{inner_content}\n</repo-content>")]
 
         if resolver.type == Resolver.Type.KB_INFO:
             return list(keyboard.build_ui_repl_map().items())
@@ -694,21 +690,19 @@ class IOBridge(Bridge):
 
 class FileBridge(Bridge):
     def __init__(self) -> None:
-        self.yaml = YAML()
         self.base_path = Path.cwd()
 
     def read_yaml(self, rel_path: Path) -> dict:
-        return self.yaml.load((self.base_path / rel_path).read_text(encoding="utf-8"))
+        return yaml.load((self.base_path / rel_path).read_text(encoding="utf-8"))
 
     def is_cwd_script_dir(self) -> bool:
         return self.base_path.resolve() == Path(os.path.realpath(__file__)).parent.resolve()
-    
+
     def write_yaml(self, rel_path: Path, data: dict) -> None:
         target_path = self.base_path / rel_path
         target_path.parent.mkdir(parents=True, exist_ok=True)
         with open(target_path, "w", encoding="utf-8") as f:
-            self.yaml.dump(data, f)
-
+            yaml.dump(data, f)
     def read_content(self, rel_path: Path) -> str:
         return (self.base_path / rel_path).read_text(encoding="utf-8")
 
