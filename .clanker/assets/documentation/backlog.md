@@ -5,7 +5,10 @@ I. Long term goals
 II. Medium term goals
     [ ] the user should not have to start & stop the app for config updates to become online
     [ ] there should b default history doc as well as bl doc, for otherprojects.
-    [ ] config dev and debloat domains need a more comprehensive suite of prompts & assets.
+    [ ] config dev, debloat and presentation domains need a more comprehensive suite of prompts & assets.
+        - config dev -> not sure
+        - debloat -> perhaps some prompts per issue (comment clearing, redundant declarations, wastefull guards)
+        - presentation -> perhaps one prompt to eval main script presentation in readme, and another for ship, with more for later additions?
     [ ] Handle filename collisions in multi-doc resolution (e.g. nested files with identical names)
         - Plan:
             1. Evaluate path-based or namespaced resolution strategies instead of relying purely on basenames.
