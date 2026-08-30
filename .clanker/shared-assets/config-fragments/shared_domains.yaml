@@ -1,6 +1,16 @@
+#domains:
+#- name: "test"
+  #renders:
+    #- name: 'test'
+      #resolvers:
+        #- { id: "repo_content", type: "repo_content", includes: ["."], excludes: [".clanker"], sorting: "normal" } 
+
+sets:
+  standard_repo_resolver: { id: "repo_content", type: "repo_content", includes: [".clanker"], excludes: [".git"], sorting: "normal" }
+
 domains:
-- name: "test"
-  renders:
-    - name: 'test'
-      resolvers:
-        - { id: "repo_content", type: "repo_content", includes: ["."], excludes: [".clanker"], sorting: "normal" } 
+  - name: "test"
+    renders:
+      - name: 'test'
+        resolvers:
+          - { set: "standard_repo_resolver" }

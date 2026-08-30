@@ -7,11 +7,9 @@ I. Ideas, complaints and non-critical bugs:
 
 II. Items to refine & QC:
 
-1. Implement per-repo config-based global excludes for asset discovery (low prio)
-    [ ] 'clanker.py': Update Config model and FileBridge asset mapping
-        - Add `global_excludes` field to the Config model with sensible defaults
-        - Modify FileBridge.getAssetMap() to filter out paths matching the repository's configured global excludes
-        - Ensure global excludes are strictly per-repo and not aggregated or inherited globally
+1. Implement ports & adapters pattern
+    - clanker.py for business logic and ports
+    - adapters.py for the adapters
 
 III. Slated for implementation:
 

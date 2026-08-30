@@ -10,6 +10,7 @@ import sys
 import termios
 import traceback
 import tty
+import copy
 from typing import Callable, ClassVar, Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -241,11 +242,13 @@ class Resolver(BaseModel):
     @classmethod
     def extract_payload(cls, data: Any) -> Any:
         if isinstance(data, dict):
-            raw = data.copy()
+            obj_id = data.get("id", "")
+            obj_type = data.get("type", None)
+            payload = {k: v for k, v in data.items() if k not in ("id", "type")}
             return {
-                "id": raw.pop("id", ""),
-                "type": raw.pop("type", None),
-                "payload": raw
+                "id": obj_id,
+                "type": obj_type,
+                "payload": payload
             }
         return data
 
@@ -415,9 +418,11 @@ class SessionService:
             kb_def_data = yaml.load(kb_def_path.read_text(encoding="utf-8"))
             
             shared_domains = []
+            shared_sets = {}
             if shared_domains_path.exists():
                 shared_domains_data = yaml.load(shared_domains_path.read_text(encoding="utf-8"))
                 shared_domains = shared_domains_data.get("domains", [])
+                shared_sets = shared_domains_data.get("sets", {})
         except FileNotFoundError as ex:
             raise ConfigAssemblyFailure(f"Missing configuration fragment: {ex}") from ex
         except Exception as ex:
@@ -425,7 +430,7 @@ class SessionService:
                 raise
             raise ConfigAssemblyFailure(f"Failed to assemble configuration: {ex}") from ex
 
-        sets_map = config_data.get("sets", {})
+        sets_map = {**shared_sets, **config_data.get("sets", {})}
         user_domains = config_data.get("domains", [])
         combined_domains = shared_domains + user_domains
         resolved_domains = self._resolve_sets(combined_domains, sets_map)
@@ -460,7 +465,8 @@ class SessionService:
             if pointer_key and pointer_key in sets_map:
                 set_val = sets_map[pointer_key]
                 if isinstance(set_val, dict):
-                    res_copy.update(set_val)
+                    #res_copy.update(set_val)
+                    res_copy.update(copy.deepcopy(set_val))
             return {k: self._resolve_sets(v, sets_map) for k, v in res_copy.items()}
         return node
 
