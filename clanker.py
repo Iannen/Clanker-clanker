@@ -191,6 +191,7 @@ class MissedAdoptedNotice(Failure): pass
 class UnexpectedEx(Failure): pass
 class CorruptClanker(Failure): pass
 class ConfigAssemblyFailure(Failure): pass
+class IllegalDuplicateFile(Failure): pass
 
 class UserDecline(Notice): pass
 class ProgramExit(Notice):
@@ -502,8 +503,7 @@ class AssemblyService:
 
         if resolver.type == Resolver.Type.MULTI_DOC:
             fragments = []
-            repo_paths = self.files.get_pud_files(["."])
-            asset_map = {path.name: path for path in repo_paths}
+            asset_map = self.files.getAssetMap()
 
             for item in resolver.payload.get("files", []):
                 if isinstance(item, dict):
@@ -517,7 +517,7 @@ class AssemblyService:
                 target_path = asset_map.get(basename)
                 
                 if target_path:
-                    content = self.files.read_pud_asset(target_path)
+                    content = self.files.getFileContent(target_path)
                     if tail_lines is not None:
                         lines = content.splitlines()
                         if len(lines) > tail_lines:
@@ -528,6 +528,7 @@ class AssemblyService:
                 fragments.append(f"<{basename}>\n{content}\n</{basename}>")
                 
             return [(resolver.id, "\n\n".join(fragments))]
+
         if resolver.type == Resolver.Type.REPO_CONTENT:
             paths = sorted(
                 self.files.get_pud_files(resolver.payload.get("includes", [])) - 
@@ -549,7 +550,7 @@ class AssemblyService:
 
         if resolver.type == Resolver.Type.KB_INFO:
             return list(keyboard.build_ui_repl_map().items())
-        # le crime
+
         raise ValueError(f"Unsupported resolver type: {resolver.type}")
 
 class IOService: 
@@ -686,6 +687,33 @@ class FileBridge(Bridge):
                     if file_path.is_file():
                         resolved_files.add(file_path.relative_to(self.pud_path))
         return resolved_files
+
+    def getAssetMap(self) -> dict[str, Path]:
+        clank_map: dict[str, Path] = {}
+        for path in self.clanker_path.rglob("*"):
+            if path.is_file() and ".git" not in path.parts:
+                filename = path.name
+                if filename in clank_map:
+                    raise IllegalDuplicateFile(
+                        f"Clanker asset collision: {clank_map[filename]} {path}"
+                    )
+                clank_map[filename] = path
+
+        pud_map: dict[str, Path] = {}
+        for path in self.pud_path.rglob("*"):
+            if path.is_file() and ".git" not in path.parts:
+                filename = path.name
+                if filename in pud_map:
+                    raise IllegalDuplicateFile(
+                        f"PUD asset collision: {pud_map[filename]} {path}"
+                    )
+                pud_map[filename] = path
+
+        clank_map.update(pud_map)
+        return clank_map
+
+    def getFileContent(self, full_path: Path | str) -> str:
+        return Path(full_path).read_text(encoding="utf-8")
 
 """ 7. Script Entrypoint """
 

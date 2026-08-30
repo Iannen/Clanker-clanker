@@ -29,15 +29,8 @@ from north-star.md document:
 
 This is thought to promote ease of document management and consistency of common workflows
 "
-the bl item under development:
-1. Implement dual-source asset discovery with collision resolution and global excludes
-    [ ] 'clanker.py': Declare a new Failure exception for unresolvable asset collisions
-        - Define a specific exception class to handle illegal or ambiguous asset filename clashes
-        - Ensure it triggers an application crash and error trace on detection
-    [ ] 'clanker.py': Adapt AssemblyService._resolve for dual-source mapping and collision handling
-        - Integrate get_clanker_files and get_pud_files into a unified collection of (fullpath, filename) tuples
-        - Enforce deterministic override rule where PUD-local files shadow Clanker shared assets
-        - Raise the new collision Failure exception when ambiguous conflicts occur
+
+please evaluate progress on this item. I think most of it is locked in - what remains?
 
 III. Slated for implementation:
 

@@ -74,3 +74,9 @@ XVII: IMPLEMENT DUAL-SOURCE ASSET DISCOVERY (PREPARATORY MIGRATION)
     - Refactored path expansion into distinct 'FileBridge.get_clanker_files' and 'FileBridge.get_pud_files' methods
     - Divided file content reading into dedicated 'FileBridge.read_clanker_asset' and 'FileBridge.read_pud_asset' utilities
     - Migrated 'AssemblyService._resolve' to adopt PUD-specific asset retrieval calls as a foundation for upcoming collision handling
+
+XVIII: DUAL-SOURCE ASSET DISCOVERY IMPLEMENTATION
+    - Declared 'IllegalDuplicateFile' exception to handle filename collisions during asset discovery
+    - Implemented 'FileBridge.getAssetMap' to scan and merge files from both Clanker and PUD repositories while ignoring '.git' directories
+    - Implemented 'FileBridge.getFileContent' to retrieve text content from discovered asset paths
+    - Migrated 'AssemblyService._resolve' to rely on dual-source asset mapping for multi-document resolution
