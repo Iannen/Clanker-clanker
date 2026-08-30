@@ -230,6 +230,7 @@ class Config(Constructed):
 class Resolver(BaseModel):
     class Type(str, Enum):
         MULTI_DOC = "multi-document-retrieval"
+        FULL_PATH_FILE = "full-path-file-retrieval"
         REPO_CONTENT = "repo_content"
         KB_INFO = "kb_info"
     id: str
@@ -557,6 +558,31 @@ class AssemblyService:
                 
             return [(resolver.id, "\n\n".join(fragments))]
 
+        if resolver.type == Resolver.Type.FULL_PATH_FILE:
+            fragments = []
+
+            for item in resolver.payload.get("files", []):
+                if isinstance(item, dict):
+                    filename = item.get("file", "")
+                    tail_lines = item.get("tail_lines")
+                else:
+                    filename = item
+                    tail_lines = None
+
+                rel_path = Path(filename)
+                try:
+                    content = self.files.read_pud_asset(rel_path)
+                    if tail_lines is not None:
+                        lines = content.splitlines()
+                        if len(lines) > tail_lines:
+                            content = "**truncated**\n" + "\n".join(lines[-tail_lines:])
+                except FileNotFoundError:
+                    content = f"[{resolver.id}: No content found at '{filename}']"
+
+                fragments.append(f"<{filename}>\n{content}\n</{filename}>")
+
+            return [(resolver.id, "\n\n".join(fragments))]
+
         if resolver.type == Resolver.Type.REPO_CONTENT:
             paths = sorted(
                 self.files.get_pud_files(resolver.payload.get("includes", [])) - 
@@ -718,24 +744,28 @@ class FileBridge(Bridge):
 
     def getAssetMap(self) -> dict[str, Path]:
         clank_map: dict[str, Path] = {}
-        for path in self.clanker_path.rglob("*"):
-            if path.is_file() and ".git" not in path.parts:
-                filename = path.name
-                if filename in clank_map:
-                    raise IllegalDuplicateFile(
-                        f"Clanker asset collision: {clank_map[filename]} {path}"
-                    )
-                clank_map[filename] = path
+        clanker_dot_dir = self.clanker_path / ".clanker"
+        if clanker_dot_dir.exists():
+            for path in clanker_dot_dir.rglob("*"):
+                if path.is_file():
+                    filename = path.name
+                    if filename in clank_map:
+                        raise IllegalDuplicateFile(
+                            f"Clanker asset collision: {clank_map[filename]} {path}"
+                        )
+                    clank_map[filename] = path
 
         pud_map: dict[str, Path] = {}
-        for path in self.pud_path.rglob("*"):
-            if path.is_file() and ".git" not in path.parts:
-                filename = path.name
-                if filename in pud_map:
-                    raise IllegalDuplicateFile(
-                        f"PUD asset collision: {pud_map[filename]} {path}"
-                    )
-                pud_map[filename] = path
+        pud_dot_dir = self.pud_path / ".clanker"
+        if pud_dot_dir.exists():
+            for path in pud_dot_dir.rglob("*"):
+                if path.is_file():
+                    filename = path.name
+                    if filename in pud_map:
+                        raise IllegalDuplicateFile(
+                            f"PUD asset collision: {pud_map[filename]} {path}"
+                        )
+                    pud_map[filename] = path
 
         clank_map.update(pud_map)
         return clank_map

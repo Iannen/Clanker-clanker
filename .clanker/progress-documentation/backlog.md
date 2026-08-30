@@ -15,4 +15,7 @@ II. Items to refine & QC:
 
 III. Slated for implementation:
 
+
 IV. Recently implemented:
+
+V. Critical bugs

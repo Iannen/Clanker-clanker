@@ -89,3 +89,9 @@ XX: SHARED DOMAINS AND NAMED INCLUDE/EXCLUDE CONFIGURATION SETS
     - Implemented loading and prepending of shared domains from shared assets to ensure fixed-key consistency across repositories
     - Added parsing and storage of top-level named include/exclude sets (`sets` block) in configuration data
     - Introduced pre-validation recursive traversal (`_resolve_sets`) to detect and substitute reference pointers (`varname` or `set`) with literal `includes` and `excludes` values
+
+XXI: MULTI_DOC ASSET COLLISION RESOLUTION AND FULL-PATH FILE RETRIEVAL
+    - Resolved a critical bug where duplicate filenames across repository source trees triggered IllegalDuplicateFile errors during automatic multi-document asset mapping
+    - Constrained automatic asset discovery strictly to .clanker subdirectories within both the clanker repository and PUD workspace, eliminating broad root directory scans and unintended source code collisions
+    - Introduced a new full-path-file-retrieval resolver type to enable explicit fetching of files outside .clanker using repository-relative paths
+    - Updated FileBridge.getAssetMap() to target .clanker directories, ensuring collision checks apply exclusively within managed .clanker folders on a repository-by-repository basis
