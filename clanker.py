@@ -117,20 +117,21 @@ CLANK_DOMAINS = r"""
 domains:
 - name: "script-dev"
   resolvers:
-    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["domain-script-dev.md"] }
     - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
+    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["backlog.md"], }
+    
   renders:
-    - name: 'bl-add'
+    - name: 'plan'
       resolvers:
-        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["add-to-backlog.md", "backlog.md"] }
+        - { id: "prompt_fragments", type: "multi-document-retrieval", files: [plan-mode.md, backlog-output-instructions.md] }
 
     - name: 'bl-impl'
       resolvers:
-        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["implement-from-bl.md", "backlog.md"] }
+        - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.md, code-output-instruction.md]}
 
     - name: 'bl-drain'
       resolvers:
-        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["drain-from-bl.md", "backlog.md", {"file": "project-history.md", "tail_lines": 8}] }
+        - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {"file": "project-history.md", "tail_lines": 8}, history-output-instructions.md]}
 
 - name: "north-star"
   resolvers:

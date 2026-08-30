@@ -44,7 +44,7 @@ IV. Recently implemented:
 '''
 '''architecture.md
 '''
-    Bonus: Embed the formats of document internal items into clanker, at least for shared domains and their renders
+    Bonus: Embed the formats of document internal items into clanker, at least for shared domains and their renders. 
 
 III. Implement functionality to support the management of a Github Profile Repository as a root / management project of the user.
     - I expect this would need a new resolver to 'peek' at content of other repositories (local repositories)
