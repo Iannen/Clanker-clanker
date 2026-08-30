@@ -7,11 +7,16 @@ I. Ideas, complaints and non-critical bugs:
 
 II. Items to refine & QC:
 
-1. Relocate all template and config out of script and into .clanker (of Clanker)
-    [ ] 
+1. Relocate YAML configurations and domain definitions out of script and into .clanker
+    [ ] 'clanker.py': Remove hardcoded configuration strings
+        - Move 'kb_def' and 'DEFAULT_DOMAINS' to '.clanker/shared-assets/config-fragments/' as individual .yaml files
+        - Move 'CLANK_DOMAINS' content to '.clanker/config.yml'
+        - Exclude evaluated concatenation objects ('CLANK_CONFIG', 'DEFAULT_CONFIG') from static relocation
+        - Rename relocated members to '<oldname>_MFD', rather than deleting
+        
+    [ ] Align script logic as required
+    
 
-1. Relocate the config of the Clanker project from inside the script out to '.clanker/config.yaml'
-    - 'KB_DEF' 
 
 III. Slated for implementation:
 

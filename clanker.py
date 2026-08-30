@@ -22,7 +22,7 @@ PROMPT_TEMPLATE = r"""
 §repo_content§
 """
 
-BACKLOG_TEMPL = r"""
+BACKLOG_TEMPL_MDF = r"""
 I. Long term goals
 
 II. Medium term goals
