@@ -57,3 +57,13 @@ Result: Last action status messages and prompt metrics are now dynamically displ
 XIV: REFACTOR MULTI-DOCUMENT RETRIEVAL TO RESOLVE FROM REPO ROOT
 Updated `AssemblyService._resolve()` MULTI_DOC block to expand paths across the repository using `self.files.expand_paths(["."])`. Built an `asset_map` lookup table keyed by file basenames (`path.name`), allowing multi-doc resolvers to locate referenced files across subdirectories without requiring explicit relative paths.
 Result: Multi-document retrieval now dynamically resolves file references relative to the project root directory.
+
+XV: RELOCATE YAML CONFIGURATIONS TO DISK ASSETS
+Migrated hardcoded configuration strings and domain definitions out of the main script and onto disk within the `.clanker/shared-assets/config-fragments/` directory as individual YAML files. Updated configuration assembly logic to dynamically load and merge `kb_def.yaml` from script resources and `config.yaml` from the workspace root into a unified runtime config, introducing the `ConfigAssemblyFailure` exception type for missing or invalid fragment states.
+    - Relocated configuration definitions to disk storage under `.clanker/`
+    - Unified configuration loading flow across Clanker and external projects
+
+XVI: STREAMLINE PUD INITIALIZATION & DOCUMENTATION SEEDING
+Updated workspace initialization routines to scaffold `.clanker/progress-documentation` and `.clanker/prompt-fragments` subdirectories automatically. Implemented template seeding logic to discover documentation templates with the `.template` extension relative to script assets and populate new progress documentation files using the `.cdoc` extension.
+    - Added directory scaffolding for progress tracking and prompt fragments
+    - Seeded project workspace with default `.cdoc` documentation templates

@@ -1,0 +1,53 @@
+domains:
+- name: "script-dev"
+  resolvers:
+    - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
+    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["backlog.md"], }
+    
+  renders:
+    - name: 'plan'
+      resolvers:
+        - { id: "prompt_fragments", type: "multi-document-retrieval", files: [plan-mode.md, backlog-output-instructions.md] }
+
+    - name: 'bl-impl'
+      resolvers:
+        - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.md, code-output-instruction.md]}
+
+    - name: 'bl-drain'
+      resolvers:
+        - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {"file": "project-history.md", "tail_lines": 8}, history-output-instructions.md]}
+
+- name: "north-star"
+  resolvers:
+    - { id: "domain_fragments", type: "multi-document-retrieval", files: [] }
+  renders:
+    - name: 'ns-plan'
+      resolvers:
+        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["north-star.md"] }
+        - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
+
+- name: "config-dev"
+  resolvers:
+    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["domain-config-dev.md"] }
+  renders:
+    - name: 'config-dev'
+      resolvers:
+        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["config-development-instructions.md"] }
+        - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
+
+- name: "debloat"
+  resolvers:
+    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["domain-debloat.md"] }
+  renders:
+    - name: 'debloat'
+      resolvers:
+        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["debloat-instructions.md"] }
+        - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
+
+- name: "presentation"
+  resolvers:
+    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["README.md", "domain-presentation.md"] }
+  renders:
+    - name: 'readme'
+      resolvers:
+        - { id: "repo_content", type: "repo_content", includes: [ship.sh, clanker.py], sorting: "normal" }

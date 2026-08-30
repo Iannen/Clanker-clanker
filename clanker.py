@@ -22,25 +22,6 @@ PROMPT_TEMPLATE = r"""
 §repo_content§
 """
 
-BACKLOG_TEMPL_MDF = r"""
-I. Long term goals
-
-II. Medium term goals
-
-III. Immediate goals
-      - Explore the nature of the current repository. 
-      - Is it new? Then bootstrap a new project
-      - Does it have content? Then analyze with user
-
-IV. Idea bucket:
-
-V. Known Bugs
-
-HISTORY STASH (insert below)
-
-I: Initialized .clank directory 
-    - ran clanker in repo directory
-"""
 UI_TEMPL = r"""
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 │  § msg                                                                                                               §  │
@@ -88,102 +69,7 @@ INACTIVE_BTN = r"""
  §§§§§§ 
 """
 
-KB_DEF = r"""
-kb_def: 
-  render: 
-    name: "ui"
-    template: "ui_template"
-    inherit_base: false
-    inherit_domain: false
-    resolvers:
-      - { id: "ui", type: "kb_info" }
-  resolvers:
-    - id: "base_fragments"
-      type: "multi-document-retrieval"
-      files: ["general-rules.md"]
-  rows:
-    domain_row:
-      primary: "1234567890"
-      secondary: '!"#¤%&/()='
-    prompt_row:
-      primary: "qwer"
-      secondary: "QWER"
-    action_row:
-      primary: "asdf"
-      secondary: "ASDF"
-"""
-
-CLANK_DOMAINS = r"""
-domains:
-- name: "script-dev"
-  resolvers:
-    - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
-    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["backlog.md"], }
-    
-  renders:
-    - name: 'plan'
-      resolvers:
-        - { id: "prompt_fragments", type: "multi-document-retrieval", files: [plan-mode.md, backlog-output-instructions.md] }
-
-    - name: 'bl-impl'
-      resolvers:
-        - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.md, code-output-instruction.md]}
-
-    - name: 'bl-drain'
-      resolvers:
-        - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {"file": "project-history.md", "tail_lines": 8}, history-output-instructions.md]}
-
-- name: "north-star"
-  resolvers:
-    - { id: "domain_fragments", type: "multi-document-retrieval", files: [] }
-  renders:
-    - name: 'ns-plan'
-      resolvers:
-        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["north-star.md"] }
-        - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
-
-- name: "config-dev"
-  resolvers:
-    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["domain-config-dev.md"] }
-  renders:
-    - name: 'config-dev'
-      resolvers:
-        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["config-development-instructions.md"] }
-        - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
-
-- name: "debloat"
-  resolvers:
-    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["domain-debloat.md"] }
-  renders:
-    - name: 'debloat'
-      resolvers:
-        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["debloat-instructions.md"] }
-        - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
-
-- name: "presentation"
-  resolvers:
-    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["README.md", "domain-presentation.md"] }
-  renders:
-    - name: 'readme'
-      resolvers:
-        - { id: "repo_content", type: "repo_content", includes: [ship.sh, clanker.py], sorting: "normal" }
-"""
-
-DEFAULT_DOMAINS = r"""
-domains:
-- name: "bootstrap"
-  resolvers:
-    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["domain-bootstrap.md"] }
-  renders:
-    - name: 'bootstrap'
-      resolvers:
-        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["bootstrap-instructions.md", "backlog.md"] }
-        - { id: "repo_content", type: "repo_content", includes: ["."], excludes: [".clanker", ".git"], sorting: "normal" }
-"""
-
 yaml = YAML()
-CLANK_CONFIG = yaml.load(KB_DEF + CLANK_DOMAINS)
-DEFAULT_CONFIG = yaml.load(KB_DEF + DEFAULT_DOMAINS)
 
 """ 2. Base Classes & Main function """
 
@@ -303,6 +189,8 @@ class BadFile(Failure): pass
 class NotImplemented(Failure): pass
 class MissedAdoptedNotice(Failure): pass
 class UnexpectedEx(Failure): pass
+class CorruptClanker(Failure): pass
+class ConfigAssemblyFailure(Failure): pass
 
 class UserDecline(Notice): pass
 class ProgramExit(Notice):
@@ -512,9 +400,24 @@ class SessionService:
 
     def get_keyboard(self) -> Keyboard:
         try:
-            raw_yaml = CLANK_CONFIG if self.files.is_cwd_script_dir() else self.files.read_yaml(Config.DEFAULT_REL_PATH)
+            config_data = self.files.read_yaml(Config.DEFAULT_REL_PATH)
         except FileNotFoundError:
             raise NoConfig
+
+        script_dir = Path(os.path.realpath(__file__)).parent
+        kb_def_path = script_dir / ".clanker" / "shared-assets" / "config-fragments" / "kb_def.yaml"
+        try:
+            if not kb_def_path.exists():
+                raise FileNotFoundError(kb_def_path)
+            kb_def_data = yaml.load(kb_def_path.read_text(encoding="utf-8"))
+        except FileNotFoundError as ex:
+            raise ConfigAssemblyFailure(f"Missing configuration fragment: {ex}") from ex
+        except Exception as ex:
+            if isinstance(ex, Failure):
+                raise
+            raise ConfigAssemblyFailure(f"Failed to assemble configuration: {ex}") from ex
+
+        raw_yaml = {**kb_def_data, **config_data}
         button_map = {}
         for row_key, row in raw_yaml["kb_def"]["rows"].items():
             for prim, sec in zip(row["primary"], row["secondary"]):
@@ -532,17 +435,29 @@ class SessionService:
         })
 
     def initialize_workspace(self) -> None:
-        #TODO: the init process should raise a new failure if the Clanker dir is not initialized
-        #The clanker repo should never require initialization. If clanker is cloned down, then it already has the config and all the assets. If that is not the case, then we dont have business logic in script to deal with it -> raise failure the userdev must fix that
-        config = CLANK_CONFIG if self.files.is_cwd_script_dir() else DEFAULT_CONFIG
-        self.files.write_yaml(Config.DEFAULT_REL_PATH, config)
+        if self.files.is_cwd_script_dir():
+            raise CorruptClanker("Clanker repository cannot be initialized; configuration files are missing or invalid.")
+
+        script_dir = Path(os.path.realpath(__file__)).parent
+        default_domains_path = script_dir / ".clanker" / "shared-assets" / "config-fragments" / "default_domains.yaml"
+        try:
+            if not default_domains_path.exists():
+                raise FileNotFoundError(default_domains_path)
+            default_config_data = yaml.load(default_domains_path.read_text(encoding="utf-8"))
+        except FileNotFoundError as ex:
+            raise ConfigAssemblyFailure(f"Missing default domains fragment: {ex}") from ex
+        except Exception as ex:
+            if isinstance(ex, Failure):
+                raise
+            raise ConfigAssemblyFailure(f"Failed to load default domains: {ex}") from ex
+
+        self.files.write_yaml(Config.DEFAULT_REL_PATH, default_config_data)
         
         prog_doc_dir = self.files.base_path / ".clanker" / "progress-documentation"
         prompt_frag_dir = self.files.base_path / ".clanker" / "prompt-fragments"
         prog_doc_dir.mkdir(parents=True, exist_ok=True)
         prompt_frag_dir.mkdir(parents=True, exist_ok=True)
 
-        script_dir = Path(os.path.realpath(__file__)).parent
         doc_templates_dir = script_dir / ".clanker" / "shared-assets" / "templates" / "documentation"
         if doc_templates_dir.exists():
             for template_path in doc_templates_dir.glob("*.template"):

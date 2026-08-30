@@ -1,0 +1,22 @@
+kb_def: 
+  render: 
+    name: "ui"
+    template: "ui_template"
+    inherit_base: false
+    inherit_domain: false
+    resolvers:
+      - { id: "ui", type: "kb_info" }
+  resolvers:
+    - id: "base_fragments"
+      type: "multi-document-retrieval"
+      files: ["general-rules.md"]
+  rows:
+    domain_row:
+      primary: "1234567890"
+      secondary: '!"#¤%&/()='
+    prompt_row:
+      primary: "qwer"
+      secondary: "QWER"
+    action_row:
+      primary: "asdf"
+      secondary: "ASDF"
