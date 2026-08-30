@@ -532,12 +532,25 @@ class SessionService:
         })
 
     def initialize_workspace(self) -> None:
+        #TODO: the init process should raise a new failure if the Clanker dir is not initialized
+        #The clanker repo should never require initialization. If clanker is cloned down, then it already has the config and all the assets. If that is not the case, then we dont have business logic in script to deal with it -> raise failure the userdev must fix that
         config = CLANK_CONFIG if self.files.is_cwd_script_dir() else DEFAULT_CONFIG
         self.files.write_yaml(Config.DEFAULT_REL_PATH, config)
         
-        backlog_path = Config.DEFAULT_ASSETS_DIR / "backlog.md"
-        if not (self.files.base_path / backlog_path).exists():
-            self.files.write_content(backlog_path, BACKLOG_TEMPL)
+        prog_doc_dir = self.files.base_path / ".clanker" / "progress-documentation"
+        prompt_frag_dir = self.files.base_path / ".clanker" / "prompt-fragments"
+        prog_doc_dir.mkdir(parents=True, exist_ok=True)
+        prompt_frag_dir.mkdir(parents=True, exist_ok=True)
+
+        script_dir = Path(os.path.realpath(__file__)).parent
+        doc_templates_dir = script_dir / ".clanker" / "shared-assets" / "templates" / "documentation"
+        if doc_templates_dir.exists():
+            for template_path in doc_templates_dir.glob("*.template"):
+                target_filename = template_path.stem + ".cdoc"
+                target_path = prog_doc_dir / target_filename
+                if not target_path.exists():
+                    content = template_path.read_text(encoding="utf-8")
+                    target_path.write_text(content, encoding="utf-8")
 
 class AssemblyService:
     BUILTIN_TEMPLATES: ClassVar[dict[str, str]] = {

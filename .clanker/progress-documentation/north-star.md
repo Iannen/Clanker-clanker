@@ -25,6 +25,7 @@ II. Standardize .clanker dir structure and progress-documentation defaults
                 progress-documentation
                 prompt-assets
                 shared-prompt-assets
+                config.yaml
         other PUDs:
             .clanker
                 progress-documentation
