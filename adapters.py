@@ -1,0 +1,126 @@
+from __future__ import annotations
+
+import base64
+import os
+import sys
+import termios
+import tty
+from pathlib import Path
+
+from clanker import FileBridgePort, IOBridgePort, IllegalDuplicateFile, yaml
+
+class IOBridge(IOBridgePort): 
+    def clear(self) -> None:
+        os.system("clear")
+
+    def to_clipboard(self, text_content: str) -> int:
+        payload = base64.b64encode(text_content.encode("utf-8")).decode("utf-8")
+        sys.stdout.write(f"\033]52;c;{payload}\007")
+        sys.stdout.flush()
+        return len(text_content.splitlines())
+
+    def write(self, text: str) -> None:
+        print(text, end="", flush=True)
+
+    def read_char(self) -> str:
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd)
+            ch = sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return ch
+
+class FileBridge(FileBridgePort):
+    def __init__(self) -> None:
+        self.clanker_path = Path(os.path.realpath(__file__)).parent
+        self.pud_path = Path.cwd()
+
+    def read_yaml(self, rel_path: Path) -> dict:
+        return yaml.load((self.pud_path / rel_path).read_text(encoding="utf-8"))
+
+    def is_cwd_script_dir(self) -> bool:
+        return self.pud_path.resolve() == self.clanker_path.resolve()
+
+    def write_yaml(self, rel_path: Path, data: dict) -> None:
+        target_path = self.pud_path / rel_path
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(target_path, "w", encoding="utf-8") as f:
+            yaml.dump(data, f)
+
+    def read_clanker_asset(self, rel_path: Path) -> str:
+        return (self.clanker_path / rel_path).read_text(encoding="utf-8")
+
+    def read_pud_asset(self, rel_path: Path) -> str:
+        return (self.pud_path / rel_path).read_text(encoding="utf-8")
+
+    def write_content(self, rel_path: Path, content: str) -> None:
+        target_path = self.pud_path / rel_path
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path.write_text(content, encoding="utf-8")
+
+    def get_clanker_files(self, rel_roots: list[str | Path]) -> set[Path]:
+        resolved_files: set[Path] = set()
+        for root_str in rel_roots:
+            rel_path = Path(root_str)
+            full_path = self.clanker_path / rel_path
+
+            if not full_path.exists():
+                raise FileNotFoundError(rel_path)
+
+            if full_path.is_file():
+                resolved_files.add(rel_path)
+            elif full_path.is_dir():
+                for file_path in full_path.rglob("*"):
+                    if file_path.is_file():
+                        resolved_files.add(file_path.relative_to(self.clanker_path))
+        return resolved_files
+
+    def get_pud_files(self, rel_roots: list[str | Path]) -> set[Path]:
+        resolved_files: set[Path] = set()
+        for root_str in rel_roots:
+            rel_path = Path(root_str)
+            full_path = self.pud_path / rel_path
+
+            if not full_path.exists():
+                raise FileNotFoundError(rel_path)
+
+            if full_path.is_file():
+                resolved_files.add(rel_path)
+            elif full_path.is_dir():
+                for file_path in full_path.rglob("*"):
+                    if file_path.is_file():
+                        resolved_files.add(file_path.relative_to(self.pud_path))
+        return resolved_files
+
+    def getAssetMap(self) -> dict[str, Path]:
+        clank_map: dict[str, Path] = {}
+        clanker_dot_dir = self.clanker_path / ".clanker"
+        if clanker_dot_dir.exists():
+            for path in clanker_dot_dir.rglob("*"):
+                if path.is_file():
+                    filename = path.name
+                    if filename in clank_map:
+                        raise IllegalDuplicateFile(
+                            f"Clanker asset collision: {clank_map[filename]} {path}"
+                        )
+                    clank_map[filename] = path
+
+        pud_map: dict[str, Path] = {}
+        pud_dot_dir = self.pud_path / ".clanker"
+        if pud_dot_dir.exists():
+            for path in pud_dot_dir.rglob("*"):
+                if path.is_file():
+                    filename = path.name
+                    if filename in pud_map:
+                        raise IllegalDuplicateFile(
+                            f"PUD asset collision: {pud_map[filename]} {path}"
+                        )
+                    pud_map[filename] = path
+
+        clank_map.update(pud_map)
+        return clank_map
+
+    def getFileContent(self, full_path: Path | str) -> str:
+        return Path(full_path).read_text(encoding="utf-8")

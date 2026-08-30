@@ -7,13 +7,6 @@ I. Ideas, complaints and non-critical bugs:
 
 II. Items to refine & QC:
 
-1. Implement ports & adapters pattern
-    - clanker.py for business logic and ports
-    - adapters.py for the adapters
-
 III. Slated for implementation:
-
-
-IV. Recently implemented:
 
 V. Critical bugs
