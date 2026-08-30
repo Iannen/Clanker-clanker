@@ -19,11 +19,11 @@ domains:
 
 - name: "north-star"
   resolvers:
-    - { id: "domain_fragments", type: "multi-document-retrieval", files: [] }
+    - { id: "domain_fragments", type: "multi-document-retrieval", files: [north-star.md] }
   renders:
     - name: 'ns-plan'
       resolvers:
-        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["north-star.md"] }
+        - { id: "prompt_fragments", type: "multi-document-retrieval", files: [] }
         - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
 
 - name: "config-dev"
