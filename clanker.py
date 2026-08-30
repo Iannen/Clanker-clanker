@@ -453,8 +453,8 @@ class SessionService:
 
         self.files.write_yaml(Config.DEFAULT_REL_PATH, default_config_data)
         
-        prog_doc_dir = self.files.base_path / ".clanker" / "progress-documentation"
-        prompt_frag_dir = self.files.base_path / ".clanker" / "prompt-fragments"
+        prog_doc_dir = self.files.pud_path / ".clanker" / "progress-documentation"
+        prompt_frag_dir = self.files.pud_path / ".clanker" / "prompt-fragments"
         prog_doc_dir.mkdir(parents=True, exist_ok=True)
         prompt_frag_dir.mkdir(parents=True, exist_ok=True)
 
@@ -502,7 +502,7 @@ class AssemblyService:
 
         if resolver.type == Resolver.Type.MULTI_DOC:
             fragments = []
-            repo_paths = self.files.expand_paths(["."])
+            repo_paths = self.files.get_pud_files(["."])
             asset_map = {path.name: path for path in repo_paths}
 
             for item in resolver.payload.get("files", []):
@@ -517,7 +517,7 @@ class AssemblyService:
                 target_path = asset_map.get(basename)
                 
                 if target_path:
-                    content = self.files.read_content(target_path)
+                    content = self.files.read_pud_asset(target_path)
                     if tail_lines is not None:
                         lines = content.splitlines()
                         if len(lines) > tail_lines:
@@ -530,8 +530,8 @@ class AssemblyService:
             return [(resolver.id, "\n\n".join(fragments))]
         if resolver.type == Resolver.Type.REPO_CONTENT:
             paths = sorted(
-                self.files.expand_paths(resolver.payload.get("includes", [])) - 
-                self.files.expand_paths(resolver.payload.get("excludes", []))
+                self.files.get_pud_files(resolver.payload.get("includes", [])) - 
+                self.files.get_pud_files(resolver.payload.get("excludes", []))
             )
             
             tree_header = f"<tree>\n" + "\n".join(f"├── {p}" for p in paths) + "\n</tree>"
@@ -539,7 +539,7 @@ class AssemblyService:
             file_blocks = []
             for p in paths:
                 try:
-                    content = self.files.read_content(p).rstrip()  
+                    content = self.files.read_pud_asset(p).rstrip()  
                     file_blocks.append(f"<{p}>\n{content}\n</{p}>")
                 except UnicodeDecodeError:
                     pass
@@ -627,32 +627,37 @@ class IOBridge(Bridge):
 
 class FileBridge(Bridge):
     def __init__(self) -> None:
-        self.base_path = Path.cwd()
+        self.clanker_path = Path(os.path.realpath(__file__)).parent
+        self.pud_path = Path.cwd()
 
     def read_yaml(self, rel_path: Path) -> dict:
-        return yaml.load((self.base_path / rel_path).read_text(encoding="utf-8"))
+        return yaml.load((self.pud_path / rel_path).read_text(encoding="utf-8"))
 
     def is_cwd_script_dir(self) -> bool:
-        return self.base_path.resolve() == Path(os.path.realpath(__file__)).parent.resolve()
+        return self.pud_path.resolve() == self.clanker_path.resolve()
 
     def write_yaml(self, rel_path: Path, data: dict) -> None:
-        target_path = self.base_path / rel_path
+        target_path = self.pud_path / rel_path
         target_path.parent.mkdir(parents=True, exist_ok=True)
         with open(target_path, "w", encoding="utf-8") as f:
             yaml.dump(data, f)
-    def read_content(self, rel_path: Path) -> str:
-        return (self.base_path / rel_path).read_text(encoding="utf-8")
+
+    def read_clanker_asset(self, rel_path: Path) -> str:
+        return (self.clanker_path / rel_path).read_text(encoding="utf-8")
+
+    def read_pud_asset(self, rel_path: Path) -> str:
+        return (self.pud_path / rel_path).read_text(encoding="utf-8")
 
     def write_content(self, rel_path: Path, content: str) -> None:
-        target_path = self.base_path / rel_path
+        target_path = self.pud_path / rel_path
         target_path.parent.mkdir(parents=True, exist_ok=True)
         target_path.write_text(content, encoding="utf-8")
 
-    def expand_paths(self, rel_roots: list[str | Path]) -> set[Path]:
+    def get_clanker_files(self, rel_roots: list[str | Path]) -> set[Path]:
         resolved_files: set[Path] = set()
         for root_str in rel_roots:
             rel_path = Path(root_str)
-            full_path = self.base_path / rel_path
+            full_path = self.clanker_path / rel_path
 
             if not full_path.exists():
                 raise FileNotFoundError(rel_path)
@@ -662,7 +667,24 @@ class FileBridge(Bridge):
             elif full_path.is_dir():
                 for file_path in full_path.rglob("*"):
                     if file_path.is_file():
-                        resolved_files.add(file_path.relative_to(self.base_path))
+                        resolved_files.add(file_path.relative_to(self.clanker_path))
+        return resolved_files
+
+    def get_pud_files(self, rel_roots: list[str | Path]) -> set[Path]:
+        resolved_files: set[Path] = set()
+        for root_str in rel_roots:
+            rel_path = Path(root_str)
+            full_path = self.pud_path / rel_path
+
+            if not full_path.exists():
+                raise FileNotFoundError(rel_path)
+
+            if full_path.is_file():
+                resolved_files.add(rel_path)
+            elif full_path.is_dir():
+                for file_path in full_path.rglob("*"):
+                    if file_path.is_file():
+                        resolved_files.add(file_path.relative_to(self.pud_path))
         return resolved_files
 
 """ 7. Script Entrypoint """

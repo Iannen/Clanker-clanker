@@ -7,11 +7,13 @@ I. Ideas, complaints and non-critical bugs:
 
 II. Items to refine & QC:
 
+from north-star.md document:
+"
 1. Asset & domain sharing for Clanker & other PUDs (Project under development):
 
     a. Shared assets: Clanker should carry a host of reusable assets that all projects can use. 
         - Shared assets located relative to the path of the clanker.py script under execution
-        - PUD assets are relative to cwd, as they are now
+        - PUD assets relative to cwd
         Challenges:
             - Reduced visibility of shared assets from the PUD increases likelyhood of filename collisions
             - Switching to full path resolution is not an option
@@ -25,14 +27,18 @@ II. Items to refine & QC:
         Challenges:
             - Repo content resolver: Domains of Clanker cannot pass repo content resolver specifics to PUDs. 
 
-1. Implement dual-source asset discovery with collision resolution and global excludes
-    [ ] 'clanker.py': Update FileBridge path expansion and resolution logic for shared assets
-        - Scan both script_dir relative Clanker shared assets directory and CWD-relative PUD paths into a unified collection of (fullpath, filename) tuples
-        - Enforce deterministic collision handling giving PUD-local files precedence over shared assets
-        - Integrate configuration-based global excludes to filter out specific shared paths or patterns
-
 This is thought to promote ease of document management and consistency of common workflows
-   
+"
+the bl item under development:
+1. Implement dual-source asset discovery with collision resolution and global excludes
+    [ ] 'clanker.py': Declare a new Failure exception for unresolvable asset collisions
+        - Define a specific exception class to handle illegal or ambiguous asset filename clashes
+        - Ensure it triggers an application crash and error trace on detection
+    [ ] 'clanker.py': Adapt AssemblyService._resolve for dual-source mapping and collision handling
+        - Integrate get_clanker_files and get_pud_files into a unified collection of (fullpath, filename) tuples
+        - Enforce deterministic override rule where PUD-local files shadow Clanker shared assets
+        - Raise the new collision Failure exception when ambiguous conflicts occur
+
 III. Slated for implementation:
 
 IV. Recently implemented:

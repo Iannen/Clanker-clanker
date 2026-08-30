@@ -67,3 +67,10 @@ XVI: STREAMLINE PUD INITIALIZATION & DOCUMENTATION SEEDING
 Updated workspace initialization routines to scaffold `.clanker/progress-documentation` and `.clanker/prompt-fragments` subdirectories automatically. Implemented template seeding logic to discover documentation templates with the `.template` extension relative to script assets and populate new progress documentation files using the `.cdoc` extension.
     - Added directory scaffolding for progress tracking and prompt fragments
     - Seeded project workspace with default `.cdoc` documentation templates
+
+XVII: IMPLEMENT DUAL-SOURCE ASSET DISCOVERY (PREPARATORY MIGRATION)
+    - Split 'FileBridge.base_path' into 'FileBridge.clanker_path' and 'FileBridge.pud_path' members
+    - Updated 'FileBridge.__init__' to correctly assign values to both path attributes
+    - Refactored path expansion into distinct 'FileBridge.get_clanker_files' and 'FileBridge.get_pud_files' methods
+    - Divided file content reading into dedicated 'FileBridge.read_clanker_asset' and 'FileBridge.read_pud_asset' utilities
+    - Migrated 'AssemblyService._resolve' to adopt PUD-specific asset retrieval calls as a foundation for upcoming collision handling
