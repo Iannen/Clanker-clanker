@@ -407,10 +407,16 @@ class SessionService:
 
         script_dir = Path(os.path.realpath(__file__)).parent
         kb_def_path = script_dir / ".clanker" / "shared-assets" / "config-fragments" / "kb_def.yaml"
+        shared_domains_path = script_dir / ".clanker" / "shared-assets" / "config-fragments" / "shared_domains.yaml"
         try:
             if not kb_def_path.exists():
                 raise FileNotFoundError(kb_def_path)
             kb_def_data = yaml.load(kb_def_path.read_text(encoding="utf-8"))
+            
+            shared_domains = []
+            if shared_domains_path.exists():
+                shared_domains_data = yaml.load(shared_domains_path.read_text(encoding="utf-8"))
+                shared_domains = shared_domains_data.get("domains", [])
         except FileNotFoundError as ex:
             raise ConfigAssemblyFailure(f"Missing configuration fragment: {ex}") from ex
         except Exception as ex:
@@ -418,7 +424,14 @@ class SessionService:
                 raise
             raise ConfigAssemblyFailure(f"Failed to assemble configuration: {ex}") from ex
 
+        sets_map = config_data.get("sets", {})
+        user_domains = config_data.get("domains", [])
+        combined_domains = shared_domains + user_domains
+        resolved_domains = self._resolve_sets(combined_domains, sets_map)
+
         raw_yaml = {**kb_def_data, **config_data}
+        raw_yaml["domains"] = resolved_domains
+
         button_map = {}
         for row_key, row in raw_yaml["kb_def"]["rows"].items():
             for prim, sec in zip(row["primary"], row["secondary"]):
@@ -434,6 +447,21 @@ class SessionService:
             "render": raw_yaml["kb_def"]["render"],
             "resolvers": raw_yaml["kb_def"].get("resolvers"),
         })
+
+    def _resolve_sets(self, node: Any, sets_map: dict[str, Any]) -> Any:
+        if isinstance(node, list):
+            return [self._resolve_sets(item, sets_map) for item in node]
+        elif isinstance(node, dict):
+            res_copy = node.copy()
+            pointer_key = res_copy.pop("varname", None)
+            if pointer_key is None:
+                pointer_key = res_copy.pop("set", None)
+            if pointer_key and pointer_key in sets_map:
+                set_val = sets_map[pointer_key]
+                if isinstance(set_val, dict):
+                    res_copy.update(set_val)
+            return {k: self._resolve_sets(v, sets_map) for k, v in res_copy.items()}
+        return node
 
     def initialize_workspace(self) -> None:
         if self.files.is_cwd_script_dir():

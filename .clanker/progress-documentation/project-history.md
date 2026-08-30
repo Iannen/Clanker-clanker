@@ -84,3 +84,8 @@ XVIII: DUAL-SOURCE ASSET DISCOVERY IMPLEMENTATION
 XIX: PUD WORKSPACE INITIALIZATION TEMPLATE RELOCATION
     - Updated `initialize_workspace` to source the default configuration template from `.clanker/shared-assets/templates/config.template`
     - Renamed the initialized configuration file to `config.yaml` within the PUD workspace directory
+
+XX: SHARED DOMAINS AND NAMED INCLUDE/EXCLUDE CONFIGURATION SETS
+    - Implemented loading and prepending of shared domains from shared assets to ensure fixed-key consistency across repositories
+    - Added parsing and storage of top-level named include/exclude sets (`sets` block) in configuration data
+    - Introduced pre-validation recursive traversal (`_resolve_sets`) to detect and substitute reference pointers (`varname` or `set`) with literal `includes` and `excludes` values
