@@ -440,17 +440,17 @@ class SessionService:
             raise CorruptClanker("Clanker repository cannot be initialized; configuration files are missing or invalid.")
 
         script_dir = Path(os.path.realpath(__file__)).parent
-        default_domains_path = script_dir / ".clanker" / "shared-assets" / "config-fragments" / "default_domains.yaml"
+        template_path = script_dir / ".clanker" / "shared-assets" / "templates" / "config.template"
         try:
-            if not default_domains_path.exists():
-                raise FileNotFoundError(default_domains_path)
-            default_config_data = yaml.load(default_domains_path.read_text(encoding="utf-8"))
+            if not template_path.exists():
+                raise FileNotFoundError(template_path)
+            default_config_data = yaml.load(template_path.read_text(encoding="utf-8"))
         except FileNotFoundError as ex:
-            raise ConfigAssemblyFailure(f"Missing default domains fragment: {ex}") from ex
+            raise ConfigAssemblyFailure(f"Missing configuration template: {ex}") from ex
         except Exception as ex:
             if isinstance(ex, Failure):
                 raise
-            raise ConfigAssemblyFailure(f"Failed to load default domains: {ex}") from ex
+            raise ConfigAssemblyFailure(f"Failed to load configuration template: {ex}") from ex
 
         self.files.write_yaml(Config.DEFAULT_REL_PATH, default_config_data)
         

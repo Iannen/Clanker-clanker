@@ -1,0 +1,6 @@
+domains:
+- name: "test"
+  renders:
+    - name: 'test'
+      resolvers:
+        - { id: "repo_content", type: "repo_content", includes: ["."], excludes: [".clanker"], sorting: "normal" } 

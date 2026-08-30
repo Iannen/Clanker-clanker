@@ -30,8 +30,30 @@ from north-star.md document:
 This is thought to promote ease of document management and consistency of common workflows
 "
 
-please evaluate progress on this item. I think most of it is locked in - what remains?
+1. Implement per-repo config-based global excludes for asset discovery (low prio)
+    [ ] 'clanker.py': Update Config model and FileBridge asset mapping
+        - Add `global_excludes` field to the Config model with sensible defaults
+        - Modify FileBridge.getAssetMap() to filter out paths matching the repository's configured global excludes
+        - Ensure global excludes are strictly per-repo and not aggregated or inherited globally
+
+2. Implement shared domains and named include/exclude sets in configuration (hp)
+    [x] '.clanker/shared-assets/config-fragments/shared_domains.yaml' exists with a test domain. Its content:
+'''
+domains:
+- name: "test"
+  renders:
+    - name: 'test'
+      resolvers:
+        - { id: "repo_content", type: "repo_content", includes: ["."], excludes: [".clanker"], sorting: "normal" } 
+'''
+    [ ] Update runtime configuration assembly in SessionService
+        - Construct runtime configuration by prepending shared domains to those declared in config.yaml to ensure fixed key consistency
+    [ ] Support named include/exclude sets
+        - Add a model class 'RepoContent' to hold include/exclude sets
+        - (?) Delay parsing of domains (and their resolvers) untill all repocontent is resolved
+        - then, when parsing domains, substitute any 'reponame' with an appropriate dict
+        - hmm, is our resolver flexiblility an asset for us here, in that we dont need to change the model of the resolver?
 
 III. Slated for implementation:
-
+        
 IV. Recently implemented:
