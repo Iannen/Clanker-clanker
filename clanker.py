@@ -14,38 +14,6 @@ from abc import ABC, abstractmethod
 
 """ 1. Templates, Default Configs & UI Strings """
 
-PROMPT_TEMPLATE = r"""
-§base_fragments§
-§domain_fragments§
-§prompt_fragments§
-§repo_content§
-"""
-
-UI_TEMPL = r"""
-┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│  § msg                                                                                                               §  │
-│                                                                                                                         │
-│    § 10   §  § 20   §  § 30   §  § 40   §  § 50   §  § 60   §  § 70   §  § 80   §  § 90   §  § 00   §                   │
-│    § 11   §  § 21   §  § 31   §  § 41   §  § 51   §  § 61   §  § 71   §  § 81   §  § 91   §  § 01   §                   │
-│    § 12   §  § 22   §  § 32   §  § 42   §  § 52   §  § 62   §  § 72   §  § 82   §  § 92   §  § 02   §                   │
-│    § 13   §  § 23   §  § 33   §  § 43   §  § 53   §  § 63   §  § 73   §  § 83   §  § 93   §  § 03   §                   │
-│    § 14   §  § 24   §  § 34   §  § 44   §  § 54   §  § 64   §  § 74   §  § 84   §  § 94   §  § 04   §                   │
-│                                                                                                                         │
-│     § q0   §  § w0   §  § e0   §  § r0   §                                                                              │
-│     § q1   §  § w1   §  § e1   §  § r1   §                                                                              │
-│     § q2   §  § w2   §  § e2   §  § r2   §                                                                              │
-│     § q3   §  § w3   §  § e3   §  § r3   §                                                                              │
-│     § q4   §  § w4   §  § e4   §  § r4   §                                                                              │
-│                                                                                                                         │
-│     § a0   §  § s0   §  § d0   §  § f0   §                                                                              │
-│     § a1   §  § s1   §  § d1   §  § f1   §                                                                              │
-│     § a2   §  § s2   §  § d2   §  § f2   §                                                                              │
-│     § a3   §  § s3   §  § d3   §  § f3   §                                                                              │
-│     § a4   §  § s4   §  § d4   §  § f4   §                                                                              │
-│                                                                                                                         │
-└─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-"""
-
 HL_BTN = r"""
  vvvvvv 
 ┌──────┐
@@ -173,6 +141,10 @@ def main():
         BaseEx.print_traceback_and_exit(ex)
 
 """ 3. Exceptions, Result Objects, Enums """
+
+class Layout(str, Enum):
+    UI = ".clanker/shared-assets/layouts/ui.layout"
+    PROMPT = ".clanker/shared-assets/layouts/prompt.layout"
 
 class ActionResult:
     def __init__(self, message: str):
@@ -517,10 +489,7 @@ class SessionService:
 class AssemblyService:
     def __init__(self, files: FileBridgePort) -> None:
         self.files = files
-    BUILTIN_TEMPLATES: ClassVar[dict[str, str]] = {
-        "prompt_template": PROMPT_TEMPLATE,
-        "ui_template": UI_TEMPL,
-    }
+
     def hydrate(self, template: str, replacements: dict[str, str]) -> str:
         token = SystemKeys.DELIM.value
         pattern = re.compile(rf"{token}([^{token}]+){token}")
@@ -528,8 +497,17 @@ class AssemblyService:
             lambda m: replacements.get(m.group(1).strip(), m.group(0)),
             template
         )
+
     def get_template(self, render: Render) -> str:
-        return self.BUILTIN_TEMPLATES[render.template]
+        match render.template:
+            case "prompt_template":
+                layout_path = Layout.PROMPT
+            case "ui_template":
+                layout_path = Layout.UI
+        try:
+            return self.files.read_clanker_asset(layout_path)
+        except FileNotFoundError as ex:
+            raise CorruptClanker(f"Error: Layout '{layout_path}': {ex}") from ex
 
     def get_repl_map(self, keyboard: Keyboard, render: Render) -> dict[str, str]:
         active_resolvers: list[Resolver] = []
@@ -705,16 +683,13 @@ class FileBridgePort(Bridge):
     def write_yaml(self, rel_path: Path, data: dict) -> None: pass
 
     @abstractmethod
-    def read_clanker_asset(self, rel_path: Path) -> str: pass
+    def read_clanker_asset(self, rel_path: str) -> str: pass
 
     @abstractmethod
     def read_pud_asset(self, rel_path: Path) -> str: pass
 
     @abstractmethod
     def write_content(self, rel_path: Path, content: str) -> None: pass
-
-    @abstractmethod
-    def get_clanker_files(self, rel_roots: list[str | Path]) -> set[Path]: pass
 
     @abstractmethod
     def get_pud_files(self, rel_roots: list[str | Path]) -> set[Path]: pass

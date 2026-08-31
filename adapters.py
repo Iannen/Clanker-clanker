@@ -49,7 +49,7 @@ class FileBridge(FileBridgePort):
         with open(target_path, "w", encoding="utf-8") as f:
             yaml.dump(data, f)
 
-    def read_clanker_asset(self, rel_path: Path) -> str:
+    def read_clanker_asset(self, rel_path: str) -> str:
         return (self.clanker_path / rel_path).read_text(encoding="utf-8")
 
     def read_pud_asset(self, rel_path: Path) -> str:
@@ -59,23 +59,6 @@ class FileBridge(FileBridgePort):
         target_path = self.pud_path / rel_path
         target_path.parent.mkdir(parents=True, exist_ok=True)
         target_path.write_text(content, encoding="utf-8")
-
-    def get_clanker_files(self, rel_roots: list[str | Path]) -> set[Path]:
-        resolved_files: set[Path] = set()
-        for root_str in rel_roots:
-            rel_path = Path(root_str)
-            full_path = self.clanker_path / rel_path
-
-            if not full_path.exists():
-                raise FileNotFoundError(rel_path)
-
-            if full_path.is_file():
-                resolved_files.add(rel_path)
-            elif full_path.is_dir():
-                for file_path in full_path.rglob("*"):
-                    if file_path.is_file():
-                        resolved_files.add(file_path.relative_to(self.clanker_path))
-        return resolved_files
 
     def get_pud_files(self, rel_roots: list[str | Path]) -> set[Path]:
         resolved_files: set[Path] = set()
