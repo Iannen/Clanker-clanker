@@ -7,6 +7,10 @@ I. Ideas, complaints and non-critical bugs:
 
 II. Items to refine & QC:
 
+1. Look for ways to improve upon recently implemented ports & adapters architecture
+    - offload non-business logic to adapters, leave behind clean code
+    - the code should not use members of the adapters not offered by their ports, as this appears as 'magic' unless the reader also has access to the adapter impls
+
 III. Slated for implementation:
 
 V. Critical bugs
