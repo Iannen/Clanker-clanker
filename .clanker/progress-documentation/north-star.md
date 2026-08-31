@@ -8,3 +8,8 @@
         'QWER' -> Prompts for active domain
         'ASDF' -> Shared domains
     - Tis to be mulled
+
+3. Clanker could validate PUDs for compliance with documentation system 
+    - Find a way to declare the system 'first class' in code
+    - PUDS should have progress docs per template dir, README.md in repo root
+    - This is for the benefit of Github meta repo structure
