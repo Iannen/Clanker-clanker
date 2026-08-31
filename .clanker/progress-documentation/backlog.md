@@ -29,4 +29,8 @@ III. Slated for implementation:
 
 IV. Recently implemented:
 
+4. UI bug: UI border shifts depending upon button state on row
+    [x] fix'd: a 'friend' bungled while refactoring Button.get_repl_map
+        - but he was able to help recover, so all is forgiven
+
 V. Critical bugs

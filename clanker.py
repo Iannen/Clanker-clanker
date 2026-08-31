@@ -226,8 +226,7 @@ class Button(Constructed):
 
     def get_repl_map(self, label: str, template: str) -> dict[str, str]:
         lines = template.strip("\n").splitlines()
-        norm_label = (label + "     ")[:6]
-
+        norm_label = label[:6].ljust(6)
         mapped_lines = [
             lines[0],
             lines[1],
