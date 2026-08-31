@@ -102,3 +102,17 @@ XXII: PORTS AND ADAPTERS ARCHITECTURE IMPLEMENTATION
     - Updated concrete adapters (FileBridge, IOBridge) to implement their respective port interfaces
     - Restructured core services (SessionService, AssemblyService, IOService, GameEngine) around explicit constructor injection (__init__)
     - Configured main() as the Composition Root to lazily import and wire adapters into services at runtime
+
+XXIII: LAYOUT TERMINOLOGY AND LAYOUT SOURCING REFACTOR
+    - Removed get_clanker_files from FileBridgePort and Adapter interface
+    - Declared Layout enum for centralized asset path management including UI and PROMPT layouts
+    - Refactored FileBridgePort.read_clanker_asset to accept string layout paths and return raw content
+    - Updated AssemblyService.get_template to resolve layouts dynamically via Layout enum members
+    - Eliminated in-script template fallback constants BUILTIN_TEMPLATES, UI_TEMPL, and PROMPT_TEMPLATE
+
+
+XXIV: REFACTOR UI BUTTON TEMPLATE SOURCING TO FILE READS
+    - Migrated UI template button sourcing from in-script constants to dynamic file reads via Layout enum
+    - Added BTN_ACTIVE, BTN_HL, and BTN_INACTIVE layout definitions to Layout enum
+    - Updated AssemblyService._resolve (KB_INFO resolver) to read button templates using files.read_clanker_asset
+    - Removed legacy in-script button template constants and deprecated keyboard.build_ui_repl_map

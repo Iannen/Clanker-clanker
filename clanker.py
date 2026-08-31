@@ -14,28 +14,6 @@ from abc import ABC, abstractmethod
 
 """ 1. Templates, Default Configs & UI Strings """
 
-HL_BTN = r"""
- vvvvvv 
-┌──────┐
-│  §   │
-└──────┘
- §§§§§§ 
-"""
-ACTIVE_BTN = r"""
-        
-┌──────┐
-│  §   │
-└──────┘
- §§§§§§ 
-"""
-INACTIVE_BTN = r"""
-        
-        
-   §    
-────────
- §§§§§§ 
-"""
-
 yaml = YAML()
 
 """ 2. Base Classes & Main function """
@@ -145,6 +123,9 @@ def main():
 class Layout(str, Enum):
     UI = ".clanker/shared-assets/layouts/ui.layout"
     PROMPT = ".clanker/shared-assets/layouts/prompt.layout"
+    BTN_ACTIVE = ".clanker/shared-assets/layouts/btn_active.layout"
+    BTN_HL = ".clanker/shared-assets/layouts/btn_hl.layout"
+    BTN_INACTIVE = ".clanker/shared-assets/layouts/btn_inactive.layout"
 
 class ActionResult:
     def __init__(self, message: str):
@@ -270,32 +251,6 @@ class Keyboard(Constructed):
         elif key == btn.secondary_letter and callable(btn.shift_action):
             return btn.shift_action(btn.primary_letter)
         return ActionResult(f"No action bound to key '{key}'")
-
-    def build_ui_repl_map(self) -> dict[str, str]:
-        repl_map = {}
-        for btn in self.get_unique_buttons():
-            label = ""
-            template = INACTIVE_BTN
-            if btn.type == "domain_row":
-                if btn.primary_letter == self.selected_key:
-                    template = HL_BTN
-                    label = btn.inhabitant.name if btn.inhabitant else ""
-                elif btn.inhabitant:
-                    template = ACTIVE_BTN
-                    label = btn.inhabitant.name
-
-            elif btn.type == "prompt_row":
-                if btn.inhabitant:
-                    template = ACTIVE_BTN
-                    label = btn.inhabitant.name
-
-            elif btn.type == "action_row":
-                if btn.inhabitant:
-                    template = ACTIVE_BTN
-                    label = getattr(btn.inhabitant, "name", str(btn.inhabitant))
-
-            repl_map |= btn.get_repl_map(label, template)
-        return repl_map
 
 class GameEngine(Engine):
     def __init__(
@@ -600,7 +555,34 @@ class AssemblyService:
             return [(resolver.id, f"<repo-content>\n{inner_content}\n</repo-content>")]
 
         if resolver.type == Resolver.Type.KB_INFO:
-            return list(keyboard.build_ui_repl_map().items())
+            btn_hl = self.files.read_clanker_asset(Layout.BTN_HL)
+            btn_active = self.files.read_clanker_asset(Layout.BTN_ACTIVE)
+            btn_inactive = self.files.read_clanker_asset(Layout.BTN_INACTIVE)
+
+            repl_map = {}
+            for btn in keyboard.get_unique_buttons():
+                label = ""
+                template = btn_inactive
+                if btn.type == "domain_row":
+                    if btn.primary_letter == keyboard.selected_key:
+                        template = btn_hl
+                        label = btn.inhabitant.name if btn.inhabitant else ""
+                    elif btn.inhabitant:
+                        template = btn_active
+                        label = btn.inhabitant.name
+
+                elif btn.type == "prompt_row":
+                    if btn.inhabitant:
+                        template = btn_active
+                        label = btn.inhabitant.name
+
+                elif btn.type == "action_row":
+                    if btn.inhabitant:
+                        template = btn_active
+                        label = getattr(btn.inhabitant, "name", str(btn.inhabitant))
+
+                repl_map |= btn.get_repl_map(label, template)
+            return list(repl_map.items())
 
         raise ValueError(f"Unsupported resolver type: {resolver.type}")
 
