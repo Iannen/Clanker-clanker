@@ -6,8 +6,9 @@ import sys
 import termios
 import tty
 from pathlib import Path
+from ruamel.yaml import YAML
 
-from clanker import FileBridgePort, IOBridgePort, IllegalDuplicateFile, yaml
+from clanker import FileBridgePort, IOBridgePort, IllegalDuplicateFile, CorruptClanker
 
 class IOBridge(IOBridgePort): 
     def clear(self) -> None:
@@ -36,12 +37,13 @@ class FileBridge(FileBridgePort):
     def __init__(self) -> None:
         self.clanker_path = Path(os.path.realpath(__file__)).parent
         self.pud_path = Path.cwd()
+        self.yaml = YAML()
 
     def pud_cfg_frag(self, rel_path: str) -> dict:
-        return yaml.load((self.pud_path / rel_path).read_text(encoding="utf-8"))
+        return self.yaml.load((self.pud_path / rel_path).read_text(encoding="utf-8"))
 
     def clank_cfg_frag(self, rel_path: str) -> dict:
-        return yaml.load((self.clanker_path / rel_path).read_text(encoding="utf-8"))
+        return self.yaml.load((self.clanker_path / rel_path).read_text(encoding="utf-8"))
 
     def write_default_documents(
         self, doc_templ_dir: str, pud_doc_dir: str, templ_ext: str, doc_ext: str
@@ -52,13 +54,19 @@ class FileBridge(FileBridgePort):
         prompt_frag_dir.mkdir(parents=True, exist_ok=True)
 
         doc_templates_dir = self.clanker_path / doc_templ_dir
-        if doc_templates_dir.exists():
-            for template_path in doc_templates_dir.glob(f"*{templ_ext}"):
-                target_filename = template_path.stem + doc_ext
-                target_path = prog_doc_dir / target_filename
-                if not target_path.exists():
-                    content = template_path.read_text(encoding="utf-8")
-                    target_path.write_text(content, encoding="utf-8")
+        if not doc_templates_dir.exists():
+            raise CorruptClanker(f"Template directory missing: '{doc_templates_dir}'")
+
+        templates = list(doc_templates_dir.glob(f"*{templ_ext}"))
+        if not templates:
+            raise CorruptClanker(f"No '{templ_ext}' template files found in '{doc_templates_dir}'")
+
+        for template_path in templates:
+            target_filename = template_path.stem + doc_ext
+            target_path = prog_doc_dir / target_filename
+            if not target_path.exists():
+                content = template_path.read_text(encoding="utf-8")
+                target_path.write_text(content, encoding="utf-8")
 
     def is_cwd_script_dir(self) -> bool:
         return self.pud_path.resolve() == self.clanker_path.resolve()
@@ -67,7 +75,7 @@ class FileBridge(FileBridgePort):
         target_path = self.pud_path / rel_path
         target_path.parent.mkdir(parents=True, exist_ok=True)
         with open(target_path, "w", encoding="utf-8") as f:
-            yaml.dump(data, f)
+            self.yaml.dump(data, f)
 
     def read_clanker_asset(self, rel_path: str) -> str:
         return (self.clanker_path / rel_path).read_text(encoding="utf-8")

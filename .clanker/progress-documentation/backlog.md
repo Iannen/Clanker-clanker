@@ -7,12 +7,15 @@ I. Ideas, complaints and non-critical bugs:
 
 II. Items to refine & QC:
 
-1. Leverage ports & adapters split -> offload non-business logic to adapters, leave behind clean code
-
-
-    [ ] SessionService.get_keyboard: system path construction (os.path.realpath(__file__)) and manual existence checks
-    [ ] SessionService.initialize_workspace: delegate workspace template discovery, directory creation, and path operations to the adapter
-    
+1.  Leverage ports & adapters split -> offload non-business logic to adapters, leave behind clean code
+    The classes that depend directly upon adapters are candidates for review:
+        - SessionService
+        - AssemblyService
+        - IOService   
+    Methodology is review of service class methods
+        - the usage of 'self.files.write_default_documents' in SessionService.initialize_workspace is thought to be a good example of desired outcomes.
+        - do other methods carry out stuff that the adapter could take care of for them?
+        
 
 2. Implement .clanker files extension policy by whitelist(s), forcing alignment job.
     - progress documentation -> .cdoc

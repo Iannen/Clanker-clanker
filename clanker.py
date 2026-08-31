@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 from enum import Enum
-from ruamel.yaml import YAML
 import os
 from pathlib import Path
 import re
@@ -11,10 +10,6 @@ import copy
 from typing import Callable, ClassVar, Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from abc import ABC, abstractmethod
-
-""" 1. Templates, Default Configs & UI Strings """
-
-yaml = YAML()
 
 """ 2. Base Classes & Main function """
 
@@ -120,24 +115,32 @@ def main():
 
 """ 3. Exceptions, Result Objects, Enums """
 
-class CfgFragments(str, Enum):
+class CfgFragments:
     PUD_CFG = ".clanker/config.yaml"
     SHARED_KB_DEF = ".clanker/shared-assets/config-fragments/kb_def.yaml"
     SHARED_DOMAINS = ".clanker/shared-assets/config-fragments/shared_domains.yaml"
     TEMPLATE_CFG = ".clanker/shared-assets/templates/config.template"
     
-class DocPaths(str, Enum):
+class DocPaths:
     SHARED_TEMPLATES = ".clanker/shared-assets/templates/documentation"
     PUD_DOCS = ".clanker/progress-documentation"
     TEMPL_EXT = ".template"
     DOC_EXT = ".cdoc"
 
-class Layout(str, Enum):
+class Layout:
     UI = ".clanker/shared-assets/layouts/ui.layout"
     PROMPT = ".clanker/shared-assets/layouts/prompt.layout"
     BTN_ACTIVE = ".clanker/shared-assets/layouts/btn_active.layout"
     BTN_HL = ".clanker/shared-assets/layouts/btn_hl.layout"
     BTN_INACTIVE = ".clanker/shared-assets/layouts/btn_inactive.layout"
+
+class SystemKeys:
+    DELIM = "§"
+    CTRL_C = "\x03"
+    CTRL_D = "\x04"
+    BACKSPACE = "\x7f"
+    BACKSPACE_ALT = "\x08"
+    ESC = "\x1b"
 
 class ActionResult:
     def __init__(self, message: str):
@@ -164,14 +167,6 @@ class ProgramExit(Notice):
     def get_compliance_msg(self):
         return "Program exited"
 class NoConfig(Notice): pass
-
-class SystemKeys(Enum):  
-    DELIM = "§"
-    CTRL_C = "\x03"
-    CTRL_D = "\x04"
-    BACKSPACE = "\x7f"
-    BACKSPACE_ALT = "\x08"
-    ESC = "\x1b"
 
 """ 4. App Abstractions (Models & Engine) """
 
@@ -231,14 +226,14 @@ class Button(Constructed):
 
     def get_repl_map(self, label: str, template: str) -> dict[str, str]:
         lines = template.strip("\n").splitlines()
-        norm_label = (label + "      ")[:6]
+        norm_label = (label + "     ")[:6]
 
         mapped_lines = [
             lines[0],
             lines[1],
-            lines[2].replace(SystemKeys.DELIM.value, self.primary_letter, 1),
+            lines[2].replace(SystemKeys.DELIM, self.primary_letter, 1),
             lines[3],
-            lines[4].replace(SystemKeys.DELIM.value * 6, norm_label, 1),
+            lines[4].replace(SystemKeys.DELIM * 6, norm_label, 1),
         ]
         return {f"{self.primary_letter}{idx}": line for idx, line in enumerate(mapped_lines)}
 
@@ -419,7 +414,7 @@ class SessionService:
 
     def initialize_workspace(self) -> None:
         if self.files.is_cwd_script_dir():
-            raise CorruptClanker("Clanker repository cannot be initialized; configuration files are missing or invalid.")
+            raise CorruptClanker("Clanker repository initialized is beyond scope of app.")
 
         try:
             default_config_data = self.files.clank_cfg_frag(CfgFragments.TEMPLATE_CFG)
@@ -431,6 +426,7 @@ class SessionService:
             raise ConfigAssemblyFailure(f"Failed to load configuration template: {ex}") from ex
 
         self.files.write_yaml(Config.DEFAULT_REL_PATH, default_config_data)
+
         self.files.write_default_documents(
             doc_templ_dir=DocPaths.SHARED_TEMPLATES,
             pud_doc_dir=DocPaths.PUD_DOCS,
@@ -443,7 +439,7 @@ class AssemblyService:
         self.files = files
 
     def hydrate(self, template: str, replacements: dict[str, str]) -> str:
-        token = SystemKeys.DELIM.value
+        token = SystemKeys.DELIM
         pattern = re.compile(rf"{token}([^{token}]+){token}")
         return pattern.sub(
             lambda m: replacements.get(m.group(1).strip(), m.group(0)),
@@ -596,7 +592,7 @@ class IOService:
 
     def get_key(self) -> str:
         ch = self.io_bridge.read_char()
-        if ch in (SystemKeys.CTRL_C.value, SystemKeys.ESC.value):
+        if ch in (SystemKeys.CTRL_C, SystemKeys.ESC):
             raise ProgramExit
         return ch
 
@@ -615,10 +611,10 @@ class IOService:
         while True:
             ch = self.io_bridge.read_char()
 
-            if ch in (SystemKeys.CTRL_C.value, SystemKeys.ESC.value):
+            if ch in (SystemKeys.CTRL_C, SystemKeys.ESC):
                 raise UserDecline
 
-            if ch == SystemKeys.CTRL_D.value:
+            if ch == SystemKeys.CTRL_D:
                 if buffer == required_phrase:
                     self.io_bridge.write("\n")
                     return None
@@ -626,7 +622,7 @@ class IOService:
                     f"\nInvalid confirmation. Expected '{required_phrase}'. Try again.\n> "
                 )
                 buffer = ""
-            elif ch in (SystemKeys.BACKSPACE.value, SystemKeys.BACKSPACE_ALT.value):
+            elif ch in (SystemKeys.BACKSPACE, SystemKeys.BACKSPACE_ALT):
                 if len(buffer) > 0:
                     buffer = buffer[:-1]
                     self.io_bridge.write("\b \b")
