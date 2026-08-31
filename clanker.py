@@ -120,6 +120,18 @@ def main():
 
 """ 3. Exceptions, Result Objects, Enums """
 
+class CfgFragments(str, Enum):
+    PUD_CFG = ".clanker/config.yaml"
+    SHARED_KB_DEF = ".clanker/shared-assets/config-fragments/kb_def.yaml"
+    SHARED_DOMAINS = ".clanker/shared-assets/config-fragments/shared_domains.yaml"
+    TEMPLATE_CFG = ".clanker/shared-assets/templates/config.template"
+    
+class DocPaths(str, Enum):
+    SHARED_TEMPLATES = ".clanker/shared-assets/templates/documentation"
+    PUD_DOCS = ".clanker/progress-documentation"
+    TEMPL_EXT = ".template"
+    DOC_EXT = ".cdoc"
+
 class Layout(str, Enum):
     UI = ".clanker/shared-assets/layouts/ui.layout"
     PROMPT = ".clanker/shared-assets/layouts/prompt.layout"
@@ -343,24 +355,21 @@ class SessionService:
 
     def get_keyboard(self) -> Keyboard:
         try:
-            config_data = self.files.read_yaml(Config.DEFAULT_REL_PATH)
+            config_data = self.files.pud_cfg_frag(CfgFragments.PUD_CFG)
         except FileNotFoundError:
             raise NoConfig
 
-        script_dir = Path(os.path.realpath(__file__)).parent
-        kb_def_path = script_dir / ".clanker" / "shared-assets" / "config-fragments" / "kb_def.yaml"
-        shared_domains_path = script_dir / ".clanker" / "shared-assets" / "config-fragments" / "shared_domains.yaml"
         try:
-            if not kb_def_path.exists():
-                raise FileNotFoundError(kb_def_path)
-            kb_def_data = yaml.load(kb_def_path.read_text(encoding="utf-8"))
+            kb_def_data = self.files.clank_cfg_frag(CfgFragments.SHARED_KB_DEF)
             
             shared_domains = []
             shared_sets = {}
-            if shared_domains_path.exists():
-                shared_domains_data = yaml.load(shared_domains_path.read_text(encoding="utf-8"))
+            try:
+                shared_domains_data = self.files.clank_cfg_frag(CfgFragments.SHARED_DOMAINS)
                 shared_domains = shared_domains_data.get("domains", [])
                 shared_sets = shared_domains_data.get("sets", {})
+            except FileNotFoundError:
+                pass
         except FileNotFoundError as ex:
             raise ConfigAssemblyFailure(f"Missing configuration fragment: {ex}") from ex
         except Exception as ex:
@@ -412,12 +421,8 @@ class SessionService:
         if self.files.is_cwd_script_dir():
             raise CorruptClanker("Clanker repository cannot be initialized; configuration files are missing or invalid.")
 
-        script_dir = Path(os.path.realpath(__file__)).parent
-        template_path = script_dir / ".clanker" / "shared-assets" / "templates" / "config.template"
         try:
-            if not template_path.exists():
-                raise FileNotFoundError(template_path)
-            default_config_data = yaml.load(template_path.read_text(encoding="utf-8"))
+            default_config_data = self.files.clank_cfg_frag(CfgFragments.TEMPLATE_CFG)
         except FileNotFoundError as ex:
             raise ConfigAssemblyFailure(f"Missing configuration template: {ex}") from ex
         except Exception as ex:
@@ -426,20 +431,12 @@ class SessionService:
             raise ConfigAssemblyFailure(f"Failed to load configuration template: {ex}") from ex
 
         self.files.write_yaml(Config.DEFAULT_REL_PATH, default_config_data)
-        
-        prog_doc_dir = self.files.pud_path / ".clanker" / "progress-documentation"
-        prompt_frag_dir = self.files.pud_path / ".clanker" / "prompt-fragments"
-        prog_doc_dir.mkdir(parents=True, exist_ok=True)
-        prompt_frag_dir.mkdir(parents=True, exist_ok=True)
-
-        doc_templates_dir = script_dir / ".clanker" / "shared-assets" / "templates" / "documentation"
-        if doc_templates_dir.exists():
-            for template_path in doc_templates_dir.glob("*.template"):
-                target_filename = template_path.stem + ".cdoc"
-                target_path = prog_doc_dir / target_filename
-                if not target_path.exists():
-                    content = template_path.read_text(encoding="utf-8")
-                    target_path.write_text(content, encoding="utf-8")
+        self.files.write_default_documents(
+            doc_templ_dir=DocPaths.SHARED_TEMPLATES,
+            pud_doc_dir=DocPaths.PUD_DOCS,
+            templ_ext=DocPaths.TEMPL_EXT,
+            doc_ext=DocPaths.DOC_EXT
+        )
 
 class AssemblyService:
     def __init__(self, files: FileBridgePort) -> None:
@@ -656,7 +653,15 @@ class IOBridgePort(Bridge):
 class FileBridgePort(Bridge):
 
     @abstractmethod
-    def read_yaml(self, rel_path: Path) -> dict: pass
+    def pud_cfg_frag(self, rel_path: str) -> dict: pass
+
+    @abstractmethod
+    def clank_cfg_frag(self, rel_path: str) -> dict: pass
+
+    @abstractmethod
+    def write_default_documents(
+        self, doc_templ_dir: str, pud_doc_dir: str, templ_ext: str, doc_ext: str
+    ) -> None: pass
 
     @abstractmethod
     def is_cwd_script_dir(self) -> bool: pass

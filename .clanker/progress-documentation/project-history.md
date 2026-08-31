@@ -116,3 +116,12 @@ XXIV: REFACTOR UI BUTTON TEMPLATE SOURCING TO FILE READS
     - Added BTN_ACTIVE, BTN_HL, and BTN_INACTIVE layout definitions to Layout enum
     - Updated AssemblyService._resolve (KB_INFO resolver) to read button templates using files.read_clanker_asset
     - Removed legacy in-script button template constants and deprecated keyboard.build_ui_repl_map
+
+XXV: ELIMINATED RUAMEL FROM CLANKER.PY & FIXED WORKSPACE INITIALIZATION
+    - Declared CfgFragments enum to cleanly handle configuration fragment paths and eliminated in-script yaml loader constants
+    - Refactored FileBridge and FileBridgePort to accept string paths and support dedicated configuration fragment methods
+    - Implemented DocPaths enum and dynamic document creation via write_default_documents for robust workspace initialization
+
+XXVI: REFACTORED SESSION SERVICE CONFIGURATION LOADING
+    - Replaced legacy path operations in SessionService.get_keyboard with structured CfgFragments lookups
+    - Offloaded configuration template loading and directory generation logic to adapter ports during workspace setup

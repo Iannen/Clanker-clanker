@@ -37,8 +37,28 @@ class FileBridge(FileBridgePort):
         self.clanker_path = Path(os.path.realpath(__file__)).parent
         self.pud_path = Path.cwd()
 
-    def read_yaml(self, rel_path: Path) -> dict:
+    def pud_cfg_frag(self, rel_path: str) -> dict:
         return yaml.load((self.pud_path / rel_path).read_text(encoding="utf-8"))
+
+    def clank_cfg_frag(self, rel_path: str) -> dict:
+        return yaml.load((self.clanker_path / rel_path).read_text(encoding="utf-8"))
+
+    def write_default_documents(
+        self, doc_templ_dir: str, pud_doc_dir: str, templ_ext: str, doc_ext: str
+    ) -> None:
+        prog_doc_dir = self.pud_path / pud_doc_dir
+        prompt_frag_dir = self.pud_path / ".clanker" / "prompt-fragments"
+        prog_doc_dir.mkdir(parents=True, exist_ok=True)
+        prompt_frag_dir.mkdir(parents=True, exist_ok=True)
+
+        doc_templates_dir = self.clanker_path / doc_templ_dir
+        if doc_templates_dir.exists():
+            for template_path in doc_templates_dir.glob(f"*{templ_ext}"):
+                target_filename = template_path.stem + doc_ext
+                target_path = prog_doc_dir / target_filename
+                if not target_path.exists():
+                    content = template_path.read_text(encoding="utf-8")
+                    target_path.write_text(content, encoding="utf-8")
 
     def is_cwd_script_dir(self) -> bool:
         return self.pud_path.resolve() == self.clanker_path.resolve()

@@ -8,6 +8,8 @@ I. Ideas, complaints and non-critical bugs:
 II. Items to refine & QC:
 
 1. Leverage ports & adapters split -> offload non-business logic to adapters, leave behind clean code
+
+
     [ ] SessionService.get_keyboard: system path construction (os.path.realpath(__file__)) and manual existence checks
     [ ] SessionService.initialize_workspace: delegate workspace template discovery, directory creation, and path operations to the adapter
     
@@ -23,5 +25,5 @@ II. Items to refine & QC:
 III. Slated for implementation:
 
 IV. Recently implemented:
-    
+
 V. Critical bugs
