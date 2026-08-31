@@ -130,3 +130,7 @@ XXVII: RESOLVED CRITICAL PUD INITIALIZATION BUG VIA NAMESPACE REFACTOR
     - Fixed a critical initialization bug where progress documentation files were omitted from fresh .clanker setups due to raw enum values being passed to adapter methods
     - Refactored legacy enum-inheriting classes (CfgFragments, DocPaths, Layout, SystemKeys) into simple namespace classes to decouple raw string representations
     - Streamlined workspace bootstrapping by ensuring clean string path consumption across file bridge adapters
+
+XXVIII: FIXED UI BORDER SHIFT BUG VIA BUTTON REPL MAP FIX
+    - Corrected row indexation and text replacement logic in Button.get_repl_map
+    - Stabilized UI layout integrity by ensuring consistent boundary rendering regardless of button state shifts

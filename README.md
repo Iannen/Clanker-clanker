@@ -60,3 +60,10 @@ clank
 # Press '4', then 'q'.
 ```
 A prompt is now on your clipboard. Give this to some LLM and ask it what in the world this is.
+
+### IV: Project status:
+
+**31.08.26**
+It's quite functional, so I will leave it be for now.
+If I think of something clever, I'll just put it in the NS document.
+... well I will probably wind up aligning doc extensions in this and other projects, cleaning up the configs and such.

@@ -17,20 +17,17 @@ II. Items to refine & QC:
         - do other methods carry out stuff that the adapter could take care of for them?
         
 
-2. Implement .clanker files extension policy by whitelist(s), forcing alignment job.
+2. Implement .clanker files extension policy by whitelist(s), forcing alignment job in app projects.
     - progress documentation -> .cdoc
     - templates -> .template
     - prompt fragments -> .fragment
     - config fragments -> yaml
 
 3. Space reclamation program:
+    - Easy pickings have been had - what else?
 
 III. Slated for implementation:
 
 IV. Recently implemented:
-
-4. UI bug: UI border shifts depending upon button state on row
-    [x] fix'd: a 'friend' bungled while refactoring Button.get_repl_map
-        - but he was able to help recover, so all is forgiven
 
 V. Critical bugs
