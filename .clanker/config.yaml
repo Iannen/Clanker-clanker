@@ -1,8 +1,6 @@
 sets:
-  default_repo_content:
-    includes: [clanker.py]
-    excludes: [.git]
-  
+  default_repo_content: {includes: [clanker.py], excludes: [.git]}
+
 domains:
 - name: script-dev
   resolvers:

@@ -10,7 +10,6 @@ class ConfigValidator:
         violations = []
         for idx, line in enumerate(raw_text.splitlines(), start=1):
             if "'" in line:
-                # Check for a valid single-quote pair enclosing only digits or containing a double quote
                 parts = line.split("'")
                 if len(parts) == 3:  # exactly one pair (start, content, end)
                     content = parts[1]
