@@ -30,3 +30,6 @@ Backlog
 Each template may have one or more corresponding documents, allowing larger projects to split their context into multiple documents. Documents should follow a naming convention that lets Clanker discover which template/category they belong to.
 
 The contract should provide a standard baseline while allowing repositories such as Cloudproject to extend each category with additional documents.
+
+5. Built in asset status system
+    - To learn if there are dangling assets, not in use

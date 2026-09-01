@@ -1,3 +1,8 @@
+sets:
+  default_repo_content:
+    includes: ["clanker.py"]
+    excludes: [".git"]
+  
 domains:
 - name: "script-dev"
   resolvers:
@@ -28,11 +33,11 @@ domains:
 
 - name: "config-dev"
   resolvers:
-    - { id: "domain_fragments", type: "multi-document-retrieval", files: ["domain-config-dev.md"] }
+    - { id: "domain_fragments", type: "multi-document-retrieval", files: [config.yaml, kb_def.yaml, shared_domains.yaml] }
   renders:
     - name: 'config-dev'
       resolvers:
-        - { id: "prompt_fragments", type: "multi-document-retrieval", files: ["config-development-instructions.md"] }
+        - { id: "prompt_fragments", type: "multi-document-retrieval", files: [config-development-instructions.md] }
         - { id: "repo_content", type: "repo_content", includes: ["clanker.py"], excludes: [".git"], sorting: "normal" }
 
 - name: "debloat"

@@ -402,11 +402,10 @@ class SessionService:
             res_copy = node.copy()
             pointer_key = res_copy.pop("varname", None)
             if pointer_key is None:
-                pointer_key = res_copy.pop("set", None)
+                pointer_key = res_copy.pop("fileset", None)
             if pointer_key and pointer_key in sets_map:
                 set_val = sets_map[pointer_key]
                 if isinstance(set_val, dict):
-                    #res_copy.update(set_val)
                     res_copy.update(copy.deepcopy(set_val))
             return {k: self._resolve_sets(v, sets_map) for k, v in res_copy.items()}
         return node
@@ -532,7 +531,7 @@ class AssemblyService:
                 self.files.get_pud_files(resolver.payload.get("includes", [])) - 
                 self.files.get_pud_files(resolver.payload.get("excludes", []))
             )
-            
+
             tree_header = f"<tree>\n" + "\n".join(f"├── {p}" for p in paths) + "\n</tree>"
             
             file_blocks = []

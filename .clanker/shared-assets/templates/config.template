@@ -1,3 +1,8 @@
+sets:
+  default_repo_content:
+    includes: ["."]
+    excludes: [".git"]
+
 domains:
 - name: "bootstrap"
   resolvers:

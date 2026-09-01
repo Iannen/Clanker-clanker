@@ -1,9 +1,9 @@
-sets:
-  standard_repo_resolver: { id: "repo_content", type: "repo_content", includes: [".clanker"], excludes: [".git"], sorting: "normal" }
-
 domains:
-  - name: "test"
+  - name: "config-dev"
+    resolvers:
+      - { id: "prompt_fragments", type: "multi-document-retrieval", files: [config.yaml, kb_def.yaml, shared_domains.yaml] }
     renders:
-      - name: 'test'
+      - name: 'config-dev'
         resolvers:
-          - { set: "standard_repo_resolver" }
+          - { id: "domain_fragments", type: "multi-document-retrieval", files: [config-development-mode.md] }
+          - { id: "repo_content", type: "repo_content", fileset: "default_repo_content" }

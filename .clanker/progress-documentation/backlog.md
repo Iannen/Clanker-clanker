@@ -26,6 +26,16 @@ II. Items to refine & QC:
 3. Space reclamation program:
     - Easy pickings have been had - what else?
 
+4. Resolver Include / Exclude error handling:
+    [ ] 'clanker.py': Update REPO_CONTENT resolver callsite for path retrieval
+        - Pass missing_ok=False for include paths to preserve error raising on missing members
+        - Pass missing_ok=True for exclude paths to silently swallow missing member errors (e.g., .git)
+    [ ] 'clanker.py': Update FileBridgePort interface signature
+        - Add missing_ok: bool = False parameter to the get_pud_files abstract method
+    [ ] 'adapters.py': Update file bridge implementation for missing_ok support
+        - Adjust get_pud_files logic to handle missing paths gracefully according to the missing_ok flag
+
+
 III. Slated for implementation:
 
 IV. Recently implemented:
