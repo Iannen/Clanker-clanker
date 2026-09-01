@@ -154,3 +154,14 @@ XXXII: IMPLEMENTED RUNTIME CONFIGURATION SELECTIVE QUOTE ENFORCEMENT
     - Added line-by-line validation to flag double quotes and invalid single quote pairings
     - Accumulated violating lines into an actionable list with target filepath headers and indented entries
     - Raised a `ConfigViolations` instance containing the formatted error message whenever violations were detected
+
+XXXIII: STREAMLINED CONFIG FRAGMENT LOADING VIA BASE PATH TOKENS AND SESSION SERVICE HELPER
+    - Introduced BasePathTokens class defining basepath prefix tokens (PUD, SHARED) and updated CfgFragments path definitions
+    - Updated FileBridge and FileBridgePort to combine separate file string methods into a unified get_file_contents method resolving basepath tokens dynamically
+    - Added _get_validated_cfg_fragment helper method to SessionService to encapsulate raw content loading, quote validation, dictionary conversion, and exception handling
+    - Refactored call sites across SessionService (get_keyboard, initialize_workspace) to utilize the centralized validation helper
+
+XXXIV: ENFORCE PER-FILE VALIDATION AGAINST DUPLICATE INLINE FILESETS
+    - Implemented assert_filesets_not_neglected in ConfigValidator to detect inline filesets matching top-level named sets
+    - Refactored SessionService._get_validated_cfg_fragment to enforce a strict sequence of raw-text assertions, dictionary conversion, and dict-based assertions
+    - Raised ConfigViolations detailing specific offending domains and renders when duplicate inline filesets are detected

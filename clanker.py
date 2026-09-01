@@ -116,14 +116,14 @@ def main():
 """ 3. Exceptions, Result Objects, Enums """
 
 class BasePathTokens:
-    PUD = "<PUD>/"
-    SHARED = "<SHARED>/"
+    PUD = "<PUD>"
+    SHARED = "<SHARED>"
 
 class CfgFragments:
-    PUD_CFG = BasePathTokens.PUD + ".clanker/config.yaml"
-    SHARED_KB_DEF = BasePathTokens.SHARED + ".clanker/shared-assets/config-fragments/kb_def.yaml"
-    SHARED_DOMAINS = BasePathTokens.SHARED + ".clanker/shared-assets/config-fragments/shared_domains.yaml"
-    TEMPLATE_CFG = BasePathTokens.SHARED + ".clanker/shared-assets/templates/config.template"
+    PUD_CFG = BasePathTokens.PUD + "/.clanker/config.yaml"
+    SHARED_KB_DEF = BasePathTokens.SHARED + "/.clanker/shared-assets/config-fragments/kb_def.yaml"
+    SHARED_DOMAINS = BasePathTokens.SHARED + "/.clanker/shared-assets/config-fragments/shared_domains.yaml"
+    TEMPLATE_CFG = BasePathTokens.SHARED + "/.clanker/shared-assets/templates/config.template"
     
 class DocPaths:
     SHARED_TEMPLATES = ".clanker/shared-assets/templates/documentation"
@@ -546,8 +546,8 @@ class AssemblyService:
 
         if resolver.type == Resolver.Type.REPO_CONTENT:
             paths = sorted(
-                self.files.get_pud_files(resolver.payload.get("includes", []), missing_ok=False) - 
-                self.files.get_pud_files(resolver.payload.get("excludes", []), missing_ok=True)
+                self.files.get_files(BasePathTokens.PUD, resolver.payload.get("includes", []), missing_ok=False) - 
+                self.files.get_files(BasePathTokens.PUD, resolver.payload.get("excludes", []), missing_ok=True)
             )
 
             tree_header = f"<tree>\n" + "\n".join(f"├── {p}" for p in paths) + "\n</tree>"
@@ -693,8 +693,11 @@ class FileBridgePort(Bridge):
     def write_content(self, rel_path: Path, content: str) -> None: pass
 
     @abstractmethod
-    def get_pud_files(
-        self, rel_roots: list[str | Path], missing_ok: bool = False
+    def get_files(
+        self,
+        basepath_token: str,
+        rel_roots: list[str | Path],
+        missing_ok: bool = False
     ) -> set[Path]: pass
 
     @abstractmethod

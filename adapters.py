@@ -47,10 +47,10 @@ class FileBridge(FileBridgePort):
 
     def get_file_contents(self, tokenized_path: str) -> str:
         if tokenized_path.startswith(BasePathTokens.PUD):
-            rel_path = tokenized_path[len(BasePathTokens.PUD):]
+            rel_path = tokenized_path[len(BasePathTokens.PUD):].lstrip("/")
             return self._pud_file_as_string(rel_path)
         elif tokenized_path.startswith(BasePathTokens.SHARED):
-            rel_path = tokenized_path[len(BasePathTokens.SHARED):]
+            rel_path = tokenized_path[len(BasePathTokens.SHARED):].lstrip("/")
             return self._shared_file_as_string(rel_path)
         raise ValueError(f"Path does not start with a recognized BasePathToken: {tokenized_path}")
 
@@ -97,13 +97,23 @@ class FileBridge(FileBridgePort):
         target_path.parent.mkdir(parents=True, exist_ok=True)
         target_path.write_text(content, encoding="utf-8")
 
-    def get_pud_files(
-        self, rel_roots: list[str | Path], missing_ok: bool = False
+    def get_files(
+        self,
+        basepath_token: str,
+        rel_roots: list[str | Path],
+        missing_ok: bool = False
     ) -> set[Path]:
+        if basepath_token == BasePathTokens.PUD:
+            base_dir = self.pud_path
+        elif basepath_token == BasePathTokens.SHARED:
+            base_dir = self.clanker_path
+        else:
+            raise ValueError(f"Unrecognized basepath token: {basepath_token}")
+
         resolved_files: set[Path] = set()
         for root_str in rel_roots:
             rel_path = Path(root_str)
-            full_path = self.pud_path / rel_path
+            full_path = base_dir / rel_path
 
             if not full_path.exists():
                 if missing_ok:
@@ -115,7 +125,7 @@ class FileBridge(FileBridgePort):
             elif full_path.is_dir():
                 for file_path in full_path.rglob("*"):
                     if file_path.is_file():
-                        resolved_files.add(file_path.relative_to(self.pud_path))
+                        resolved_files.add(file_path.relative_to(base_dir))
         return resolved_files
 
     def getAssetMap(self) -> dict[str, Path]:
