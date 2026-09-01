@@ -30,3 +30,15 @@ These become bootstrap validation phases:
     Violation ? aggregated feedback into Failure ex, inform user of path forward on app crash : bootstrap phase succeeds
     ..
     ..
+
+6. Next frontiers?
+- Development speed — automate the reception and incorporation of LLM-produced artifacts (document updates, refactor plans, backlog items, etc.) while keeping human judgment in the loop.
+- Project scale — represent project context as nested nodes with explicit dependencies and language-appropriate interfaces, allowing context to scale with architectural complexity.
+- Configuration management — use the same contextual dependency graph to make configuration declarative, composable, and consistent with the project's architectural boundaries.
+
+7. Project rename: Clanker -> Clanker Consultant
+    - Lets the user recruit public llm resources as a consultant to their project, assisting with tasks such as
+        - Design 
+        - Document management
+        - Code generation
+

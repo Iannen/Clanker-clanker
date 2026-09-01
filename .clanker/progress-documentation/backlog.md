@@ -16,23 +16,43 @@ II. Items to refine & QC:
         - the usage of 'self.files.write_default_documents' in SessionService.initialize_workspace is thought to be a good example of desired outcomes.
         - do other methods carry out stuff that the adapter could take care of for them?
 
+1. Add filetree resolver
+    - produces a filetree, giving an overview over all files of the repository from a root (defaults to repo root)
+    - useful for the llm to be able to assist in config development, without providing file contents.
+    - would be intensely more useful if dependencies of files could also be resolved.
+
 2. Space reclamation program:
     - Easy pickings have been had - what else?
-
-4. Enforce per-file validation against duplicate inline filesets and expose explicit validation workflow in clanker.py
-    [ ] 'clanker.py' & 'utilities.py', 'ConfigValidator' & 'ConfigValidatorProtocol':
-        - '_assert_no_quotes' -> 'assert_no_quotes'
-        - 'validate_cfg_frag' -> 'get_as_dict' 
-        - new method 'assert_filesets_not_neglected'
-            - ensures no declaration of fileset in a config fragment is neglected by the config declaring identical fileset inline
-                - mechanism: ?
-    [ ] 'clanker.py': Update SessionService to orchestrate explicit validation steps
-        - add a helper method to retrieve raw configuration text and execute assertions sequentially (assert 1, assert 2, etc.)
-        - when all asserts pass, return the dict to call site
 
 III. Slated for implementation:
 
 IV. Recently implemented:
+
+2. Enforce per-file validation against duplicate inline filesets
+    [x] 'clanker.py' & 'utilities.py', 'ConfigValidator' & 'ConfigValidatorProtocol':
+        - '_assert_no_quotes' -> 'assert_no_quotes(raw_text: str, filepath: str = "")'
+        - 'validate_cfg_frag' -> 'get_as_dict(raw_text: str)'
+        - new method 'assert_filesets_not_neglected(cfg_frag: dict, filepath: str = "")':
+            - declare 'violations' list
+            - helper to derive string key from includes & excludes:
+                - sort includes and excludes separately, stringify to form deterministic string key
+            - declare 'named_fileset_map: str -> str' (string_key -> fileset name)
+            - populate 'named_fileset_map' from top-level 'sets' in cfg_frag
+            - declare 'inline_filesets: list[tuple[str, str | None, str | None]]' tracking (string_key, domain_name, render_name)
+            - traverse repo_content resolvers in 'domains' / 'renders':
+                - skip if resolver uses 'fileset' or 'varname' key
+                - compute string_key for resolver's includes/excludes
+                - record entry in 'inline_filesets'
+            - for each (string_key, domain, render) in 'inline_filesets':
+                - if string_key in 'named_fileset_map':
+                    - append violation: f"    domain '{domain}' render '{render}': use named fileset '{named_fileset_map[string_key]}'"
+            - if violations list is non-empty, raise ConfigViolations(filepath, violations)
+    [x] 'clanker.py, SessionService._get_validated_cfg_fragment':
+        - Refactor to carry out asserts & conversion visibly in a logical order:
+            1. raw-text assertions (self.validator.assert_no_quotes)
+            2. convert (self.validator.get_as_dict)
+            3. dict-based assertions (self.validator.assert_filesets_not_neglected)
+            4. return dict to caller
 
 3. Create helper on SessionService and introduce BasePathTokens to streamline config fragment loading (II.4 prereq):
     [x] 'clanker.py': Introduce BasePathTokens and update CfgFragments path definitions

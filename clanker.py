@@ -358,7 +358,10 @@ class SessionService:
     def _get_validated_cfg_fragment(self, fragment_token_path: str) -> dict:
         try:
             raw_content = self.files.get_file_contents(fragment_token_path)
-            return self.validator.validate_cfg_frag(raw_content, fragment_token_path)
+            self.validator.assert_no_quotes(raw_content, fragment_token_path)
+            cfg_dict = self.validator.get_as_dict(raw_content)
+            self.validator.assert_filesets_not_neglected(cfg_dict, fragment_token_path)
+            return cfg_dict
         except ConfigViolations as ex:
             raise UserTask(str(ex)) from ex
 
@@ -660,7 +663,9 @@ class IOBridgePort(Bridge):
     def read_char(self) -> str: pass
 
 class ConfigValidatorProtocol(Protocol):
-    def validate_cfg_frag(self, raw_text: str, filepath: str) -> dict: ...
+    def assert_no_quotes(self, raw_text: str, filepath: str = "") -> None: ...
+    def get_as_dict(self, raw_text: str) -> dict: ...
+    def assert_filesets_not_neglected(self, cfg_frag: dict, filepath: str = "") -> None: ...
 
 class FileBridgePort(Bridge):
 
