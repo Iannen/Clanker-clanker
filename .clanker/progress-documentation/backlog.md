@@ -32,24 +32,24 @@ II. Items to refine & QC:
 
 III. Slated for implementation:
 
+IV. Recently implemented:
+
 3. Create helper on SessionService and introduce BasePathTokens to streamline config fragment loading (II.4 prereq):
-    [ ] 'clanker.py': Introduce BasePathTokens and update CfgFragments path definitions
+    [x] 'clanker.py': Introduce BasePathTokens and update CfgFragments path definitions
         - add BasePathTokens class to define basepath prefix tokens (e.g., PUD and SHARED)
         - prefix CfgFragments path constants using BasePathTokens configuration
-    [ ] 'clanker.py' & 'adapters.py': Update FileBridgePort and FileBridge for tokenized paths
+    [x] 'clanker.py' & 'adapters.py': Update FileBridgePort and FileBridge for tokenized paths
         - import BasePathTokens in adapters.py
         - combine 'pud_file_as_string' and 'shared_file_as_string' into a single 'get_file_contents' method
         - inspect path token prefix to resolve the correct basepath and retrieve file content
-    [ ] 'clanker.py': Add _get_validated_cfg_fragment helper method to SessionService
+    [x] 'clanker.py': Add _get_validated_cfg_fragment helper method to SessionService
         - accepts strings from 'CfgFragments', which were previously passed to methods 'pud_file_as_string', 'validate_cfg_frag' and 'shared_file_as_string'
         - utilize tokenized paths to fetch raw file content via unified file bridge call
         - execute validation via self.validator 
         - the conversion of raw text into dict via self.validator, which it returns to caller
         - catches 'ConfigViolations', reraises to 'UserTask', so caller need not worry about ex handling for the call.
-    [ ] 'clanker.py': update various call sites in SessionService to utilize '_get_validated_cfg_fragment'
+    [x] 'clanker.py': update various call sites in SessionService to utilize '_get_validated_cfg_fragment'
         - 'get_keyboard': 3 sites
         - 'initialize_workspace': 1 site
-
-IV. Recently implemented:
-
+        
 V. Critical bugs

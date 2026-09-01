@@ -8,7 +8,7 @@ import tty
 from pathlib import Path
 from ruamel.yaml import YAML
 
-from clanker import FileBridgePort, IOBridgePort, IllegalDuplicateFile, CorruptClanker
+from clanker import FileBridgePort, IOBridgePort, IllegalDuplicateFile, CorruptClanker, BasePathTokens
 
 class IOBridge(IOBridgePort): 
     def clear(self) -> None:
@@ -39,11 +39,20 @@ class FileBridge(FileBridgePort):
         self.pud_path = Path.cwd()
         self.yaml = YAML()
 
-    def pud_file_as_string(self, rel_path: str) -> str:
+    def _pud_file_as_string(self, rel_path: str) -> str:
         return (self.pud_path / rel_path).read_text(encoding="utf-8")
 
-    def shared_file_as_string(self, rel_path: str) -> str:
+    def _shared_file_as_string(self, rel_path: str) -> str:
         return (self.clanker_path / rel_path).read_text(encoding="utf-8")
+
+    def get_file_contents(self, tokenized_path: str) -> str:
+        if tokenized_path.startswith(BasePathTokens.PUD):
+            rel_path = tokenized_path[len(BasePathTokens.PUD):]
+            return self._pud_file_as_string(rel_path)
+        elif tokenized_path.startswith(BasePathTokens.SHARED):
+            rel_path = tokenized_path[len(BasePathTokens.SHARED):]
+            return self._shared_file_as_string(rel_path)
+        raise ValueError(f"Path does not start with a recognized BasePathToken: {tokenized_path}")
 
     def write_default_documents(
         self, doc_templ_dir: str, pud_doc_dir: str, templ_ext: str, doc_ext: str

@@ -115,11 +115,15 @@ def main():
 
 """ 3. Exceptions, Result Objects, Enums """
 
+class BasePathTokens:
+    PUD = "<PUD>/"
+    SHARED = "<SHARED>/"
+
 class CfgFragments:
-    PUD_CFG = ".clanker/config.yaml"
-    SHARED_KB_DEF = ".clanker/shared-assets/config-fragments/kb_def.yaml"
-    SHARED_DOMAINS = ".clanker/shared-assets/config-fragments/shared_domains.yaml"
-    TEMPLATE_CFG = ".clanker/shared-assets/templates/config.template"
+    PUD_CFG = BasePathTokens.PUD + ".clanker/config.yaml"
+    SHARED_KB_DEF = BasePathTokens.SHARED + ".clanker/shared-assets/config-fragments/kb_def.yaml"
+    SHARED_DOMAINS = BasePathTokens.SHARED + ".clanker/shared-assets/config-fragments/shared_domains.yaml"
+    TEMPLATE_CFG = BasePathTokens.SHARED + ".clanker/shared-assets/templates/config.template"
     
 class DocPaths:
     SHARED_TEMPLATES = ".clanker/shared-assets/templates/documentation"
@@ -351,34 +355,32 @@ class SessionService:
         self.files = files
         self.validator = validator
 
+    def _get_validated_cfg_fragment(self, fragment_token_path: str) -> dict:
+        try:
+            raw_content = self.files.get_file_contents(fragment_token_path)
+            return self.validator.validate_cfg_frag(raw_content, fragment_token_path)
+        except ConfigViolations as ex:
+            raise UserTask(str(ex)) from ex
+
     def get_keyboard(self) -> Keyboard:
         try:
-            raw_pud = self.files.pud_file_as_string(CfgFragments.PUD_CFG)
-            config_data = self.validator.validate_cfg_frag(raw_pud, CfgFragments.PUD_CFG)
+            config_data = self._get_validated_cfg_fragment(CfgFragments.PUD_CFG)
         except FileNotFoundError:
             raise NoConfig
-        except ConfigViolations as ex:
-            raise UserTask(str(ex))
 
         try:
-            raw_kb = self.files.shared_file_as_string(CfgFragments.SHARED_KB_DEF)
-            kb_def_data = self.validator.validate_cfg_frag(raw_kb, CfgFragments.SHARED_KB_DEF)
-            
+            kb_def_data = self._get_validated_cfg_fragment(CfgFragments.SHARED_KB_DEF)
+
             shared_domains = []
             shared_sets = {}
             try:
-                raw_domains = self.files.shared_file_as_string(CfgFragments.SHARED_DOMAINS)
-                shared_domains_data = self.validator.validate_cfg_frag(raw_domains, CfgFragments.SHARED_DOMAINS)
+                shared_domains_data = self._get_validated_cfg_fragment(CfgFragments.SHARED_DOMAINS)
                 shared_domains = shared_domains_data.get("domains", [])
                 shared_sets = shared_domains_data.get("sets", {})
             except FileNotFoundError:
                 pass
-            except ConfigViolations as ex:
-                raise UserTask(str(ex)) from ex
         except FileNotFoundError as ex:
             raise ConfigAssemblyFailure(f"Missing configuration fragment: {ex}") from ex
-        except ConfigViolations as ex:
-            raise UserTask(str(ex)) from ex
         except Exception as ex:
             if isinstance(ex, Failure):
                 raise
@@ -428,12 +430,9 @@ class SessionService:
             raise CorruptClanker("Clanker repository initialized is beyond scope of app.")
 
         try:
-            raw_template = self.files.shared_file_as_string(CfgFragments.TEMPLATE_CFG)
-            default_config_data = self.validator.validate_cfg_frag(raw_template, CfgFragments.TEMPLATE_CFG)
+            default_config_data = self._get_validated_cfg_fragment(CfgFragments.TEMPLATE_CFG)
         except FileNotFoundError as ex:
             raise ConfigAssemblyFailure(f"Missing configuration template: {ex}") from ex
-        except ConfigViolations as ex:
-            raise UserTask(str(ex)) from ex
         except Exception as ex:
             if isinstance(ex, Failure):
                 raise
@@ -666,10 +665,7 @@ class ConfigValidatorProtocol(Protocol):
 class FileBridgePort(Bridge):
 
     @abstractmethod
-    def pud_file_as_string(self, rel_path: str) -> str: pass
-
-    @abstractmethod
-    def shared_file_as_string(self, rel_path: str) -> str: pass
+    def get_file_contents(self, tokenized_path: str) -> str: pass
 
     @abstractmethod
     def write_default_documents(
