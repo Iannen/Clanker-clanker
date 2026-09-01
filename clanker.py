@@ -528,8 +528,8 @@ class AssemblyService:
 
         if resolver.type == Resolver.Type.REPO_CONTENT:
             paths = sorted(
-                self.files.get_pud_files(resolver.payload.get("includes", [])) - 
-                self.files.get_pud_files(resolver.payload.get("excludes", []))
+                self.files.get_pud_files(resolver.payload.get("includes", []), missing_ok=False) - 
+                self.files.get_pud_files(resolver.payload.get("excludes", []), missing_ok=True)
             )
 
             tree_header = f"<tree>\n" + "\n".join(f"├── {p}" for p in paths) + "\n</tree>"
@@ -673,7 +673,9 @@ class FileBridgePort(Bridge):
     def write_content(self, rel_path: Path, content: str) -> None: pass
 
     @abstractmethod
-    def get_pud_files(self, rel_roots: list[str | Path]) -> set[Path]: pass
+    def get_pud_files(
+        self, rel_roots: list[str | Path], missing_ok: bool = False
+    ) -> set[Path]: pass
 
     @abstractmethod
     def getAssetMap(self) -> dict[str, Path]: pass

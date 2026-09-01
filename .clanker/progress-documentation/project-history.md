@@ -134,3 +134,7 @@ XXVII: RESOLVED CRITICAL PUD INITIALIZATION BUG VIA NAMESPACE REFACTOR
 XXVIII: FIXED UI BORDER SHIFT BUG VIA BUTTON REPL MAP FIX
     - Corrected row indexation and text replacement logic in Button.get_repl_map
     - Stabilized UI layout integrity by ensuring consistent boundary rendering regardless of button state shifts
+
+XXIX: IMPLEMENTED RESOLVER INCLUDE/EXCLUDE ERROR HANDLING
+    - Updated REPO_CONTENT resolver callsite to pass missing_ok=False for include paths and missing_ok=True for exclude paths
+    - Updated FileBridgePort interface signature and file bridge implementation to support the missing_ok parameter on get_pud_files

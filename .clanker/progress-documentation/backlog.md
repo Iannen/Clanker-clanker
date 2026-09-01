@@ -17,24 +17,18 @@ II. Items to refine & QC:
         - do other methods carry out stuff that the adapter could take care of for them?
         
 
-2. Implement .clanker files extension policy by whitelist(s), forcing alignment job in app projects.
-    - progress documentation -> .cdoc
-    - templates -> .template
-    - prompt fragments -> .fragment
-    - config fragments -> yaml
+2. Runtime Configuration validation
+    [ ] Create declarative rules for the aggregated runtime config
+    [ ] On bootstrap: Validate RT config agains rules
+        - Aggregate violations into a collection 
+        - When validation is complete:
+            - If no violations, proceed to next phase (next validation phase or bootstrap completion)
+            - Else convert violations collection into a text, put text into a 'class ConfigViolation(Failure)' instance
+                - Then let app crash, displaying the failure contents to produce a nice path for user to correct issues
+    The validation is non-destructive, it only serves to inform the user if he has 'work to do'
 
 3. Space reclamation program:
     - Easy pickings have been had - what else?
-
-4. Resolver Include / Exclude error handling:
-    [ ] 'clanker.py': Update REPO_CONTENT resolver callsite for path retrieval
-        - Pass missing_ok=False for include paths to preserve error raising on missing members
-        - Pass missing_ok=True for exclude paths to silently swallow missing member errors (e.g., .git)
-    [ ] 'clanker.py': Update FileBridgePort interface signature
-        - Add missing_ok: bool = False parameter to the get_pud_files abstract method
-    [ ] 'adapters.py': Update file bridge implementation for missing_ok support
-        - Adjust get_pud_files logic to handle missing paths gracefully according to the missing_ok flag
-
 
 III. Slated for implementation:
 

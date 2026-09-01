@@ -88,13 +88,17 @@ class FileBridge(FileBridgePort):
         target_path.parent.mkdir(parents=True, exist_ok=True)
         target_path.write_text(content, encoding="utf-8")
 
-    def get_pud_files(self, rel_roots: list[str | Path]) -> set[Path]:
+    def get_pud_files(
+        self, rel_roots: list[str | Path], missing_ok: bool = False
+    ) -> set[Path]:
         resolved_files: set[Path] = set()
         for root_str in rel_roots:
             rel_path = Path(root_str)
             full_path = self.pud_path / rel_path
 
             if not full_path.exists():
+                if missing_ok:
+                    continue
                 raise FileNotFoundError(rel_path)
 
             if full_path.is_file():

@@ -9,27 +9,24 @@
         'ASDF' -> Shared domains
     - Tis to be mulled
 
-3. Clanker could validate PUDs for compliance with documentation system 
-    - Find a way to declare the system 'first class' in code
-    - PUDS should have progress docs per template dir, README.md in repo root
-    - This is for the benefit of Github meta repo structure
-
-4. Repository Context Contract enforcement - for the benefit of Iannen repo & llm trawlers
-
-Clanker should define a standard Repository Context Contract for projects using it, enforcing it idempotently on repo initialization.
-
-A conforming repository has:
-
-A README at the repository root.
-Progress documentation generated from Clanker templates:
-North Star
-Architecture
-Project History
-Backlog
-
-Each template may have one or more corresponding documents, allowing larger projects to split their context into multiple documents. Documents should follow a naming convention that lets Clanker discover which template/category they belong to.
-
-The contract should provide a standard baseline while allowing repositories such as Cloudproject to extend each category with additional documents.
-
-5. Built in asset status system
+3. Built in asset status system
     - To learn if there are dangling assets, not in use
+
+4. Elevate the ship script role
+    - Can it do more than offer a 'save button'
+
+5. Universal Project Contract & Validation Systems
+- Repository contract
+    - Purpose: enforce that PUD documentation is structurally uniform, for the benefit of user cognition and Github Metarepo handling of PUDs
+    - such and so documents shall exist, in such and so dirs. Allow for PUD expansion beyond default by way of set recognition
+- Runtime config validation
+    - Purpose: ensure configuration stability and extension adherence across PUD specific and shared config fragments, for the benefit of reader cognition
+    - all config frags must obey a common policy
+- Template asset validation 
+    - Purpose: aggressively ensure stability of pud initialization assets 
+    - all template assets must adhere to a policy
+The contracts and policies should be declarative 'first class' members of Clanker codebase.
+These become bootstrap validation phases:
+    Violation ? aggregated feedback into Failure ex, inform user of path forward on app crash : bootstrap phase succeeds
+    ..
+    ..
