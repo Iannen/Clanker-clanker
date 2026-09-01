@@ -19,7 +19,7 @@
 - Repository contract
     - Purpose: enforce that PUD documentation is structurally uniform, for the benefit of user cognition and Github Metarepo handling of PUDs
     - such and so documents shall exist, in such and so dirs. Allow for PUD expansion beyond default by way of set recognition
-- Runtime config validation
+- Runtime config validation 
     - Purpose: ensure configuration stability and extension adherence across PUD specific and shared config fragments, for the benefit of reader cognition
     - all config frags must obey a common policy
 - Template asset validation 

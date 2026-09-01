@@ -1,9 +1,9 @@
 domains:
-  - name: "config-dev"
+  - name: config-dev
     resolvers:
-      - { id: "prompt_fragments", type: "multi-document-retrieval", files: [config.yaml, kb_def.yaml, shared_domains.yaml] }
+      - { id: prompt_fragments, type: multi-document-retrieval, files: [config.yaml, kb_def.yaml, shared_domains.yaml] }
     renders:
-      - name: 'config-dev'
+      - name: config-dev
         resolvers:
-          - { id: "domain_fragments", type: "multi-document-retrieval", files: [config-development-mode.md] }
-          - { id: "repo_content", type: "repo_content", fileset: "default_repo_content" }
+          - { id: domain_fragments, type: multi-document-retrieval, files: [config-development-mode.md] }
+          - { id: repo_content, type: repo_content, fileset: default_repo_content }

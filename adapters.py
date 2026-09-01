@@ -39,11 +39,11 @@ class FileBridge(FileBridgePort):
         self.pud_path = Path.cwd()
         self.yaml = YAML()
 
-    def pud_cfg_frag(self, rel_path: str) -> dict:
-        return self.yaml.load((self.pud_path / rel_path).read_text(encoding="utf-8"))
+    def pud_file_as_string(self, rel_path: str) -> str:
+        return (self.pud_path / rel_path).read_text(encoding="utf-8")
 
-    def clank_cfg_frag(self, rel_path: str) -> dict:
-        return self.yaml.load((self.clanker_path / rel_path).read_text(encoding="utf-8"))
+    def shared_file_as_string(self, rel_path: str) -> str:
+        return (self.clanker_path / rel_path).read_text(encoding="utf-8")
 
     def write_default_documents(
         self, doc_templ_dir: str, pud_doc_dir: str, templ_ext: str, doc_ext: str

@@ -138,3 +138,19 @@ XXVIII: FIXED UI BORDER SHIFT BUG VIA BUTTON REPL MAP FIX
 XXIX: IMPLEMENTED RESOLVER INCLUDE/EXCLUDE ERROR HANDLING
     - Updated REPO_CONTENT resolver callsite to pass missing_ok=False for include paths and missing_ok=True for exclude paths
     - Updated FileBridgePort interface signature and file bridge implementation to support the missing_ok parameter on get_pud_files
+
+XXX: IMPROVED EX BASECLASS SYSTEM
+    - Added 'UserNotice' base class to carry string messages for user presentation
+    - Renamed 'Notice' to 'ControlNotice' / 'FlowNotice' to prohibit argument passing
+
+XXXI: MOVED CONFIG PARSING RESPONSIBILITY TO CONFIGVALIDATOR
+    - Split file bridge methods into raw string-fetching functions (`pud_file_as_string` and `shared_file_as_string`)
+    - Created `utilities.py` housing `ConfigValidator` to encapsulate raw configuration parsing logic
+    - Defined `ConfigValidatorProtocol` in the core layer and injected the concrete validator into `SessionService`
+    - Updated call sites to acquire raw strings, validate them, and catch/reraise `ConfigViolations` as `UserTask` failures
+
+XXXII: IMPLEMENTED RUNTIME CONFIGURATION SELECTIVE QUOTE ENFORCEMENT
+    - Implemented helper `_assert_no_quotes` in `ConfigValidator` (`utilities.py`) to enforce strict selective quote restrictions on raw configuration files
+    - Added line-by-line validation to flag double quotes and invalid single quote pairings
+    - Accumulated violating lines into an actionable list with target filepath headers and indented entries
+    - Raised a `ConfigViolations` instance containing the formatted error message whenever violations were detected

@@ -7,7 +7,7 @@ import re
 import sys
 import traceback
 import copy
-from typing import Callable, ClassVar, Any
+from typing import Callable, ClassVar, Any, Protocol
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from abc import ABC, abstractmethod
 
@@ -17,10 +17,10 @@ class BaseEx(Exception):
     def __new__(cls, *args, **kwargs):
         if cls is BaseEx:
             raise BaseExInstantiation(cls.__name__)
-        if cls is Notice and (args or kwargs):
+        if cls is ControlNotice and (args or kwargs):
             raise NoticeArgs(cls.__name__)
         return super().__new__(cls)
-    ADOPTED_NOTICES: tuple[type[Exception], ...] = ( 
+    ADOPTED_NOTICES: tuple[type[Exception], ...] = (  
         FileNotFoundError,
         PermissionError,
         UnicodeDecodeError
@@ -32,7 +32,7 @@ class BaseEx(Exception):
             return fn(*args, **kwargs)
         except cls.ADOPTED_NOTICES:
             raise
-        except Notice:
+        except ControlNotice:
             raise
         except Exception as ex:
             raise BridgeLeakage() from ex
@@ -41,7 +41,7 @@ class BaseEx(Exception):
     def reraise_as_failure(cls, ex: Exception) -> None:
         if isinstance(ex, Failure):
             raise
-        if isinstance(ex, Notice):
+        if isinstance(ex, ControlNotice):
             raise MissedNotice(f"Missed notice: {ex}") from ex
         if isinstance(ex, BaseEx.ADOPTED_NOTICES):
             raise MissedAdoptedNotice(f"Adopted notice failure: [{type(ex).__name__}] {ex}") from ex
@@ -59,7 +59,8 @@ class BaseEx(Exception):
         sys.exit(1)
 
 class Failure(BaseEx): pass
-class Notice(BaseEx): pass
+class ControlNotice(BaseEx): pass
+class UserNotice(BaseEx): pass
 
 class Engine:
     def run(self) -> str:
@@ -91,17 +92,16 @@ class Constructed(BaseModel):
 def main():
     try:
         from adapters import FileBridge, IOBridge
+        from utilities import ConfigValidator
 
-        # Instantiate Adapters
         files_adapter = FileBridge()
         io_adapter = IOBridge()
+        validator = ConfigValidator()
 
-        # Inject into Services
-        session = SessionService(files=files_adapter)
+        session = SessionService(files=files_adapter, validator=validator)
         renderer = AssemblyService(files=files_adapter)
         io = IOService(io_bridge=io_adapter)
 
-        # Inject into Engine
         engine = GameEngine(
             io=io,
             session=session,
@@ -161,12 +161,15 @@ class UnexpectedEx(Failure): pass
 class CorruptClanker(Failure): pass
 class ConfigAssemblyFailure(Failure): pass
 class IllegalDuplicateFile(Failure): pass
+class UserTask(Failure): pass
 
-class UserDecline(Notice): pass
-class ProgramExit(Notice):
+class UserDecline(ControlNotice): pass
+class ProgramExit(ControlNotice):
     def get_compliance_msg(self):
         return "Program exited"
-class NoConfig(Notice): pass
+class NoConfig(ControlNotice): pass
+
+class ConfigViolations(UserNotice): pass
 
 """ 4. App Abstractions (Models & Engine) """
 
@@ -344,28 +347,38 @@ class GameEngine(Engine):
 """ 5. Services """
 
 class SessionService:
-    def __init__(self, files: FileBridgePort) -> None:
+    def __init__(self, files: FileBridgePort, validator: ConfigValidatorProtocol) -> None:
         self.files = files
+        self.validator = validator
 
     def get_keyboard(self) -> Keyboard:
         try:
-            config_data = self.files.pud_cfg_frag(CfgFragments.PUD_CFG)
+            raw_pud = self.files.pud_file_as_string(CfgFragments.PUD_CFG)
+            config_data = self.validator.validate_cfg_frag(raw_pud, CfgFragments.PUD_CFG)
         except FileNotFoundError:
             raise NoConfig
+        except ConfigViolations as ex:
+            raise UserTask(str(ex))
 
         try:
-            kb_def_data = self.files.clank_cfg_frag(CfgFragments.SHARED_KB_DEF)
+            raw_kb = self.files.shared_file_as_string(CfgFragments.SHARED_KB_DEF)
+            kb_def_data = self.validator.validate_cfg_frag(raw_kb, CfgFragments.SHARED_KB_DEF)
             
             shared_domains = []
             shared_sets = {}
             try:
-                shared_domains_data = self.files.clank_cfg_frag(CfgFragments.SHARED_DOMAINS)
+                raw_domains = self.files.shared_file_as_string(CfgFragments.SHARED_DOMAINS)
+                shared_domains_data = self.validator.validate_cfg_frag(raw_domains, CfgFragments.SHARED_DOMAINS)
                 shared_domains = shared_domains_data.get("domains", [])
                 shared_sets = shared_domains_data.get("sets", {})
             except FileNotFoundError:
                 pass
+            except ConfigViolations as ex:
+                raise UserTask(str(ex)) from ex
         except FileNotFoundError as ex:
             raise ConfigAssemblyFailure(f"Missing configuration fragment: {ex}") from ex
+        except ConfigViolations as ex:
+            raise UserTask(str(ex)) from ex
         except Exception as ex:
             if isinstance(ex, Failure):
                 raise
@@ -415,9 +428,12 @@ class SessionService:
             raise CorruptClanker("Clanker repository initialized is beyond scope of app.")
 
         try:
-            default_config_data = self.files.clank_cfg_frag(CfgFragments.TEMPLATE_CFG)
+            raw_template = self.files.shared_file_as_string(CfgFragments.TEMPLATE_CFG)
+            default_config_data = self.validator.validate_cfg_frag(raw_template, CfgFragments.TEMPLATE_CFG)
         except FileNotFoundError as ex:
             raise ConfigAssemblyFailure(f"Missing configuration template: {ex}") from ex
+        except ConfigViolations as ex:
+            raise UserTask(str(ex)) from ex
         except Exception as ex:
             if isinstance(ex, Failure):
                 raise
@@ -644,13 +660,16 @@ class IOBridgePort(Bridge):
     @abstractmethod
     def read_char(self) -> str: pass
 
+class ConfigValidatorProtocol(Protocol):
+    def validate_cfg_frag(self, raw_text: str, filepath: str) -> dict: ...
+
 class FileBridgePort(Bridge):
 
     @abstractmethod
-    def pud_cfg_frag(self, rel_path: str) -> dict: pass
+    def pud_file_as_string(self, rel_path: str) -> str: pass
 
     @abstractmethod
-    def clank_cfg_frag(self, rel_path: str) -> dict: pass
+    def shared_file_as_string(self, rel_path: str) -> str: pass
 
     @abstractmethod
     def write_default_documents(
