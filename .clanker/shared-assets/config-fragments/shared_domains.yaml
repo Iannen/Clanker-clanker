@@ -1,8 +1,16 @@
+sets:
+  all: {includes: [.], excludes: [.git]}
+  clanker-shared-assets: {includes: [.clanker/shared-assets], excludes: []}
+
 domains:
   - name: config-dev
     resolvers:
       - { id: prompt_fragments, type: multi-document-retrieval, files: [config.yaml, kb_def.yaml, shared_domains.yaml] }
     renders:
+      - name: manifest-analysis
+        resolvers:
+          - { id: domain_fragments, type: repo-manifest, pud_fileset: all, shared_fileset: clanker-shared-assets }
+          - { id: repo_content, type: repo_content, fileset: default_repo_content }
       - name: config-dev
         resolvers:
           - { id: domain_fragments, type: multi-document-retrieval, files: [config-development-mode.md] }

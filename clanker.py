@@ -201,6 +201,7 @@ class Resolver(BaseModel):
         FULL_PATH_FILE = "full-path-file-retrieval"
         REPO_CONTENT = "repo_content"
         KB_INFO = "kb_info"
+        REPO_MANIFEST = "repo-manifest"
     id: str
     type: Type
     payload: dict[str, Any] = {}
@@ -418,13 +419,19 @@ class SessionService:
             return [self._resolve_sets(item, sets_map) for item in node]
         elif isinstance(node, dict):
             res_copy = node.copy()
-            pointer_key = res_copy.pop("varname", None)
-            if pointer_key is None:
-                pointer_key = res_copy.pop("fileset", None)
+
+            pointer_key = res_copy.pop("fileset", None)
             if pointer_key and pointer_key in sets_map:
                 set_val = sets_map[pointer_key]
                 if isinstance(set_val, dict):
                     res_copy.update(copy.deepcopy(set_val))
+
+            for fs_key in ("pud_fileset", "shared_fileset"):
+                if fs_key in res_copy and isinstance(res_copy[fs_key], str):
+                    target_alias = res_copy[fs_key]
+                    if target_alias in sets_map:
+                        res_copy[fs_key] = copy.deepcopy(sets_map[target_alias])
+
             return {k: self._resolve_sets(v, sets_map) for k, v in res_copy.items()}
         return node
 
@@ -488,6 +495,46 @@ class AssemblyService:
                 replacements[key] = val
         return replacements
 
+    @staticmethod
+    def _extract_file_spec(item: str | dict) -> tuple[str, int | None]:
+        if isinstance(item, dict):
+            return item.get("file", ""), item.get("tail_lines")
+        return item, None
+
+    @staticmethod
+    def _apply_tail_truncation(content: str, tail_lines: int | None) -> str:
+        if tail_lines is not None:
+            lines = content.splitlines()
+            if len(lines) > tail_lines:
+                return "**truncated**\n" + "\n".join(lines[-tail_lines:])
+        return content
+
+    def _build_manifest_block(self, tag: str, basepath_token: str, fileset_spec: Any) -> str:
+        if isinstance(fileset_spec, dict):
+            includes = fileset_spec.get("includes", [])
+            excludes = fileset_spec.get("excludes", [])
+            paths = sorted(
+                self.files.get_files(basepath_token, includes, missing_ok=False) -
+                self.files.get_files(basepath_token, excludes, missing_ok=True)
+            )
+        else:
+            roots = [fileset_spec] if isinstance(fileset_spec, str) else (fileset_spec or [])
+            paths = sorted(self.files.get_files(basepath_token, roots, missing_ok=False))
+
+        lines = []
+        for p in paths:
+            try:
+                if basepath_token == BasePathTokens.SHARED:
+                    content = self.files.read_clanker_asset(p)
+                else:
+                    content = self.files.read_pud_asset(p)
+
+                line_count = len(content.splitlines())
+                lines.append(f"{p} : {line_count} lines")
+            except UnicodeDecodeError:
+                pass
+
+        return f"<{tag}>\n" + "\n".join(lines) + "\n</" + tag + ">"
 
     def _resolve(self, resolver: Resolver, keyboard: Keyboard) -> list[tuple[str, str]]:
 
@@ -496,22 +543,13 @@ class AssemblyService:
             asset_map = self.files.getAssetMap()
 
             for item in resolver.payload.get("files", []):
-                if isinstance(item, dict):
-                    filename = item.get("file", "")
-                    tail_lines = item.get("tail_lines")
-                else:
-                    filename = item
-                    tail_lines = None
-
+                filename, tail_lines = self._extract_file_spec(item)
                 basename = Path(filename).name
                 target_path = asset_map.get(basename)
                 
                 if target_path:
                     content = self.files.getFileContent(target_path)
-                    if tail_lines is not None:
-                        lines = content.splitlines()
-                        if len(lines) > tail_lines:
-                            content = "**truncated**\n" + "\n".join(lines[-tail_lines:])
+                    content = self._apply_tail_truncation(content, tail_lines)
                 else:
                     content = f"[{resolver.id}: No content found at '{filename}']"
                     
@@ -523,20 +561,11 @@ class AssemblyService:
             fragments = []
 
             for item in resolver.payload.get("files", []):
-                if isinstance(item, dict):
-                    filename = item.get("file", "")
-                    tail_lines = item.get("tail_lines")
-                else:
-                    filename = item
-                    tail_lines = None
-
+                filename, tail_lines = self._extract_file_spec(item)
                 rel_path = Path(filename)
                 try:
                     content = self.files.read_pud_asset(rel_path)
-                    if tail_lines is not None:
-                        lines = content.splitlines()
-                        if len(lines) > tail_lines:
-                            content = "**truncated**\n" + "\n".join(lines[-tail_lines:])
+                    content = self._apply_tail_truncation(content, tail_lines)
                 except FileNotFoundError:
                     content = f"[{resolver.id}: No content found at '{filename}']"
 
@@ -562,6 +591,18 @@ class AssemblyService:
 
             inner_content = tree_header + "\n" + "\n".join(file_blocks)
             return [(resolver.id, f"<repo-content>\n{inner_content}\n</repo-content>")]
+
+        if resolver.type == Resolver.Type.REPO_MANIFEST:
+            manifest_blocks = [
+                self._build_manifest_block("pud-manifest", BasePathTokens.PUD, resolver.payload.get("pud_fileset"))
+            ]
+
+            if "shared_fileset" in resolver.payload:
+                manifest_blocks.append(
+                    self._build_manifest_block("shared-manifest", BasePathTokens.SHARED, resolver.payload.get("shared_fileset"))
+                )
+
+            return [(resolver.id, "\n".join(manifest_blocks))]
 
         if resolver.type == Resolver.Type.KB_INFO:
             btn_hl = self.files.read_clanker_asset(Layout.BTN_HL)

@@ -165,3 +165,14 @@ XXXIV: ENFORCE PER-FILE VALIDATION AGAINST DUPLICATE INLINE FILESETS
     - Implemented assert_filesets_not_neglected in ConfigValidator to detect inline filesets matching top-level named sets
     - Refactored SessionService._get_validated_cfg_fragment to enforce a strict sequence of raw-text assertions, dictionary conversion, and dict-based assertions
     - Raised ConfigViolations detailing specific offending domains and renders when duplicate inline filesets are detected
+
+XXXV: REFACTOR FILEBRIDGE FILE RETRIEVAL AND BASEPATH TOKENS
+    - Refactored `get_pud_files` to `get_files` supporting tokenized argument payloads across `FileBridge` and `FileBridgePort`
+    - Removed trailing slashes from `BasePathTokens` members (e.g., `"<PUD>/"` to `"<PUD>"`) and aligned `CfgFragments` members to include leading slashes
+    - Aligned `FileBridge.get_file_contents` to accept the updated token and path string formats
+    - Refactored `AssemblyService` `REPO_CONTENT` resolver branch to call `self.files.get_files(BasePathTokens.PUD, ...)`
+
+XXXVI: ADD REPO_MANIFEST RESOLVER AND FILE MANIFEST BUILDER
+    - Added REPO_MANIFEST ("repo-manifest") to Resolver.Type enum
+    - Implemented _build_manifest_block helper method in AssemblyService to support file and fileset manifest generation
+    - Added REPO_MANIFEST branch to AssemblyService._resolve supporting mandatory pud-manifest and optional shared-manifest blocks
