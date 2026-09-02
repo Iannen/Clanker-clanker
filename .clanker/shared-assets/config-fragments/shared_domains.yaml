@@ -18,11 +18,15 @@ domains:
           - { id: repo_content, type: repo_content, fileset: default_repo_content }
 
   - name: presentation
-    # Purpose: standardized readme management across projects
+    # Purpose: standardized readme development across projects
     resolvers:
       - { id: domain_fragments, type: full-path-file-retrieval, files: [README.md] } 
     renders:
-      - name: readme
+      - name: core
         resolvers:
           - { id: prompt_fragments, type: multi-document-retrieval, files: [readme.docspec] }
-          - { id: repo_content, type: multi-document-retrieval, files: [architecture.cdoc, backlog.cdoc, north-star.cdoc, project-history.cdoc] }
+          - { id: repo_content, type: repo_content, fileset: core }
+      - name: docs
+        resolvers:
+          - { id: prompt_fragments, type: multi-document-retrieval, files: [readme.docspec, architecture.cdoc, backlog.cdoc, north-star.cdoc, project-history.cdoc] }
+          - { id: repo_content, type: repo_content, fileset: empty }

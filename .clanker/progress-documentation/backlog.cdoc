@@ -1,5 +1,6 @@
 I. Ideas, complaints and non-critical bugs:
-
+- configs should be validated to disallow non-existent filesets (now just fail silently)
+- filesets: new concept, 'omits' added as a manifest of files not supplied
 - Visual upgrade to UI template
 - the user should not have to start & stop the app for config updates to become online
 - can we do without any external deps like ruamel & pydantic, lessening the install burden?
@@ -19,7 +20,18 @@ II. Items to refine & QC:
 2. Space reclamation program:
     - Easy pickings have been had - what else?
 
-3.  Shared Domains & seed config, overhaul for the purpose of Iannen metarepo:
+3.  Shared Domains & seed / pud configs overhaul
+    -   Shared domain 'presentation': shared to promote uniform presentation (e.g readme) work
+        'README.md' attaches to 'domain_fragments'
+            - prompt 'core': 
+                instructional prompt fragments attach to 'prompt_fragments'
+                fileset 'core' attaches to 'repo-content'
+            - prompt 'docs
+                instructional prompt fragments attach to 'prompt_fragments'
+                pud progress docs also attach to 'prompt_fragments'
+                no fileset
+
+
     - Seed domain 'manifest analysis': 
         - domain fragment -> 'manifest resolver' 
         - prompt 'on-init': 
@@ -28,10 +40,6 @@ II. Items to refine & QC:
                 -> 'explore-repo.pfrag': make it generate further prompts in domain
                 -> 'config-dev-output.instruction'
                 -> domain / render output instructions: for ez
-
-    - Shared domain 'presentation': 
-        - Should include 'core' fileset, exposing the business logic alongside readme and instructional prompt fragments
-            - 'core' fileset is pud specific: needs to feature in config template and any pud config.
 
 4. Move templates and layouts out of shared assets dir
     - shared assets just config and prompt frags

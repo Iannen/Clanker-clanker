@@ -1,10 +1,10 @@
 sets:
-  default_repo_content: {includes: [clanker.py], excludes: [.git]}
+  core: {includes: [clanker.py], excludes: []}
 
 domains:
 - name: script-dev
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: default_repo_content }
+    - { id: repo_content, type: repo_content, fileset: core }
     - { id: domain_fragments, type: multi-document-retrieval, files: [backlog.md], }
     
   renders:
@@ -27,7 +27,7 @@ domains:
     - name: ns-plan
       resolvers:
         - { id: prompt_fragments, type: multi-document-retrieval, files: [] }
-        - { id: repo_content, type: repo_content, fileset: default_repo_content }
+        - { id: repo_content, type: repo_content, fileset: core }
 
 - name: config-dev
   resolvers:
@@ -36,7 +36,7 @@ domains:
     - name: config-dev
       resolvers:
         - { id: prompt_fragments, type: multi-document-retrieval, files: [config-development-instructions.md] }
-        - { id: repo_content, type: repo_content, fileset: default_repo_content }
+        - { id: repo_content, type: repo_content, fileset: core }
 
 - name: debloat
   resolvers:
@@ -45,4 +45,4 @@ domains:
     - name: debloat
       resolvers:
         - { id: prompt_fragments, type: multi-document-retrieval, files: [debloat-instructions.md] }
-        - { id: repo_content, type: repo_content, fileset: default_repo_content }
+        - { id: repo_content, type: repo_content, fileset: core }

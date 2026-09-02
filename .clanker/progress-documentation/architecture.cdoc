@@ -1,3 +1,5 @@
+node: Perhaps this can develop into a usecase based overview, rather than an attempt at some 'architectural' thing
+
 asset validation:
 - config validation -> the config validation file
 - .. others
@@ -9,3 +11,13 @@ what else to mention?
         - the poor man's llm repotrawling function
         - give the llm a list of all files, ask ' what should I compile into prompts here '
         - in some kinda recursive manner
+
+III. Shared stuff
+    shared domains
+        - 'presentation' -> uniform readme management across repos
+    shared filesets
+        - all -> everything sans .git
+        - none -> no repo content ( dont have proper 'voiding' option )
+
+
+
