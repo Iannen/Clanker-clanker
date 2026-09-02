@@ -42,3 +42,18 @@ These become bootstrap validation phases:
         - Document management
         - Code generation
 
+8.  Extract more value out of Config contents
+    - filename and their extensions can combine to convey meaning
+        - 'core.doctrine', 'backlog-output.instruction', 'something.template'
+    - the configs contain information which is currently not utilized, ex:
+'''
+domains: 
+- name: script-dev # <- 'script-dev' informs of purpose
+  resolvers:
+    - { id: repo_content, type: repo_content, fileset: default_repo_content } # the name of the fileset conveys meaning
+    - { id: domain_fragments, type: multi-document-retrieval, files: [backlog.md], } # if I had named filelists, then that would convey meaning too
+  renders:
+    - name: plan # we planning right
+      resolvers:
+        - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.md, backlog-output-instructions.md] } 
+'''

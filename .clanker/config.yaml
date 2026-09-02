@@ -46,12 +46,3 @@ domains:
       resolvers:
         - { id: prompt_fragments, type: multi-document-retrieval, files: [debloat-instructions.md] }
         - { id: repo_content, type: repo_content, fileset: default_repo_content }
-
-- name: presentation
-  resolvers:
-    - { id: domain_fragments, type: full-path-file-retrieval, files: [README.md] } 
-  renders:
-    - name: readme
-      resolvers:
-        - { id: repo_content, type: repo_content, includes: [ship.sh, clanker.py], sorting: normal }
-        - { id: prompt_fragments, type: multi-document-retrieval, files: [domain-presentation.md] }

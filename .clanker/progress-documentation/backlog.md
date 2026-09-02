@@ -19,6 +19,43 @@ II. Items to refine & QC:
 2. Space reclamation program:
     - Easy pickings have been had - what else?
 
+3.  Shared Domains & seed config, overhaul for the purpose of Iannen metarepo:
+    - Seed domain 'manifest analysis': 
+        - domain fragment -> 'manifest resolver' 
+        - prompt 'on-init': 
+            prompt_fragments: MDF resolver
+                -> a 'config frags package', containing shared, kb def & pud config
+                -> 'explore-repo.pfrag': make it generate further prompts in domain
+                -> 'config-dev-output.instruction'
+                -> domain / render output instructions: for ez
+
+    - Shared domain 'presentation': 
+        - Should include 'core' fileset, exposing the business logic alongside readme and instructional prompt fragments
+            - 'core' fileset is pud specific: needs to feature in config template and any pud config.
+
+4. Move templates and layouts out of shared assets dir
+    - shared assets just config and prompt frags
+
+'''
+§base_fragments§ -> sits in 'kb def', taken
+§domain_fragments§ -> 
+§prompt_fragments§ ->
+§repo_content§
+'''
+
+git push checklist
+    - Clanker compiles prompts?
+        - yes
+
+    - Iannen too?
+        - yes 
+
+    - Cloudproject?
+
+    - testrepo -> fresh init all g?
+
+
+
 III. Slated for implementation:
 
 IV. Recently implemented:

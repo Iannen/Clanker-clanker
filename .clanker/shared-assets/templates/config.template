@@ -4,11 +4,11 @@ sets:
     excludes: [.git, .clanker]
 
 domains:
-- name: bootstrap
-  resolvers:
-    - { id: domain_fragments, type: multi-document-retrieval, files: [domain-bootstrap.md] }
-  renders:
-    - name: bootstrap
-      resolvers:
-        - { id: prompt_fragments, type: multi-document-retrieval, files: [bootstrap-instructions.pfrag, backlog.cdoc] }
-        - { id: repo_content, type: repo_content, fileset: default_repo_content }
+  - name: analysis
+    resolvers:
+      - { id: domain_fragments, type: repo-manifest, pud_fileset: all, shared_fileset: clanker-shared-assets }
+    renders:
+      - name: init
+        resolvers:
+          - { id: prompt_fragments, type: multi-document-retrieval, files: [kb_def.yaml, shared_domains.yaml, config.yaml, config-development-mode.md, config-dev-output.instruction] }
+          - { id: repo_content, type: repo_content, fileset: none }

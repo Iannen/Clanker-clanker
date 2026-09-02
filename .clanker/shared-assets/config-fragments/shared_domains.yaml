@@ -1,5 +1,6 @@
 sets:
   all: {includes: [.], excludes: [.git]}
+  empty: {includes: [], excludes: [.git]}
   clanker-shared-assets: {includes: [.clanker/shared-assets], excludes: []}
 
 domains:
@@ -15,3 +16,13 @@ domains:
         resolvers:
           - { id: domain_fragments, type: multi-document-retrieval, files: [config-development-mode.md] }
           - { id: repo_content, type: repo_content, fileset: default_repo_content }
+
+  - name: presentation
+    # Purpose: standardized readme management across projects
+    resolvers:
+      - { id: domain_fragments, type: full-path-file-retrieval, files: [README.md] } 
+    renders:
+      - name: readme
+        resolvers:
+          - { id: prompt_fragments, type: multi-document-retrieval, files: [readme.docspec] }
+          - { id: repo_content, type: multi-document-retrieval, files: [architecture.cdoc, backlog.cdoc, north-star.cdoc, project-history.cdoc] }
