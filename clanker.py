@@ -138,13 +138,16 @@ class Layout:
     BTN_HL = "/.clanker/shared-assets/layouts/btn_hl.layout"
     BTN_INACTIVE = "/.clanker/shared-assets/layouts/btn_inactive.layout"
 
+class IOControl:
+    ACCEPTED = "accepted"
+    DECLINED = "declined"
+    INVALID = "invalid"
+    ABORT_KEYS = ("\x1b", "\x03")
+    ACCEPT_KEY = "\x04"
+    BACKSPACE_KEYS = ("\x7f", "\x08")
+
 class SystemKeys:
     DELIM = "§"
-    CTRL_C = "\x03"
-    CTRL_D = "\x04"
-    BACKSPACE = "\x7f"
-    BACKSPACE_ALT = "\x08"
-    ESC = "\x1b"
 
 class ActionResult:
     def __init__(self, message: str):
@@ -614,53 +617,43 @@ class IOService:
 
     def get_key(self) -> str:
         ch = self.io_bridge.read_char()
-        if ch in (SystemKeys.CTRL_C, SystemKeys.ESC):
+        if ch in IOControl.ABORT_KEYS:
             raise ProgramExit
         return ch
 
-    def get_confirmation(self, prompt_msg: str, required_phrase: str = "") -> None:
-        instructions = (
-            f"Type '{required_phrase}' and press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n"
-            if required_phrase
-            else "Press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n"
-        )
-        self.io_bridge.write(f"\n{prompt_msg}\n{instructions}> ")
-        buffer = ""
-
+    def get_confirmation(self, prompt_msg: str, required_phrase: str | None = None) -> None:
+        if required_phrase is not None:
+            instructions = (
+                f"Type '{required_phrase}' and press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n"
+            )
+        else:
+            instructions = "Press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n"
+        base_msg = f"\n{prompt_msg}\n{instructions}"
+        self.io_bridge.write(base_msg + "> ")
         while True:
-            ch = self.io_bridge.read_char()
-
-            if ch in (SystemKeys.CTRL_C, SystemKeys.ESC):
+            status, value = self.io_bridge.get_acceptance(required_phrase)
+            if status == IOControl.ACCEPTED:
+                return
+            if status == IOControl.DECLINED:
                 raise UserDecline
-
-            if ch == SystemKeys.CTRL_D:
-                if buffer == required_phrase:
-                    self.io_bridge.write("\n")
-                    return None
-                self.io_bridge.write(
-                    f"\nInvalid confirmation. Expected '{required_phrase}'. Try again.\n> "
+            if status == IOControl.INVALID:
+                err = (
+                    f"Invalid confirmation. Expected '{required_phrase or ''}', "
+                    f"got '{value}'. Try again.\n"
                 )
-                buffer = ""
-            elif ch in (SystemKeys.BACKSPACE, SystemKeys.BACKSPACE_ALT):
-                if len(buffer) > 0:
-                    buffer = buffer[:-1]
-                    self.io_bridge.write("\b \b")
-            elif ch.isprintable():
-                buffer += ch
-                self.io_bridge.write(ch)
+                self.io_bridge.write(base_msg + err + "> ")
 
 """ 6. Bridge Ports"""
 
 class IOBridgePort(Bridge):
-
     @abstractmethod
     def to_clipboard(self, text_content: str) -> int: pass
-
     @abstractmethod
     def write(self, text: str) -> None: pass
-
     @abstractmethod
     def read_char(self) -> str: pass
+    @abstractmethod
+    def get_acceptance(self, required_phrase: str | None) -> tuple[str, str]: pass
 
 class ContentShaper(Protocol):
     def normalize_file_spec(self, item: str | dict) -> tuple[str, int | None]: ...

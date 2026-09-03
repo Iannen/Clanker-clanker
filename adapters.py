@@ -8,7 +8,7 @@ import tty
 from pathlib import Path
 from ruamel.yaml import YAML
 
-from clanker import FileBridgePort, IOBridgePort, IllegalDuplicateFile, CorruptClanker, BasePathTokens
+from clanker import FileBridgePort, IOBridgePort, IllegalDuplicateFile, CorruptClanker, BasePathTokens, IOControl
 
 class IOBridge(IOBridgePort): 
     def to_clipboard(self, text_content: str) -> int:
@@ -30,6 +30,31 @@ class IOBridge(IOBridgePort):
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
         return ch
+
+    def get_acceptance(self, required_phrase: str | None) -> tuple[str, str]:
+        # Thanks to grok, this needs to be revisited. When that time comes:
+        # required_phrase- > we just fish for either a ctrld, which is accept, or a cancelkey, which means return the decline case.
+        required = required_phrase if required_phrase is not None else ""
+        buffer = ""
+        while True:
+            ch = self.read_char()
+            if ch in IOControl.ABORT_KEYS:
+                return (IOControl.DECLINED, "")
+            if ch == IOControl.ACCEPT_KEY:
+                if buffer == required:
+                    sys.stdout.write("\n")
+                    sys.stdout.flush()
+                    return (IOControl.ACCEPTED, "")
+                return (IOControl.INVALID, buffer)
+            if ch in IOControl.BACKSPACE_KEYS:
+                if len(buffer) > 0:
+                    buffer = buffer[:-1]
+                    sys.stdout.write("\b \b")
+                    sys.stdout.flush()
+            elif ch.isprintable():
+                buffer += ch
+                sys.stdout.write(ch)
+                sys.stdout.flush()
 
 class FileBridge(FileBridgePort):
     def __init__(self) -> None:
