@@ -368,6 +368,7 @@ class SessionService:
             raise UserTask(str(ex)) from ex
 
     def get_keyboard(self) -> Keyboard:
+        # Phase 1: Acquisition
         try:
             config_data = self._get_validated_cfg_fragment(BasePathTokens.PUD + CfgFragments.PUD_CFG)
         except FileNotFoundError:
@@ -375,23 +376,13 @@ class SessionService:
 
         try:
             kb_def_data = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.SHARED_KB_DEF)
-
-            shared_domains = []
-            shared_sets = {}
-            try:
-                shared_domains_data = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.SHARED_DOMAINS)
-                shared_domains = shared_domains_data.get("domains", [])
-                shared_sets = shared_domains_data.get("sets", {})
-            except FileNotFoundError:
-                pass
+            shared_domains_data = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.SHARED_DOMAINS)
         except FileNotFoundError as ex:
             raise ConfigAssemblyFailure(f"Missing configuration fragment: {ex}") from ex
-        except Exception as ex:
-            if isinstance(ex, Failure):
-                raise
-            raise ConfigAssemblyFailure(f"Failed to assemble configuration: {ex}") from ex
 
-        sets_map = {**shared_sets, **config_data.get("sets", {})}
+        # Phase 2: Execution / Assembly
+        sets_map = {**shared_domains_data.get("sets", {}), **config_data.get("sets", {})}
+        shared_domains = shared_domains_data.get("domains", [])
         user_domains = config_data.get("domains", [])
         combined_domains = shared_domains + user_domains
         resolved_domains = self._resolve_sets(combined_domains, sets_map)

@@ -8,23 +8,50 @@ I. Ideas, complaints and non-critical bugs:
 
 II. Items to refine & QC:
 
-1.  Leverage ports & adapters split -> offload non-business logic to adapters, leave behind clean code
-    The classes that depend directly upon adapters are candidates for review:
-        - SessionService
-        - AssemblyService
-        - IOService   
-    Methodology is review of service class methods
-        - the usage of 'self.files.write_default_documents' in SessionService.initialize_workspace is thought to be a good example of desired outcomes.
-        - do other methods carry out stuff that the adapter could take care of for them?
-    [ ] 'SessionService._resolve_sets':
-            - copy.deepcopy() usages
-            - perhaps offload to new transformers protocol
-    [ ] ' AssemblyService.hydrate':
-            - offload to protocol?
-            - does 'AssemblyService.hydrate' become passthrough - or do I allow caller protocol access?
-    [ ] various usages of 'Path'
-            - is this a simple 'move path stuff inside existing bridge' job?
-
+1a.  Leverage ports & adapters split (analysis item)
+    Offload non-business logic to adapters, leave behind clean code. imports from both 'adapters' and 'protocols' are all adapters
+    - SessionService
+        _get_validated_cfg_fragment
+            - evaluated to be ok
+        get_keyboard
+            - current target
+                - phase 1 acquistion is OK i think
+                - phase 2, the untangle begins? lets not rush it
+        _resolve_sets
+            - ties into 'get_keyboard' phase 2 work. lets wait
+        initialize_workspace
+            - I see us making two 'files' call. im sure this can be rationalized to look neat and nice
+    - AssemblyService
+        hydrate
+            - potentially move to 'ContentShaper'? this becomes passthrough then.
+        get_template
+            - here we can at least rationalize to do the action inside the match clauses    
+        get_repl_map
+            - gna leave this one alone
+        _build_manifest_block
+            - i think the datamodel needs a revamp to prettify this thing
+        _resolve
+            MULTI_DOC
+                - perhaps a datamodel revamp is a prereq to prettify this
+            FULL_PATH_FILE
+                - not great, not terrible
+            REPO_CONTENT
+                - tis alright?
+            KB_INFO
+                - kinda nice looking?
+            REPO_MANIFEST
+                - looks okay, but the helper what is sex appeal of '_build_manifest_block
+                - as an aside, rather than two blocks, just have one? then each path can start with the token.
+            - valuerror at end should be clanker error or stricken cuz its config validation concern (thought not impl there yet)
+    - IOService   
+        display
+            - push clear into bridge, so its a 1 step passthrough
+        to_clipboard
+            - ok
+        get_key
+            - ok i guess?
+        get_confirmation
+            - this one is up for review. can the bridge do more
 
 III. Slated for implementation:
 

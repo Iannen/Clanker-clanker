@@ -207,3 +207,8 @@ XLI: LEVERAGE PORTS & ADAPTERS SPLIT -> OFFLOAD NON-BUSINESS LOGIC
     - Created implementing class `DefaultContentShaper` in `utilities.py` to house extracted file spec and tail truncation logic
     - Updated `clanker.py` main function to wire `DefaultContentShaper` into `AssemblyService` via dependency injection
     - Removed obsolete internal helper methods `_extract_file_spec` and `_apply_tail_truncation` from `AssemblyService` in favor of adapter delegation
+
+XLII: SESSION SERVICE REFACTOR & CONFIG ACQUISITION
+    - Refactored `SessionService.get_keyboard` into distinct acquisition and execution phases
+    - Implemented strict two-block configuration fragment acquisition enforcing no fallbacks and raising `NoConfig` or `ConfigAssemblyFailure` appropriately
+    - Rationalized defensive coding and consolidated declarations at the start of the execution phase
