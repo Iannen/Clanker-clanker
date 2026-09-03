@@ -42,23 +42,21 @@ II. Items to refine & QC:
                 - valuerror at end should be clanker error or stricken cuz its config validation concern (thought not impl there yet)
 
 2.  Data model revamp, object tree instatiation migration to adapters, unused alt-mode functionality removal:
+    - todo: extract a pre-jump step: create the assembler, make SessionService use that. model swap is last step.
     - Additional context: The much overdue model revamp
         - Reduces bloated config aquisition in SessionService.
         - Improve clarity for the reader of core
 
-    [ ] 'utilities.py ConfigValidator'
-        - Rename to something which says 'I take care of the validation and object tree creation'
-        - Exposes validation assert methods to core for visibility
-        - new method ..., accepting the config dict frags, returning the finished RuntimeConfig.
+    [ ] 'clanker.py' & 'utilities.py': New members 'RuntimeConfigAssembler' & 'RuntimeConfigAssemblerProtocol'
+        - .Assemble(cfg_frags: [dict]) -> RuntimeConfig
+            - absorbs all logic pertaining to object tree creation currently found in SessionService
 
     [ ] New RuntimeConfig acquisition strat: SessionService (SS) orchestrated, adapter implemented
         - phase 1: config frag aquisition 
             - SessionService uses self.files to get the 3 config frag dicts. - no change there
         - phase 2: transforming the 3 config frag dicts into RuntimeConfig
-            - Sessionservice uses ConfigValidator to transform config frags into RuntimeConfig with one single call.
-                -> but what about exposing the asserts? hmph.
+            - Sessionservice uses RuntimeConfigAssemblerProtocol to transform config frags into RuntimeConfig with one single call.
         - phase 3: Sessionservice returns the RuntimeConfig to the caller (GameEngine)
-            - no dependency for that
 
     [ ] New set of domain model classes: no longer pydantic dependent (we can get away with that right? we have a ConfigValidatorProtocol to compensate. i feel pydandic didnt offer value, only complications for my usecase anyway)
 '''
@@ -126,6 +124,18 @@ class FileSet -> to deal with filesets of repo and manifest resolver first class
 '''
 
 III. Slated for implementation:
+
+1. Extract object graph assembly from SessionService to dedicated RuntimeConfigAssembler adapter
+    [ ] 'clanker.py': Define 'RuntimeConfigAssemblerProtocol' and update 'SessionService' orchestrator
+        - add 'RuntimeConfigAssemblerProtocol' protocol with method '.assemble(config_data, kb_def_data, shared_domains_data) -> Keyboard'
+        - update 'SessionService.__init__' to accept 'assembler: RuntimeConfigAssemblerProtocol'
+        - refactor 'SessionService.get_keyboard()' into a clean 3-phase orchestrator: acquire config fragment dicts via 'self.files', validate via 'self.validator', and delegate object graph creation to 'self.assembler.assemble()'
+        - move '_resolve_sets' out of 'SessionService' and into the assembler implementation
+        - update 'main()' entrypoint to instantiate and wire the assembler adapter
+    [ ] 'utilities.py': Implement 'RuntimeConfigAssembler' class
+        - implement '.assemble(config_data, kb_def_data, shared_domains_data) -> Keyboard' meeting 'RuntimeConfigAssemblerProtocol'
+        - encapsulate set resolution, dictionary merging, button mapping, and Pydantic object tree construction previously in 'SessionService'
+        - preserve current domain models and Pydantic validation behavior to ensure complete functional parity
 
 IV. Recently implemented:
 
