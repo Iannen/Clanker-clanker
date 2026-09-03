@@ -94,11 +94,15 @@ class FileBridge(FileBridgePort):
         with open(target_path, "w", encoding="utf-8") as f:
             self.yaml.dump(data, f)
 
-    def read_clanker_asset(self, rel_path: str) -> str:
-        return (self.clanker_path / rel_path).read_text(encoding="utf-8")
-
-    def read_pud_asset(self, rel_path: Path) -> str:
-        return (self.pud_path / rel_path).read_text(encoding="utf-8")
+    def read_asset(self, tokenized_path: str | Path) -> str:
+        str_path = str(tokenized_path)
+        if str_path.startswith(BasePathTokens.PUD):
+            rel_path = str_path[len(BasePathTokens.PUD):].lstrip("/")
+            return self._pud_file_as_string(rel_path)
+        elif str_path.startswith(BasePathTokens.SHARED):
+            rel_path = str_path[len(BasePathTokens.SHARED):].lstrip("/")
+            return self._shared_file_as_string(rel_path)
+        raise ValueError(f"Path does not start with a recognized BasePathToken: {str_path}")
 
     def get_files(
         self,

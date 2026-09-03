@@ -472,11 +472,11 @@ class AssemblyService:
     def get_template(self, render: Render) -> str:
         match render.template:
             case "prompt_template":
-                layout_path = Layout.PROMPT
+                layout_path = BasePathTokens.SHARED + "/" + Layout.PROMPT
             case "ui_template":
-                layout_path = Layout.UI
+                layout_path = BasePathTokens.SHARED + "/" + Layout.UI
         try:
-            return self.files.read_clanker_asset(layout_path)
+            return self.files.read_asset(layout_path)
         except FileNotFoundError as ex:
             raise CorruptClanker(f"Error: Layout '{layout_path}': {ex}") from ex
 
@@ -524,11 +524,7 @@ class AssemblyService:
         lines = []
         for p in paths:
             try:
-                if basepath_token == BasePathTokens.SHARED:
-                    content = self.files.read_clanker_asset(p)
-                else:
-                    content = self.files.read_pud_asset(p)
-
+                content = self.files.read_asset(f"{basepath_token}/{p}")
                 line_count = len(content.splitlines())
                 lines.append(f"{p} : {line_count} lines")
             except UnicodeDecodeError:
@@ -562,9 +558,9 @@ class AssemblyService:
 
             for item in resolver.payload.get("files", []):
                 filename, tail_lines = self._extract_file_spec(item)
-                rel_path = Path(filename)
+                tokenized_path = f"{BasePathTokens.PUD}/{filename}"
                 try:
-                    content = self.files.read_pud_asset(rel_path)
+                    content = self.files.read_asset(tokenized_path)
                     content = self._apply_tail_truncation(content, tail_lines)
                 except FileNotFoundError:
                     content = f"[{resolver.id}: No content found at '{filename}']"
@@ -584,7 +580,7 @@ class AssemblyService:
             file_blocks = []
             for p in paths:
                 try:
-                    content = self.files.read_pud_asset(p).rstrip()  
+                    content = self.files.read_asset(f"{BasePathTokens.PUD}/{p}").rstrip()  
                     file_blocks.append(f"<{p}>\n{content}\n</{p}>")
                 except UnicodeDecodeError:
                     pass
@@ -605,9 +601,9 @@ class AssemblyService:
             return [(resolver.id, "\n".join(manifest_blocks))]
 
         if resolver.type == Resolver.Type.KB_INFO:
-            btn_hl = self.files.read_clanker_asset(Layout.BTN_HL)
-            btn_active = self.files.read_clanker_asset(Layout.BTN_ACTIVE)
-            btn_inactive = self.files.read_clanker_asset(Layout.BTN_INACTIVE)
+            btn_hl = self.files.read_asset(f"{BasePathTokens.SHARED}/{Layout.BTN_HL}")
+            btn_active = self.files.read_asset(f"{BasePathTokens.SHARED}/{Layout.BTN_ACTIVE}")
+            btn_inactive = self.files.read_asset(f"{BasePathTokens.SHARED}/{Layout.BTN_INACTIVE}")
 
             repl_map = {}
             for btn in keyboard.get_unique_buttons():
@@ -725,10 +721,7 @@ class FileBridgePort(Bridge):
     def write_yaml(self, tokenized_path: str, data: dict) -> None: pass
 
     @abstractmethod
-    def read_clanker_asset(self, rel_path: str) -> str: pass
-
-    @abstractmethod
-    def read_pud_asset(self, rel_path: Path) -> str: pass
+    def read_asset(self, tokenized_path: str | Path) -> str: pass
 
     @abstractmethod
     def get_files(
