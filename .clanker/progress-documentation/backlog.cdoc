@@ -8,53 +8,38 @@ I. Ideas, complaints and non-critical bugs:
 
 II. Items to refine & QC:
 
-1a.  Leverage ports & adapters split (analysis item)
-    Offload non-business logic to adapters, leave behind clean code. imports from both 'adapters' and 'protocols' are all adapters
-    - SessionService
-        _get_validated_cfg_fragment
-            - evaluated to be ok
-        get_keyboard
-            - current target
-                - phase 1 acquistion is OK i think
-                - phase 2, the untangle begins? lets not rush it
-        _resolve_sets
-            - ties into 'get_keyboard' phase 2 work. lets wait
-        initialize_workspace
-            - Cleaned up ex handling, i think the 'files' are distinct enough that core visibility takes priority.
-            - evaluated to be ok
-    - AssemblyService
-        hydrate
-            - now uses an adapter for the transformation
-            - evaluated to be ok
-        get_template
-            - evaluated to be ok
-        get_repl_map
-            - ties in with datamodel cleanup
-            - gna leave this one alone
-        _build_manifest_block
-            - i think the datamodel needs a revamp to prettify this thing
-        _resolve
-            MULTI_DOC
-                - perhaps a datamodel revamp is a prereq to prettify this
-            FULL_PATH_FILE
-                - not great, not terrible
-            REPO_CONTENT
-                - tis alright?
-            KB_INFO
-                - kinda nice looking?
-            REPO_MANIFEST
-                - looks okay, but the helper what is sex appeal of '_build_manifest_block
-                - as an aside, rather than two blocks, just have one? then each path can start with the token.
-            - valuerror at end should be clanker error or stricken cuz its config validation concern (thought not impl there yet)
-    - IOService   
-        display
-            - evaluated to be ok
-        to_clipboard
-            - evaluated to be ok
-        get_key
-            - evaluated to be ok
-        get_confirmation
-            - evaluated to be ok
+1b.  Leverage ports & adapters split (yet to fix list)
+     These members require careful analysis. 
+     I think we will get into a much needed revision of the data model classes to untangle.
+     Then perhaps SessionService business of processing the received configs into a runtime config can be made better too.
+     Additionally, perhaps we can get rid of pydantic import too?
+     It's shaping up to be a big one.
+        - SessionService
+            get_keyboard
+                - current target
+                    - phase 1 acquistion is OK i think
+                    - phase 2, the untangle begins? lets not rush it
+            _resolve_sets
+                - ties into 'get_keyboard' phase 2 work. lets wait
+        - AssemblyService
+            get_repl_map
+                - ties in with datamodel cleanup
+                - gna leave this one alone
+            _build_manifest_block
+                - i think the datamodel needs a revamp to prettify this thing
+            _resolve
+                MULTI_DOC
+                    - perhaps a datamodel revamp is a prereq to prettify this
+                FULL_PATH_FILE
+                    - not great, not terrible
+                REPO_CONTENT
+                    - tis alright?
+                KB_INFO
+                    - kinda nice looking?
+                REPO_MANIFEST
+                    - looks okay, but the helper what is sex appeal of '_build_manifest_block
+                    - as an aside, rather than two blocks, just have one? then each path can start with the token.
+                - valuerror at end should be clanker error or stricken cuz its config validation concern (thought not impl there yet)
 
 III. Slated for implementation:
 
