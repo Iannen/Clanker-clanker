@@ -57,12 +57,12 @@ class FileBridge(FileBridgePort):
     def write_default_documents(
         self, doc_templ_dir: str, pud_doc_dir: str, templ_ext: str, doc_ext: str
     ) -> None:
-        prog_doc_dir = self.pud_path / pud_doc_dir
+        prog_doc_dir = self.pud_path / pud_doc_dir.lstrip("/")
         prompt_frag_dir = self.pud_path / ".clanker" / "prompt-fragments"
         prog_doc_dir.mkdir(parents=True, exist_ok=True)
         prompt_frag_dir.mkdir(parents=True, exist_ok=True)
 
-        doc_templates_dir = self.clanker_path / doc_templ_dir
+        doc_templates_dir = self.clanker_path / doc_templ_dir.lstrip("/")
         if not doc_templates_dir.exists():
             raise CorruptClanker(f"Template directory missing: '{doc_templates_dir}'")
 

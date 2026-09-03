@@ -120,23 +120,23 @@ class BasePathTokens:
     SHARED = "<SHARED>"
 
 class CfgFragments:
-    PUD_CFG = BasePathTokens.PUD + "/.clanker/config.yaml"
-    SHARED_KB_DEF = BasePathTokens.SHARED + "/.clanker/shared-assets/config-fragments/kb_def.yaml"
-    SHARED_DOMAINS = BasePathTokens.SHARED + "/.clanker/shared-assets/config-fragments/shared_domains.yaml"
-    TEMPLATE_CFG = BasePathTokens.SHARED + "/.clanker/templates/config.template"
+    PUD_CFG = "/.clanker/config.yaml"
+    SHARED_KB_DEF = "/.clanker/shared-assets/config-fragments/kb_def.yaml"
+    SHARED_DOMAINS = "/.clanker/shared-assets/config-fragments/shared_domains.yaml"
+    TEMPLATE_CFG = "/.clanker/templates/config.template"
     
 class DocPaths:
-    SHARED_TEMPLATES = ".clanker/templates/documentation"
-    PUD_DOCS = ".clanker/progress-documentation"
+    SHARED_TEMPLATES = "/.clanker/templates/documentation"
+    PUD_DOCS = "/.clanker/progress-documentation"
     TEMPL_EXT = ".template"
     DOC_EXT = ".cdoc"
 
 class Layout:
-    UI = ".clanker/shared-assets/layouts/ui.layout"
-    PROMPT = ".clanker/shared-assets/layouts/prompt.layout"
-    BTN_ACTIVE = ".clanker/shared-assets/layouts/btn_active.layout"
-    BTN_HL = ".clanker/shared-assets/layouts/btn_hl.layout"
-    BTN_INACTIVE = ".clanker/shared-assets/layouts/btn_inactive.layout"
+    UI = "/.clanker/shared-assets/layouts/ui.layout"
+    PROMPT = "/.clanker/shared-assets/layouts/prompt.layout"
+    BTN_ACTIVE = "/.clanker/shared-assets/layouts/btn_active.layout"
+    BTN_HL = "/.clanker/shared-assets/layouts/btn_hl.layout"
+    BTN_INACTIVE = "/.clanker/shared-assets/layouts/btn_inactive.layout"
 
 class SystemKeys:
     DELIM = "§"
@@ -368,17 +368,17 @@ class SessionService:
 
     def get_keyboard(self) -> Keyboard:
         try:
-            config_data = self._get_validated_cfg_fragment(CfgFragments.PUD_CFG)
+            config_data = self._get_validated_cfg_fragment(BasePathTokens.PUD + CfgFragments.PUD_CFG)
         except FileNotFoundError:
             raise NoConfig
 
         try:
-            kb_def_data = self._get_validated_cfg_fragment(CfgFragments.SHARED_KB_DEF)
+            kb_def_data = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.SHARED_KB_DEF)
 
             shared_domains = []
             shared_sets = {}
             try:
-                shared_domains_data = self._get_validated_cfg_fragment(CfgFragments.SHARED_DOMAINS)
+                shared_domains_data = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.SHARED_DOMAINS)
                 shared_domains = shared_domains_data.get("domains", [])
                 shared_sets = shared_domains_data.get("sets", {})
             except FileNotFoundError:
@@ -440,7 +440,7 @@ class SessionService:
             raise CorruptClanker("Clanker repository initialized is beyond scope of app.")
 
         try:
-            default_config_data = self._get_validated_cfg_fragment(CfgFragments.TEMPLATE_CFG)
+            default_config_data = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.TEMPLATE_CFG)
         except FileNotFoundError as ex:
             raise ConfigAssemblyFailure(f"Missing configuration template: {ex}") from ex
         except Exception as ex:
@@ -472,9 +472,9 @@ class AssemblyService:
     def get_template(self, render: Render) -> str:
         match render.template:
             case "prompt_template":
-                layout_path = BasePathTokens.SHARED + "/" + Layout.PROMPT
+                layout_path = BasePathTokens.SHARED + Layout.PROMPT
             case "ui_template":
-                layout_path = BasePathTokens.SHARED + "/" + Layout.UI
+                layout_path = BasePathTokens.SHARED + Layout.UI
         try:
             return self.files.read_asset(layout_path)
         except FileNotFoundError as ex:
@@ -601,9 +601,9 @@ class AssemblyService:
             return [(resolver.id, "\n".join(manifest_blocks))]
 
         if resolver.type == Resolver.Type.KB_INFO:
-            btn_hl = self.files.read_asset(f"{BasePathTokens.SHARED}/{Layout.BTN_HL}")
-            btn_active = self.files.read_asset(f"{BasePathTokens.SHARED}/{Layout.BTN_ACTIVE}")
-            btn_inactive = self.files.read_asset(f"{BasePathTokens.SHARED}/{Layout.BTN_INACTIVE}")
+            btn_hl = self.files.read_asset(BasePathTokens.SHARED + Layout.BTN_HL)
+            btn_active = self.files.read_asset(BasePathTokens.SHARED + Layout.BTN_ACTIVE)
+            btn_inactive = self.files.read_asset(BasePathTokens.SHARED + Layout.BTN_INACTIVE)
 
             repl_map = {}
             for btn in keyboard.get_unique_buttons():

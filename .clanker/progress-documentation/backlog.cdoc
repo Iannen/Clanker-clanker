@@ -33,22 +33,6 @@ II. Items to refine & QC:
         - so we get some bridge methods which are tokenized, and others that work off of a fallback from pud to shared
 
 III. Slated for implementation:
-2b. Filebridge & adapter tokenized path normalization
-    [x] 'clanker.py' & 'adapters.py': combine 'read_clanker_asset' & 'read_pud_asset' into 'read_asset'
-        - delete 'read_clanker_asset' & 'read_pud_asset' from 'FileBridgePort' and 'FileBridge'
-        - add new member 'read_asset(self, tokenized_path: str | Path) -> str:' to both
-            - impl, uses 'startswith' to find correct base, similar to existing methods
-            - no docstring on port please
-    [x] 'clanker.py': callsite alignments:
-            - Update AS.get_template to prepend 'BasePathTokens.SHARED'.
-            - Update AS._resolve calls to prepend 'BasePathTokens.PUD' or 'BasePathTokens.SHARED'
-            - Refactor AS._build_manifest_block to eliminate the token if/else branching.
-    [ ] 'clanker.py': Normalize path constants in Section 3
-        - Ensure all path strings in Section 3 classes start with '/'
-        - Remove all BasePathTokens references and embedded token strings from Section 3 path members
-    [ ] 'clanker.py': Update callsites for path string assembly
-        - Update all callsites to combine base path tokens and Section 3 path constants using 'BasePathTokens.X + Y.Z'
-        - Eliminate inline path strings and inline token concatenation logic across all service classes
 
 IV. Recently implemented:
 

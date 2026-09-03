@@ -188,3 +188,11 @@ XXXVIII: FILEBRIDGE AND ADAPTER TOKENIZED PATH NORMALIZATION
     - Updated call sites to supply concatenated tokenized paths (e.g., `BasePathTokens.PUD + Config.DEFAULT_REL_PATH`)
     - Pruned unused `write_content` methods from the file bridge and its adapter implementations
     - Removed the lingering legacy `Config.DEFAULT_ASSETS_DIR` member
+
+XXXIX: FILEBRIDGE AND ADAPTER TOKENIZED PATH NORMALIZATION CODEBASE MIGRATION
+    - Combined `read_clanker_asset` and `read_pud_asset` into `read_asset` across `FileBridgePort` and its implementations
+    - Updated `AssemblyService.get_template` to prepend `BasePathTokens.SHARED` onto layout paths
+    - Aligned `AssemblyService._resolve` calls to consistently prepend `BasePathTokens.PUD` or `BasePathTokens.SHARED`
+    - Refactored `AssemblyService._build_manifest_block` to eliminate token if/else branching
+    - Normalized all path constants in Section 3 classes to start with '/' and removed embedded token strings
+    - Updated all callsites to assemble paths dynamically using `BasePathTokens.X + Y.Z` logic
