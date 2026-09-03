@@ -8,7 +8,7 @@ I. Ideas, complaints and non-critical bugs:
 
 II. Items to refine & QC:
 
-1b.  Leverage ports & adapters split (yet to fix list)
+1.  Leverage ports & adapters split (yet to fix list)
      These members require careful analysis. 
      I think we will get into a much needed revision of the data model classes to untangle.
      Then perhaps SessionService business of processing the received configs into a runtime config can be made better too.
@@ -40,6 +40,90 @@ II. Items to refine & QC:
                     - looks okay, but the helper what is sex appeal of '_build_manifest_block
                     - as an aside, rather than two blocks, just have one? then each path can start with the token.
                 - valuerror at end should be clanker error or stricken cuz its config validation concern (thought not impl there yet)
+
+2.  Data model revamp, object tree instatiation migration to adapters, unused alt-mode functionality removal:
+    - Additional context: The much overdue model revamp
+        - Reduces bloated config aquisition in SessionService.
+        - Improve clarity for the reader of core
+
+    [ ] 'utilities.py ConfigValidator'
+        - Rename to something which says 'I take care of the validation and object tree creation'
+        - Exposes validation assert methods to core for visibility
+        - new method ..., accepting the config dict frags, returning the finished RuntimeConfig.
+
+    [ ] New RuntimeConfig acquisition strat: SessionService (SS) orchestrated, adapter implemented
+        - phase 1: config frag aquisition 
+            - SessionService uses self.files to get the 3 config frag dicts. - no change there
+        - phase 2: transforming the 3 config frag dicts into RuntimeConfig
+            - Sessionservice uses ConfigValidator to transform config frags into RuntimeConfig with one single call.
+                -> but what about exposing the asserts? hmph.
+        - phase 3: Sessionservice returns the RuntimeConfig to the caller (GameEngine)
+            - no dependency for that
+
+    [ ] New set of domain model classes: no longer pydantic dependent (we can get away with that right? we have a ConfigValidatorProtocol to compensate. i feel pydandic didnt offer value, only complications for my usecase anyway)
+'''
+class RuntimeConfig:
+    keyboard: Keyboard
+    ui_render: Render
+    base_resolvers: [Resolver]
+
+class Keyboard:
+    button_map: dict[str, Button] 
+    selected_key: str | None
+    def get_unique_buttons
+    def handle_key 
+
+class Button:
+    type: str
+    key: str
+    inhabitant: Domain | Prompt | None = None
+    action: Callable | None = None
+    def get_repl_map
+
+class Domain
+    name: str
+    resolvers: [Resolver]
+    prompts: [Prompt]
+
+class Prompt 
+    name: str
+    renders: [Render]
+
+class Render -> 
+    template: str = "prompt_template"
+    resolvers: [Resolver]
+    inherit_base: bool = True
+    inherit_domain: bool = True
+
+class Resolver:
+    anchor: str
+    def get_repl_map: dict[str, str]
+
+class MultiDocResolver(Resolver):
+    files: [File]
+
+class File:
+    name: str
+    full_path_from_pud: bool = False
+    truncation_spec: TruncationSpec
+
+class TruncationSpec:
+    # for more advanced truncation laters, for now just tailtrunc int
+    tail_lines: int | None
+
+class RepoContentResolver(Resolver):
+    fileset: FileSet
+
+class FileManifestResolver(Resolver):
+    pud_fileset: Fileset
+    shared_fileset: Fileset
+
+class KBStateResolver(Resolver):
+
+class FileSet -> to deal with filesets of repo and manifest resolver first class in domain 
+    includes: [str]
+    excludes: [str]
+'''
 
 III. Slated for implementation:
 
