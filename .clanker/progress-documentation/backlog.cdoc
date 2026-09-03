@@ -28,24 +28,6 @@ II. Items to refine & QC:
 
 III. Slated for implementation:
 
-1.  Leverage ports & adapters split -> offload non-business logic to adapters, leave behind clean code
-
-    [ ] 'clanker.py': 
-            - add new protocol class:
-'''
-class ContentShaper(Protocol):
-    def normalize_file_spec(self, item: str | dict) -> tuple[str, int | None]: ...
-    def trim_to_tail(self, content: str, tail_lines: int | None) -> str: ...
-'''
-
-    [ ] 'utilities.py': create implementing class
-            - migrate logic of clanker.py / '_extract_file_spec' to implementors 'normalize_file_spec'
-            - migrate logic of clanker.py / '_apply_tail_truncation' to implementors 'trim_to_tail'
-
-    [ ] 'clanker.py': 
-            - update main() update 'AssemblyService' DI wiring & init
-            - align AssemblyService to use new protocol, remove now-obsolete '_extract_file_spec' and '_apply_tail_truncation'
-
 IV. Recently implemented:
 
 V. Critical bugs

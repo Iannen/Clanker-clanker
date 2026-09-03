@@ -2,6 +2,19 @@ from __future__ import annotations
 from ruamel.yaml import YAML
 from clanker import ConfigViolations
 
+class DefaultContentShaper:
+    def normalize_file_spec(self, item: str | dict) -> tuple[str, int | None]:
+        if isinstance(item, dict):
+            return item.get("file", ""), item.get("tail_lines")
+        return item, None
+
+    def trim_to_tail(self, content: str, tail_lines: int | None) -> str:
+        if tail_lines is not None:
+            lines = content.splitlines()
+            if len(lines) > tail_lines:
+                return "**truncated**\n" + "\n".join(lines[-tail_lines:])
+        return content
+
 class ConfigValidator:
     def __init__(self) -> None:
         self.yaml = YAML()

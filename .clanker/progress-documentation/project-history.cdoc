@@ -201,3 +201,9 @@ XL: FILEBRIDGE AND ASSEMBLYSERVICE PUD FALLBACK ASSET RETRIEVAL
     - Implemented `get_contents_with_pud_fallback` on FileBridge to resolve files against SHARED and PUD with collision checks
     - Updated FileBridgePort interface to include `get_contents_with_pud_fallback` and removed deprecated `getAssetMap` and `getFileContent`
     - Updated AssemblyService._resolve MULTI_DOC handler to leverage `get_contents_with_pud_fallback` for batch asset retrieval and fallback handling
+
+XLI: LEVERAGE PORTS & ADAPTERS SPLIT -> OFFLOAD NON-BUSINESS LOGIC
+    - Added new `ContentShaper` protocol class defining file specification normalization and tail truncation behaviors
+    - Created implementing class `DefaultContentShaper` in `utilities.py` to house extracted file spec and tail truncation logic
+    - Updated `clanker.py` main function to wire `DefaultContentShaper` into `AssemblyService` via dependency injection
+    - Removed obsolete internal helper methods `_extract_file_spec` and `_apply_tail_truncation` from `AssemblyService` in favor of adapter delegation

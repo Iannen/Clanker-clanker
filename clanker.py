@@ -92,14 +92,15 @@ class Constructed(BaseModel):
 def main():
     try:
         from adapters import FileBridge, IOBridge
-        from utilities import ConfigValidator
+        from utilities import ConfigValidator, DefaultContentShaper
 
         files_adapter = FileBridge()
         io_adapter = IOBridge()
         validator = ConfigValidator()
+        shaper = DefaultContentShaper()
 
         session = SessionService(files=files_adapter, validator=validator)
-        renderer = AssemblyService(files=files_adapter)
+        renderer = AssemblyService(files=files_adapter, shaper=shaper)
         io = IOService(io_bridge=io_adapter)
 
         engine = GameEngine(
@@ -458,8 +459,9 @@ class SessionService:
         )
 
 class AssemblyService:
-    def __init__(self, files: FileBridgePort) -> None:
+    def __init__(self, files: FileBridgePort, shaper: ContentShaper) -> None:
         self.files = files
+        self.shaper = shaper
 
     def hydrate(self, template: str, replacements: dict[str, str]) -> str:
         token = SystemKeys.DELIM
@@ -495,20 +497,6 @@ class AssemblyService:
                 replacements[key] = val
         return replacements
 
-    @staticmethod
-    def _extract_file_spec(item: str | dict) -> tuple[str, int | None]:
-        if isinstance(item, dict):
-            return item.get("file", ""), item.get("tail_lines")
-        return item, None
-
-    @staticmethod
-    def _apply_tail_truncation(content: str, tail_lines: int | None) -> str:
-        if tail_lines is not None:
-            lines = content.splitlines()
-            if len(lines) > tail_lines:
-                return "**truncated**\n" + "\n".join(lines[-tail_lines:])
-        return content
-
     def _build_manifest_block(self, tag: str, basepath_token: str, fileset_spec: Any) -> str:
         if isinstance(fileset_spec, dict):
             includes = fileset_spec.get("includes", [])
@@ -536,7 +524,7 @@ class AssemblyService:
 
         if resolver.type == Resolver.Type.MULTI_DOC:
             raw_files = resolver.payload.get("files") or []
-            file_specs = [self._extract_file_spec(item) for item in raw_files]
+            file_specs = [self.shaper.normalize_file_spec(item) for item in raw_files]
             filenames = [spec[0] for spec in file_specs]
 
             contents_map = self.files.get_contents_with_pud_fallback(filenames)
@@ -547,7 +535,7 @@ class AssemblyService:
                 raw_content = contents_map.get(filename)
 
                 if raw_content is not None:
-                    content = self._apply_tail_truncation(raw_content, tail_lines)
+                    content = self.shaper.trim_to_tail(raw_content, tail_lines)
                 else:
                     content = f"[{resolver.id}: No content found at '{filename}']"
 
@@ -559,11 +547,11 @@ class AssemblyService:
             fragments = []
 
             for item in resolver.payload.get("files", []):
-                filename, tail_lines = self._extract_file_spec(item)
+                filename, tail_lines = self.shaper.normalize_file_spec(item)
                 tokenized_path = f"{BasePathTokens.PUD}/{filename}"
                 try:
                     content = self.files.read_asset(tokenized_path)
-                    content = self._apply_tail_truncation(content, tail_lines)
+                    content = self.shaper.trim_to_tail(content, tail_lines)
                 except FileNotFoundError:
                     content = f"[{resolver.id}: No content found at '{filename}']"
 
@@ -700,6 +688,10 @@ class IOBridgePort(Bridge):
 
     @abstractmethod
     def read_char(self) -> str: pass
+
+class ContentShaper(Protocol):
+    def normalize_file_spec(self, item: str | dict) -> tuple[str, int | None]: ...
+    def trim_to_tail(self, content: str, tail_lines: int | None) -> str: ...
 
 class ConfigValidatorProtocol(Protocol):
     def assert_no_quotes(self, raw_text: str, filepath: str = "") -> None: ...
