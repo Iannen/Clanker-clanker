@@ -181,3 +181,10 @@ XXXVII: RELOCATE TEMPLATE ASSETS AND UPDATE PATH CONSTANTS
     - Relocated template assets from `.clanker/shared-assets/templates` to `.clanker/templates`
     - Updated `DocPaths.SHARED_TEMPLATES` to `".clanker/templates/documentation"`
     - Updated `CfgFragments.TEMPLATE_CFG` to `BasePathTokens.SHARED + "/.clanker/templates/config.template"`
+
+XXXVIII: FILEBRIDGE AND ADAPTER TOKENIZED PATH NORMALIZATION
+    - Refactored `Config.DEFAULT_REL_PATH` to hold a plain string `/.clanker/config.yaml`
+    - Refactored `write_yaml` methods across `clanker.py` and adapters to accept tokenized strings
+    - Updated call sites to supply concatenated tokenized paths (e.g., `BasePathTokens.PUD + Config.DEFAULT_REL_PATH`)
+    - Pruned unused `write_content` methods from the file bridge and its adapter implementations
+    - Removed the lingering legacy `Config.DEFAULT_ASSETS_DIR` member
