@@ -435,10 +435,6 @@ class SessionService:
             default_config_data = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.TEMPLATE_CFG)
         except FileNotFoundError as ex:
             raise ConfigAssemblyFailure(f"Missing configuration template: {ex}") from ex
-        except Exception as ex:
-            if isinstance(ex, Failure):
-                raise
-            raise ConfigAssemblyFailure(f"Failed to load configuration template: {ex}") from ex
 
         self.files.write_yaml(BasePathTokens.PUD + Config.DEFAULT_REL_PATH, default_config_data)
 

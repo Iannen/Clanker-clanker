@@ -20,7 +20,8 @@ II. Items to refine & QC:
         _resolve_sets
             - ties into 'get_keyboard' phase 2 work. lets wait
         initialize_workspace
-            - I see us making two 'files' call. im sure this can be rationalized to look neat and nice
+            - Cleaned up ex handling, i think the 'files' are distinct enough that core visibility takes priority.
+            - evaluated to be ok
     - AssemblyService
         hydrate
             - potentially move to 'ContentShaper'? this becomes passthrough then.
@@ -54,6 +55,15 @@ II. Items to refine & QC:
             - this one is up for review. can the bridge do more
 
 III. Slated for implementation:
+
+1. 'clanker.py':
+
+        [x] 'SessionService.initialize_workspace': remove general ex clause -> FNFE into ConfigAssemblyFailure is enough
+
+        [ ] 'clanker.py' & 'utilities.py': 'AssemblyService.hydrate: now relies on 'ContentShaper' for the work:
+         'AssemblyService.hydrate: now relies on 'ContentShaper' for the work:
+            - ContentShaper (both files): new member 'self, delim:str, template: str, replacements: dict[str, str]) -> str:'
+            - 'AssemblyService.hydrate': now calls new 'ContentShaper' member, passing the required args
 
 IV. Recently implemented:
 
