@@ -27,8 +27,9 @@ II. Items to refine & QC:
             - now uses an adapter for the transformation
             - evaluated to be ok
         get_template
-            - here we can at least rationalize to do the action inside the match clauses    
+            - evaluated to be ok (by impl of slated)
         get_repl_map
+            - ties in with datamodel cleanup
             - gna leave this one alone
         _build_manifest_block
             - i think the datamodel needs a revamp to prettify this thing
@@ -47,16 +48,69 @@ II. Items to refine & QC:
             - valuerror at end should be clanker error or stricken cuz its config validation concern (thought not impl there yet)
     - IOService   
         display
-            - push clear into bridge, so its a 1 step passthrough
+            - evaluated to be ok (by impl of slated)
         to_clipboard
-            - ok
+            - evaluated to be ok
         get_key
-            - ok i guess?
+            - evaluated to be ok (by impl of slated)
         get_confirmation
-            - this one is up for review. can the bridge do more
+            - evaluated to be ok (by impl of slated)
 
 III. Slated for implementation:
 
+2. Cleanup IOService methods:
+    [ ] 'clanker.py' & 'adapters.py'
+        - in clanker.py, add new new member 'IOControl' and prune members of 'SystemKeys': 
+'''
+class IOControl:
+    ACCEPTED = "accepted"
+    DECLINED = "declined"
+    INVALID = "invalid"
+    ABORT_KEYS = ("\x1b", "\x03")
+    ACCEPT_KEY = "\x04"
+    BACKSPACE_KEYS = ("\x7f", "\x08")
+'''
+'''
+class SystemKeys:
+    DELIM = "§"
+'''
+        - in 'adapters.py'
+            - import new IOControl to adapters
+            - 'IOBridge.get_acceptance': new member 
+                - 'def get_acceptance(self, required_phrase: str | None) -> [str, str]:'
+                    - encapsulates the business of char micromanagement which 'IOService.get_confirmation does now
+                    - returns an 'IOControl' member when user attempts to confirm the input:
+                        (ACCEPTED, "")
+                        (DECLINED, "")
+                        (INVALID, "the_erroneous_user_input")
+        - 'clanker.py, IOBridgePort':
+            - align to above
+        - 'clanker.py, IOService.get_key':
+            - now checks char membership in IOControl.ABORT_KEYS instead of SystemKeys
+        - 'clanker.py, IOService.get_confirmation':
+            - change arg: req_phase default = None -> better semantics
+            - phase 1 construct user_msg given value of 'req_phrase', then one single bridge.write call to inform user.
+            - phase 2, pseudo:
+                while true:
+                    res = io.getAcceptance(req_str) -> IOControl member 
+                    match res[0] on IOControl members:
+                        ACCEPTED -> return            
+                        DECLINED -> raise userdecline
+                        INVALID ->  use bridge.write to inform of mistake, and then let loop continue. The feedback to user:
+                            #repeat phase 1 usermsg
+                             + newline + 
+                            #res[1] != acceptstring type msg
+
 IV. Recently implemented:
+
+1. Cleanup code:
+    [x] 'clanker.py'
+        - 'AssemblyService.get_template': eliminate in-method layout path assignment:
+            - wrap match in try -> catch FNFE raise CorruptClanker as before
+            - call 'self.files.read_asset' inside the clauses
+    [x] 'clanker.py' & 'adapters.py'
+        - 'Filebridge' absorb 'clear' into 'write', eliminate 'clear' from adapter and bridge
+        - remove calls to deleted 'clear 'method' where they might exist.
+        - refactored 'IOService.get_confirmation' to prevent multiple writes from clearing out the previous ones
 
 V. Critical bugs

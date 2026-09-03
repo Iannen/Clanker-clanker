@@ -453,15 +453,14 @@ class AssemblyService:
         return self.shaper.hydrate(SystemKeys.DELIM, template, replacements)
 
     def get_template(self, render: Render) -> str:
-        match render.template:
-            case "prompt_template":
-                layout_path = BasePathTokens.SHARED + Layout.PROMPT
-            case "ui_template":
-                layout_path = BasePathTokens.SHARED + Layout.UI
         try:
-            return self.files.read_asset(layout_path)
+            match render.template:
+                case "prompt_template":
+                    return self.files.read_asset(BasePathTokens.SHARED + Layout.PROMPT)
+                case "ui_template":
+                    return self.files.read_asset(BasePathTokens.SHARED + Layout.UI)
         except FileNotFoundError as ex:
-            raise CorruptClanker(f"Error: Layout '{layout_path}': {ex}") from ex
+            raise CorruptClanker(f"Error loading template for '{render.template}': {ex}") from ex
 
     def get_repl_map(self, keyboard: Keyboard, render: Render) -> dict[str, str]:
         active_resolvers: list[Resolver] = []
@@ -608,7 +607,6 @@ class IOService:
         self.io_bridge = io_bridge
 
     def display(self, ui_string: str) -> None:
-        self.io_bridge.clear()
         self.io_bridge.write(f"{ui_string}\n")
 
     def to_clipboard(self, text_content: str) -> int:
@@ -621,15 +619,12 @@ class IOService:
         return ch
 
     def get_confirmation(self, prompt_msg: str, required_phrase: str = "") -> None:
-        self.io_bridge.write(f"\n{prompt_msg}\n")
-        if required_phrase:
-            self.io_bridge.write(
-                f"Type '{required_phrase}' and press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n"
-            )
-        else:
-            self.io_bridge.write("Press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n")
-
-        self.io_bridge.write("> ")
+        instructions = (
+            f"Type '{required_phrase}' and press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n"
+            if required_phrase
+            else "Press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n"
+        )
+        self.io_bridge.write(f"\n{prompt_msg}\n{instructions}> ")
         buffer = ""
 
         while True:
@@ -657,9 +652,6 @@ class IOService:
 """ 6. Bridge Ports"""
 
 class IOBridgePort(Bridge):
-
-    @abstractmethod
-    def clear(self) -> None: pass
 
     @abstractmethod
     def to_clipboard(self, text_content: str) -> int: pass

@@ -11,9 +11,6 @@ from ruamel.yaml import YAML
 from clanker import FileBridgePort, IOBridgePort, IllegalDuplicateFile, CorruptClanker, BasePathTokens
 
 class IOBridge(IOBridgePort): 
-    def clear(self) -> None:
-        os.system("clear")
-
     def to_clipboard(self, text_content: str) -> int:
         payload = base64.b64encode(text_content.encode("utf-8")).decode("utf-8")
         sys.stdout.write(f"\033]52;c;{payload}\007")
@@ -21,6 +18,7 @@ class IOBridge(IOBridgePort):
         return len(text_content.splitlines())
 
     def write(self, text: str) -> None:
+        os.system("clear")
         print(text, end="", flush=True)
 
     def read_char(self) -> str:
