@@ -80,8 +80,16 @@ class FileBridge(FileBridgePort):
     def is_cwd_script_dir(self) -> bool:
         return self.pud_path.resolve() == self.clanker_path.resolve()
 
-    def write_yaml(self, rel_path: Path, data: dict) -> None:
-        target_path = self.pud_path / rel_path
+    def write_yaml(self, tokenized_path: str, data: dict) -> None:
+        if tokenized_path.startswith(BasePathTokens.PUD):
+            rel_path = tokenized_path[len(BasePathTokens.PUD):].lstrip("/")
+            target_path = self.pud_path / rel_path
+        elif tokenized_path.startswith(BasePathTokens.SHARED):
+            rel_path = tokenized_path[len(BasePathTokens.SHARED):].lstrip("/")
+            target_path = self.clanker_path / rel_path
+        else:
+            raise ValueError(f"Path does not start with a recognized BasePathToken: {tokenized_path}")
+
         target_path.parent.mkdir(parents=True, exist_ok=True)
         with open(target_path, "w", encoding="utf-8") as f:
             self.yaml.dump(data, f)
@@ -91,11 +99,6 @@ class FileBridge(FileBridgePort):
 
     def read_pud_asset(self, rel_path: Path) -> str:
         return (self.pud_path / rel_path).read_text(encoding="utf-8")
-
-    def write_content(self, rel_path: Path, content: str) -> None:
-        target_path = self.pud_path / rel_path
-        target_path.parent.mkdir(parents=True, exist_ok=True)
-        target_path.write_text(content, encoding="utf-8")
 
     def get_files(
         self,

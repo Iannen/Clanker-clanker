@@ -190,7 +190,7 @@ class Domain(Constructed):
     resolvers: list[Resolver] = []
 
 class Config(Constructed):
-    DEFAULT_REL_PATH: ClassVar[Path] = Path(".clanker/config.yaml")
+    DEFAULT_REL_PATH: ClassVar[str] = "/.clanker/config.yaml"
     DEFAULT_ASSETS_DIR: ClassVar[Path] = Path(".clanker/assets")
     layout: str
     domains: list[str]
@@ -448,7 +448,7 @@ class SessionService:
                 raise
             raise ConfigAssemblyFailure(f"Failed to load configuration template: {ex}") from ex
 
-        self.files.write_yaml(Config.DEFAULT_REL_PATH, default_config_data)
+        self.files.write_yaml(BasePathTokens.PUD + Config.DEFAULT_REL_PATH, default_config_data)
 
         self.files.write_default_documents(
             doc_templ_dir=DocPaths.SHARED_TEMPLATES,
@@ -722,16 +722,13 @@ class FileBridgePort(Bridge):
     def is_cwd_script_dir(self) -> bool: pass
 
     @abstractmethod
-    def write_yaml(self, rel_path: Path, data: dict) -> None: pass
+    def write_yaml(self, tokenized_path: str, data: dict) -> None: pass
 
     @abstractmethod
     def read_clanker_asset(self, rel_path: str) -> str: pass
 
     @abstractmethod
     def read_pud_asset(self, rel_path: Path) -> str: pass
-
-    @abstractmethod
-    def write_content(self, rel_path: Path, content: str) -> None: pass
 
     @abstractmethod
     def get_files(
