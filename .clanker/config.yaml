@@ -5,7 +5,7 @@ domains:
 - name: script-dev
   resolvers:
     - { id: repo_content, type: repo_content, fileset: core }
-    - { id: domain_fragments, type: multi-document-retrieval, files: [backlog.md], }
+    - { id: domain_fragments, type: multi-document-retrieval, files: [backlog.cdoc], }
     
   renders:
     - name: plan
@@ -18,7 +18,7 @@ domains:
 
     - name: bl-drain
       resolvers:
-        - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.md, tail_lines: 8}, history-output-instructions.md]}
+        - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 8}, history-output-instructions.md]}
 
 - name: north-star
   resolvers:

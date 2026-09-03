@@ -176,3 +176,8 @@ XXXVI: ADD REPO_MANIFEST RESOLVER AND FILE MANIFEST BUILDER
     - Added REPO_MANIFEST ("repo-manifest") to Resolver.Type enum
     - Implemented _build_manifest_block helper method in AssemblyService to support file and fileset manifest generation
     - Added REPO_MANIFEST branch to AssemblyService._resolve supporting mandatory pud-manifest and optional shared-manifest blocks
+
+XXXVII: RELOCATE TEMPLATE ASSETS AND UPDATE PATH CONSTANTS
+    - Relocated template assets from `.clanker/shared-assets/templates` to `.clanker/templates`
+    - Updated `DocPaths.SHARED_TEMPLATES` to `".clanker/templates/documentation"`
+    - Updated `CfgFragments.TEMPLATE_CFG` to `BasePathTokens.SHARED + "/.clanker/templates/config.template"`

@@ -123,10 +123,10 @@ class CfgFragments:
     PUD_CFG = BasePathTokens.PUD + "/.clanker/config.yaml"
     SHARED_KB_DEF = BasePathTokens.SHARED + "/.clanker/shared-assets/config-fragments/kb_def.yaml"
     SHARED_DOMAINS = BasePathTokens.SHARED + "/.clanker/shared-assets/config-fragments/shared_domains.yaml"
-    TEMPLATE_CFG = BasePathTokens.SHARED + "/.clanker/shared-assets/templates/config.template"
+    TEMPLATE_CFG = BasePathTokens.SHARED + "/.clanker/templates/config.template"
     
 class DocPaths:
-    SHARED_TEMPLATES = ".clanker/shared-assets/templates/documentation"
+    SHARED_TEMPLATES = ".clanker/templates/documentation"
     PUD_DOCS = ".clanker/progress-documentation"
     TEMPL_EXT = ".template"
     DOC_EXT = ".cdoc"

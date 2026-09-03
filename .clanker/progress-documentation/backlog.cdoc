@@ -16,55 +16,38 @@ II. Items to refine & QC:
     Methodology is review of service class methods
         - the usage of 'self.files.write_default_documents' in SessionService.initialize_workspace is thought to be a good example of desired outcomes.
         - do other methods carry out stuff that the adapter could take care of for them?
+    [ ] 'SessionService._resolve_sets':
+            - copy.deepcopy() usages
+            - perhaps offload to new transformers protocol
+    [ ] ' AssemblyService.hydrate':
+            - offload to a new transformers protocol?
+            - does 'AssemblyService.hydrate' become passthrough - or do I allow caller protocol access?
+    [ ] various usages of 'Path'
+            - is this a simple 'move path stuff inside existing bridge' job?
 
-2. Space reclamation program:
-    - Easy pickings have been had - what else?
+2. Filebridge & adapter tokenized path normalization
 
-3.  Shared Domains & seed / pud configs overhaul
-    -   Shared domain 'presentation': shared to promote uniform presentation (e.g readme) work
-        'README.md' attaches to 'domain_fragments'
-            - prompt 'core': 
-                instructional prompt fragments attach to 'prompt_fragments'
-                fileset 'core' attaches to 'repo-content'
-            - prompt 'docs
-                instructional prompt fragments attach to 'prompt_fragments'
-                pud progress docs also attach to 'prompt_fragments'
-                no fileset
+    - read_clanker_asset & read_pud_asset : combine to one tokenized method (wait with this)
+        - needs source analysis
 
-
-    - Seed domain 'manifest analysis': 
-        - domain fragment -> 'manifest resolver' 
-        - prompt 'on-init': 
-            prompt_fragments: MDF resolver
-                -> a 'config frags package', containing shared, kb def & pud config
-                -> 'explore-repo.pfrag': make it generate further prompts in domain
-                -> 'config-dev-output.instruction'
-                -> domain / render output instructions: for ez
-
-4. Move templates and layouts out of shared assets dir
-    - shared assets just config and prompt frags
-
-'''
-§base_fragments§ -> sits in 'kb def', taken
-§domain_fragments§ -> 
-§prompt_fragments§ ->
-§repo_content§
-'''
-
-git push checklist
-    - Clanker compiles prompts?
-        - yes
-
-    - Iannen too?
-        - yes 
-
-    - Cloudproject?
-
-    - testrepo -> fresh init all g?
-
+    - getAssetMap & getFileContent: serve MULTI_DOC of AssemblyService._resolve only (wait with this)
+        - So perhaps the bridge can deliver the finished product in one call?
+        - That would obscure the truncation, which is not desireable
+        - anyway, should the new method be tokenized? i think perhaps not -> it could work like 'first pud, then shared'
+        - so we get some bridge methods which are tokenized, and others that work off of a fallback from pud to shared
 
 
 III. Slated for implementation:
+
+1. Filebridge & adapter tokenized path normalization 
+    [ ] 'clanker.py' & 'adapters.py':
+        - '(FileBridgePort / FileBridge).write_yaml'
+            - Config.DEFAULT_REL_PATH -> refactor to hold path as plain str "/.clanker/config.yaml"
+            - write_yaml methods: refactor to accept tokenized string
+            - call site: refactor to supply in-arg concatinated tokenized string:  
+                - write_yaml(BasePathTokens.PUD + Config.DEFAULT_REL_PATH, default_config_data)
+
+    [ ] 'clanker.py' & 'adapters.py' write_content methods: not used prune from adapter & port
 
 IV. Recently implemented:
 
