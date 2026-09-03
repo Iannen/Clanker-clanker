@@ -125,18 +125,6 @@ class FileSet -> to deal with filesets of repo and manifest resolver first class
 
 III. Slated for implementation:
 
-1. Extract object graph assembly from SessionService to dedicated RuntimeConfigAssembler adapter
-    [ ] 'clanker.py': Define 'RuntimeConfigAssemblerProtocol' and update 'SessionService' orchestrator
-        - add 'RuntimeConfigAssemblerProtocol' protocol with method '.assemble(config_data, kb_def_data, shared_domains_data) -> Keyboard'
-        - update 'SessionService.__init__' to accept 'assembler: RuntimeConfigAssemblerProtocol'
-        - refactor 'SessionService.get_keyboard()' into a clean 3-phase orchestrator: acquire config fragment dicts via 'self.files', validate via 'self.validator', and delegate object graph creation to 'self.assembler.assemble()'
-        - move '_resolve_sets' out of 'SessionService' and into the assembler implementation
-        - update 'main()' entrypoint to instantiate and wire the assembler adapter
-    [ ] 'utilities.py': Implement 'RuntimeConfigAssembler' class
-        - implement '.assemble(config_data, kb_def_data, shared_domains_data) -> Keyboard' meeting 'RuntimeConfigAssemblerProtocol'
-        - encapsulate set resolution, dictionary merging, button mapping, and Pydantic object tree construction previously in 'SessionService'
-        - preserve current domain models and Pydantic validation behavior to ensure complete functional parity
-
 IV. Recently implemented:
 
 V. Critical bugs

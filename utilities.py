@@ -1,6 +1,15 @@
 from __future__ import annotations
 from ruamel.yaml import YAML
 from clanker import ConfigViolations
+from models import (
+    Button,
+    Config,
+    Constructed,
+    Domain,
+    Keyboard,
+    Render,
+    Resolver,
+)
 
 import re
 
@@ -109,3 +118,55 @@ class ConfigValidator:
             msg_parts = [filepath] if filepath else []
             msg_parts.extend(violations)
             raise ConfigViolations("\n".join(msg_parts))
+
+class RuntimeConfigAssembler:
+    def assemble(self, config_data: dict, kb_def_data: dict, shared_domains_data: dict) -> Keyboard:
+        from clanker import Button, Domain, Keyboard
+        import copy
+
+        sets_map = {**shared_domains_data.get("sets", {}), **config_data.get("sets", {})}
+        shared_domains = shared_domains_data.get("domains", [])
+        user_domains = config_data.get("domains", [])
+        combined_domains = shared_domains + user_domains
+        resolved_domains = self._resolve_sets(combined_domains, sets_map)
+
+        raw_yaml = {**kb_def_data, **config_data}
+        raw_yaml["domains"] = resolved_domains
+
+        button_map = {}
+        for row_key, row in raw_yaml["kb_def"]["rows"].items():
+            for prim, sec in zip(row["primary"], row["secondary"]):
+                button_map[prim] = button_map[sec] = Button(
+                    type=row_key, primary_letter=prim, secondary_letter=sec, inhabitant=None
+                )
+
+        for prim_char, d in zip(raw_yaml["kb_def"]["rows"]["domain_row"]["primary"], raw_yaml["domains"]):
+            button_map[prim_char].inhabitant = Domain.model_validate(d)
+
+        return Keyboard.model_validate({
+            "button_map": button_map,
+            "render": raw_yaml["kb_def"]["render"],
+            "resolvers": raw_yaml["kb_def"].get("resolvers"),
+        })
+
+    def _resolve_sets(self, node: Any, sets_map: dict[str, Any]) -> Any:
+        import copy
+        if isinstance(node, list):
+            return [self._resolve_sets(item, sets_map) for item in node]
+        elif isinstance(node, dict):
+            res_copy = node.copy()
+
+            pointer_key = res_copy.pop("fileset", None)
+            if pointer_key and pointer_key in sets_map:
+                set_val = sets_map[pointer_key]
+                if isinstance(set_val, dict):
+                    res_copy.update(copy.deepcopy(set_val))
+
+            for fs_key in ("pud_fileset", "shared_fileset"):
+                if fs_key in res_copy and isinstance(res_copy[fs_key], str):
+                    target_alias = res_copy[fs_key]
+                    if target_alias in sets_map:
+                        res_copy[fs_key] = copy.deepcopy(sets_map[target_alias])
+
+            return {k: self._resolve_sets(v, sets_map) for k, v in res_copy.items()}
+        return node

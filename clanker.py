@@ -7,8 +7,17 @@ import sys
 import traceback
 import copy
 from typing import Callable, ClassVar, Any, Protocol
-from pydantic import BaseModel, ConfigDict, Field, model_validator
 from abc import ABC, abstractmethod
+from models import (
+    Button,
+    Config,
+    Constructed,
+    Domain,
+    Keyboard,
+    Render,
+    Resolver,
+    SystemKeys,
+)
 
 """ 2. Base Classes & Main function """
 
@@ -85,20 +94,18 @@ class Bridge(ABC):
             return BaseEx.wrap_bridge_call(fn, *args, **kwargs)
         return wrapper
 
-class Constructed(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
 def main():
     try:
         from adapters import FileBridge, IOBridge
-        from utilities import ConfigValidator, DefaultContentShaper
-
         files_adapter = FileBridge()
         io_adapter = IOBridge()
+        
+        from utilities import ConfigValidator, DefaultContentShaper, RuntimeConfigAssembler
         validator = ConfigValidator()
         shaper = DefaultContentShaper()
+        assembler = RuntimeConfigAssembler()
 
-        session = SessionService(files=files_adapter, validator=validator)
+        session = SessionService(files=files_adapter, validator=validator, assembler=assembler)
         renderer = AssemblyService(files=files_adapter, shaper=shaper)
         io = IOService(io_bridge=io_adapter)
 
@@ -146,9 +153,6 @@ class IOControl:
     ACCEPT_KEY = "\x04"
     BACKSPACE_KEYS = ("\x7f", "\x08")
 
-class SystemKeys:
-    DELIM = "§"
-
 class ActionResult:
     def __init__(self, message: str):
         self.message = message
@@ -179,95 +183,6 @@ class NoConfig(ControlNotice): pass
 class ConfigViolations(UserNotice): pass
 
 """ 4. App Abstractions (Models & Engine) """
-
-class Render(Constructed):
-    name: str
-    template: str = "prompt_template"
-    resolvers: list[Resolver] = []
-    inherit_base: bool = True
-    inherit_domain: bool = True
-
-class Domain(Constructed):
-    name: str
-    renders: list[Render] = []
-    resolvers: list[Resolver] = []
-
-class Config(Constructed):
-    DEFAULT_REL_PATH: ClassVar[str] = "/.clanker/config.yaml"
-    DEFAULT_ASSETS_DIR: ClassVar[Path] = Path(".clanker/assets")
-    layout: str
-    domains: list[str]
-
-class Resolver(BaseModel):
-    class Type(str, Enum):
-        MULTI_DOC = "multi-document-retrieval"
-        FULL_PATH_FILE = "full-path-file-retrieval"
-        REPO_CONTENT = "repo_content"
-        KB_INFO = "kb_info"
-        REPO_MANIFEST = "repo-manifest"
-    id: str
-    type: Type
-    payload: dict[str, Any] = {}
-
-    @model_validator(mode="before")
-    @classmethod
-    def extract_payload(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            obj_id = data.get("id", "")
-            obj_type = data.get("type", None)
-            payload = {k: v for k, v in data.items() if k not in ("id", "type")}
-            return {
-                "id": obj_id,
-                "type": obj_type,
-                "payload": payload
-            }
-        return data
-
-class Button(Constructed):
-    model_config = ConfigDict(
-        extra="forbid",
-        arbitrary_types_allowed=True  
-    )
-    type: str 
-    primary_letter: str
-    secondary_letter: str
-    inhabitant: Domain | Render | None = None
-    primary_action: Callable | None = None
-    shift_action: Callable | None = None
-
-    def get_repl_map(self, label: str, template: str) -> dict[str, str]:
-        lines = template.strip("\n").splitlines()
-        norm_label = label[:6].ljust(6)
-        mapped_lines = [
-            lines[0],
-            lines[1],
-            lines[2].replace(SystemKeys.DELIM, self.primary_letter, 1),
-            lines[3],
-            lines[4].replace(SystemKeys.DELIM * 6, norm_label, 1),
-        ]
-        return {f"{self.primary_letter}{idx}": line for idx, line in enumerate(mapped_lines)}
-
-class Keyboard(Constructed):
-    button_map: dict[str, Button] = Field(default_factory=dict)
-    render: Render 
-    resolvers: list[Resolver] = []
-    selected_key: str | None = None
-
-    def get_unique_buttons(self, btn_type: str | None = None) -> list[Button]:
-        unique = {btn.primary_letter: btn for btn in self.button_map.values()}.values()
-        if btn_type is None:
-            return list(unique)
-        return [btn for btn in unique if btn.type == btn_type]
-
-    def handle_key(self, key: str) -> ActionResult | None:
-        btn = self.button_map.get(key)
-        if btn is None:
-            return None
-        if key == btn.primary_letter and callable(btn.primary_action):
-            return btn.primary_action(btn.primary_letter)
-        elif key == btn.secondary_letter and callable(btn.shift_action):
-            return btn.shift_action(btn.primary_letter)
-        return ActionResult(f"No action bound to key '{key}'")
 
 class GameEngine(Engine):
     def __init__(
@@ -355,9 +270,15 @@ class GameEngine(Engine):
 """ 5. Services """
 
 class SessionService:
-    def __init__(self, files: FileBridgePort, validator: ConfigValidatorProtocol) -> None:
+    def __init__(
+        self,
+        files: FileBridgePort,
+        validator: ConfigValidatorProtocol,
+        assembler: RuntimeConfigAssemblerProtocol
+    ) -> None:
         self.files = files
         self.validator = validator
+        self.assembler = assembler
 
     def _get_validated_cfg_fragment(self, fragment_token_path: str) -> dict:
         try:
@@ -370,7 +291,6 @@ class SessionService:
             raise UserTask(str(ex)) from ex
 
     def get_keyboard(self) -> Keyboard:
-        # Phase 1: Acquisition
         try:
             config_data = self._get_validated_cfg_fragment(BasePathTokens.PUD + CfgFragments.PUD_CFG)
         except FileNotFoundError:
@@ -382,52 +302,7 @@ class SessionService:
         except FileNotFoundError as ex:
             raise ConfigAssemblyFailure(f"Missing configuration fragment: {ex}") from ex
 
-        # Phase 2: Execution / Assembly
-        sets_map = {**shared_domains_data.get("sets", {}), **config_data.get("sets", {})}
-        shared_domains = shared_domains_data.get("domains", [])
-        user_domains = config_data.get("domains", [])
-        combined_domains = shared_domains + user_domains
-        resolved_domains = self._resolve_sets(combined_domains, sets_map)
-
-        raw_yaml = {**kb_def_data, **config_data}
-        raw_yaml["domains"] = resolved_domains
-
-        button_map = {}
-        for row_key, row in raw_yaml["kb_def"]["rows"].items():
-            for prim, sec in zip(row["primary"], row["secondary"]):
-                button_map[prim] = button_map[sec] = Button(
-                    type=row_key, primary_letter=prim, secondary_letter=sec, inhabitant=None
-                )
-
-        for prim_char, d in zip(raw_yaml["kb_def"]["rows"]["domain_row"]["primary"], raw_yaml["domains"]):
-            button_map[prim_char].inhabitant = Domain.model_validate(d)
-
-        return Keyboard.model_validate({
-            "button_map": button_map,
-            "render": raw_yaml["kb_def"]["render"],
-            "resolvers": raw_yaml["kb_def"].get("resolvers"),
-        })
-
-    def _resolve_sets(self, node: Any, sets_map: dict[str, Any]) -> Any:
-        if isinstance(node, list):
-            return [self._resolve_sets(item, sets_map) for item in node]
-        elif isinstance(node, dict):
-            res_copy = node.copy()
-
-            pointer_key = res_copy.pop("fileset", None)
-            if pointer_key and pointer_key in sets_map:
-                set_val = sets_map[pointer_key]
-                if isinstance(set_val, dict):
-                    res_copy.update(copy.deepcopy(set_val))
-
-            for fs_key in ("pud_fileset", "shared_fileset"):
-                if fs_key in res_copy and isinstance(res_copy[fs_key], str):
-                    target_alias = res_copy[fs_key]
-                    if target_alias in sets_map:
-                        res_copy[fs_key] = copy.deepcopy(sets_map[target_alias])
-
-            return {k: self._resolve_sets(v, sets_map) for k, v in res_copy.items()}
-        return node
+        return self.assembler.assemble(config_data, kb_def_data, shared_domains_data)
 
     def initialize_workspace(self) -> None:
         if self.files.is_cwd_script_dir():
@@ -658,6 +533,9 @@ class ConfigValidatorProtocol(Protocol):
     def assert_no_quotes(self, raw_text: str, filepath: str = "") -> None: ...
     def get_as_dict(self, raw_text: str) -> dict: ...
     def assert_filesets_not_neglected(self, cfg_frag: dict, filepath: str = "") -> None: ...
+
+class RuntimeConfigAssemblerProtocol(Protocol):
+    def assemble(self, config_data: dict, kb_def_data: dict, shared_domains_data: dict) -> Keyboard: ...
 
 class FileBridgePort(Bridge):
 

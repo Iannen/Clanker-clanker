@@ -232,3 +232,8 @@ XLVI: SERVICE MEMBER REVIEW & AUDIT (PART 1)
     - Confirmed narrow exception handling and core visibility priorities in `SessionService.initialize_workspace`
     - Standardized `AssemblyService.hydrate` to delegate text shaping and transformation to `ContentShaper`
     - Verified operational integrity across input/output methods in `IOService` (`display`, `to_clipboard`, `get_key`, `get_confirmation`)
+
+XLVII: RUNTIME CONFIG ASSEMBLER ADAPTER & MODEL EXTRACTION
+    - Extracted object graph assembly from SessionService to dedicated RuntimeConfigAssembler adapter matching RuntimeConfigAssemblerProtocol
+    - Refactored SessionService.get_keyboard into a 3-phase orchestrator delegating setup to file acquisition, validation, and assembly
+    - Relocated domain models and SystemKeys into models.py to fix type verification issues across domain-attached resolvers

@@ -1,5 +1,5 @@
 sets:
-  core: {includes: [clanker.py], excludes: []}
+  core: {includes: [clanker.py, models.py], excludes: []}
 
 domains:
 - name: script-dev
