@@ -287,7 +287,7 @@ class GameEngine(Engine):
             return ActionResult("Bootstrap completed successfully")
         except NoConfig:
             try:
-                self.io.get_confirmation("Directory not initialized as clank repo - do so?")
+                self.io.get_confirmation("Directory not initialized as clank repo - clankerize?", "yes")
                 self.session.initialize_workspace()
                 return self._bootstrap()
             except UserDecline:
@@ -622,14 +622,11 @@ class IOService:
         return ch
 
     def get_confirmation(self, prompt_msg: str, required_phrase: str | None = None) -> None:
-        if required_phrase is not None:
-            instructions = (
-                f"Type '{required_phrase}' and press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n"
-            )
-        else:
-            instructions = "Press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n"
+        instructions = f"Type '{required_phrase}' and press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n> "
+        if required_phrase is None:
+            instructions = "Press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n"            
         base_msg = f"\n{prompt_msg}\n{instructions}"
-        self.io_bridge.write(base_msg + "> ")
+        self.io_bridge.write(base_msg)
         while True:
             status, value = self.io_bridge.get_acceptance(required_phrase)
             if status == IOControl.ACCEPTED:
@@ -637,10 +634,7 @@ class IOService:
             if status == IOControl.DECLINED:
                 raise UserDecline
             if status == IOControl.INVALID:
-                err = (
-                    f"Invalid confirmation. Expected '{required_phrase or ''}', "
-                    f"got '{value}'. Try again.\n"
-                )
+                err = f"Invalid confirmation. Expected '{required_phrase}', got '{value}'. Try again.\n"
                 self.io_bridge.write(base_msg + err + "> ")
 
 """ 6. Bridge Ports"""

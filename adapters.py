@@ -32,16 +32,21 @@ class IOBridge(IOBridgePort):
         return ch
 
     def get_acceptance(self, required_phrase: str | None) -> tuple[str, str]:
-        # Thanks to grok, this needs to be revisited. When that time comes:
-        # required_phrase- > we just fish for either a ctrld, which is accept, or a cancelkey, which means return the decline case.
-        required = required_phrase if required_phrase is not None else ""
+        if required_phrase is None:
+            while True:
+                ch = self.read_char()
+                if ch in IOControl.ABORT_KEYS:
+                    return (IOControl.DECLINED, "")
+                if ch == IOControl.ACCEPT_KEY:
+                    return (IOControl.ACCEPTED, "")
+
         buffer = ""
         while True:
             ch = self.read_char()
             if ch in IOControl.ABORT_KEYS:
                 return (IOControl.DECLINED, "")
             if ch == IOControl.ACCEPT_KEY:
-                if buffer == required:
+                if buffer == required_phrase:
                     sys.stdout.write("\n")
                     sys.stdout.flush()
                     return (IOControl.ACCEPTED, "")
