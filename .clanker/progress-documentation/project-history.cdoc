@@ -212,3 +212,7 @@ XLII: SESSION SERVICE REFACTOR & CONFIG ACQUISITION
     - Refactored `SessionService.get_keyboard` into distinct acquisition and execution phases
     - Implemented strict two-block configuration fragment acquisition enforcing no fallbacks and raising `NoConfig` or `ConfigAssemblyFailure` appropriately
     - Rationalized defensive coding and consolidated declarations at the start of the execution phase
+
+XLIII: WORKSPACE INITIALIZATION & TEMPLATE HYDRATION CLEANUP
+    - Refactored `SessionService.initialize_workspace` exception handling to narrowly catch `FileNotFoundError` and raise `ConfigAssemblyFailure`
+    - Delegated template hydration in `AssemblyService.hydrate` to the `ContentShaper` adapter

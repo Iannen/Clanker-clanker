@@ -24,7 +24,8 @@ II. Items to refine & QC:
             - evaluated to be ok
     - AssemblyService
         hydrate
-            - potentially move to 'ContentShaper'? this becomes passthrough then.
+            - now uses an adapter for the transformation
+            - evaluated to be ok
         get_template
             - here we can at least rationalize to do the action inside the match clauses    
         get_repl_map
@@ -55,15 +56,6 @@ II. Items to refine & QC:
             - this one is up for review. can the bridge do more
 
 III. Slated for implementation:
-
-1. 'clanker.py':
-
-        [x] 'SessionService.initialize_workspace': remove general ex clause -> FNFE into ConfigAssemblyFailure is enough
-
-        [ ] 'clanker.py' & 'utilities.py': 'AssemblyService.hydrate: now relies on 'ContentShaper' for the work:
-         'AssemblyService.hydrate: now relies on 'ContentShaper' for the work:
-            - ContentShaper (both files): new member 'self, delim:str, template: str, replacements: dict[str, str]) -> str:'
-            - 'AssemblyService.hydrate': now calls new 'ContentShaper' member, passing the required args
 
 IV. Recently implemented:
 

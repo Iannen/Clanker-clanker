@@ -3,7 +3,6 @@ from __future__ import annotations
 from enum import Enum
 import os
 from pathlib import Path
-import re
 import sys
 import traceback
 import copy
@@ -451,12 +450,7 @@ class AssemblyService:
         self.shaper = shaper
 
     def hydrate(self, template: str, replacements: dict[str, str]) -> str:
-        token = SystemKeys.DELIM
-        pattern = re.compile(rf"{token}([^{token}]+){token}")
-        return pattern.sub(
-            lambda m: replacements.get(m.group(1).strip(), m.group(0)),
-            template
-        )
+        return self.shaper.hydrate(SystemKeys.DELIM, template, replacements)
 
     def get_template(self, render: Render) -> str:
         match render.template:
@@ -679,6 +673,7 @@ class IOBridgePort(Bridge):
 class ContentShaper(Protocol):
     def normalize_file_spec(self, item: str | dict) -> tuple[str, int | None]: ...
     def trim_to_tail(self, content: str, tail_lines: int | None) -> str: ...
+    def hydrate(self, delim: str, template: str, replacements: dict[str, str]) -> str: ...
 
 class ConfigValidatorProtocol(Protocol):
     def assert_no_quotes(self, raw_text: str, filepath: str = "") -> None: ...

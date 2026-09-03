@@ -2,6 +2,8 @@ from __future__ import annotations
 from ruamel.yaml import YAML
 from clanker import ConfigViolations
 
+import re
+
 class DefaultContentShaper:
     def normalize_file_spec(self, item: str | dict) -> tuple[str, int | None]:
         if isinstance(item, dict):
@@ -14,6 +16,13 @@ class DefaultContentShaper:
             if len(lines) > tail_lines:
                 return "**truncated**\n" + "\n".join(lines[-tail_lines:])
         return content
+
+    def hydrate(self, delim: str, template: str, replacements: dict[str, str]) -> str:
+        pattern = re.compile(rf"{delim}([^{delim}]+){delim}")
+        return pattern.sub(
+            lambda m: replacements.get(m.group(1).strip(), m.group(0)),
+            template
+        )
 
 class ConfigValidator:
     def __init__(self) -> None:
