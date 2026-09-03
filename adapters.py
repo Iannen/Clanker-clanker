@@ -135,33 +135,36 @@ class FileBridge(FileBridgePort):
                         resolved_files.add(file_path.relative_to(base_dir))
         return resolved_files
 
-    def getAssetMap(self) -> dict[str, Path]:
-        clank_map: dict[str, Path] = {}
-        clanker_dot_dir = self.clanker_path / ".clanker"
-        if clanker_dot_dir.exists():
-            for path in clanker_dot_dir.rglob("*"):
-                if path.is_file():
-                    filename = path.name
-                    if filename in clank_map:
-                        raise IllegalDuplicateFile(
-                            f"Clanker asset collision: {clank_map[filename]} {path}"
-                        )
-                    clank_map[filename] = path
+    def get_contents_with_pud_fallback(self, file_names: list[str]) -> dict[str, str | None]:
+        ret_map: dict[str, str | None] = {fn: None for fn in file_names}
+
+        shr_map: dict[str, Path] = {}
+        shr_dir = self.clanker_path / ".clanker"
+        if shr_dir.exists():
+            for fn in file_names:
+                matches = [p for p in shr_dir.rglob("*") if p.is_file() and p.name == fn]
+                if len(matches) > 1:
+                    raise IllegalDuplicateFile(f"Collision in SHARED for '{fn}': {matches}")
+                elif len(matches) == 1:
+                    shr_map[fn] = matches[0]
 
         pud_map: dict[str, Path] = {}
-        pud_dot_dir = self.pud_path / ".clanker"
-        if pud_dot_dir.exists():
-            for path in pud_dot_dir.rglob("*"):
-                if path.is_file():
-                    filename = path.name
-                    if filename in pud_map:
-                        raise IllegalDuplicateFile(
-                            f"PUD asset collision: {pud_map[filename]} {path}"
-                        )
-                    pud_map[filename] = path
+        pud_dir = self.pud_path / ".clanker"
+        if pud_dir.exists():
+            for fn in file_names:
+                matches = [p for p in pud_dir.rglob("*") if p.is_file() and p.name == fn]
+                if len(matches) > 1:
+                    raise IllegalDuplicateFile(f"Collision in PUD for '{fn}': {matches}")
+                elif len(matches) == 1:
+                    pud_map[fn] = matches[0]
 
-        clank_map.update(pud_map)
-        return clank_map
+        resolved_paths: dict[str, Path] = {**shr_map, **pud_map}
+
+        for fn, path in resolved_paths.items():
+            if fn in ret_map:
+                ret_map[fn] = path.read_text(encoding="utf-8")
+
+        return ret_map
 
     def getFileContent(self, full_path: Path | str) -> str:
         return Path(full_path).read_text(encoding="utf-8")

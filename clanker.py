@@ -535,22 +535,24 @@ class AssemblyService:
     def _resolve(self, resolver: Resolver, keyboard: Keyboard) -> list[tuple[str, str]]:
 
         if resolver.type == Resolver.Type.MULTI_DOC:
-            fragments = []
-            asset_map = self.files.getAssetMap()
+            raw_files = resolver.payload.get("files") or []
+            file_specs = [self._extract_file_spec(item) for item in raw_files]
+            filenames = [spec[0] for spec in file_specs]
 
-            for item in resolver.payload.get("files", []):
-                filename, tail_lines = self._extract_file_spec(item)
+            contents_map = self.files.get_contents_with_pud_fallback(filenames)
+
+            fragments = []
+            for filename, tail_lines in file_specs:
                 basename = Path(filename).name
-                target_path = asset_map.get(basename)
-                
-                if target_path:
-                    content = self.files.getFileContent(target_path)
-                    content = self._apply_tail_truncation(content, tail_lines)
+                raw_content = contents_map.get(filename)
+
+                if raw_content is not None:
+                    content = self._apply_tail_truncation(raw_content, tail_lines)
                 else:
                     content = f"[{resolver.id}: No content found at '{filename}']"
-                    
+
                 fragments.append(f"<{basename}>\n{content}\n</{basename}>")
-                
+
             return [(resolver.id, "\n\n".join(fragments))]
 
         if resolver.type == Resolver.Type.FULL_PATH_FILE:
@@ -732,10 +734,7 @@ class FileBridgePort(Bridge):
     ) -> set[Path]: pass
 
     @abstractmethod
-    def getAssetMap(self) -> dict[str, Path]: pass
-
-    @abstractmethod
-    def getFileContent(self, full_path: Path | str) -> str: pass
+    def get_contents_with_pud_fallback(self, file_names: list[str]) -> dict[str, str | None]: pass
 
 """ 7. Script Entrypoint """
 
