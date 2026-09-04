@@ -13,6 +13,7 @@ from models import (
     Config,
     Domain,
     Keyboard,
+    Prompt,
     Render,
     Resolver,
     SystemKeys,
@@ -235,7 +236,7 @@ class GameEngine(Engine):
             b.inhabitant = b.action = None
 
         if case == "inhabited":
-            for p_btn, prompt in zip(prompt_btns, ref_btn.inhabitant.renders):
+            for p_btn, prompt in zip(prompt_btns, ref_btn.inhabitant.prompts):
                 p_btn.inhabitant = prompt
                 p_btn.action = self._compile_to_clipboard
 
@@ -250,9 +251,10 @@ class GameEngine(Engine):
 
     def _compile_to_clipboard(self, key: str) -> ActionResult:
         btn = self.kb.button_map.get(key)
-        if btn is None or btn.inhabitant is None:
+        if btn is None or btn.inhabitant is None or not isinstance(btn.inhabitant, Prompt):
             return ActionResult(f"No prompt assigned to key '{key}'")
-        rendered_text = self._render(self.runtime_config, btn.inhabitant)
+        first_render = btn.inhabitant.renders[0]
+        rendered_text = self._render(self.runtime_config, first_render)
         lines_count = self.io.to_clipboard(rendered_text)
         char_count = len(rendered_text)
         return ActionResult(f"Copied {lines_count} lines ({char_count} chars) to clipboard")

@@ -15,39 +15,40 @@ II. Items to refine & QC:
         - update 'kb_def.yaml' -> 'system_cfg.yaml'
     [ ] 'models.py': New set of domain model classes: 
 '''
-class RuntimeConfig: # purportedly fully aligned
+class RuntimeConfig: # fully implemented
     keyboard: Keyboard
     ui_render: Render
     base_resolvers: [Resolver]
 
-class Keyboard: # purportedly fully aligned
+class Keyboard: # fully implemented
     button_map: dict[str, Button] 
     selected_key: str | None
     def get_unique_buttons
     def handle_key 
 
-class Button:
+class Button: # needs a revision next leg
     type: str
     key: str
-    inhabitant: Domain | Prompt | None = None
+    inhabitant: Domain | Prompt | None = None # this is Domain | Prompt | Render | None = None in codebase atm. there should be no Render, now that Prompt is implemented
     action: Callable | None = None
     def get_repl_map
 
-class Domain
+class Domain # fully implemented
     name: str
     resolvers: [Resolver]
     prompts: [Prompt]
 
-class Prompt 
+class Prompt:  # needs revision next leg
     name: str
-    renders: [Render]
+    renders: [Render] # this needs to be singular, non-nullable
 
-class Render -> 
+class Render: # implemented
     template: str = "prompt_template"
     resolvers: [Resolver]
     inherit_base: bool = True
     inherit_domain: bool = True
 
+#below stuff, not aligned / implemented I think
 class Resolver:
     anchor: str
     def get_repl_map: dict[str, str]
@@ -78,27 +79,25 @@ class FileSet -> to deal with filesets of repo and manifest resolver first class
     excludes: [str]
 '''
 
+1d. Revision per # embedded comments of master bl item II.1, lets hash it out
+
 III. Slated for implementation:
 
 IV. Recently implemented:
 
-1b. Half-align 'Button' model & remove legacy alt-mode / shift-action code ( this is converted to hist )
-    [x] 'models.py': Update Button & Keyboard models
-        - Rename Button.primary_letter -> key and Button.primary_action -> action
-        - Remove Button.secondary_letter and Button.shift_action
-        - Preserve inhabitant: Domain | Render | None type binding (defer Prompt class introduction)
-        - Update Button.get_repl_map and Keyboard methods to use key and action
-    [x] 'clanker.py': Clean up key handling, service normalization & engine bindings
-        - Update IOService.get_key to normalize navigation key input to lower-case
-        - Simplify Keyboard.handle_key to dispatch solely on key and action
-        - Remove all shift_action bindings and NotImplementedError lambda stubs in GameEngine
-        - Update AssemblyService._resolve (KB_INFO block) to use btn.key instead of btn.primary_letter
-    [x] 'adapters.py': i reason that this requires no attention based on contents of 'clanker.py' and 'models.py'
-        - it only returns chars. the service will normalize 
-    [x] 'utilities.py': Refactor RuntimeConfigAssembler button map creation
-        - Update _build_button_map to construct Button using single key sequence without secondary mapping
-        - Update domain_keys lookup in assemble() to read single key sequence directly
-    [x] 'system_cfg.yaml': Remove secondary row properties from kb_def schema
-        - Remove all 'secondary' key mappings under domain_row, prompt_row, and action_row
-        
+1c. Introduce 'Prompt' model wrapper and align Domain/Render hierarchy
+    [x] 'models.py': Define Prompt class and update Domain and Render dataclasses
+        - Introduce Prompt(name: str, renders: list[Render]) dataclass
+        - Update Domain model to replace renders attribute with prompts: list[Prompt]
+        - Update Render model to remove name attribute and add default template = "prompt_template"
+    [x] 'utilities.py': Update RuntimeConfigAssembler for Prompt hierarchy
+        - Update domain parsing to construct Prompt objects containing Render instances
+    [x] 'clanker.py': Update GameEngine and AssemblyService to handle Prompt models
+        - Update _set_selected_num_btn to populate prompt row buttons using domain prompts
+        - Update _compile_to_clipboard and AssemblyService resolving/rendering to read from Prompt.renders
+    [x] 'shared_cfg.yaml': Align domain prompt configurations to nest render definitions under Prompt objects
+        - Move 'name' attribute to Prompt level and nest 'renders' list/config under each prompt
+    [x] 'config.yaml': Align similar to 'shared_cfg.yaml'
+
+
 V. Critical bugs

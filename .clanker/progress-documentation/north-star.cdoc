@@ -57,3 +57,5 @@ domains:
       resolvers:
         - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.md, backlog-output-instructions.md] } 
 '''
+
+randomthought: the user has the choice of inline yml declarations, or root level named declarations for as many things as possible

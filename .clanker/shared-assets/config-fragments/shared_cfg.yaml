@@ -15,26 +15,30 @@ domains:
   - name: config-dev
     resolvers:
       - { id: prompt_fragments, type: multi-document-retrieval, files: [config.yaml, kb_def.yaml, shared_domains.yaml] }
-    renders:
+    prompts:
       - name: manifest-analysis
-        resolvers:
-          - { id: domain_fragments, type: repo-manifest, pud_fileset: all, shared_fileset: clanker-shared-assets }
-          - { id: repo_content, type: repo_content, fileset: default_repo_content }
+        renders:
+          - resolvers:
+              - { id: domain_fragments, type: repo-manifest, pud_fileset: all, shared_fileset: clanker-shared-assets }
+              - { id: repo_content, type: repo_content, fileset: default_repo_content }
       - name: config-dev
-        resolvers:
-          - { id: domain_fragments, type: multi-document-retrieval, files: [config-development-mode.md] }
-          - { id: repo_content, type: repo_content, fileset: default_repo_content }
+        renders:
+          - resolvers:
+              - { id: domain_fragments, type: multi-document-retrieval, files: [config-development-mode.md] }
+              - { id: repo_content, type: repo_content, fileset: default_repo_content }
 
   - name: presentation
     # Purpose: standardized readme development across projects
     resolvers:
       - { id: domain_fragments, type: full-path-file-retrieval, files: [README.md] } 
-    renders:
+    prompts:
       - name: core
-        resolvers:
-          - { id: prompt_fragments, type: multi-document-retrieval, files: [readme.docspec] }
-          - { id: repo_content, type: repo_content, fileset: core }
+        renders:
+          - resolvers:
+              - { id: prompt_fragments, type: multi-document-retrieval, files: [readme.docspec] }
+              - { id: repo_content, type: repo_content, fileset: core }
       - name: docs
-        resolvers:
-          - { id: prompt_fragments, type: multi-document-retrieval, files: [readme.docspec, architecture.cdoc, backlog.cdoc, north-star.cdoc, project-history.cdoc] }
-          - { id: repo_content, type: repo_content, fileset: empty }
+        renders:
+          - resolvers:
+              - { id: prompt_fragments, type: multi-document-retrieval, files: [readme.docspec, architecture.cdoc, backlog.cdoc, north-star.cdoc, project-history.cdoc] }
+              - { id: repo_content, type: repo_content, fileset: empty }

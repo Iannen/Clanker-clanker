@@ -9,6 +9,7 @@ from models import (
     Config,
     Domain,
     Keyboard,
+    Prompt,
     Render,
     Resolver,
     RuntimeConfig,
@@ -94,20 +95,23 @@ class ConfigValidator:
                     key = _make_key(inc, exc)
                     inline_filesets.append((key, domain_name, None))
 
-            for render in domain.get("renders", []):
-                if not isinstance(render, dict):
+            for prompt in domain.get("prompts", []):
+                if not isinstance(prompt, dict):
                     continue
-                render_name = render.get("name")
-                for resolver in render.get("resolvers", []):
-                    if not isinstance(resolver, dict):
+                prompt_name = prompt.get("name")
+                for render in prompt.get("renders", []):
+                    if not isinstance(render, dict):
                         continue
-                    if "fileset" in resolver or "varname" in resolver:
-                        continue
-                    inc = resolver.get("includes", [])
-                    exc = resolver.get("excludes", [])
-                    if inc or exc:
-                        key = _make_key(inc, exc)
-                        inline_filesets.append((key, domain_name, render_name))
+                    for resolver in render.get("resolvers", []):
+                        if not isinstance(resolver, dict):
+                            continue
+                        if "fileset" in resolver or "varname" in resolver:
+                            continue
+                        inc = resolver.get("includes", [])
+                        exc = resolver.get("excludes", [])
+                        if inc or exc:
+                            key = _make_key(inc, exc)
+                            inline_filesets.append((key, domain_name, prompt_name))
 
         for string_key, domain, render in inline_filesets:
             if string_key in named_fileset_map:
@@ -173,19 +177,25 @@ class RuntimeConfigAssembler:
     def _build_render(self, data: dict, sets_map: dict[str, Any]) -> Render:
         resolvers = [self._build_resolver(r, sets_map) for r in data.get("resolvers", [])]
         return Render(
-            name=data["name"],
             template=data.get("template", "prompt_template"),
             resolvers=resolvers,
             inherit_base=data.get("inherit_base", True),
             inherit_domain=data.get("inherit_domain", True)
         )
 
-    def _build_domain(self, data: dict, sets_map: dict[str, Any]) -> Domain:
+    def _build_prompt(self, data: dict, sets_map: dict[str, Any]) -> Prompt:
         renders = [self._build_render(r, sets_map) for r in data.get("renders", [])]
+        return Prompt(
+            name=data["name"],
+            renders=renders
+        )
+
+    def _build_domain(self, data: dict, sets_map: dict[str, Any]) -> Domain:
+        prompts = [self._build_prompt(p, sets_map) for p in data.get("prompts", [])]
         resolvers = [self._build_resolver(r, sets_map) for r in data.get("resolvers", [])]
         return Domain(
             name=data["name"],
-            renders=renders,
+            prompts=prompts,
             resolvers=resolvers
         )
 

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, ClassVar
@@ -28,23 +28,27 @@ class Resolver:
 
 @dataclass
 class Render:
+    template: str = "prompt_template"
+    resolvers: list[Resolver] = field(default_factory=list)
+    inherit_base: bool = True
+    inherit_domain: bool = True
+
+@dataclass
+class Prompt:
     name: str
-    template: str
-    resolvers: list[Resolver]
-    inherit_base: bool
-    inherit_domain: bool
+    renders: list[Render]
 
 @dataclass
 class Domain:
     name: str
-    renders: list[Render]
+    prompts: list[Prompt]
     resolvers: list[Resolver]
 
 @dataclass
 class Button:
     type: str
     key: str
-    inhabitant: Domain | Render | None = None
+    inhabitant: Domain | Prompt | Render | None = None
     action: Callable | None = None
 
     def get_repl_map(self, label: str, template: str) -> dict[str, str]:

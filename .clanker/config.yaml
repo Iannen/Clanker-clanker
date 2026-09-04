@@ -1,5 +1,6 @@
 filesets:
   core: {includes: [clanker.py, models.py], excludes: []}
+  ad-hoc: {includes: [utilities.py, .clanker/shared-assets/config-fragments/shared_cfg.yaml, .clanker/config.yaml], excludes: []}
 
 domains:
 - name: script-dev
@@ -7,42 +8,56 @@ domains:
     - { id: repo_content, type: repo_content, fileset: core }
     - { id: domain_fragments, type: multi-document-retrieval, files: [backlog.cdoc], }
     
-  renders:
+  prompts:
     - name: plan
-      resolvers:
-        - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.md, backlog-output-instructions.md] }
+      renders:
+        - resolvers:
+            - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.md, backlog-output-instructions.md] }
 
     - name: bl-impl
-      resolvers:
-        - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.md, code-output-instruction.md]}
+      renders:
+        - resolvers:
+            - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.md, code-output-instruction.md]}
 
     - name: bl-drain
-      resolvers:
-        - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 8}, history-output-instructions.md]}
+      renders:
+        - resolvers:
+            - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 8}, history-output-instructions.md]}
+        
+    - name: ad-hoc
+      renders:
+        - resolvers:
+            - { id: base_fragments, type: multi-document-retrieval, files: [] }
+            - { id: domain_fragments, type: multi-document-retrieval, files: [] }
+            - { id: prompt_fragments, type: multi-document-retrieval, files: [] }
+            - { id: repo_content, type: repo_content, fileset: ad-hoc }
 
 - name: north-star
   resolvers:
     - { id: domain_fragments, type: multi-document-retrieval, files: [north-star.md] }
-  renders:
+  prompts:
     - name: ns-plan
-      resolvers:
-        - { id: prompt_fragments, type: multi-document-retrieval, files: [] }
-        - { id: repo_content, type: repo_content, fileset: core }
+      renders:
+        - resolvers:
+            - { id: prompt_fragments, type: multi-document-retrieval, files: [] }
+            - { id: repo_content, type: repo_content, fileset: core }
 
 - name: config-dev
   resolvers:
     - { id: domain_fragments, type: multi-document-retrieval, files: [config.yaml, system_cfg.yaml, shared_cfg.yaml] }
-  renders:
+  prompts:
     - name: config-dev
-      resolvers:
-        - { id: prompt_fragments, type: multi-document-retrieval, files: [config-development-instructions.md] }
-        - { id: repo_content, type: repo_content, fileset: core }
+      renders:
+        - resolvers:
+            - { id: prompt_fragments, type: multi-document-retrieval, files: [config-development-instructions.md] }
+            - { id: repo_content, type: repo_content, fileset: core }
 
 - name: debloat
   resolvers:
     - { id: domain_fragments, type: multi-document-retrieval, files: [domain-debloat.md] }
-  renders:
+  prompts:
     - name: debloat
-      resolvers:
-        - { id: prompt_fragments, type: multi-document-retrieval, files: [debloat-instructions.md] }
-        - { id: repo_content, type: repo_content, fileset: core }
+      renders:
+        - resolvers:
+            - { id: prompt_fragments, type: multi-document-retrieval, files: [debloat-instructions.md] }
+            - { id: repo_content, type: repo_content, fileset: core }

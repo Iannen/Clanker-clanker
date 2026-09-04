@@ -1,6 +1,5 @@
 kb_def:
   render: 
-    name: ui
     template: ui_template
     inherit_base: false
     inherit_domain: false
