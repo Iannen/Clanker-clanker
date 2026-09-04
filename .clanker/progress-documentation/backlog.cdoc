@@ -49,6 +49,8 @@ class Render: # fully implemented
     inherit_domain: bool = True
 
 #below stuff, not aligned / implemented I think
+
+
 class Resolver:
     anchor: str
     def get_repl_map: dict[str, str]
@@ -79,28 +81,65 @@ class FileSet -> to deal with filesets of repo and manifest resolver first class
     excludes: [str]
 '''
 
+
+
+III. Slated for implementation:
+
 1e. Resolver domain model refactoring & polymorphic resolution
     [ ] 'models.py': Implement FileSet, TruncationSpec, and File supporting models
-        - Define TruncationSpec(tail_lines: int | None)
-        - Define File(name: str, full_path_from_pud: bool, truncation_spec: TruncationSpec)
-        - Define FileSet(includes: list[str], excludes: list[str])
-    [ ] 'models.py': Introduce abstract Resolver base class and typed subclasses
-        - Define abstract Resolver class with anchor/id field
-        - Define MultiDocResolver(Resolver) containing list[File]
-        - Define RepoContentResolver(Resolver) containing FileSet
-        - Define FileManifestResolver(Resolver) containing pud_fileset and shared_fileset (FileSet)
-        - Define KBStateResolver(Resolver)
-    [ ] 'utilities.py': Update RuntimeConfigAssembler for typed Resolver instantiation
+        class Filelist:
+        # Reusability: top-of-yaml named declaration
+        # Flexibility: inline resolver declaration
+            files: [File]
+        class FileSet: 
+        # Reusability: top-of-yaml named declaration
+        # Flexibility: inline resolver declaration
+            includes: list[str]  
+            excludes: list[str]
+        class File:
+        # Carry options to promote flexibility for mdf resolvers, such as truncation, fullpathresolution
+        # Not intended for stand alone declaration - but I suppose its possible?
+            name: str
+            full_path_from_pud: bool = False
+            truncation_spec: TruncationSpec | None = None
+        class TruncationSpec:
+        # Presently wrapper for tail_lines int
+        # Can have more advanced per-file truncation options later
+        # Not intended to be reused, but I suppose it can be?
+            tail_lines: int | None = None
+
+    [ ] 'models.py': Introduce abstract Resolver base class and typed subclasses 
+        class Resolver(ABC):
+        # To promote crystallize Resolver functionallty. they have an anchor, and return a repl map dict
+            anchor: str 
+            def resolve(file_bridge, content_shaper) -> dict[str, str]: pass
+        class MultiDocResolver(Resolver): 
+        # Resolves first from pud, fallback to shared. For now we carry forward the 'print msg in compiled prompt' approach.
+        # Later on validation can tackle the 'bad/missing file member of filelist' scenario
+            files: Filelist
+            def resolve(file_bridge, content_shaper) -> dict[str, str]:
+        class RepoContentResolver(Resolver): 
+        # Resolved exclusively from pud, like now
+            fileset: FileSet
+            def resolve(file_bridge, content_shaper) -> dict[str, str]:
+        class ManifestResolver(Resolver):
+        # pud_fileset is mandatory, shared fileset is optional, as now.
+            pud_fileset: FileSet
+            shared_fileset: FileSet
+            def resolve(file_bridge, content_shaper) -> dict[str, str]:
+        class KBStateResolver(Resolver):
+        # the odd duck, we can just carry it forward
+            def resolve(file_bridge, content_shaper) -> dict[str, str]:
+
+    [ ] 'utilities.py': Update RuntimeConfigAssembler for typed Resolver instantiation 
         - Update YAML configuration parsing to instantiate specific Resolver subclasses instead of dictionary payloads
     [ ] 'clanker.py': Refactor AssemblyService to support typed Resolver instances
-        - Update AssemblyService._resolve type checks and attribute access to use new Resolver subclasses and models
+        - Update AssemblyService._resolve type checks and attribute access to use new Resolver subclasses
     [ ] 'shared_cfg.yaml': Align shared domain resolvers to new schema
         - Update shared domain resolver configurations to match typed resolver structures
     [ ] 'config.yaml': Align local domain resolvers to new schema
         - Update local domain resolver configurations to match typed resolver structures
 
-III. Slated for implementation:
-        
 IV. Recently implemented:
 
 1d. Align Button and Prompt domain models for single-render architecture (converted)

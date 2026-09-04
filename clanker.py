@@ -130,9 +130,9 @@ class BasePathTokens:
     SHARED = "<SHARED>"
 
 class CfgFragments:
-    PUD_CFG = "/.clanker/config.yaml"
-    SYSTEM_CFG = "/.clanker/shared-assets/config-fragments/system_cfg.yaml"
-    SHARED_CFG = "/.clanker/shared-assets/config-fragments/shared_cfg.yaml"
+    PUD_CFG = "/.clanker/config.yaml" #domains, prompts, filesets , filelists & such
+    SYSTEM_CFG = "/.clanker/shared-assets/config-fragments/system_cfg.yaml" #ui render & rows for button instantiation
+    SHARED_CFG = "/.clanker/shared-assets/config-fragments/shared_cfg.yaml" #domains, prompts, filesets , filelists & such
     TEMPLATE_CFG = "/.clanker/templates/config.template"
     
 class DocPaths:
