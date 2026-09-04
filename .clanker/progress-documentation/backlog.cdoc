@@ -26,10 +26,10 @@ class Keyboard: # fully implemented
     def get_unique_buttons
     def handle_key 
 
-class Button: # needs a revision next leg
+class Button: # fully implemented
     type: str
     key: str
-    inhabitant: Domain | Prompt | None = None # this is Domain | Prompt | Render | None = None in codebase atm. there should be no Render, now that Prompt is implemented
+    inhabitant: Domain | Prompt | None = None
     action: Callable | None = None
     def get_repl_map
 
@@ -38,11 +38,11 @@ class Domain # fully implemented
     resolvers: [Resolver]
     prompts: [Prompt]
 
-class Prompt:  # needs revision next leg
+class Prompt:  # fully implemented
     name: str
-    renders: [Render] # this needs to be singular, non-nullable
+    render: Render
 
-class Render: # implemented
+class Render: # fully implemented
     template: str = "prompt_template"
     resolvers: [Resolver]
     inherit_base: bool = True
@@ -79,25 +79,31 @@ class FileSet -> to deal with filesets of repo and manifest resolver first class
     excludes: [str]
 '''
 
+1e. Resolver domain model refactoring & polymorphic resolution
+    [ ] 'models.py': Implement FileSet, TruncationSpec, and File supporting models
+        - Define TruncationSpec(tail_lines: int | None)
+        - Define File(name: str, full_path_from_pud: bool, truncation_spec: TruncationSpec)
+        - Define FileSet(includes: list[str], excludes: list[str])
+    [ ] 'models.py': Introduce abstract Resolver base class and typed subclasses
+        - Define abstract Resolver class with anchor/id field
+        - Define MultiDocResolver(Resolver) containing list[File]
+        - Define RepoContentResolver(Resolver) containing FileSet
+        - Define FileManifestResolver(Resolver) containing pud_fileset and shared_fileset (FileSet)
+        - Define KBStateResolver(Resolver)
+    [ ] 'utilities.py': Update RuntimeConfigAssembler for typed Resolver instantiation
+        - Update YAML configuration parsing to instantiate specific Resolver subclasses instead of dictionary payloads
+    [ ] 'clanker.py': Refactor AssemblyService to support typed Resolver instances
+        - Update AssemblyService._resolve type checks and attribute access to use new Resolver subclasses and models
+    [ ] 'shared_cfg.yaml': Align shared domain resolvers to new schema
+        - Update shared domain resolver configurations to match typed resolver structures
+    [ ] 'config.yaml': Align local domain resolvers to new schema
+        - Update local domain resolver configurations to match typed resolver structures
+
 III. Slated for implementation:
         
 IV. Recently implemented:
 
-1c. Introduce 'Prompt' model wrapper and align Domain/Render hierarchy
-    [x] 'models.py': Define Prompt class and update Domain and Render dataclasses
-        - Introduce Prompt(name: str, renders: list[Render]) dataclass
-        - Update Domain model to replace renders attribute with prompts: list[Prompt]
-        - Update Render model to remove name attribute and add default template = "prompt_template"
-    [x] 'utilities.py': Update RuntimeConfigAssembler for Prompt hierarchy
-        - Update domain parsing to construct Prompt objects containing Render instances
-    [x] 'clanker.py': Update GameEngine and AssemblyService to handle Prompt models
-        - Update _set_selected_num_btn to populate prompt row buttons using domain prompts
-        - Update _compile_to_clipboard and AssemblyService resolving/rendering to read from Prompt.renders
-    [x] 'shared_cfg.yaml': Align domain prompt configurations to nest render definitions under Prompt objects
-        - Move 'name' attribute to Prompt level and nest 'renders' list/config under each prompt
-    [x] 'config.yaml': Align similar to 'shared_cfg.yaml'
-
-1d. Align Button and Prompt domain models for single-render architecture
+1d. Align Button and Prompt domain models for single-render architecture (converted)
     [x] 'models.py': Update Button and Prompt data structures
         - Update Button.inhabitant type hint to Domain | Prompt | None
         - Rename Prompt.renders (list[Render]) to Prompt.render (Render)

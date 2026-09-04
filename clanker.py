@@ -97,10 +97,12 @@ class Bridge(ABC):
 
 def main():
     try:
+        #file 'adapters.py'
         from adapters import FileBridge, IOBridge
         files_adapter = FileBridge()
         io_adapter = IOBridge()
         
+        #file 'utilities.py'
         from utilities import ConfigValidator, DefaultContentShaper, RuntimeConfigAssembler
         validator = ConfigValidator()
         shaper = DefaultContentShaper()
