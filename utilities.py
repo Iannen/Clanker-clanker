@@ -133,7 +133,7 @@ class RuntimeConfigAssembler:
         kb_def = kb_def_data.get("kb_def", {})
         button_map = self._build_button_map(kb_def.get("rows", {}))
 
-        domain_keys = kb_def.get("rows", {}).get("domain_row", {}).get("primary", [])
+        domain_keys = kb_def.get("rows", {}).get("domain_row", [])
         for prim_char, domain_obj in zip(domain_keys, domains):
             button_map[prim_char].inhabitant = domain_obj
 
@@ -191,14 +191,12 @@ class RuntimeConfigAssembler:
 
     def _build_button_map(self, rows_data: dict) -> dict[str, Button]:
         button_map = {}
-        for row_key, row in rows_data.items():
-            for prim, sec in zip(row["primary"], row["secondary"]):
+        for row_key, row_keys in rows_data.items():
+            for key_char in row_keys:
                 btn = Button(
                     type=row_key,
-                    primary_letter=prim,
-                    secondary_letter=sec,
+                    key=key_char,
                     inhabitant=None
                 )
-                button_map[prim] = btn
-                button_map[sec] = btn
+                button_map[key_char] = btn
         return button_map

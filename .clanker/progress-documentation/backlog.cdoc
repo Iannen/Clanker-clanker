@@ -9,6 +9,10 @@ I. Ideas, complaints and non-critical bugs:
 II. Items to refine & QC:
 
 1.  Data model revamp, unused alt-mode functionality removal. We split this up into several jobs:
+    - pud cfg alignment debt:
+        - rename 'sets' -> 'filesets'
+        - update 'shared_domains.yaml' -> 'shared_cfg.yaml'
+        - update 'kb_def.yaml' -> 'system_cfg.yaml'
     [ ] 'models.py': New set of domain model classes: 
 '''
 class RuntimeConfig: # purportedly fully aligned
@@ -78,22 +82,23 @@ III. Slated for implementation:
 
 IV. Recently implemented:
 
-1a. Implement RuntimeConfig root container & clean configuration boundaries (is converted to hist item)
-    [x] 'models.py': Define RuntimeConfig root dataclass
-        - Add RuntimeConfig container holding keyboard, ui_render, and base_resolvers
-        - Remove ui_render and base_resolvers from Keyboard to focus its scope on keybindings and selection state
-    [x] 'utilities.py': Update RuntimeConfigAssembler & ConfigValidator
-        - Update RuntimeConfigAssembler.assemble to return RuntimeConfig containing keyboard, ui_render, and base_resolvers
-        - Relocate base_resolvers extraction source from kb_def.yaml to shared_cfg.yaml
-        - Migrate set dictionary lookups from 'sets' to 'filesets' in both RuntimeConfigAssembler and ConfigValidator
-    [x] 'clanker.py': Wire RuntimeConfig through SessionService and GameEngine
-        - Replace SessionService.get_keyboard with get_runtime_config returning RuntimeConfig
-        - Update GameEngine._bootstrap to store self.runtime_config and derive self.kb from it
-        - Refactor GameEngine._display_ui and _compile_to_clipboard to pass RuntimeConfig to AssemblyService.get_repl_map
-    [x] Configuration Files ('system_cfg.yaml' & 'shared_cfg.yaml'): Align YAML schemas & filenames with new boundaries
-        - Renamed kb_def.yaml -> system_cfg.yaml and shared_domains.yaml -> shared_cfg.yaml
-        - Evict resolvers block from system_cfg.yaml (retaining only UI render frame and rows)
-        - Add root base_resolvers to shared_cfg.yaml for global prompt-layer resolvers
-        - Rename root sets mapping to filesets in shared_cfg.yaml
+1b. Half-align 'Button' model & remove legacy alt-mode / shift-action code ( this is converted to hist )
+    [x] 'models.py': Update Button & Keyboard models
+        - Rename Button.primary_letter -> key and Button.primary_action -> action
+        - Remove Button.secondary_letter and Button.shift_action
+        - Preserve inhabitant: Domain | Render | None type binding (defer Prompt class introduction)
+        - Update Button.get_repl_map and Keyboard methods to use key and action
+    [x] 'clanker.py': Clean up key handling, service normalization & engine bindings
+        - Update IOService.get_key to normalize navigation key input to lower-case
+        - Simplify Keyboard.handle_key to dispatch solely on key and action
+        - Remove all shift_action bindings and NotImplementedError lambda stubs in GameEngine
+        - Update AssemblyService._resolve (KB_INFO block) to use btn.key instead of btn.primary_letter
+    [x] 'adapters.py': i reason that this requires no attention based on contents of 'clanker.py' and 'models.py'
+        - it only returns chars. the service will normalize 
+    [x] 'utilities.py': Refactor RuntimeConfigAssembler button map creation
+        - Update _build_button_map to construct Button using single key sequence without secondary mapping
+        - Update domain_keys lookup in assemble() to read single key sequence directly
+    [x] 'system_cfg.yaml': Remove secondary row properties from kb_def schema
+        - Remove all 'secondary' key mappings under domain_row, prompt_row, and action_row
         
 V. Critical bugs

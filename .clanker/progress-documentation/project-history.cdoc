@@ -248,3 +248,9 @@ XLIX: RUNTIME CONFIGURATION CONTAINER & BOUNDARY ALIGNMENT
     - Updated RuntimeConfigAssembler and ConfigValidator to process filesets, evict resolvers from system config, and load global base_resolvers from shared config
     - Wired RuntimeConfig through SessionService and GameEngine, refactoring prompt compilation and UI rendering to consume the new config model
     - Aligned YAML schemas and filenames (renaming kb_def.yaml to system_cfg.yaml and shared_domains.yaml to shared_cfg.yaml)
+
+L: BUTTON MODEL ALIGNMENT & LEGACY CODE REMOVAL
+    - Aligned the Button and Keyboard models by renaming primary properties to key and action, while removing legacy secondary fields and shift-action bindings
+    - Cleaned up key handling and service normalization in clanker.py, simplifying keyboard dispatch and updating KB_INFO resolution to use single key sequences
+    - Refactored RuntimeConfigAssembler in utilities.py to construct buttons using single key mappings without secondary configurations
+    - Removed all secondary row properties and key mappings from the system_cfg.yaml schema

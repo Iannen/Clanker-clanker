@@ -216,8 +216,7 @@ class GameEngine(Engine):
 
     def _wire_num_row(self) -> None:
         for btn in self.kb.get_unique_buttons("domain_row"):
-            btn.primary_action = self._set_selected_num_btn
-            btn.shift_action = lambda k: exec("raise NotImplementedError")
+            btn.action = self._set_selected_num_btn
 
     def _set_selected_num_btn(self, key: str | None) -> ActionResult:
         if key is None:
@@ -233,16 +232,12 @@ class GameEngine(Engine):
         action_btns = self.kb.get_unique_buttons("action_row")
 
         for b in prompt_btns + action_btns:
-            b.inhabitant = b.primary_action = b.shift_action = None
+            b.inhabitant = b.action = None
 
         if case == "inhabited":
             for p_btn, prompt in zip(prompt_btns, ref_btn.inhabitant.renders):
                 p_btn.inhabitant = prompt
-                p_btn.primary_action = self._compile_to_clipboard
-                p_btn.shift_action = lambda k: exec("raise NotImplementedError")
-
-            for a_btn in action_btns:
-                a_btn.primary_action = a_btn.shift_action = lambda k: exec("raise NotImplementedError")
+                p_btn.action = self._compile_to_clipboard
 
             return ActionResult(f"Domain '{ref_btn.inhabitant.name}' on key '{key}' selected")
 
@@ -459,7 +454,7 @@ class AssemblyService:
                 label = ""
                 template = btn_inactive
                 if btn.type == "domain_row":
-                    if btn.primary_letter == keyboard.selected_key:
+                    if btn.key == keyboard.selected_key:
                         template = btn_hl
                         label = btn.inhabitant.name if btn.inhabitant else ""
                     elif btn.inhabitant:
@@ -495,7 +490,7 @@ class IOService:
         ch = self.io_bridge.read_char()
         if ch in IOControl.ABORT_KEYS:
             raise ProgramExit
-        return ch
+        return ch.lower()
 
     def get_confirmation(self, prompt_msg: str, required_phrase: str | None = None) -> None:
         instructions = f"Type '{required_phrase}' and press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n> "

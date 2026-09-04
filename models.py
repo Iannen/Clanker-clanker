@@ -43,11 +43,9 @@ class Domain:
 @dataclass
 class Button:
     type: str
-    primary_letter: str
-    secondary_letter: str
+    key: str
     inhabitant: Domain | Render | None = None
-    primary_action: Callable | None = None
-    shift_action: Callable | None = None
+    action: Callable | None = None
 
     def get_repl_map(self, label: str, template: str) -> dict[str, str]:
         lines = template.strip("\n").splitlines()
@@ -55,11 +53,11 @@ class Button:
         mapped_lines = [
             lines[0],
             lines[1],
-            lines[2].replace(SystemKeys.DELIM, self.primary_letter, 1),
+            lines[2].replace(SystemKeys.DELIM, self.key, 1),
             lines[3],
             lines[4].replace(SystemKeys.DELIM * 6, norm_label, 1),
         ]
-        return {f"{self.primary_letter}{idx}": line for idx, line in enumerate(mapped_lines)}
+        return {f"{self.key}{idx}": line for idx, line in enumerate(mapped_lines)}
 
 @dataclass
 class RuntimeConfig:
@@ -73,7 +71,7 @@ class Keyboard:
     selected_key: str | None = None
 
     def get_unique_buttons(self, btn_type: str | None = None) -> list[Button]:
-        unique = {btn.primary_letter: btn for btn in self.button_map.values()}.values()
+        unique = {btn.key: btn for btn in self.button_map.values()}.values()
         if btn_type is None:
             return list(unique)
         return [btn for btn in unique if btn.type == btn_type]
@@ -82,8 +80,6 @@ class Keyboard:
         btn = self.button_map.get(key)
         if btn is None:
             return None
-        if key == btn.primary_letter and callable(btn.primary_action):
-            return btn.primary_action(btn.primary_letter)
-        elif key == btn.secondary_letter and callable(btn.shift_action):
-            return btn.shift_action(btn.primary_letter)
+        if callable(btn.action):
+            return btn.action(key)
         return ActionResult(f"No action bound to key '{key}'")
