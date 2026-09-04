@@ -1,6 +1,3 @@
-#shared_domains.yaml
-#here we can put base_frag_resolvers, perhaps as root list, they are after all shared between all prompts (which inherit - perhaps inherit base logic needs a revamp to accomodate?)
-# otherwise they declare sets, domains on root, which I think is appropriate. Perhaps we can rename sets to filesets
 base_resolvers:
   - id: base_fragments
     type: multi-document-retrieval
@@ -17,15 +14,15 @@ domains:
       - { id: prompt_fragments, type: multi-document-retrieval, files: [config.yaml, kb_def.yaml, shared_domains.yaml] }
     prompts:
       - name: manifest-analysis
-        renders:
-          - resolvers:
-              - { id: domain_fragments, type: repo-manifest, pud_fileset: all, shared_fileset: clanker-shared-assets }
-              - { id: repo_content, type: repo_content, fileset: default_repo_content }
+        render:
+          resolvers:
+            - { id: domain_fragments, type: repo-manifest, pud_fileset: all, shared_fileset: clanker-shared-assets }
+            - { id: repo_content, type: repo_content, fileset: default_repo_content }
       - name: config-dev
-        renders:
-          - resolvers:
-              - { id: domain_fragments, type: multi-document-retrieval, files: [config-development-mode.md] }
-              - { id: repo_content, type: repo_content, fileset: default_repo_content }
+        render:
+          resolvers:
+            - { id: domain_fragments, type: multi-document-retrieval, files: [config-development-mode.md] }
+            - { id: repo_content, type: repo_content, fileset: default_repo_content }
 
   - name: presentation
     # Purpose: standardized readme development across projects
@@ -33,12 +30,12 @@ domains:
       - { id: domain_fragments, type: full-path-file-retrieval, files: [README.md] } 
     prompts:
       - name: core
-        renders:
-          - resolvers:
-              - { id: prompt_fragments, type: multi-document-retrieval, files: [readme.docspec] }
-              - { id: repo_content, type: repo_content, fileset: core }
+        render:
+          resolvers:
+            - { id: prompt_fragments, type: multi-document-retrieval, files: [readme.docspec] }
+            - { id: repo_content, type: repo_content, fileset: core }
       - name: docs
-        renders:
-          - resolvers:
-              - { id: prompt_fragments, type: multi-document-retrieval, files: [readme.docspec, architecture.cdoc, backlog.cdoc, north-star.cdoc, project-history.cdoc] }
-              - { id: repo_content, type: repo_content, fileset: empty }
+        render:
+          resolvers:
+            - { id: prompt_fragments, type: multi-document-retrieval, files: [readme.docspec, architecture.cdoc, backlog.cdoc, north-star.cdoc, project-history.cdoc] }
+            - { id: repo_content, type: repo_content, fileset: empty }

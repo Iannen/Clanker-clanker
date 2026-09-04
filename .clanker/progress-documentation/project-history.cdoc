@@ -254,3 +254,16 @@ L: BUTTON MODEL ALIGNMENT & LEGACY CODE REMOVAL
     - Cleaned up key handling and service normalization in clanker.py, simplifying keyboard dispatch and updating KB_INFO resolution to use single key sequences
     - Refactored RuntimeConfigAssembler in utilities.py to construct buttons using single key mappings without secondary configurations
     - Removed all secondary row properties and key mappings from the system_cfg.yaml schema
+
+LI: INTRODUCE PROMPT MODEL WRAPPER AND ALIGN DOMAIN/RENDER HIERARCHY
+    - Defined Prompt(name: str, renders: list[Render]) dataclass in models.py
+    - Updated Domain model to replace renders with prompts: list[Prompt] and Render to remove name and default template
+    - Updated RuntimeConfigAssembler and GameEngine to construct and consume Prompt models and single/multi-render structures
+    - Aligned shared_cfg.yaml and config.yaml schemas to nest render definitions under Prompt objects
+
+LII: ALIGN BUTTON AND PROMPT DOMAIN MODELS FOR SINGLE-RENDER ARCHITECTURE
+    - Updated Button.inhabitant type hint to Domain | Prompt | None in models.py
+    - Renamed Prompt.renders to singular Prompt.render (Render) and adjusted RuntimeConfigAssembler parsing
+    - Refactored clanker.py GameEngine to read directly from btn.inhabitant.render
+    - Aligned shared_cfg.yaml and config.yaml configurations to the single render structure
+    - improved 'history-output-instructions.md' for better workflow

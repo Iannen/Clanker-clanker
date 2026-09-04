@@ -1,14 +1,13 @@
 filesets:
-  default_repo_content:
-    includes: [.]
-    excludes: [.git, .clanker]
+  default_repo_content: { includes: [.], excludes: [.git, .clanker] }
 
 domains:
   - name: analysis
     resolvers:
       - { id: domain_fragments, type: repo-manifest, pud_fileset: all, shared_fileset: clanker-shared-assets }
-    renders:
+    prompts:
       - name: init
-        resolvers:
-          - { id: prompt_fragments, type: multi-document-retrieval, files: [kb_def.yaml, shared_domains.yaml, config.yaml, config-development-mode.md, config-dev-output.instruction] }
-          - { id: repo_content, type: repo_content, fileset: none }
+        render:
+          resolvers:
+            - { id: prompt_fragments, type: multi-document-retrieval, files: [kb_def.yaml, shared_domains.yaml, config.yaml, config-development-mode.md, config-dev-output.instruction] }
+            - { id: repo_content, type: repo_content, fileset: empty }

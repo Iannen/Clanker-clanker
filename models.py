@@ -36,7 +36,7 @@ class Render:
 @dataclass
 class Prompt:
     name: str
-    renders: list[Render]
+    render: Render
 
 @dataclass
 class Domain:
@@ -48,7 +48,7 @@ class Domain:
 class Button:
     type: str
     key: str
-    inhabitant: Domain | Prompt | Render | None = None
+    inhabitant: Domain | Prompt | None = None
     action: Callable | None = None
 
     def get_repl_map(self, label: str, template: str) -> dict[str, str]:

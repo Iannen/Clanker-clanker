@@ -99,19 +99,19 @@ class ConfigValidator:
                 if not isinstance(prompt, dict):
                     continue
                 prompt_name = prompt.get("name")
-                for render in prompt.get("renders", []):
-                    if not isinstance(render, dict):
+                render = prompt.get("render")
+                if not isinstance(render, dict):
+                    continue
+                for resolver in render.get("resolvers", []):
+                    if not isinstance(resolver, dict):
                         continue
-                    for resolver in render.get("resolvers", []):
-                        if not isinstance(resolver, dict):
-                            continue
-                        if "fileset" in resolver or "varname" in resolver:
-                            continue
-                        inc = resolver.get("includes", [])
-                        exc = resolver.get("excludes", [])
-                        if inc or exc:
-                            key = _make_key(inc, exc)
-                            inline_filesets.append((key, domain_name, prompt_name))
+                    if "fileset" in resolver or "varname" in resolver:
+                        continue
+                    inc = resolver.get("includes", [])
+                    exc = resolver.get("excludes", [])
+                    if inc or exc:
+                        key = _make_key(inc, exc)
+                        inline_filesets.append((key, domain_name, prompt_name))
 
         for string_key, domain, render in inline_filesets:
             if string_key in named_fileset_map:
@@ -184,10 +184,9 @@ class RuntimeConfigAssembler:
         )
 
     def _build_prompt(self, data: dict, sets_map: dict[str, Any]) -> Prompt:
-        renders = [self._build_render(r, sets_map) for r in data.get("renders", [])]
         return Prompt(
             name=data["name"],
-            renders=renders
+            render=self._build_render(data.get("render", {}), sets_map)
         )
 
     def _build_domain(self, data: dict, sets_map: dict[str, Any]) -> Domain:

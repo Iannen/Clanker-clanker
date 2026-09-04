@@ -253,8 +253,7 @@ class GameEngine(Engine):
         btn = self.kb.button_map.get(key)
         if btn is None or btn.inhabitant is None or not isinstance(btn.inhabitant, Prompt):
             return ActionResult(f"No prompt assigned to key '{key}'")
-        first_render = btn.inhabitant.renders[0]
-        rendered_text = self._render(self.runtime_config, first_render)
+        rendered_text = self._render(self.runtime_config, btn.inhabitant.render)
         lines_count = self.io.to_clipboard(rendered_text)
         char_count = len(rendered_text)
         return ActionResult(f"Copied {lines_count} lines ({char_count} chars) to clipboard")

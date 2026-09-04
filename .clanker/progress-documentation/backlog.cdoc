@@ -79,10 +79,8 @@ class FileSet -> to deal with filesets of repo and manifest resolver first class
     excludes: [str]
 '''
 
-1d. Revision per # embedded comments of master bl item II.1, lets hash it out
-
 III. Slated for implementation:
-
+        
 IV. Recently implemented:
 
 1c. Introduce 'Prompt' model wrapper and align Domain/Render hierarchy
@@ -99,5 +97,18 @@ IV. Recently implemented:
         - Move 'name' attribute to Prompt level and nest 'renders' list/config under each prompt
     [x] 'config.yaml': Align similar to 'shared_cfg.yaml'
 
-
+1d. Align Button and Prompt domain models for single-render architecture
+    [x] 'models.py': Update Button and Prompt data structures
+        - Update Button.inhabitant type hint to Domain | Prompt | None
+        - Rename Prompt.renders (list[Render]) to Prompt.render (Render)
+    [x] 'clanker.py': Update GameEngine prompt rendering access
+        - Update _compile_to_clipboard to read btn.inhabitant.render instead of renders[0]
+    [x] 'utilities.py': Update RuntimeConfigAssembler for singular Render parsing
+        - Adjust Prompt object instantiation to construct a single Render instance instead of a list
+    [x] 'shared_cfg.yaml': Align prompt configurations to single render structure
+        - Update prompt definitions to specify a single render object instead of a renders list
+    [x] 'config.yaml': Align prompt configurations to single render structure
+        - Update local prompt definitions to match single render structure
+    [x] 'history-output-instructions.md': updated for better workflow
+        
 V. Critical bugs
