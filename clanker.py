@@ -12,9 +12,14 @@ from models import (
     Button,
     Config,
     Domain,
+    FileSet,
     Keyboard,
+    KBStateResolver,
+    ManifestResolver,
+    MultiDocResolver,
     Prompt,
     Render,
+    RepoContentResolver,
     Resolver,
     SystemKeys,
     RuntimeConfig,
@@ -350,21 +355,83 @@ class AssemblyService:
         active_resolvers.extend(render.resolvers)
         replacements: dict[str, str] = {}
         for resolver in active_resolvers:
-            for key, val in self._resolve(resolver, cfg.keyboard):
-                replacements[key] = val
+            match resolver:
+                case MultiDocResolver():
+                    replacements.update(self._res_multi_doc(resolver))
+                case RepoContentResolver():
+                    replacements.update(self._res_repo_content(resolver))
+                case ManifestResolver():
+                    replacements.update(self._res_manifest(resolver))
+                case KBStateResolver():
+                    replacements.update(self._res_ui(cfg.keyboard))
         return replacements
 
-    def _build_manifest_block(self, tag: str, basepath_token: str, fileset_spec: Any) -> str:
-        if isinstance(fileset_spec, dict):
-            includes = fileset_spec.get("includes", [])
-            excludes = fileset_spec.get("excludes", [])
-            paths = sorted(
-                self.files.get_files(basepath_token, includes, missing_ok=False) -
-                self.files.get_files(basepath_token, excludes, missing_ok=True)
+    def _res_multi_doc(self, resolver: MultiDocResolver) -> dict[str, str]:
+        filenames = [f.name for f in resolver.files.files]
+        contents_map = self.files.get_contents_with_pud_fallback(filenames)
+
+        fragments = []
+        for file_obj in resolver.files.files:
+            filename = file_obj.name
+            tail_lines = file_obj.truncation_spec.tail_lines if file_obj.truncation_spec else None
+
+            if file_obj.full_path_from_pud:
+                tokenized_path = f"<PUD>/{filename}"
+                try:
+                    content = self.files.read_asset(tokenized_path)
+                    content = self.shaper.trim_to_tail(content, tail_lines)
+                except FileNotFoundError:
+                    content = f"[{resolver.anchor}: No content found at '{filename}']"
+                tag_name = filename
+            else:
+                basename = Path(filename).name
+                raw_content = contents_map.get(filename)
+                if raw_content is not None:
+                    content = self.shaper.trim_to_tail(raw_content, tail_lines)
+                else:
+                    content = f"[{resolver.anchor}: No content found at '{filename}']"
+                tag_name = basename
+
+            fragments.append(f"<{tag_name}>\n{content}\n</{tag_name}>")
+
+        return {resolver.anchor: "\n\n".join(fragments)}
+
+    def _res_repo_content(self, resolver: RepoContentResolver) -> dict[str, str]:
+        paths = sorted(
+            self.files.get_files("<PUD>", resolver.fileset.includes, missing_ok=False) -
+            self.files.get_files("<PUD>", resolver.fileset.excludes, missing_ok=True)
+        )
+
+        tree_header = f"<tree>\n" + "\n".join(f"├── {p}" for p in paths) + "\n</tree>"
+
+        file_blocks = []
+        for p in paths:
+            try:
+                content = self.files.read_asset(f"<PUD>/{p}").rstrip()
+                file_blocks.append(f"<{p}>\n{content}\n</{p}>")
+            except UnicodeDecodeError:
+                pass
+
+        inner_content = tree_header + "\n" + "\n".join(file_blocks)
+        return {resolver.anchor: f"<repo-content>\n{inner_content}\n</repo-content>"}
+
+    def _res_manifest(self, resolver: ManifestResolver) -> dict[str, str]:
+        manifest_blocks = [
+            self._build_manifest("pud-manifest", "<PUD>", resolver.pud_fileset)
+        ]
+
+        if resolver.shared_fileset is not None:
+            manifest_blocks.append(
+                self._build_manifest("shared-manifest", "<SHARED>", resolver.shared_fileset)
             )
-        else:
-            roots = [fileset_spec] if isinstance(fileset_spec, str) else (fileset_spec or [])
-            paths = sorted(self.files.get_files(basepath_token, roots, missing_ok=False))
+
+        return {resolver.anchor: "\n".join(manifest_blocks)}
+
+    def _build_manifest(self, tag: str, basepath_token: str, fileset: FileSet) -> str:
+        paths = sorted(
+            self.files.get_files(basepath_token, fileset.includes, missing_ok=False) -
+            self.files.get_files(basepath_token, fileset.excludes, missing_ok=True)
+        )
 
         lines = []
         for p in paths:
@@ -377,107 +444,38 @@ class AssemblyService:
 
         return f"<{tag}>\n" + "\n".join(lines) + "\n</" + tag + ">"
 
-    def _resolve(self, resolver: Resolver, keyboard: Keyboard) -> list[tuple[str, str]]:
+    def _res_ui(self, keyboard: Keyboard) -> dict[str, str]:
+        if keyboard is None:
+            return {}
 
-        if resolver.type == Resolver.Type.MULTI_DOC:
-            raw_files = resolver.payload.get("files") or []
-            file_specs = [self.shaper.normalize_file_spec(item) for item in raw_files]
-            filenames = [spec[0] for spec in file_specs]
+        btn_hl = self.files.read_asset("<SHARED>/.clanker/shared-assets/layouts/btn_hl.layout")
+        btn_active = self.files.read_asset("<SHARED>/.clanker/shared-assets/layouts/btn_active.layout")
+        btn_inactive = self.files.read_asset("<SHARED>/.clanker/shared-assets/layouts/btn_inactive.layout")
 
-            contents_map = self.files.get_contents_with_pud_fallback(filenames)
+        repl_map = {}
+        for btn in keyboard.get_unique_buttons():
+            label = ""
+            template = btn_inactive
+            if btn.type == "domain_row":
+                if btn.key == keyboard.selected_key:
+                    template = btn_hl
+                    label = btn.inhabitant.name if btn.inhabitant else ""
+                elif btn.inhabitant:
+                    template = btn_active
+                    label = btn.inhabitant.name
 
-            fragments = []
-            for filename, tail_lines in file_specs:
-                basename = Path(filename).name
-                raw_content = contents_map.get(filename)
+            elif btn.type == "prompt_row":
+                if btn.inhabitant:
+                    template = btn_active
+                    label = btn.inhabitant.name
 
-                if raw_content is not None:
-                    content = self.shaper.trim_to_tail(raw_content, tail_lines)
-                else:
-                    content = f"[{resolver.id}: No content found at '{filename}']"
+            elif btn.type == "action_row":
+                if btn.inhabitant:
+                    template = btn_active
+                    label = getattr(btn.inhabitant, "name", str(btn.inhabitant))
 
-                fragments.append(f"<{basename}>\n{content}\n</{basename}>")
-
-            return [(resolver.id, "\n\n".join(fragments))]
-
-        if resolver.type == Resolver.Type.FULL_PATH_FILE:
-            fragments = []
-
-            for item in resolver.payload.get("files", []):
-                filename, tail_lines = self.shaper.normalize_file_spec(item)
-                tokenized_path = f"{BasePathTokens.PUD}/{filename}"
-                try:
-                    content = self.files.read_asset(tokenized_path)
-                    content = self.shaper.trim_to_tail(content, tail_lines)
-                except FileNotFoundError:
-                    content = f"[{resolver.id}: No content found at '{filename}']"
-
-                fragments.append(f"<{filename}>\n{content}\n</{filename}>")
-
-            return [(resolver.id, "\n\n".join(fragments))]
-
-        if resolver.type == Resolver.Type.REPO_CONTENT:
-            paths = sorted(
-                self.files.get_files(BasePathTokens.PUD, resolver.payload.get("includes", []), missing_ok=False) - 
-                self.files.get_files(BasePathTokens.PUD, resolver.payload.get("excludes", []), missing_ok=True)
-            )
-
-            tree_header = f"<tree>\n" + "\n".join(f"├── {p}" for p in paths) + "\n</tree>"
-            
-            file_blocks = []
-            for p in paths:
-                try:
-                    content = self.files.read_asset(f"{BasePathTokens.PUD}/{p}").rstrip()  
-                    file_blocks.append(f"<{p}>\n{content}\n</{p}>")
-                except UnicodeDecodeError:
-                    pass
-
-            inner_content = tree_header + "\n" + "\n".join(file_blocks)
-            return [(resolver.id, f"<repo-content>\n{inner_content}\n</repo-content>")]
-
-        if resolver.type == Resolver.Type.REPO_MANIFEST:
-            manifest_blocks = [
-                self._build_manifest_block("pud-manifest", BasePathTokens.PUD, resolver.payload.get("pud_fileset"))
-            ]
-
-            if "shared_fileset" in resolver.payload:
-                manifest_blocks.append(
-                    self._build_manifest_block("shared-manifest", BasePathTokens.SHARED, resolver.payload.get("shared_fileset"))
-                )
-
-            return [(resolver.id, "\n".join(manifest_blocks))]
-
-        if resolver.type == Resolver.Type.KB_INFO:
-            btn_hl = self.files.read_asset(BasePathTokens.SHARED + Layout.BTN_HL)
-            btn_active = self.files.read_asset(BasePathTokens.SHARED + Layout.BTN_ACTIVE)
-            btn_inactive = self.files.read_asset(BasePathTokens.SHARED + Layout.BTN_INACTIVE)
-
-            repl_map = {}
-            for btn in keyboard.get_unique_buttons():
-                label = ""
-                template = btn_inactive
-                if btn.type == "domain_row":
-                    if btn.key == keyboard.selected_key:
-                        template = btn_hl
-                        label = btn.inhabitant.name if btn.inhabitant else ""
-                    elif btn.inhabitant:
-                        template = btn_active
-                        label = btn.inhabitant.name
-
-                elif btn.type == "prompt_row":
-                    if btn.inhabitant:
-                        template = btn_active
-                        label = btn.inhabitant.name
-
-                elif btn.type == "action_row":
-                    if btn.inhabitant:
-                        template = btn_active
-                        label = getattr(btn.inhabitant, "name", str(btn.inhabitant))
-
-                repl_map |= btn.get_repl_map(label, template)
-            return list(repl_map.items())
-
-        raise ValueError(f"Unsupported resolver type: {resolver.type}")
+            repl_map |= btn.get_repl_map(label, template)
+        return repl_map
 
 class IOService:
     def __init__(self, io_bridge: IOBridgePort) -> None:

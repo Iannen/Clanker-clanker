@@ -15,16 +15,44 @@ class Config:
     domains: list[str]
 
 @dataclass
+class TruncationSpec:
+    tail_lines: int | None = None
+
+@dataclass
+class File:
+    name: str
+    full_path_from_pud: bool = False
+    truncation_spec: TruncationSpec | None = None
+
+@dataclass
+class Filelist:
+    files: list[File] = field(default_factory=list)
+
+@dataclass
+class FileSet:
+    includes: list[str] = field(default_factory=list)
+    excludes: list[str] = field(default_factory=list)
+
+@dataclass
 class Resolver:
-    class Type(str, Enum):
-        MULTI_DOC = "multi-document-retrieval"
-        FULL_PATH_FILE = "full-path-file-retrieval"
-        REPO_CONTENT = "repo_content"
-        KB_INFO = "kb_info"
-        REPO_MANIFEST = "repo-manifest"
-    id: str
-    type: Type
-    payload: dict[str, Any]
+    anchor: str
+
+@dataclass
+class MultiDocResolver(Resolver):
+    files: Filelist = field(default_factory=Filelist)
+
+@dataclass
+class RepoContentResolver(Resolver):
+    fileset: FileSet = field(default_factory=FileSet)
+
+@dataclass
+class ManifestResolver(Resolver):
+    pud_fileset: FileSet = field(default_factory=FileSet)
+    shared_fileset: FileSet | None = None
+
+@dataclass
+class KBStateResolver(Resolver):
+    anchor: str = "kb_info"
 
 @dataclass
 class Render:

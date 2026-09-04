@@ -8,11 +8,19 @@ from models import (
     Button,
     Config,
     Domain,
+    File,
+    Filelist,
+    FileSet,
+    KBStateResolver,
     Keyboard,
+    ManifestResolver,
+    MultiDocResolver,
     Prompt,
     Render,
+    RepoContentResolver,
     Resolver,
     RuntimeConfig,
+    TruncationSpec,
 )
 
 class DefaultContentShaper:
@@ -155,24 +163,66 @@ class RuntimeConfigAssembler:
             base_resolvers=base_resolvers
         )
 
+    def _build_fileset(self, data: dict | list | None) -> FileSet:
+        if isinstance(data, dict):
+            return FileSet(
+                includes=data.get("includes", []),
+                excludes=data.get("excludes", [])
+            )
+        elif isinstance(data, list):
+            return FileSet(includes=data, excludes=[])
+        return FileSet()
+
+    def _build_file(self, raw_item: str | dict, is_full_path: bool = False) -> File:
+        if isinstance(raw_item, dict):
+            name = raw_item.get("file", raw_item.get("name", ""))
+            tail_lines = raw_item.get("tail_lines")
+            full_path = raw_item.get("full_path_from_pud", is_full_path)
+            trunc_spec = TruncationSpec(tail_lines=tail_lines) if tail_lines is not None else None
+            return File(name=name, full_path_from_pud=full_path, truncation_spec=trunc_spec)
+        return File(name=str(raw_item), full_path_from_pud=is_full_path)
+
     def _build_resolver(self, data: dict, sets_map: dict[str, Any]) -> Resolver:
         res_copy = copy.deepcopy(data)
         res_id = res_copy.pop("id")
-        res_type = Resolver.Type(res_copy.pop("type"))
+        res_type_str = res_copy.pop("type")
 
-        pointer_key = res_copy.pop("fileset", None)
-        if pointer_key and pointer_key in sets_map:
-            set_val = sets_map[pointer_key]
-            if isinstance(set_val, dict):
-                res_copy.update(copy.deepcopy(set_val))
+        if res_type_str in ("multi-document-retrieval", "full-path-file-retrieval"):
+            is_full_path = res_type_str == "full-path-file-retrieval"
+            raw_files = res_copy.get("files", [])
+            file_objs = [self._build_file(f, is_full_path=is_full_path) for f in raw_files]
+            return MultiDocResolver(
+                anchor=res_id,
+                files=Filelist(files=file_objs)
+            )
 
-        for fs_key in ("pud_fileset", "shared_fileset"):
-            if fs_key in res_copy and isinstance(res_copy[fs_key], str):
-                target_alias = res_copy[fs_key]
-                if target_alias in sets_map:
-                    res_copy[fs_key] = copy.deepcopy(sets_map[target_alias])
+        if res_type_str == "repo_content":
+            pointer_key = res_copy.pop("fileset", None)
+            fileset_data = sets_map.get(pointer_key) if pointer_key and pointer_key in sets_map else res_copy
+            return RepoContentResolver(
+                anchor=res_id,
+                fileset=self._build_fileset(fileset_data)
+            )
 
-        return Resolver(id=res_id, type=res_type, payload=res_copy)
+        if res_type_str == "repo-manifest":
+            pud_data = res_copy.get("pud_fileset")
+            if isinstance(pud_data, str) and pud_data in sets_map:
+                pud_data = sets_map[pud_data]
+
+            shared_data = res_copy.get("shared_fileset")
+            if isinstance(shared_data, str) and shared_data in sets_map:
+                shared_data = sets_map[shared_data]
+
+            return ManifestResolver(
+                anchor=res_id,
+                pud_fileset=self._build_fileset(pud_data),
+                shared_fileset=self._build_fileset(shared_data) if shared_data else None
+            )
+
+        if res_type_str in ("kb_info", "kb_state"):
+            return KBStateResolver(anchor=res_id)
+
+        raise ValueError(f"Unsupported resolver type: {res_type_str}")
 
     def _build_render(self, data: dict, sets_map: dict[str, Any]) -> Render:
         resolvers = [self._build_resolver(r, sets_map) for r in data.get("resolvers", [])]
