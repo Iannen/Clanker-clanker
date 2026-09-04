@@ -1,17 +1,17 @@
 from __future__ import annotations
+import copy
+import re
+from typing import Any
 from ruamel.yaml import YAML
 from clanker import ConfigViolations
 from models import (
     Button,
     Config,
-    Constructed,
     Domain,
     Keyboard,
     Render,
     Resolver,
 )
-
-import re
 
 class DefaultContentShaper:
     def normalize_file_spec(self, item: str | dict) -> tuple[str, int | None]:
@@ -121,52 +121,78 @@ class ConfigValidator:
 
 class RuntimeConfigAssembler:
     def assemble(self, config_data: dict, kb_def_data: dict, shared_domains_data: dict) -> Keyboard:
-        from clanker import Button, Domain, Keyboard
-        import copy
-
         sets_map = {**shared_domains_data.get("sets", {}), **config_data.get("sets", {})}
         shared_domains = shared_domains_data.get("domains", [])
         user_domains = config_data.get("domains", [])
         combined_domains = shared_domains + user_domains
-        resolved_domains = self._resolve_sets(combined_domains, sets_map)
 
-        raw_yaml = {**kb_def_data, **config_data}
-        raw_yaml["domains"] = resolved_domains
+        domains = [self._build_domain(d, sets_map) for d in combined_domains]
 
+        kb_def = kb_def_data.get("kb_def", {})
+        button_map = self._build_button_map(kb_def.get("rows", {}))
+
+        domain_keys = kb_def.get("rows", {}).get("domain_row", {}).get("primary", [])
+        for prim_char, domain_obj in zip(domain_keys, domains):
+            button_map[prim_char].inhabitant = domain_obj
+
+        base_render = self._build_render(kb_def.get("render", {}), sets_map)
+        base_resolvers = [self._build_resolver(r, sets_map) for r in kb_def.get("resolvers", [])]
+
+        return Keyboard(
+            button_map=button_map,
+            render=base_render,
+            resolvers=base_resolvers,
+            selected_key=None
+        )
+
+    def _build_resolver(self, data: dict, sets_map: dict[str, Any]) -> Resolver:
+        res_copy = copy.deepcopy(data)
+        res_id = res_copy.pop("id")
+        res_type = Resolver.Type(res_copy.pop("type"))
+
+        pointer_key = res_copy.pop("fileset", None)
+        if pointer_key and pointer_key in sets_map:
+            set_val = sets_map[pointer_key]
+            if isinstance(set_val, dict):
+                res_copy.update(copy.deepcopy(set_val))
+
+        for fs_key in ("pud_fileset", "shared_fileset"):
+            if fs_key in res_copy and isinstance(res_copy[fs_key], str):
+                target_alias = res_copy[fs_key]
+                if target_alias in sets_map:
+                    res_copy[fs_key] = copy.deepcopy(sets_map[target_alias])
+
+        return Resolver(id=res_id, type=res_type, payload=res_copy)
+
+    def _build_render(self, data: dict, sets_map: dict[str, Any]) -> Render:
+        resolvers = [self._build_resolver(r, sets_map) for r in data.get("resolvers", [])]
+        return Render(
+            name=data["name"],
+            template=data.get("template", "prompt_template"),
+            resolvers=resolvers,
+            inherit_base=data.get("inherit_base", True),
+            inherit_domain=data.get("inherit_domain", True)
+        )
+
+    def _build_domain(self, data: dict, sets_map: dict[str, Any]) -> Domain:
+        renders = [self._build_render(r, sets_map) for r in data.get("renders", [])]
+        resolvers = [self._build_resolver(r, sets_map) for r in data.get("resolvers", [])]
+        return Domain(
+            name=data["name"],
+            renders=renders,
+            resolvers=resolvers
+        )
+
+    def _build_button_map(self, rows_data: dict) -> dict[str, Button]:
         button_map = {}
-        for row_key, row in raw_yaml["kb_def"]["rows"].items():
+        for row_key, row in rows_data.items():
             for prim, sec in zip(row["primary"], row["secondary"]):
-                button_map[prim] = button_map[sec] = Button(
-                    type=row_key, primary_letter=prim, secondary_letter=sec, inhabitant=None
+                btn = Button(
+                    type=row_key,
+                    primary_letter=prim,
+                    secondary_letter=sec,
+                    inhabitant=None
                 )
-
-        for prim_char, d in zip(raw_yaml["kb_def"]["rows"]["domain_row"]["primary"], raw_yaml["domains"]):
-            button_map[prim_char].inhabitant = Domain.model_validate(d)
-
-        return Keyboard.model_validate({
-            "button_map": button_map,
-            "render": raw_yaml["kb_def"]["render"],
-            "resolvers": raw_yaml["kb_def"].get("resolvers"),
-        })
-
-    def _resolve_sets(self, node: Any, sets_map: dict[str, Any]) -> Any:
-        import copy
-        if isinstance(node, list):
-            return [self._resolve_sets(item, sets_map) for item in node]
-        elif isinstance(node, dict):
-            res_copy = node.copy()
-
-            pointer_key = res_copy.pop("fileset", None)
-            if pointer_key and pointer_key in sets_map:
-                set_val = sets_map[pointer_key]
-                if isinstance(set_val, dict):
-                    res_copy.update(copy.deepcopy(set_val))
-
-            for fs_key in ("pud_fileset", "shared_fileset"):
-                if fs_key in res_copy and isinstance(res_copy[fs_key], str):
-                    target_alias = res_copy[fs_key]
-                    if target_alias in sets_map:
-                        res_copy[fs_key] = copy.deepcopy(sets_map[target_alias])
-
-            return {k: self._resolve_sets(v, sets_map) for k, v in res_copy.items()}
-        return node
+                button_map[prim] = btn
+                button_map[sec] = btn
+        return button_map

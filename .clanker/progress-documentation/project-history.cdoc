@@ -237,3 +237,8 @@ XLVII: RUNTIME CONFIG ASSEMBLER ADAPTER & MODEL EXTRACTION
     - Extracted object graph assembly from SessionService to dedicated RuntimeConfigAssembler adapter matching RuntimeConfigAssemblerProtocol
     - Refactored SessionService.get_keyboard into a 3-phase orchestrator delegating setup to file acquisition, validation, and assembly
     - Relocated domain models and SystemKeys into models.py to fix type verification issues across domain-attached resolvers
+
+XLVIII: DATACLASS MODEL MIGRATION & RUNTIME CONFIG ASSEMBLER
+    - Converted core application models (`Resolver`, `Render`, `Domain`, `Button`, `Keyboard`) from Pydantic to standard `@dataclass` classes in `models.py`
+    - Removed all Pydantic dependencies and configuration structures from the domain models
+    - Implemented bottom-up object tree instantiation via `RuntimeConfigAssembler` in `utilities.py` to decouple configuration loading and mapping

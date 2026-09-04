@@ -8,55 +8,25 @@ I. Ideas, complaints and non-critical bugs:
 
 II. Items to refine & QC:
 
-1.  Leverage ports & adapters split (yet to fix list)
-     These members require careful analysis. 
-     I think we will get into a much needed revision of the data model classes to untangle.
-     Then perhaps SessionService business of processing the received configs into a runtime config can be made better too.
-     Additionally, perhaps we can get rid of pydantic import too?
-     It's shaping up to be a big one.
-        - SessionService
-            get_keyboard
-                - current target
-                    - phase 1 acquistion is OK i think
-                    - phase 2, the untangle begins? lets not rush it
-            _resolve_sets
-                - ties into 'get_keyboard' phase 2 work. lets wait
-        - AssemblyService
-            get_repl_map
-                - ties in with datamodel cleanup
-                - gna leave this one alone
-            _build_manifest_block
-                - i think the datamodel needs a revamp to prettify this thing
-            _resolve
-                MULTI_DOC
-                    - perhaps a datamodel revamp is a prereq to prettify this
-                FULL_PATH_FILE
-                    - not great, not terrible
-                REPO_CONTENT
-                    - tis alright?
-                KB_INFO
-                    - kinda nice looking?
-                REPO_MANIFEST
-                    - looks okay, but the helper what is sex appeal of '_build_manifest_block
-                    - as an aside, rather than two blocks, just have one? then each path can start with the token.
-                - valuerror at end should be clanker error or stricken cuz its config validation concern (thought not impl there yet)
+old model:
+'''
+Keyboard (Root)
+ ├── render ──► Render
+ │               └── resolvers ──► list[Resolver]
+ ├── resolvers ──► list[Resolver]
+ └── button_map ──► dict[str, Button]
+                      └── inhabitant ──► Domain OR Render OR None
+                                           │
+                                           └── (if Domain)
+                                                ├── renders ──► list[Render]
+                                                │                └── resolvers ──► list[Resolver]
+                                                └── resolvers ──► list[Resolver]
+'''
 
-2.  Data model revamp, object tree instatiation migration to adapters, unused alt-mode functionality removal:
-    - todo: extract a pre-jump step: create the assembler, make SessionService use that. model swap is last step.
+1.  Data model revamp, object tree instatiation migration to adapters, unused alt-mode functionality removal:
     - Additional context: The much overdue model revamp
         - Reduces bloated config aquisition in SessionService.
         - Improve clarity for the reader of core
-
-    [ ] 'clanker.py' & 'utilities.py': New members 'RuntimeConfigAssembler' & 'RuntimeConfigAssemblerProtocol'
-        - .Assemble(cfg_frags: [dict]) -> RuntimeConfig
-            - absorbs all logic pertaining to object tree creation currently found in SessionService
-
-    [ ] New RuntimeConfig acquisition strat: SessionService (SS) orchestrated, adapter implemented
-        - phase 1: config frag aquisition 
-            - SessionService uses self.files to get the 3 config frag dicts. - no change there
-        - phase 2: transforming the 3 config frag dicts into RuntimeConfig
-            - Sessionservice uses RuntimeConfigAssemblerProtocol to transform config frags into RuntimeConfig with one single call.
-        - phase 3: Sessionservice returns the RuntimeConfig to the caller (GameEngine)
 
     [ ] New set of domain model classes: no longer pydantic dependent (we can get away with that right? we have a ConfigValidatorProtocol to compensate. i feel pydandic didnt offer value, only complications for my usecase anyway)
 '''
@@ -124,7 +94,7 @@ class FileSet -> to deal with filesets of repo and manifest resolver first class
 '''
 
 III. Slated for implementation:
-
+        
 IV. Recently implemented:
-
+        
 V. Critical bugs

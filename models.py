@@ -1,22 +1,21 @@
 from __future__ import annotations
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, ClassVar
-from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 class SystemKeys:
     DELIM = "§"
 
-class Constructed(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    
-class Config(Constructed):
+@dataclass
+class Config:
     DEFAULT_REL_PATH: ClassVar[str] = "/.clanker/config.yaml"
     DEFAULT_ASSETS_DIR: ClassVar[Path] = Path(".clanker/assets")
     layout: str
     domains: list[str]
 
-class Resolver(BaseModel):
+@dataclass
+class Resolver:
     class Type(str, Enum):
         MULTI_DOC = "multi-document-retrieval"
         FULL_PATH_FILE = "full-path-file-retrieval"
@@ -25,40 +24,25 @@ class Resolver(BaseModel):
         REPO_MANIFEST = "repo-manifest"
     id: str
     type: Type
-    payload: dict[str, Any] = {}
+    payload: dict[str, Any]
 
-    @model_validator(mode="before")
-    @classmethod
-    def extract_payload(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            obj_id = data.get("id", "")
-            obj_type = data.get("type", None)
-            payload = {k: v for k, v in data.items() if k not in ("id", "type")}
-            return {
-                "id": obj_id,
-                "type": obj_type,
-                "payload": payload
-            }
-        return data
-
-class Render(Constructed):
+@dataclass
+class Render:
     name: str
-    template: str = "prompt_template"
-    resolvers: list[Resolver] = []
-    inherit_base: bool = True
-    inherit_domain: bool = True
+    template: str
+    resolvers: list[Resolver]
+    inherit_base: bool
+    inherit_domain: bool
 
-class Domain(Constructed):
+@dataclass
+class Domain:
     name: str
-    renders: list[Render] = []
-    resolvers: list[Resolver] = []
+    renders: list[Render]
+    resolvers: list[Resolver]
 
-class Button(Constructed):
-    model_config = ConfigDict(
-        extra="forbid",
-        arbitrary_types_allowed=True  
-    )
-    type: str 
+@dataclass
+class Button:
+    type: str
     primary_letter: str
     secondary_letter: str
     inhabitant: Domain | Render | None = None
@@ -77,10 +61,11 @@ class Button(Constructed):
         ]
         return {f"{self.primary_letter}{idx}": line for idx, line in enumerate(mapped_lines)}
 
-class Keyboard(Constructed):
-    button_map: dict[str, Button] = Field(default_factory=dict)
-    render: Render 
-    resolvers: list[Resolver] = []
+@dataclass
+class Keyboard:
+    button_map: dict[str, Button]
+    render: Render
+    resolvers: list[Resolver]
     selected_key: str | None = None
 
     def get_unique_buttons(self, btn_type: str | None = None) -> list[Button]:
