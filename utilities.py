@@ -11,6 +11,7 @@ from models import (
     Keyboard,
     Render,
     Resolver,
+    RuntimeConfig,
 )
 
 class DefaultContentShaper:
@@ -70,7 +71,7 @@ class ConfigValidator:
             return f"inc:[{inc_str}]|exc:[{exc_str}]"
 
         named_fileset_map: dict[str, str] = {}
-        for set_name, set_def in cfg_frag.get("sets", {}).items():
+        for set_name, set_def in cfg_frag.get("filesets", {}).items():
             if isinstance(set_def, dict):
                 inc = set_def.get("includes", [])
                 exc = set_def.get("excludes", [])
@@ -120,8 +121,9 @@ class ConfigValidator:
             raise ConfigViolations("\n".join(msg_parts))
 
 class RuntimeConfigAssembler:
-    def assemble(self, config_data: dict, kb_def_data: dict, shared_domains_data: dict) -> Keyboard:
-        sets_map = {**shared_domains_data.get("sets", {}), **config_data.get("sets", {})}
+    def assemble(self, config_data: dict, kb_def_data: dict, shared_domains_data: dict) -> RuntimeConfig:
+        sets_map = {**shared_domains_data.get("filesets", {}), **config_data.get("filesets", {})}
+
         shared_domains = shared_domains_data.get("domains", [])
         user_domains = config_data.get("domains", [])
         combined_domains = shared_domains + user_domains
@@ -136,13 +138,17 @@ class RuntimeConfigAssembler:
             button_map[prim_char].inhabitant = domain_obj
 
         base_render = self._build_render(kb_def.get("render", {}), sets_map)
-        base_resolvers = [self._build_resolver(r, sets_map) for r in kb_def.get("resolvers", [])]
+        base_resolvers = [self._build_resolver(r, sets_map) for r in shared_domains_data.get("base_resolvers", [])]
 
-        return Keyboard(
+        keyboard = Keyboard(
             button_map=button_map,
-            render=base_render,
-            resolvers=base_resolvers,
             selected_key=None
+        )
+
+        return RuntimeConfig(
+            keyboard=keyboard,
+            ui_render=base_render,
+            base_resolvers=base_resolvers
         )
 
     def _build_resolver(self, data: dict, sets_map: dict[str, Any]) -> Resolver:

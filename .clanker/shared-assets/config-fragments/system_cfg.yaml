@@ -1,4 +1,4 @@
-kb_def: 
+kb_def:
   render: 
     name: ui
     template: ui_template
@@ -6,10 +6,6 @@ kb_def:
     inherit_domain: false
     resolvers:
       - { id: ui, type: kb_info }
-  resolvers:
-    - id: base_fragments
-      type: multi-document-retrieval
-      files: [general-rules.md]
   rows:
     domain_row:
       primary: '1234567890'

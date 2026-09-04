@@ -1,4 +1,4 @@
-sets:
+filesets:
   default_repo_content:
     includes: [.]
     excludes: [.git, .clanker]

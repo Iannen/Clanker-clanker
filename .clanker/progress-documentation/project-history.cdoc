@@ -242,3 +242,9 @@ XLVIII: DATACLASS MODEL MIGRATION & RUNTIME CONFIG ASSEMBLER
     - Converted core application models (`Resolver`, `Render`, `Domain`, `Button`, `Keyboard`) from Pydantic to standard `@dataclass` classes in `models.py`
     - Removed all Pydantic dependencies and configuration structures from the domain models
     - Implemented bottom-up object tree instantiation via `RuntimeConfigAssembler` in `utilities.py` to decouple configuration loading and mapping
+
+XLIX: RUNTIME CONFIGURATION CONTAINER & BOUNDARY ALIGNMENT
+    - Implemented RuntimeConfig root dataclass holding keyboard, ui_render, and base_resolvers to establish clean configuration boundaries
+    - Updated RuntimeConfigAssembler and ConfigValidator to process filesets, evict resolvers from system config, and load global base_resolvers from shared config
+    - Wired RuntimeConfig through SessionService and GameEngine, refactoring prompt compilation and UI rendering to consume the new config model
+    - Aligned YAML schemas and filenames (renaming kb_def.yaml to system_cfg.yaml and shared_domains.yaml to shared_cfg.yaml)

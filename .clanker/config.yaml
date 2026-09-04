@@ -1,4 +1,4 @@
-sets:
+filesets:
   core: {includes: [clanker.py, models.py], excludes: []}
 
 domains:
@@ -31,7 +31,7 @@ domains:
 
 - name: config-dev
   resolvers:
-    - { id: domain_fragments, type: multi-document-retrieval, files: [config.yaml, kb_def.yaml, shared_domains.yaml] }
+    - { id: domain_fragments, type: multi-document-retrieval, files: [config.yaml, system_cfg.yaml, shared_cfg.yaml] }
   renders:
     - name: config-dev
       resolvers:

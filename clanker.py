@@ -16,6 +16,7 @@ from models import (
     Render,
     Resolver,
     SystemKeys,
+    RuntimeConfig,
 )
 
 """ 2. Base Classes & Main function """
@@ -127,8 +128,8 @@ class BasePathTokens:
 
 class CfgFragments:
     PUD_CFG = "/.clanker/config.yaml"
-    SHARED_KB_DEF = "/.clanker/shared-assets/config-fragments/kb_def.yaml"
-    SHARED_DOMAINS = "/.clanker/shared-assets/config-fragments/shared_domains.yaml"
+    SYSTEM_CFG = "/.clanker/shared-assets/config-fragments/system_cfg.yaml"
+    SHARED_CFG = "/.clanker/shared-assets/config-fragments/shared_cfg.yaml"
     TEMPLATE_CFG = "/.clanker/templates/config.template"
     
 class DocPaths:
@@ -195,7 +196,8 @@ class GameEngine(Engine):
         self.renderer = renderer
     def _bootstrap(self) -> ActionResult:
         try:
-            self.kb = self.session.get_keyboard()
+            self.runtime_config = self.session.get_runtime_config()
+            self.kb = self.runtime_config.keyboard
             self._wire_num_row()
             self._set_selected_num_btn(None)
             return ActionResult("Bootstrap completed successfully")
@@ -248,21 +250,21 @@ class GameEngine(Engine):
         return ActionResult(msg)
 
     def _display_ui(self) -> str:
-        self.io.display(self._render(self.kb, self.kb.render))
+        self.io.display(self._render(self.runtime_config, self.runtime_config.ui_render))
         return self.io.get_key()
 
     def _compile_to_clipboard(self, key: str) -> ActionResult:
         btn = self.kb.button_map.get(key)
         if btn is None or btn.inhabitant is None:
             return ActionResult(f"No prompt assigned to key '{key}'")
-        rendered_text = self._render(self.kb, btn.inhabitant)
+        rendered_text = self._render(self.runtime_config, btn.inhabitant)
         lines_count = self.io.to_clipboard(rendered_text)
         char_count = len(rendered_text)
         return ActionResult(f"Copied {lines_count} lines ({char_count} chars) to clipboard")
 
-    def _render(self, kb: Keyboard, render: Render):
+    def _render(self, cfg: RuntimeConfig, render: Render):
         template = self.renderer.get_template(render)
-        repl_map = self.renderer.get_repl_map(kb, render)
+        repl_map = self.renderer.get_repl_map(cfg, render)
         repl_map["msg"] = self.msg.get_msg()
         return self.renderer.hydrate(template, repl_map)
 
@@ -289,15 +291,15 @@ class SessionService:
         except ConfigViolations as ex:
             raise UserTask(str(ex)) from ex
 
-    def get_keyboard(self) -> Keyboard:
+    def get_runtime_config(self) -> RuntimeConfig:
         try:
             config_data = self._get_validated_cfg_fragment(BasePathTokens.PUD + CfgFragments.PUD_CFG)
         except FileNotFoundError:
             raise NoConfig
 
         try:
-            kb_def_data = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.SHARED_KB_DEF)
-            shared_domains_data = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.SHARED_DOMAINS)
+            kb_def_data = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.SYSTEM_CFG)
+            shared_domains_data = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.SHARED_CFG)
         except FileNotFoundError as ex:
             raise ConfigAssemblyFailure(f"Missing configuration fragment: {ex}") from ex
 
@@ -339,18 +341,18 @@ class AssemblyService:
         except FileNotFoundError as ex:
             raise CorruptClanker(f"Error loading template for '{render.template}': {ex}") from ex
 
-    def get_repl_map(self, keyboard: Keyboard, render: Render) -> dict[str, str]:
+    def get_repl_map(self, cfg: RuntimeConfig, render: Render) -> dict[str, str]:
         active_resolvers: list[Resolver] = []
         if render.inherit_base:
-            active_resolvers.extend(keyboard.resolvers)
+            active_resolvers.extend(cfg.base_resolvers)
         if render.inherit_domain:
-            active_btn = keyboard.button_map.get(keyboard.selected_key)
+            active_btn = cfg.keyboard.button_map.get(cfg.keyboard.selected_key)
             if active_btn and isinstance(active_btn.inhabitant, Domain):
                 active_resolvers.extend(active_btn.inhabitant.resolvers)
         active_resolvers.extend(render.resolvers)
         replacements: dict[str, str] = {}
         for resolver in active_resolvers:
-            for key, val in self._resolve(resolver, keyboard):
+            for key, val in self._resolve(resolver, cfg.keyboard):
                 replacements[key] = val
         return replacements
 
@@ -534,7 +536,7 @@ class ConfigValidatorProtocol(Protocol):
     def assert_filesets_not_neglected(self, cfg_frag: dict, filepath: str = "") -> None: ...
 
 class RuntimeConfigAssemblerProtocol(Protocol):
-    def assemble(self, config_data: dict, kb_def_data: dict, shared_domains_data: dict) -> Keyboard: ...
+    def assemble(self, config_data: dict, kb_def_data: dict, shared_domains_data: dict) -> RuntimeConfig: ...
 
 class FileBridgePort(Bridge):
 

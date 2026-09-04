@@ -1,4 +1,12 @@
-sets:
+#shared_domains.yaml
+#here we can put base_frag_resolvers, perhaps as root list, they are after all shared between all prompts (which inherit - perhaps inherit base logic needs a revamp to accomodate?)
+# otherwise they declare sets, domains on root, which I think is appropriate. Perhaps we can rename sets to filesets
+base_resolvers:
+  - id: base_fragments
+    type: multi-document-retrieval
+    files: [general-rules.md]
+
+filesets:
   all: {includes: [.], excludes: [.git]}
   empty: {includes: [], excludes: [.git]}
   clanker-shared-assets: {includes: [.clanker/shared-assets], excludes: []}

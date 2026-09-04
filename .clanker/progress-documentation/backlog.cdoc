@@ -8,34 +8,15 @@ I. Ideas, complaints and non-critical bugs:
 
 II. Items to refine & QC:
 
-old model:
+1.  Data model revamp, unused alt-mode functionality removal. We split this up into several jobs:
+    [ ] 'models.py': New set of domain model classes: 
 '''
-Keyboard (Root)
- ├── render ──► Render
- │               └── resolvers ──► list[Resolver]
- ├── resolvers ──► list[Resolver]
- └── button_map ──► dict[str, Button]
-                      └── inhabitant ──► Domain OR Render OR None
-                                           │
-                                           └── (if Domain)
-                                                ├── renders ──► list[Render]
-                                                │                └── resolvers ──► list[Resolver]
-                                                └── resolvers ──► list[Resolver]
-'''
-
-1.  Data model revamp, object tree instatiation migration to adapters, unused alt-mode functionality removal:
-    - Additional context: The much overdue model revamp
-        - Reduces bloated config aquisition in SessionService.
-        - Improve clarity for the reader of core
-
-    [ ] New set of domain model classes: no longer pydantic dependent (we can get away with that right? we have a ConfigValidatorProtocol to compensate. i feel pydandic didnt offer value, only complications for my usecase anyway)
-'''
-class RuntimeConfig:
+class RuntimeConfig: # purportedly fully aligned
     keyboard: Keyboard
     ui_render: Render
     base_resolvers: [Resolver]
 
-class Keyboard:
+class Keyboard: # purportedly fully aligned
     button_map: dict[str, Button] 
     selected_key: str | None
     def get_unique_buttons
@@ -94,7 +75,25 @@ class FileSet -> to deal with filesets of repo and manifest resolver first class
 '''
 
 III. Slated for implementation:
-        
+
 IV. Recently implemented:
+
+1a. Implement RuntimeConfig root container & clean configuration boundaries (is converted to hist item)
+    [x] 'models.py': Define RuntimeConfig root dataclass
+        - Add RuntimeConfig container holding keyboard, ui_render, and base_resolvers
+        - Remove ui_render and base_resolvers from Keyboard to focus its scope on keybindings and selection state
+    [x] 'utilities.py': Update RuntimeConfigAssembler & ConfigValidator
+        - Update RuntimeConfigAssembler.assemble to return RuntimeConfig containing keyboard, ui_render, and base_resolvers
+        - Relocate base_resolvers extraction source from kb_def.yaml to shared_cfg.yaml
+        - Migrate set dictionary lookups from 'sets' to 'filesets' in both RuntimeConfigAssembler and ConfigValidator
+    [x] 'clanker.py': Wire RuntimeConfig through SessionService and GameEngine
+        - Replace SessionService.get_keyboard with get_runtime_config returning RuntimeConfig
+        - Update GameEngine._bootstrap to store self.runtime_config and derive self.kb from it
+        - Refactor GameEngine._display_ui and _compile_to_clipboard to pass RuntimeConfig to AssemblyService.get_repl_map
+    [x] Configuration Files ('system_cfg.yaml' & 'shared_cfg.yaml'): Align YAML schemas & filenames with new boundaries
+        - Renamed kb_def.yaml -> system_cfg.yaml and shared_domains.yaml -> shared_cfg.yaml
+        - Evict resolvers block from system_cfg.yaml (retaining only UI render frame and rows)
+        - Add root base_resolvers to shared_cfg.yaml for global prompt-layer resolvers
+        - Rename root sets mapping to filesets in shared_cfg.yaml
         
 V. Critical bugs

@@ -62,10 +62,14 @@ class Button:
         return {f"{self.primary_letter}{idx}": line for idx, line in enumerate(mapped_lines)}
 
 @dataclass
+class RuntimeConfig:
+    keyboard: Keyboard
+    ui_render: Render
+    base_resolvers: list[Resolver]
+
+@dataclass
 class Keyboard:
     button_map: dict[str, Button]
-    render: Render
-    resolvers: list[Resolver]
     selected_key: str | None = None
 
     def get_unique_buttons(self, btn_type: str | None = None) -> list[Button]:
