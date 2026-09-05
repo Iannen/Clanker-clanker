@@ -59,30 +59,43 @@ II. Items to refine & QC:
             -> but its members inherit 'Bridge' for functionality that ties in with the baseex system. 
             -> so keep as-is for now. perhaps a better solution can be arrived at? the Bridge base functionality should be visible from core
 
-2b. Bridge baseclass elimination discussion
-    - I think the Bridge baseclass can be eliminated. Perhaps the ExceptionPolicy class can offer a convenience method to annotate members of adapters (and protocols too!) by some convention (i think we use private semantics now)
+2.c Investigate adapters.py dependency on clanker.py
+
+
+    -   problem:
+        adapters.py imports from clanker.py so that the concrete adapters can inherit their 'interface'.
+        should we seek to eliminate this? can we not just declare the ports in clanker, and instantiate adapters for them without the adapter inheriting?
+        note: the control type and ex imports can moved to models.py to resolve that part of clanker.py dependency, and are not of interest for teh discussion
+    -   we unify on Protocol for both members of utilities.py and adapters.py, 
+'''
+from __future__ import annotations
+
+import base64
+import os
+import sys
+import termios
+import tty
+from pathlib import Path
+from ruamel.yaml import YAML
+
+from clanker import FileBridgePort, IOBridgePort, IllegalDuplicateFile, CorruptClanker, BasePathTokens, IOControl
+
+class IOBridge(IOBridgePort): 
+.....
+'''
 
 III. Slated for implementation:
-        
+
 IV. Recently implemented:
 
-(2.a has been implemented and transfered to project history, and remains for context only)
-2.a EX system overhaul: untangle rules & declarations from the ex hierarchy, so ex tree can be moved to models without losing sight of functionality from core. (Preparatory step for import revamp)
-    [x] 'clanker.py', 'BaseEx' decoupled from ex hierarchy, transformed to convenience class for centralization of ex system rules and declarations.
-        - Rename 'BaseEx' to 'ExceptionPolicy'
-        - it no longer enforces the rule that no non-leaf nodes are allowed to instantiate.
-        - other functionality and declarations remain as-is
-
-    [x] 'clanker.py', 'models.py': migrate ex declarations to models.
-        - redeclare 'BaseEx' in models:
-                BaseEx(ABC, Exception)
-                    @abstractmethod 
-                    leaf_ex(self):pass #guards instantiations for it and downstream inheritors
-        - move 'Failure(BaseEx)', 'ControlNotice(BaseEx)' and 'UserNotice(BaseEx)' to models
-            - they dont override leaf_ex, so they cannot be instantiated.
-        - move remaining ex classes to models. they must all override is_leaf to allow their instantiation.
-        - this combines to give us some rather nice semantics:
-            - class Failure(BaseEx): pass
-            - class MissedNotice(Failure): leaf_ex = True
+2b. Eliminate Bridge base class and decouple ports from exception policy
+    constraint: does not target imports from 'utilities.py' or their protocols.
+    [x] 'clanker.py': 
+        Implement 'ExceptionPolicy.protect_adapter' method
+            - Iterate over public callable attributes on an adapter instance using dir(), filtering out names starting with '_'
+            - Wrap bound methods in-place with 'ExceptionPolicy.wrap_bridge_call' inside a single method
+        - Remove 'Bridge' base class
+            - Update 'IOBridgePort' and 'FileBridgePort' to inherit directly from ABC instead of Bridge
+            - Update 'main()' to wrap adapter instances upon creation via 'ExceptionPolicy.protect_adapter()'
 
 V. Critical bugs

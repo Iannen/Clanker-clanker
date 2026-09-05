@@ -66,6 +66,19 @@ class ExceptionPolicy:
             raise BridgeLeakage() from ex
 
     @classmethod
+    def protect_adapter(cls, adapter: Any) -> Any:
+        for attr_name in dir(adapter):
+            if not attr_name.startswith("_"):
+                attr_value = getattr(adapter, attr_name)
+                if callable(attr_value):
+                    def _make_wrapped(fn):
+                        def wrapper(*args, **kwargs):
+                            return cls.wrap_bridge_call(fn, *args, **kwargs)
+                        return wrapper
+                    setattr(adapter, attr_name, _make_wrapped(attr_value))
+        return adapter
+
+    @classmethod
     def reraise_as_failure(cls, ex: Exception) -> None:
         if isinstance(ex, Failure):
             raise
@@ -99,23 +112,12 @@ class Engine:
         except Exception as other_ex:
             ExceptionPolicy.reraise_as_failure(other_ex)
 
-class Bridge(ABC):
-    def __init_subclass__(cls):
-        for attr_name, attr_value in list(cls.__dict__.items()):
-            if callable(attr_value) and not attr_name.startswith("_"):
-                setattr(cls, attr_name, cls._wrap_safely(attr_value))
-    @staticmethod
-    def _wrap_safely(fn):
-        def wrapper(*args, **kwargs):
-            return ExceptionPolicy.wrap_bridge_call(fn, *args, **kwargs)
-        return wrapper
-
 def main():
     try:
         #file 'adapters.py'
         from adapters import FileBridge, IOBridge
-        files_adapter = FileBridge()
-        io_adapter = IOBridge()
+        files_adapter = ExceptionPolicy.protect_adapter(FileBridge())
+        io_adapter = ExceptionPolicy.protect_adapter(IOBridge())
         
         #file 'utilities.py'
         from utilities import ConfigValidator, DefaultContentShaper, RuntimeConfigAssembler
@@ -500,7 +502,7 @@ class IOService:
 
 """ 6. Bridge Ports"""
 
-class IOBridgePort(Bridge):
+class IOBridgePort(ABC):
     @abstractmethod
     def to_clipboard(self, text_content: str) -> int: pass
     @abstractmethod
@@ -523,25 +525,19 @@ class ConfigValidatorProtocol(Protocol):
 class RuntimeConfigAssemblerProtocol(Protocol):
     def assemble(self, config_data: dict, kb_def_data: dict, shared_domains_data: dict) -> RuntimeConfig: ...
 
-class FileBridgePort(Bridge):
-
+class FileBridgePort(ABC):
     @abstractmethod
     def get_file_contents(self, tokenized_path: str) -> str: pass
-
     @abstractmethod
     def write_default_documents(
         self, doc_templ_dir: str, pud_doc_dir: str, templ_ext: str, doc_ext: str
     ) -> None: pass
-
     @abstractmethod
     def is_cwd_script_dir(self) -> bool: pass
-
     @abstractmethod
     def write_yaml(self, tokenized_path: str, data: dict) -> None: pass
-
     @abstractmethod
     def read_asset(self, tokenized_path: str | Path) -> str: pass
-
     @abstractmethod
     def get_files(
         self,
@@ -549,7 +545,6 @@ class FileBridgePort(Bridge):
         rel_roots: list[str | Path],
         missing_ok: bool = False
     ) -> set[Path]: pass
-
     @abstractmethod
     def get_contents_with_pud_fallback(self, file_names: list[str]) -> dict[str, str | None]: pass
 
