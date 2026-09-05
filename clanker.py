@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-from __future__ import annotations
+# LLM question: import section 1. are these not used at all?
+from __future__ import annotations 
 from enum import Enum
 import os
 from pathlib import Path
+import copy
+
+# LLM question: these appear to be used in the file. how appropriate is it.
 import sys
 import traceback
-import copy
-from typing import Callable, ClassVar, Any
+from typing import Callable, ClassVar, Any #ClassVar not used?
 from models import *
 
 class ExceptionPolicy:
@@ -73,36 +76,6 @@ class Engine:
             return exit_request.get_compliance_msg()
         except Exception as other_ex:
             ExceptionPolicy.reraise_as_failure(other_ex)
-
-def main():
-    try:
-        #file 'adapters.py'
-        from adapters import FileBridge, IOBridge
-        files_adapter = ExceptionPolicy.protect_adapter(FileBridge())
-        io_adapter = ExceptionPolicy.protect_adapter(IOBridge())
-        
-        #file 'utilities.py'
-        from utilities import ConfigValidator, DefaultContentShaper, RuntimeConfigAssembler
-        validator = ConfigValidator()
-        shaper = DefaultContentShaper()
-        assembler = RuntimeConfigAssembler()
-
-        session = SessionService(files=files_adapter, validator=validator, assembler=assembler)
-        renderer = AssemblyService(files=files_adapter, shaper=shaper)
-        io = IOService(io_bridge=io_adapter)
-
-        engine = GameEngine(
-            io=io,
-            session=session,
-            renderer=renderer
-        )
-
-        exit_msg = engine.run()
-        print(exit_msg)
-    except Failure as ex:
-        ExceptionPolicy.print_traceback_and_exit(ex)
-
-""" 4. App Abstractions (Models & Engine) """
 
 class GameEngine(Engine):
     def __init__(
@@ -182,8 +155,6 @@ class GameEngine(Engine):
         repl_map = self.renderer.get_repl_map(cfg, render)
         repl_map["msg"] = self.msg.get_msg()
         return self.renderer.hydrate(template, repl_map)
-
-""" 5. Services """
 
 class SessionService:
     def __init__(
@@ -421,7 +392,33 @@ class IOService:
                 err = f"Invalid confirmation. Expected '{required_phrase}', got '{value}'. Try again.\n"
                 self.io_bridge.write(base_msg + err + "> ")
 
-""" 7. Script Entrypoint """
+def main():
+    try:
+        #file 'adapters.py'
+        from adapters import FileBridge, IOBridge
+        files_adapter = ExceptionPolicy.protect_adapter(FileBridge())
+        io_adapter = ExceptionPolicy.protect_adapter(IOBridge())
+        
+        #file 'utilities.py'
+        from utilities import ConfigValidator, DefaultContentShaper, RuntimeConfigAssembler
+        validator = ConfigValidator()
+        shaper = DefaultContentShaper()
+        assembler = RuntimeConfigAssembler()
+
+        session = SessionService(files=files_adapter, validator=validator, assembler=assembler)
+        renderer = AssemblyService(files=files_adapter, shaper=shaper)
+        io = IOService(io_bridge=io_adapter)
+
+        engine = GameEngine(
+            io=io,
+            session=session,
+            renderer=renderer
+        )
+
+        exit_msg = engine.run()
+        print(exit_msg)
+    except Failure as ex:
+        ExceptionPolicy.print_traceback_and_exit(ex)
 
 if __name__ == "__main__":
     main()

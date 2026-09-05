@@ -35,10 +35,14 @@ II. Items to refine & QC:
     - accepts the llm artifact, returns requested content compiled to clipboard for dropoff
     - the file dependency issue: repo_content resolver should have some kinda of 'display omits' functionality:
         - so that files not shared can be informed of, on format like:
-'''
-<PUD>src/adapters/myadapter.py: xx lines
-<PUD>src/adapters/myotheradapter.py: xx lines
-'''
+            '<PUD>src/adapters/myadapter.py: xx lines'
+            '<PUD>src/adapters/myotheradapter.py: xx lines'
+
+2. Rationalize app engine
+    - lets consider combining the Engine baseclass and Gameengine class.
+    - the thought behind the split was to extract the basic workings of the app as a while loop creature for the reader, outlining the actions it takes in a shorthand manner.
+    - the intent was never to have several implementors.
+    - is this some sillyness which should be done away with?
 
 III. Slated for implementation:
 
