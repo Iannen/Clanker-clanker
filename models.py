@@ -3,7 +3,58 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, ClassVar
+from typing import Any, Callable, ClassVar, Protocol
+
+class IOBridgePort(Protocol):
+    def to_clipboard(self, text_content: str) -> int: ...
+    def write(self, text: str) -> None: ...
+    def read_char(self) -> str: ...
+    def get_acceptance(self, required_phrase: str | None) -> tuple[str, str]: ...
+
+
+class FileBridgePort(Protocol):
+    def get_file_contents(self, tokenized_path: str) -> str: ...
+    def write_default_documents(
+        self, doc_templ_dir: str, pud_doc_dir: str, templ_ext: str, doc_ext: str
+    ) -> None: ...
+    def is_cwd_script_dir(self) -> bool: ...
+    def write_yaml(self, tokenized_path: str, data: dict) -> None: ...
+    def read_asset(self, tokenized_path: str | Path) -> str: ...
+    def get_files(
+        self,
+        basepath_token: str,
+        rel_roots: list[str | Path],
+        missing_ok: bool = False
+    ) -> set[Path]: ...
+    def get_contents_with_pud_fallback(
+        self, file_names: list[str]
+    ) -> dict[str, str | None]: ...
+
+
+class ContentShaper(Protocol):
+    def normalize_file_spec(self, item: str | dict) -> tuple[str, int | None]: ...
+    def trim_to_tail(self, content: str, tail_lines: int | None) -> str: ...
+    def hydrate(
+        self, delim: str, template: str, replacements: dict[str, str]
+    ) -> str: ...
+
+
+class ConfigValidatorProtocol(Protocol):
+    def assert_no_quotes(self, raw_text: str, filepath: str = "") -> None: ...
+    def get_as_dict(self, raw_text: str) -> dict: ...
+    def assert_filesets_not_neglected(
+        self, cfg_frag: dict, filepath: str = ""
+    ) -> None: ...
+
+
+class RuntimeConfigAssemblerProtocol(Protocol):
+    def assemble(
+        self,
+        config_data: dict,
+        kb_def_data: dict,
+        shared_domains_data: dict
+    ) -> RuntimeConfig: ...
+
 
 class BaseEx(ABC, Exception):
     @property

@@ -8,9 +8,8 @@ import tty
 from pathlib import Path
 from ruamel.yaml import YAML
 from models import *
-from clanker import FileBridgePort, IOBridgePort
 
-class IOBridge(IOBridgePort): 
+class IOBridge:
     def to_clipboard(self, text_content: str) -> int:
         payload = base64.b64encode(text_content.encode("utf-8")).decode("utf-8")
         sys.stdout.write(f"\033]52;c;{payload}\007")
@@ -61,7 +60,7 @@ class IOBridge(IOBridgePort):
                 sys.stdout.write(ch)
                 sys.stdout.flush()
 
-class FileBridge(FileBridgePort):
+class FileBridge:
     def __init__(self) -> None:
         self.clanker_path = Path(os.path.realpath(__file__)).parent
         self.pud_path = Path.cwd()

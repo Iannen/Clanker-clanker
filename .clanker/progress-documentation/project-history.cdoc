@@ -290,3 +290,18 @@ LVII: EXCEPTION HIERARCHY OVERHAUL & MODELS MIGRATION
     - Decoupled exception rules from base class hierarchy into ExceptionPolicy convenience class in clanker.py
     - Restructured BaseEx in models.py using abstract leaf_ex property to enforce non-leaf class non-instantiability
     - Migrated all concrete and intermediate exception declarations (Failure, ControlNotice, UserNotice, etc.) to models.py
+
+LVIII: ADAPTER EXCEPTION POLICY DECOUPLING & BRIDGE REMOVAL
+    - Introduced ExceptionPolicy.protect_adapter in clanker.py to dynamically decorate adapter instance methods with wrap_bridge_call
+    - Eliminated Bridge base class and converted IOBridgePort and FileBridgePort to inherit directly from ABC/Protocol
+    - Updated entrypoint main() to wrap adapter instances via ExceptionPolicy during initialization
+
+LIX: PROTOCOL UNIFICATION FOR ADAPTER PORTS & UTILITIES
+    - Centralized all port and utility interface specifications in models.py using typing.Protocol
+    - Migrated FileBridgePort, IOBridgePort, ContentShaperProtocol, ConfigValidatorProtocol, and RuntimeConfigAssemblerProtocol to models.py
+    - Maintained zero internal module import constraints in models.py while updating clanker.py service dependencies to structural typing
+
+LX: IMPORT RATIONALIZATION & DEPENDENCY CLEANUP COMPLETION
+    - Centralized shared domain models, path tokens, layout constants, and exception hierarchies inside models.py
+    - Restructured module imports across utilities.py and adapters.py to depend strictly on models.py
+    - Eliminated circular imports and clanker.py dependencies in peripheral modules following Bridge removal and protocol unification

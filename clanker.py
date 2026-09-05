@@ -6,8 +6,7 @@ from pathlib import Path
 import sys
 import traceback
 import copy
-from typing import Callable, ClassVar, Any, Protocol
-from abc import ABC, abstractmethod
+from typing import Callable, ClassVar, Any
 from models import *
 
 class ExceptionPolicy:
@@ -421,54 +420,6 @@ class IOService:
             if status == IOControl.INVALID:
                 err = f"Invalid confirmation. Expected '{required_phrase}', got '{value}'. Try again.\n"
                 self.io_bridge.write(base_msg + err + "> ")
-
-""" 6. Bridge Ports"""
-
-class IOBridgePort(ABC):
-    @abstractmethod
-    def to_clipboard(self, text_content: str) -> int: pass
-    @abstractmethod
-    def write(self, text: str) -> None: pass
-    @abstractmethod
-    def read_char(self) -> str: pass
-    @abstractmethod
-    def get_acceptance(self, required_phrase: str | None) -> tuple[str, str]: pass
-
-class ContentShaper(Protocol):
-    def normalize_file_spec(self, item: str | dict) -> tuple[str, int | None]: ...
-    def trim_to_tail(self, content: str, tail_lines: int | None) -> str: ...
-    def hydrate(self, delim: str, template: str, replacements: dict[str, str]) -> str: ...
-
-class ConfigValidatorProtocol(Protocol):
-    def assert_no_quotes(self, raw_text: str, filepath: str = "") -> None: ...
-    def get_as_dict(self, raw_text: str) -> dict: ...
-    def assert_filesets_not_neglected(self, cfg_frag: dict, filepath: str = "") -> None: ...
-
-class RuntimeConfigAssemblerProtocol(Protocol):
-    def assemble(self, config_data: dict, kb_def_data: dict, shared_domains_data: dict) -> RuntimeConfig: ...
-
-class FileBridgePort(ABC):
-    @abstractmethod
-    def get_file_contents(self, tokenized_path: str) -> str: pass
-    @abstractmethod
-    def write_default_documents(
-        self, doc_templ_dir: str, pud_doc_dir: str, templ_ext: str, doc_ext: str
-    ) -> None: pass
-    @abstractmethod
-    def is_cwd_script_dir(self) -> bool: pass
-    @abstractmethod
-    def write_yaml(self, tokenized_path: str, data: dict) -> None: pass
-    @abstractmethod
-    def read_asset(self, tokenized_path: str | Path) -> str: pass
-    @abstractmethod
-    def get_files(
-        self,
-        basepath_token: str,
-        rel_roots: list[str | Path],
-        missing_ok: bool = False
-    ) -> set[Path]: pass
-    @abstractmethod
-    def get_contents_with_pud_fallback(self, file_names: list[str]) -> dict[str, str | None]: pass
 
 """ 7. Script Entrypoint """
 
