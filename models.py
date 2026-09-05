@@ -6,11 +6,9 @@ from pathlib import Path
 from typing import Any, Callable, ClassVar
 
 class BaseEx(ABC, Exception):
-    @property
+    @property # Question to LLM: must this be a property? what is that all about. Find occasion to answer this
     @abstractmethod
-    def leaf_ex(self) -> bool:
-        """Abstract guard preventing non-leaf instantiation via standard ABC mechanics."""
-        pass
+    def leaf_ex(self) -> bool:pass
 
 class Failure(BaseEx): pass
 class ControlNotice(BaseEx): pass
