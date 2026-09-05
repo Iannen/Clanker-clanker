@@ -7,30 +7,29 @@ I. Ideas, complaints and non-critical bugs:
 - arrow keys interpreted as esc
 
 II. Items to refine & QC:
-   
+
 1. Usability push
-    - 1a
-    - 1b
-    - 1c
-    - 1d
+    - 1a: expand Truncation Functionality
+    - 1b: move Shared Domains to ASDF Row
+    - 1c: new 'follow up' resolver
+    - 1d: investigate ways to capitalize on semantics of yaml for prompt gen
 
 
-1a. expand truncation functionality
+1a. Expand truncation functionality
     - in addition to tail lines
         - so i can add tail of history doc
     - 'from & including line by regex match -> to but not including regex line match'
         - so I can target part of backlog
+    - consultant instruction: investigate this further to develop item.
+        - what will the truncationspec class wind up looking like?
+        - what will the yaml look like?
+        - can we leverage a utilities member to tuck away some of that 'dirty processing'? do we do so already do some extent?
 
-1b. move shared domains to ASDF row
+1b. Move shared domains to ASDF row
+    - consultant instruction: investigate this further to develop item.
+        - is this straightforward? what is scope of item.
 
-1c. investigate ways to capitalize on semantics of yaml for prompt gen.
-    - name attrs: domain.name, prompt.name, fileset.name, filelist.name
-    - anchor names: base_fragments, the rest
-    - basically, the name of a domain, name of a prompt, should feature in the prompt to provide ctx.
-    - the prompt compilation system seems kinda wack now, but perhaps its ok? i dont know.
-        - perhaps I add nested state? depart from inhabitant model into state = [domain][prompt] or something like that?
-
-1d. new resolver: follow up:
+1c. New 'follow up' resolver:
     - lets the llm specify required context on some format, like an md resolver
     - accepts the llm artifact, returns requested content compiled to clipboard for dropoff
     - the file dependency issue: repo_content resolver should have some kinda of 'display omits' functionality:
@@ -38,11 +37,12 @@ II. Items to refine & QC:
             '<PUD>src/adapters/myadapter.py: xx lines'
             '<PUD>src/adapters/myotheradapter.py: xx lines'
 
-2. Rationalize app engine
-    - lets consider combining the Engine baseclass and Gameengine class.
-    - the thought behind the split was to extract the basic workings of the app as a while loop creature for the reader, outlining the actions it takes in a shorthand manner.
-    - the intent was never to have several implementors.
-    - is this some sillyness which should be done away with?
+1d. Investigate ways to capitalize on semantics of yaml for prompt gen
+    - name attrs: domain.name, prompt.name, fileset.name, filelist.name
+    - anchor names: base_fragments, the rest
+    - basically, the name of a domain, name of a prompt, should feature in the prompt to provide ctx.
+    - the prompt compilation system seems kinda wack now, but perhaps its ok? i dont know.
+        - perhaps I add nested state? depart from inhabitant model into state = [domain][prompt] or something like that?
 
 III. Slated for implementation:
 

@@ -64,20 +64,7 @@ class ExceptionPolicy:
             traceback.print_exception(type(cause), cause, cause.__traceback__)
         sys.exit(1)
 
-class Engine:
-    def run(self) -> str:
-        try:
-            self._add_to_board(self._bootstrap())
-            while True:
-                cmd_key = self._display_ui()
-                cmd_res_msg = self._dispatch_cmd(cmd_key)
-                self._add_to_board(cmd_res_msg)
-        except ProgramExit as exit_request:
-            return exit_request.get_compliance_msg()
-        except Exception as other_ex:
-            ExceptionPolicy.reraise_as_failure(other_ex)
-
-class GameEngine(Engine):
+class AppEngine:
     def __init__(
         self, 
         io: IOService, 
@@ -87,6 +74,19 @@ class GameEngine(Engine):
         self.io = io
         self.session = session
         self.renderer = renderer
+        self.msg: ActionResult | None = None
+
+    def run(self) -> str:
+        try:
+            self.msg = self._bootstrap()
+            while True:
+                cmd_key = self._display_ui()
+                self.msg = self.kb.handle_key(cmd_key)
+        except ProgramExit as exit_request:
+            return exit_request.get_compliance_msg()
+        except Exception as other_ex:
+            ExceptionPolicy.reraise_as_failure(other_ex)
+
     def _bootstrap(self) -> ActionResult:
         try:
             self.runtime_config = self.session.get_runtime_config()
@@ -101,11 +101,6 @@ class GameEngine(Engine):
                 return self._bootstrap()
             except UserDecline:
                 raise ProgramExit
-    def _dispatch_cmd(self, key: str) -> ActionResult:
-        return self.kb.handle_key(key)
-
-    def _add_to_board(self, msg: ActionResult | None) -> None:
-        self.msg = msg
 
     def _wire_num_row(self) -> None:
         for btn in self.kb.get_unique_buttons("domain_row"):
@@ -409,7 +404,7 @@ def main():
         renderer = AssemblyService(files=files_adapter, shaper=shaper)
         io = IOService(io_bridge=io_adapter)
 
-        engine = GameEngine(
+        engine = AppEngine(
             io=io,
             session=session,
             renderer=renderer

@@ -305,3 +305,8 @@ LX: IMPORT RATIONALIZATION & DEPENDENCY CLEANUP COMPLETION
     - Centralized shared domain models, path tokens, layout constants, and exception hierarchies inside models.py
     - Restructured module imports across utilities.py and adapters.py to depend strictly on models.py
     - Eliminated circular imports and clanker.py dependencies in peripheral modules following Bridge removal and protocol unification
+
+LXI: ENGINE AND GAMEENGINE CONSOLIDATION
+    - Merged base class `Engine` into `GameEngine` and renamed the unified class to `AppEngine` to remove the informational baseclass experiment and reduce indirection
+    - Eliminated pass-through helpers (`_add_to_board` and `_dispatch_cmd`) in favor of in-line logic within the execution run method
+    - Retained targeted workflow helper methods (`_bootstrap`, `_display_ui`, `_wire_num_row`, `_set_selected_num_btn`, `_compile_to_clipboard`, and `_render`)
