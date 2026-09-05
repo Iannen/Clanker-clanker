@@ -59,3 +59,4 @@ domains:
 '''
 
 randomthought: the user has the choice of inline yml declarations, or root level named declarations for as many things as possible
+randomthought: new resolver, to compile a project into a zip file for that coveted attaboy review

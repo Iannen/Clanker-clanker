@@ -5,7 +5,7 @@ I. Ideas, complaints and non-critical bugs:
 - the user should not have to start & stop the app for config updates to become online
 - can we do without any external deps like ruamel & pydantic, lessening the install burden?
 - arrow keys interpreted as esc
-
+- does AssemblyService take on validation as we get serious about validation? hm.
 II. Items to refine & QC:
 
 1. Usability push
@@ -14,36 +14,78 @@ II. Items to refine & QC:
     - 1c: new 'follow up' resolver
     - 1d: investigate ways to capitalize on semantics of yaml for prompt gen
 
+1a. Expand truncation functionality with regex range and tail support. by 'problem' i mean -> validation concern.
+    [ ] 'models.py': 
+        - 'TruncationSpec'
+            - add 'from_line: str | None': regex match lines till a hit. if not None, and no match its a problem
+            - add 'up_to: str | None': regex match lines (starting from the from line hit) till a hit. if not None, and no match its a problem
+            - 'tail_lines: int | None' as before.
+        - 'File'
+            - rename to 'FileSpec'
+            - new member: 'PUD_REPO_REL: ClassVar[object] = object()'
+            - new member: 'FALLBACK_BYNAME: ClassVar[object] = object()'
+            - new member: 'src_strat: object' 
+            - 'name: Str' -> 'name: Str | None'
+            - new member: rel_path: str | None
+        - 'ContentShaper'
+            - remove method 'trim_to_tail'
+            - add 'process_file_content(self, spec: FileSpec, content: str) -> str
+    [ ] 'clanker.py AssemblyService._res_multi_doc': refactor to retrieve filecontents one at a time & rationalize its logic:
+        - declare 'fragments' to aggregate
+        - for file_spec in resolver.files.files:
+            - if file_spec.src_strat is FileSpec.PUD_REPO_REL: 
+                - content = self.files.read_asset(BasePathTokens.PUD + '/' + file_spec.rel_path)
+            - if file_spec.src_strat is FileSpec.FALLBACK_BYNAME:  
+                - content= self.files.get_content_with_fallback(file_spec.name)
+            - processed_content = self.shaper.process_file_content(file_spec, content)
+            - then add to content 'fragments'. we know the name if pud_repo_rel cuz assembler puts it on file_spec during assembly
+        - return {anchor + concatenated contents}
 
-1a. Expand truncation functionality
-    - in addition to tail lines
-        - so i can add tail of history doc
-    - 'from & including line by regex match -> to but not including regex line match'
-        - so I can target part of backlog
-    - consultant instruction: investigate this further to develop item.
-        - what will the truncationspec class wind up looking like?
-        - what will the yaml look like?
-        - can we leverage a utilities member to tuck away some of that 'dirty processing'? do we do so already do some extent?
+    [ ] 'utilities.py':
+        - 'DefaultContentShaper'
+            - remove method 'trim_to_tail'
+            - implement `process_file_content(self, spec: FileSpec, content: str) -> str`:
+                - returns raw content unchanged if `spec.truncation_spec` is None
+                - validate mutual exclusivity: raise error if `tail_lines` and (`from_line` or `up_to`) are both set
+                - for regex slicing:
+                    - find first line matching `from_line` regex; raise error if set but unmatched
+                    - find first line matching `up_to` regex starting after `from_line` match; raise error if set but unmatched
+                    - return line range slice (include the 'from_line' but not the 'upto_line')
+                - for tail slicing:
+                    - if `tail_lines` exceeds line count, treat as non-fatal no-op and return full content
+                    - return last N lines of content
+        - 'RuntimeConfigAssembler':
+            - refactor `_build_file` to `_build_file_spec(self, raw_item: str | dict)` -> FileSpec:
+                - if `raw_item` is `str`:
+                    - set `src_strat = FileSpec.FALLBACK_BYNAME`
+                    - set `name = raw_item`
+                    - rest of the FileSpec members default to None
+                - if `raw_item` is `dict`:
+                    - set `src_strat = FileSpec.PUD_REPO_REL`
+                    - extract `src` from dict. if None then raise ex
+                    - extract `from_line`, `up_to`, `tail_lines` from dict
+                    - trunc_spec = _build_trunc_spec(from_line, up_to, tail_lines)  
 
-''' proposed, gotta look over it
-1a. Expand truncation functionality with regex range and tail support
-    [ ] 'models.py': Add regex bounds fields to TruncationSpec dataclass
-        - add optional `from_regex: str | None` and `to_regex: str | None` fields to `TruncationSpec`
-    [ ] 'utilities.py': Implement regex range slicing and normalization in ContentShaper
-        - update `normalize_file_spec` to parse dictionary configurations for regex boundaries
-        - implement line extraction logic using regular expressions for inclusive/exclusive range matching alongside existing tail support
-'''
+                    - XOR validate `tail_lines` is not None || one or both of `from_line`  `up_to` is not None
+                        - > else raise some notice or failure - what do we have on hand?
+                    - then assign values 
+                    - then branch:
+                        - in tail_lines branch:
+                            build trunc spec with tail_lines member set to the tail_lines of the dict, rest of trunc spec defaults to none
+                        - in the other branch:
+                    - build `TruncationSpec` 
+                    - if dict specifies a relative path target (`rel_path` / `full_path`):
+                        - set `src_strat = FileSpec.PUD_REPO_REL`
+                        - set `rel_path = <value>`
+                        - set `name = path_basename(<value>)`
+                    - else (filename target `file` / `name`):
+                        - set `src_strat = FileSpec.FALLBACK_BYNAME`
+                        - set `name = <value>`
+                        - set `rel_path = None`
 
 1b. Move shared domains to ASDF row
     - consultant instruction: investigate this further to develop item.
         - is this straightforward? what is scope of item.
-'''
-1b. Move shared domains and domain button bindings to the ASDF home row
-    [ ] '/.clanker/shared-assets/config-fragments/system_cfg.yaml': Rebind domain keys to home row
-        - update button configuration definitions to map domain keys to 'a', 's', 'd', and 'f' keys
-    [ ] 'clanker.py': Verify and adjust domain row wiring logic
-        - ensure `domain_row` button handlers and UI state mapping correctly target the new ASDF layout row
-'''
 
 1c. New 'follow up' resolver:
     - lets the llm specify required context on some format, like an md resolver
