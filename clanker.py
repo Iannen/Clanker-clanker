@@ -9,31 +9,45 @@ import copy
 from typing import Callable, ClassVar, Any, Protocol
 from abc import ABC, abstractmethod
 from models import (
+    BadFile,
+    BaseEx,
+    BaseExInstantiation,
+    BridgeLeakage,
     Button,
     Config,
+    ConfigAssemblyFailure,
+    ConfigViolations,
+    ControlNotice,
+    CorruptClanker,
     Domain,
+    Failure,
     FileSet,
-    Keyboard,
+    IllegalDuplicateFile,
     KBStateResolver,
+    Keyboard,
     ManifestResolver,
+    MissedAdoptedNotice,
+    MissedNotice,
     MultiDocResolver,
+    NoConfig,
+    NoticeArgs,
+    NotImplemented,
+    ProgramExit,
     Prompt,
     Render,
     RepoContentResolver,
     Resolver,
-    SystemKeys,
     RuntimeConfig,
+    SystemKeys,
+    UnexpectedEx,
+    UserDecline,
+    UserNotice,
+    UserTask,
 )
 
 """ 2. Base Classes & Main function """
 
-class BaseEx(Exception):
-    def __new__(cls, *args, **kwargs):
-        if cls is BaseEx:
-            raise BaseExInstantiation(cls.__name__)
-        if cls is ControlNotice and (args or kwargs):
-            raise NoticeArgs(cls.__name__)
-        return super().__new__(cls)
+class ExceptionPolicy:
     ADOPTED_NOTICES: tuple[type[Exception], ...] = (  
         FileNotFoundError,
         PermissionError,
@@ -57,7 +71,7 @@ class BaseEx(Exception):
             raise
         if isinstance(ex, ControlNotice):
             raise MissedNotice(f"Missed notice: {ex}") from ex
-        if isinstance(ex, BaseEx.ADOPTED_NOTICES):
+        if isinstance(ex, cls.ADOPTED_NOTICES):
             raise MissedAdoptedNotice(f"Adopted notice failure: [{type(ex).__name__}] {ex}") from ex
         else:
             raise UnexpectedEx(f"[{type(ex).__name__}] {ex}") from ex
@@ -72,10 +86,6 @@ class BaseEx(Exception):
             traceback.print_exception(type(cause), cause, cause.__traceback__)
         sys.exit(1)
 
-class Failure(BaseEx): pass
-class ControlNotice(BaseEx): pass
-class UserNotice(BaseEx): pass
-
 class Engine:
     def run(self) -> str:
         try:
@@ -87,7 +97,7 @@ class Engine:
         except ProgramExit as exit_request:
             return exit_request.get_compliance_msg()
         except Exception as other_ex:
-            BaseEx.reraise_as_failure(other_ex)
+            ExceptionPolicy.reraise_as_failure(other_ex)
 
 class Bridge(ABC):
     def __init_subclass__(cls):
@@ -97,7 +107,7 @@ class Bridge(ABC):
     @staticmethod
     def _wrap_safely(fn):
         def wrapper(*args, **kwargs):
-            return BaseEx.wrap_bridge_call(fn, *args, **kwargs)
+            return ExceptionPolicy.wrap_bridge_call(fn, *args, **kwargs)
         return wrapper
 
 def main():
@@ -126,7 +136,7 @@ def main():
         exit_msg = engine.run()
         print(exit_msg)
     except Failure as ex:
-        BaseEx.print_traceback_and_exit(ex)
+        ExceptionPolicy.print_traceback_and_exit(ex)
 
 """ 3. Exceptions, Result Objects, Enums """
 
@@ -168,27 +178,6 @@ class ActionResult:
     def get_msg(self) -> str:
         width = 117
         return f"{self.message:<{width}}"[:width]
-
-class MissedNotice(Failure): pass
-class BaseExInstantiation(Failure): pass
-class NoticeArgs(Failure): pass
-class BridgeLeakage(Failure): pass
-class BadFile(Failure): pass
-class NotImplemented(Failure): pass
-class MissedAdoptedNotice(Failure): pass
-class UnexpectedEx(Failure): pass
-class CorruptClanker(Failure): pass
-class ConfigAssemblyFailure(Failure): pass
-class IllegalDuplicateFile(Failure): pass
-class UserTask(Failure): pass
-
-class UserDecline(ControlNotice): pass
-class ProgramExit(ControlNotice):
-    def get_compliance_msg(self):
-        return "Program exited"
-class NoConfig(ControlNotice): pass
-
-class ConfigViolations(UserNotice): pass
 
 """ 4. App Abstractions (Models & Engine) """
 

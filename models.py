@@ -1,8 +1,42 @@
 from __future__ import annotations
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, ClassVar
+
+class BaseEx(ABC, Exception):
+    @property
+    @abstractmethod
+    def leaf_ex(self) -> bool:
+        """Abstract guard preventing non-leaf instantiation via standard ABC mechanics."""
+        pass
+
+class Failure(BaseEx): pass
+class ControlNotice(BaseEx): pass
+class UserNotice(BaseEx): pass
+
+class MissedNotice(Failure): leaf_ex = True
+class BaseExInstantiation(Failure): leaf_ex = True
+class NoticeArgs(Failure): leaf_ex = True
+class BridgeLeakage(Failure): leaf_ex = True
+class BadFile(Failure): leaf_ex = True
+class NotImplemented(Failure): leaf_ex = True
+class MissedAdoptedNotice(Failure): leaf_ex = True
+class UnexpectedEx(Failure): leaf_ex = True
+class CorruptClanker(Failure): leaf_ex = True
+class ConfigAssemblyFailure(Failure): leaf_ex = True
+class IllegalDuplicateFile(Failure): leaf_ex = True
+class UserTask(Failure): leaf_ex = True
+
+class UserDecline(ControlNotice): leaf_ex = True
+class ProgramExit(ControlNotice): 
+    leaf_ex = True
+    def get_compliance_msg(self) -> str:
+        return "Program exited"
+
+class NoConfig(ControlNotice): leaf_ex = True
+class ConfigViolations(UserNotice): leaf_ex = True
 
 class SystemKeys:
     DELIM = "§"

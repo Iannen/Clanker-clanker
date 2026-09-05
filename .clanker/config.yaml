@@ -1,6 +1,6 @@
 filesets:
   core: {includes: [clanker.py, models.py], excludes: []}
-  ad-hoc: {includes: [utilities.py, .clanker/shared-assets/config-fragments/shared_cfg.yaml, .clanker/config.yaml], excludes: []}
+  ad-hoc: {includes: [utilities.py, adapters.py], excludes: []}
 
 domains:
 - name: script-dev

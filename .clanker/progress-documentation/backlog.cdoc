@@ -8,13 +8,29 @@ I. Ideas, complaints and non-critical bugs:
 
 II. Items to refine & QC:
    
-1. expand truncation functionality
+1. Usability push
+    - 1a
+    - 1b
+    - 1c
+    - 1d
+
+
+1a. expand truncation functionality
     - in addition to tail lines
         - so i can add tail of history doc
     - 'from & including line by regex match -> to but not including regex line match'
         - so I can target part of backlog
 
-2. new resolver: follow up:
+1b. move shared domains to ASDF row
+
+1c. investigate ways to capitalize on semantics of yaml for prompt gen.
+    - name attrs: domain.name, prompt.name, fileset.name, filelist.name
+    - anchor names: base_fragments, the rest
+    - basically, the name of a domain, name of a prompt, should feature in the prompt to provide ctx.
+    - the prompt compilation system seems kinda wack now, but perhaps its ok? i dont know.
+        - perhaps I add nested state? depart from inhabitant model into state = [domain][prompt] or something like that?
+
+1d. new resolver: follow up:
     - lets the llm specify required context on some format, like an md resolver
     - accepts the llm artifact, returns requested content compiled to clipboard for dropoff
     - the file dependency issue: repo_content resolver should have some kinda of 'display omits' functionality:
@@ -24,37 +40,49 @@ II. Items to refine & QC:
 <PUD>src/adapters/myotheradapter.py: xx lines
 '''
 
-3. move shared domains to ASDF row
-
-4. rationalize imports with kleene operator & more:
+2. rationalize imports with kleene operator & more:
     - collapse huge import blocks to 'from models import *'
         -> fine for models at least, but namespace collisions are a python toothache which i will ignore. so a yes on this
-    - do I divvy up protocols / adapters into files of their own, for easier prompt gen? file is my unit of inclusion pretty much
-         -> yeah look into this more
+    - Revise who imports what. 
+         - clanker.py
+            -> should import all members of below three files. its basically the app.
+            -> its compliant
+         - models.py 
+            -> should import none of the .py files of the projects
+            -> its compliant 
+            -> if this should hold ex declarations, then baseex functionality must be decouple from inheritance hierarchy.
+         - utilities.py 
+            -> should import the models only
+            -> violates to gain access to clanker.py ex
+         - ideally adapters.py 
+            -> should ideally import the models only
+            -> but its members inherit 'Bridge' for functionality that ties in with the baseex system. 
+            -> so keep as-is for now. perhaps a better solution can be arrived at? the Bridge base functionality should be visible from core
 
-5. investigate ways to capitalize on semantics of yaml for prompt gen.
-    - name attrs: domain.name, prompt.name, fileset.name, filelist.name
-    - anchor names: base_fragments, the rest
-    - basically, the name of a domain, name of a prompt, should feature in the prompt to provide ctx.
-    - the prompt compilation system seems kinda wack now, but perhaps its ok? i dont know.
-        - perhaps I add nested state? depart from inhabitant model into state = [domain][prompt] or something like that?
+2b. Bridge baseclass elimination discussion
+    - I think the Bridge baseclass can be eliminated. Perhaps the ExceptionPolicy class can offer a convenience method to annotate members of adapters (and protocols too!) by some convention (i think we use private semantics now)
 
 III. Slated for implementation:
-
+        
 IV. Recently implemented:
 
-1.  Data model revamp, unused alt-mode functionality removal. We split this up into several jobs:
-    [x] Aggregator:
-        - 1a-1d have been implemented and transferred to project history
-        - 1e has been implemented in code, but is pending investgation of codesmells before finalization.
-        - 1f to investiage and hopefulle be able to arrive at a better architecture.
-    - So quite the roundtrip in the end, but finally pydantic is eliminated at least.
-    - Also the stage is set for more fancy resolvers, i think
+(2.a has been implemented and transfered to project history, and remains for context only)
+2.a EX system overhaul: untangle rules & declarations from the ex hierarchy, so ex tree can be moved to models without losing sight of functionality from core. (Preparatory step for import revamp)
+    [x] 'clanker.py', 'BaseEx' decoupled from ex hierarchy, transformed to convenience class for centralization of ex system rules and declarations.
+        - Rename 'BaseEx' to 'ExceptionPolicy'
+        - it no longer enforces the rule that no non-leaf nodes are allowed to instantiate.
+        - other functionality and declarations remain as-is
 
-2. [x] Separate entrypoint file: sought after benefits -> Rejected
-    - centralize repeated model imports
-    - what else?
-    - the feedback came: import fix has other pattern.
-    - little benefit in extraction for clanker app given size and distribution
+    [x] 'clanker.py', 'models.py': migrate ex declarations to models.
+        - redeclare 'BaseEx' in models:
+                BaseEx(ABC, Exception)
+                    @abstractmethod 
+                    leaf_ex(self):pass #guards instantiations for it and downstream inheritors
+        - move 'Failure(BaseEx)', 'ControlNotice(BaseEx)' and 'UserNotice(BaseEx)' to models
+            - they dont override leaf_ex, so they cannot be instantiated.
+        - move remaining ex classes to models. they must all override is_leaf to allow their instantiation.
+        - this combines to give us some rather nice semantics:
+            - class Failure(BaseEx): pass
+            - class MissedNotice(Failure): leaf_ex = True
 
 V. Critical bugs

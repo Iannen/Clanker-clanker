@@ -277,3 +277,16 @@ LIV: REFACTOR RESOLVER DOMAIN MODELS TO PURE DATA CLASSES & MIGRATE RESOLUTION L
     - Converted Resolver hierarchy in models.py to pure configuration data classes holding attributes and anchor
     - Moved all resolution and hydration dispatching into AssemblyService inside clanker.py via type-matched helpers (_res_multi_doc, _res_repo_content, _res_manifest, _res_ui)
     - Consolidated manifest block creation under AssemblyService._build_manifest
+
+LV: DATA MODEL REVAMP & UNUSED ALT-MODE REMOVAL CONCLUDED
+    - Eliminated Pydantic dependencies in favor of native Python dataclass representations across models.py
+    - Restructured AssemblyService resolver dispatch and resolution helpers to work with pure dataclass instances
+
+LVI: ARCHITECTURAL EVALUATION: SEPARATE ENTRYPOINT FILE (REJECTED)
+    - Evaluated extracting a dedicated entrypoint module to centralize repeated model imports
+    - Proposal rejected due to minimal benefit for application scope and preference for existing import patterns
+
+LVII: EXCEPTION HIERARCHY OVERHAUL & MODELS MIGRATION
+    - Decoupled exception rules from base class hierarchy into ExceptionPolicy convenience class in clanker.py
+    - Restructured BaseEx in models.py using abstract leaf_ex property to enforce non-leaf class non-instantiability
+    - Migrated all concrete and intermediate exception declarations (Failure, ControlNotice, UserNotice, etc.) to models.py
