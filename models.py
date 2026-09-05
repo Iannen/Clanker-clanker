@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Callable, ClassVar
 
 class BaseEx(ABC, Exception):
-    @property # Question to LLM: must this be a property? what is that all about. Find occasion to answer this
+    @property
     @abstractmethod
     def leaf_ex(self) -> bool:pass
 

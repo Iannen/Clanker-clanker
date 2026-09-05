@@ -43,6 +43,7 @@ II. Items to refine & QC:
 2. rationalize imports with kleene operator & more:
     [x] Relocate 'clanker.py' members to 'models.py' to align with P&A architecture:
         - 'BasePathTokens', 'IOControl', CfgFragments, DocPaths, Layout, ActionResult
+        - protocol members will be moved later
 
     [x] 'clanker.py', 'utilities.py' and 'adapters.py': 
         - collapse huge import blocks to 'from models import *'
@@ -63,15 +64,42 @@ II. Items to refine & QC:
             -> but its members inherit 'Bridge' for functionality that ties in with the baseex system. 
             -> so keep as-is for now. perhaps a better solution can be arrived at? the Bridge base functionality should be visible from core
 
-2.c Investigate adapters.py dependency on clanker.py
+III. Slated for implementation:
 
+2c  Unify on 'Protocol' for adapter ports and utility members
+    [ ] 'models.py': Centralize all port and utility protocol definitions
+        - Relocate 'FileBridgePort' and 'IOBridgePort' from 'clanker.py' to 'models.py', converting them from ABC to Protocol
+        - Move utility protocols ('ContentShaperProtocol', 'ConfigValidatorProtocol', 'RuntimeConfigAssemblerProtocol') to 'models.py'
+        - Retain zero internal project module imports in 'models.py'
+    [ ] 'adapters.py': Remove dependencies on 'clanker.py'
+        - Remove 'xxxPort' inheritance from 'FileBridge' and 'IOBridge' to enable structural subtyping
+        - Remove now-redundant clanker imports
+    [ ] 'clanker.py': Clean up local port definitions and align type hints
+        - Update service type annotations and constructor parameters to reference protocols imported from 'models.py'
 
-    -   problem:
-        adapters.py imports from clanker.py so that the concrete adapters can inherit their 'interface'.
-        should we seek to eliminate this? can we not just declare the ports in clanker, and instantiate adapters for them without the adapter inheriting?
-        note: the control type and ex imports can moved to models.py to resolve that part of clanker.py dependency, and are not of interest for teh discussion
-    -   we unify on Protocol for both members of utilities.py and adapters.py, 
+    analysis for context:
+    - problem: adapters.py imports from clanker.py so that the concrete adapters can inherit their ABC based 'interface'.
+    - goal: resolve adapters.py dependency on clanker.py by eliminating ABC in favour of Protocol
+        - achieve a 'dev-time golang' interface situation
+    - unify imports and DI wiring of utilities & adapters members to python idioms. demonstration their structure:
+
+''' utilities.py, only depends on models.py and app external dependencies
+from __future__ import annotations
+import copy
+import re
+from typing import Any
+from ruamel.yaml import YAML
+from models import *
+
+class DefaultContentShaper:
+#methods truncated
+class ConfigValidator:
+#methods truncated
+class RuntimeConfigAssembler:
+#methods truncated
 '''
+
+''' adapters.py. depends upon clanker.py fo the ports. 
 from __future__ import annotations
 
 import base64
@@ -81,14 +109,14 @@ import termios
 import tty
 from pathlib import Path
 from ruamel.yaml import YAML
-
-from clanker import FileBridgePort, IOBridgePort, IllegalDuplicateFile, CorruptClanker, BasePathTokens, IOControl
+from models import *
+from clanker import FileBridgePort, IOBridgePort
 
 class IOBridge(IOBridgePort): 
-.....
+#truncated methods
+class FileBridge(FileBridgePort):
+#truncated methods
 '''
-
-III. Slated for implementation:
 
 IV. Recently implemented:
 
