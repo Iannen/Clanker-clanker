@@ -25,9 +25,25 @@ II. Items to refine & QC:
         - what will the yaml look like?
         - can we leverage a utilities member to tuck away some of that 'dirty processing'? do we do so already do some extent?
 
+''' proposed, gotta look over it
+1a. Expand truncation functionality with regex range and tail support
+    [ ] 'models.py': Add regex bounds fields to TruncationSpec dataclass
+        - add optional `from_regex: str | None` and `to_regex: str | None` fields to `TruncationSpec`
+    [ ] 'utilities.py': Implement regex range slicing and normalization in ContentShaper
+        - update `normalize_file_spec` to parse dictionary configurations for regex boundaries
+        - implement line extraction logic using regular expressions for inclusive/exclusive range matching alongside existing tail support
+'''
+
 1b. Move shared domains to ASDF row
     - consultant instruction: investigate this further to develop item.
         - is this straightforward? what is scope of item.
+'''
+1b. Move shared domains and domain button bindings to the ASDF home row
+    [ ] '/.clanker/shared-assets/config-fragments/system_cfg.yaml': Rebind domain keys to home row
+        - update button configuration definitions to map domain keys to 'a', 's', 'd', and 'f' keys
+    [ ] 'clanker.py': Verify and adjust domain row wiring logic
+        - ensure `domain_row` button handlers and UI state mapping correctly target the new ASDF layout row
+'''
 
 1c. New 'follow up' resolver:
     - lets the llm specify required context on some format, like an md resolver
