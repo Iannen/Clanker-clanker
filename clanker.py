@@ -10,8 +10,6 @@ from typing import Callable, ClassVar, Any, Protocol
 from abc import ABC, abstractmethod
 from models import *
 
-""" 2. Base Classes & Main function """
-
 class ExceptionPolicy:
     ADOPTED_NOTICES: tuple[type[Exception], ...] = (  
         FileNotFoundError,
@@ -104,35 +102,6 @@ def main():
         print(exit_msg)
     except Failure as ex:
         ExceptionPolicy.print_traceback_and_exit(ex)
-
-""" 3. Exceptions, Result Objects, Enums """
-
-class CfgFragments:
-    PUD_CFG = "/.clanker/config.yaml" #domains, prompts, filesets , filelists & such
-    SYSTEM_CFG = "/.clanker/shared-assets/config-fragments/system_cfg.yaml" #ui render & rows for button instantiation
-    SHARED_CFG = "/.clanker/shared-assets/config-fragments/shared_cfg.yaml" #domains, prompts, filesets , filelists & such
-    TEMPLATE_CFG = "/.clanker/templates/config.template"
-    
-class DocPaths:
-    SHARED_TEMPLATES = "/.clanker/templates/documentation"
-    PUD_DOCS = "/.clanker/progress-documentation"
-    TEMPL_EXT = ".template"
-    DOC_EXT = ".cdoc"
-
-class Layout:
-    UI = "/.clanker/shared-assets/layouts/ui.layout"
-    PROMPT = "/.clanker/shared-assets/layouts/prompt.layout"
-    BTN_ACTIVE = "/.clanker/shared-assets/layouts/btn_active.layout"
-    BTN_HL = "/.clanker/shared-assets/layouts/btn_hl.layout"
-    BTN_INACTIVE = "/.clanker/shared-assets/layouts/btn_inactive.layout"
-
-class ActionResult:
-    def __init__(self, message: str):
-        self.message = message
-
-    def get_msg(self) -> str:
-        width = 117
-        return f"{self.message:<{width}}"[:width]
 
 """ 4. App Abstractions (Models & Engine) """
 

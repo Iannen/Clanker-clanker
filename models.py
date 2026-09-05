@@ -161,3 +161,30 @@ class IOControl:
     ABORT_KEYS = ("\x1b", "\x03")
     ACCEPT_KEY = "\x04"
     BACKSPACE_KEYS = ("\x7f", "\x08")
+
+class CfgFragments:
+    PUD_CFG = "/.clanker/config.yaml" #domains, prompts, filesets , filelists & such
+    SYSTEM_CFG = "/.clanker/shared-assets/config-fragments/system_cfg.yaml" #ui render & rows for button instantiation
+    SHARED_CFG = "/.clanker/shared-assets/config-fragments/shared_cfg.yaml" #domains, prompts, filesets , filelists & such
+    TEMPLATE_CFG = "/.clanker/templates/config.template"
+    
+class DocPaths:
+    SHARED_TEMPLATES = "/.clanker/templates/documentation"
+    PUD_DOCS = "/.clanker/progress-documentation"
+    TEMPL_EXT = ".template"
+    DOC_EXT = ".cdoc"
+
+class Layout:
+    UI = "/.clanker/shared-assets/layouts/ui.layout"
+    PROMPT = "/.clanker/shared-assets/layouts/prompt.layout"
+    BTN_ACTIVE = "/.clanker/shared-assets/layouts/btn_active.layout"
+    BTN_HL = "/.clanker/shared-assets/layouts/btn_hl.layout"
+    BTN_INACTIVE = "/.clanker/shared-assets/layouts/btn_inactive.layout"
+
+class ActionResult:
+    def __init__(self, message: str):
+        self.message = message
+
+    def get_msg(self) -> str:
+        width = 117
+        return f"{self.message:<{width}}"[:width]

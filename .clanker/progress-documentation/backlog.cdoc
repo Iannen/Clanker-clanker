@@ -41,9 +41,11 @@ II. Items to refine & QC:
 '''
 
 2. rationalize imports with kleene operator & more:
+    [x] Relocate 'clanker.py' members to 'models.py' to align with P&A architecture:
+        - 'BasePathTokens', 'IOControl', CfgFragments, DocPaths, Layout, ActionResult
+
     [x] 'clanker.py', 'utilities.py' and 'adapters.py': 
         - collapse huge import blocks to 'from models import *'
-        - move 'BasePathTokens' and 'IOControl', 'clanker.py' -> 'utilities.py'
 
     - Revise who imports what. 
          - clanker.py
