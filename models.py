@@ -149,3 +149,15 @@ class Keyboard:
         if callable(btn.action):
             return btn.action(key)
         return ActionResult(f"No action bound to key '{key}'")
+
+class BasePathTokens:
+    PUD = "<PUD>"
+    SHARED = "<SHARED>"
+
+class IOControl:
+    ACCEPTED = "accepted"
+    DECLINED = "declined"
+    INVALID = "invalid"
+    ABORT_KEYS = ("\x1b", "\x03")
+    ACCEPT_KEY = "\x04"
+    BACKSPACE_KEYS = ("\x7f", "\x08")

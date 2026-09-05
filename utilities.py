@@ -3,25 +3,7 @@ import copy
 import re
 from typing import Any
 from ruamel.yaml import YAML
-from clanker import ConfigViolations
-from models import (
-    Button,
-    Config,
-    Domain,
-    File,
-    Filelist,
-    FileSet,
-    KBStateResolver,
-    Keyboard,
-    ManifestResolver,
-    MultiDocResolver,
-    Prompt,
-    Render,
-    RepoContentResolver,
-    Resolver,
-    RuntimeConfig,
-    TruncationSpec,
-)
+from models import *
 
 class DefaultContentShaper:
     def normalize_file_spec(self, item: str | dict) -> tuple[str, int | None]:

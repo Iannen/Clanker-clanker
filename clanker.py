@@ -8,42 +8,7 @@ import traceback
 import copy
 from typing import Callable, ClassVar, Any, Protocol
 from abc import ABC, abstractmethod
-from models import (
-    BadFile,
-    BaseEx,
-    BaseExInstantiation,
-    BridgeLeakage,
-    Button,
-    Config,
-    ConfigAssemblyFailure,
-    ConfigViolations,
-    ControlNotice,
-    CorruptClanker,
-    Domain,
-    Failure,
-    FileSet,
-    IllegalDuplicateFile,
-    KBStateResolver,
-    Keyboard,
-    ManifestResolver,
-    MissedAdoptedNotice,
-    MissedNotice,
-    MultiDocResolver,
-    NoConfig,
-    NoticeArgs,
-    NotImplemented,
-    ProgramExit,
-    Prompt,
-    Render,
-    RepoContentResolver,
-    Resolver,
-    RuntimeConfig,
-    SystemKeys,
-    UnexpectedEx,
-    UserDecline,
-    UserNotice,
-    UserTask,
-)
+from models import *
 
 """ 2. Base Classes & Main function """
 
@@ -142,10 +107,6 @@ def main():
 
 """ 3. Exceptions, Result Objects, Enums """
 
-class BasePathTokens:
-    PUD = "<PUD>"
-    SHARED = "<SHARED>"
-
 class CfgFragments:
     PUD_CFG = "/.clanker/config.yaml" #domains, prompts, filesets , filelists & such
     SYSTEM_CFG = "/.clanker/shared-assets/config-fragments/system_cfg.yaml" #ui render & rows for button instantiation
@@ -164,14 +125,6 @@ class Layout:
     BTN_ACTIVE = "/.clanker/shared-assets/layouts/btn_active.layout"
     BTN_HL = "/.clanker/shared-assets/layouts/btn_hl.layout"
     BTN_INACTIVE = "/.clanker/shared-assets/layouts/btn_inactive.layout"
-
-class IOControl:
-    ACCEPTED = "accepted"
-    DECLINED = "declined"
-    INVALID = "invalid"
-    ABORT_KEYS = ("\x1b", "\x03")
-    ACCEPT_KEY = "\x04"
-    BACKSPACE_KEYS = ("\x7f", "\x08")
 
 class ActionResult:
     def __init__(self, message: str):
