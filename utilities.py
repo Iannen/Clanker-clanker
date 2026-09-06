@@ -132,8 +132,7 @@ class RuntimeConfigAssembler:
         pud_domains = self._build_domains(config_data.get("domains", []), sets_map)
         self._populate_domain_buttons(button_map, sys_dto.pud_domain_keys, pud_domains)
 
-        ui_render_dto = self.dto_fact.render_cfg(sys_dto.ui_render_data)
-        base_render = self._build_render_from_dto(ui_render_dto, sets_map)
+        base_render = self._build_render(sys_dto.ui_render_data, sets_map)
 
         base_resolvers = self._build_resolvers(
             shared_domains_data.get("base_resolvers", []), 
@@ -222,7 +221,8 @@ class RuntimeConfigAssembler:
 
         raise ValueError(f"Unsupported resolver type: {dto.type}")
 
-    def _build_render_from_dto(self, dto: RenderDTO, sets_map: dict[str, Any]) -> Render:
+    def _build_render(self, data: dict[str, Any], sets_map: dict[str, Any]) -> Render:
+        dto = self.dto_fact.render_cfg(data)
         resolvers = self._build_resolvers(dto.resolver_dicts, sets_map)
         return Render(
             template=dto.template,
@@ -231,19 +231,20 @@ class RuntimeConfigAssembler:
             inherit_domain=dto.inherit_domain,
         )
 
-    def _build_prompt(self, data: dict, sets_map: dict[str, Any]) -> Prompt:
-        render_dto = self.dto_fact.render_cfg(data.get("render", {}))
-        return Prompt(
-            name=data["name"],
-            render=self._build_render_from_dto(render_dto, sets_map)
-        )
+    def _build_prompts(self, dicts: list[dict[str, Any]], sets_map: dict[str, Any]) -> list[Prompt]:
+        prompts = []
+        for d in dicts:
+            prdto = self.dto_fact.prompt_cfg(d)
+            render = self._build_render(prdto.render, sets_map)
+            prompts.append(Prompt(name=prdto.name, render=render))
+        return prompts
 
     def _build_domains(self, dicts: list[dict[str, Any]], sets_map: dict[str, Any]) -> list[Domain]:
         domains = []
         for d in dicts:
             dto = self.dto_fact.domain_cfg(d)
             resolvers = self._build_resolvers(dto.resolvers, sets_map)
-            prompts = [self._build_prompt(p, sets_map) for p in dto.prompts]
+            prompts = self._build_prompts(dto.prompts, sets_map)
             domains.append(
                 Domain(
                     name=dto.name,

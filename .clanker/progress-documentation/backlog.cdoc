@@ -109,10 +109,10 @@ III. Slated for implementation:
                 - dispatch 'config_data.get("domains", [])' to '_build_domains' to get 'pud_domains'
 
     - Phase 6: PromptDTO
-        [ ] 'config_dtos.py':
+        [x] 'config_dtos.py':
             - Define PromptDTO: 'name: str', 'renders: dict'
             - Add 'prompt_cfg(self, data: dict[str, Any]) -> PromptDTO' method to 'DTOFactory'
-        [ ] 'utilities.py, RuntimeConfigAssembler':
+        [x] 'utilities.py, RuntimeConfigAssembler':
             - new member '_build_prompts(dicts, filesets) -> [Prompt]' 
                 - declare 'prompts = []' to aggregate
                 - for dict in dicts:
@@ -121,6 +121,19 @@ III. Slated for implementation:
                     - use self._build_render_from_dto to get 'render: Render'
                     - use 'dto.name', 'render' to build Prompt, append to prompts
                 return prompts
+
+    - Phase 7: FileSetDTO
+        [ ] 'config_dtos.py':
+            - Define FileSetDTO: 'includes: [str]', 'excludes: [str]'
+            - Add 'fileset_cfg(self, data: dict[str, Any]) -> FileSetDTO' method to 'DTOFactory'
+                - includes is mandatory, no fallback
+                - excludes, fallback to [] so user can omit.
+
+        [ ] 'utilities.py, RuntimeConfigAssembler':
+            - edit '_build_fileset(dict) -> Fileset' 
+                use 'self.dto_fact.fileset_cfg' to get dto
+                then use dto includes and excludes to construct and return 'fileset: Fileset'
+
 IV. Recently implemented:
 
 V. Critical bugs

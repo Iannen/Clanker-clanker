@@ -31,6 +31,15 @@ class DomainDTO:
     resolvers: list[dict[str, Any]]
     prompts: list[dict[str, Any]]
 
+@dataclass
+class PromptDTO:
+    name: str
+    renders: dict[str, Any]
+
+    @property
+    def render(self) -> dict[str, Any]:
+        return self.renders
+
 class DTOFactory:
     def sys_cfg(self, data: dict[str, Any]) -> SystemConfigDataDTO:
         return SystemConfigDataDTO(
@@ -73,4 +82,10 @@ class DTOFactory:
             name=str(data["name"]),
             resolvers=list(data.get("resolvers", [])),
             prompts=list(data.get("prompts", [])),
+        )
+
+    def prompt_cfg(self, data: dict[str, Any]) -> PromptDTO:
+        return PromptDTO(
+            name=str(data["name"]),
+            renders=dict(data.get("render", {})),
         )
