@@ -39,3 +39,33 @@ domains:
           resolvers:
             - { id: prompt_fragments, type: multi-document-retrieval, files: [readme.docspec, architecture.cdoc, backlog.cdoc, north-star.cdoc, project-history.cdoc] }
             - { id: repo_content, type: repo_content, fileset: empty }
+
+  - name: north-star
+    resolvers:
+      - { id: domain_fragments, type: multi-document-retrieval, files: [north-star.md] }
+    prompts:
+      - name: ns-plan
+        render:
+          resolvers:
+            - { id: prompt_fragments, type: multi-document-retrieval, files: [] }
+            - { id: repo_content, type: repo_content, fileset: core }
+
+  - name: config-dev
+    resolvers:
+      - { id: domain_fragments, type: multi-document-retrieval, files: [config.yaml, system_cfg.yaml, shared_cfg.yaml] }
+    prompts:
+      - name: config-dev
+        render:
+          resolvers:
+            - { id: prompt_fragments, type: multi-document-retrieval, files: [config-development-instructions.md] }
+            - { id: repo_content, type: repo_content, fileset: core }
+
+  - name: debloat
+    resolvers:
+      - { id: domain_fragments, type: multi-document-retrieval, files: [domain-debloat.md] }
+    prompts:
+      - name: debloat
+        render:
+          resolvers:
+            - { id: prompt_fragments, type: multi-document-retrieval, files: [debloat-instructions.md] }
+            - { id: repo_content, type: repo_content, fileset: core }

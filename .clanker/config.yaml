@@ -1,6 +1,7 @@
 filesets:
   core: {includes: [clanker.py, models.py], excludes: []}
   ad-hoc: {includes: [utilities.py, adapters.py], excludes: []}
+  system_cfg_assembly: {includes: [utilities.py, models.py, config_dtos.py, .clanker/shared-assets/config-fragments, .clanker/config.yaml]}
 
 domains:
 - name: script-dev
@@ -32,32 +33,22 @@ domains:
           - { id: prompt_fragments, type: multi-document-retrieval, files: [] }
           - { id: repo_content, type: repo_content, fileset: ad-hoc }
 
-- name: north-star
+- name: cfg_assembly
   resolvers:
-    - { id: domain_fragments, type: multi-document-retrieval, files: [north-star.md] }
+    - { id: repo_content, type: repo_content, fileset: system_cfg_assembly }
+    - { id: domain_fragments, type: multi-document-retrieval, files: [backlog.cdoc], }
   prompts:
-    - name: ns-plan
+    - name: plan
       render:
         resolvers:
-          - { id: prompt_fragments, type: multi-document-retrieval, files: [] }
-          - { id: repo_content, type: repo_content, fileset: core }
+          - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.md, backlog-output-instructions.md] }
 
-- name: config-dev
-  resolvers:
-    - { id: domain_fragments, type: multi-document-retrieval, files: [config.yaml, system_cfg.yaml, shared_cfg.yaml] }
-  prompts:
-    - name: config-dev
+    - name: bl-impl
       render:
         resolvers:
-          - { id: prompt_fragments, type: multi-document-retrieval, files: [config-development-instructions.md] }
-          - { id: repo_content, type: repo_content, fileset: core }
+          - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.md, code-output-instruction.md]}
 
-- name: debloat
-  resolvers:
-    - { id: domain_fragments, type: multi-document-retrieval, files: [domain-debloat.md] }
-  prompts:
-    - name: debloat
+    - name: bl-drain
       render:
         resolvers:
-          - { id: prompt_fragments, type: multi-document-retrieval, files: [debloat-instructions.md] }
-          - { id: repo_content, type: repo_content, fileset: core }
+          - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 8}, history-output-instructions.md]}

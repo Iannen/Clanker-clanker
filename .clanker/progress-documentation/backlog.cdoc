@@ -6,6 +6,8 @@ I. Ideas, complaints and non-critical bugs:
 - can we do without any external deps like ruamel & pydantic, lessening the install burden?
 - arrow keys interpreted as esc
 - does AssemblyService take on validation as we get serious about validation? hm.
+- the rendered UI does not properly display empty buttons for 'qwerty' and 'asdfgh' rows
+
 II. Items to refine & QC:
 
 1. Usability push
@@ -38,6 +40,19 @@ II. Items to refine & QC:
     - basically, the name of a domain, name of a prompt, should feature in the prompt to provide ctx.
     - the prompt compilation system seems kinda wack now, but perhaps its ok? i dont know.
         - perhaps I add nested state? depart from inhabitant model into state = [domain][prompt] or something like that?
+
+2.  Introduce DTO layer to match shape of configs, improving config assembly into app data model.
+    [ ] Phase 1, introduce a helper to 'RuntimeConfigAssembler' which can absorb 'dict -> dto' responsibilities in a progressive manner:
+        - 'utilities.py'
+            - new class 'ConfigDTOFactory'
+                - in this phase, accepts the system config, returns dtos.
+            - 'RuntimeConfigAssembler'
+                - uses 'ConfigDTOFactory' to get DTOs
+                - then converts the DTO's to model classes, using new members only.
+                
+    - we start with system config. its easier to tackle  & good way to learn the pattern
+        - DTOs go in separate file
+
 
 III. Slated for implementation:
             

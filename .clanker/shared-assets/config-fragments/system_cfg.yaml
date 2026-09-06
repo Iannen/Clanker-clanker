@@ -9,7 +9,3 @@ kb_def:
     shared_domains_row: '1234567890'
     pud_domains_row: qwerty
     prompts_row: asdfgh
-
-    #pud_domains_row: '1234567890'
-    #prompts_row: qwer
-    #shared_domains_row: asdf
