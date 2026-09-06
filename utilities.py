@@ -124,19 +124,22 @@ class RuntimeConfigAssembler:
 
         button_map = self._build_button_map(sys_dto)
 
-        sets_map = {**shared_domains_data.get("filesets", {}), **config_data.get("filesets", {})}
+        named_filesets = self._build_named_filesets(
+            shared_domains_data.get("filesets", {}),
+            config_data.get("filesets", {})
+        )
 
-        shared_domains = self._build_domains(shared_domains_data.get("domains", []), sets_map)
+        shared_domains = self._build_domains(shared_domains_data.get("domains", []), named_filesets)
         self._populate_domain_buttons(button_map, sys_dto.shared_domain_keys, shared_domains)
 
-        pud_domains = self._build_domains(config_data.get("domains", []), sets_map)
+        pud_domains = self._build_domains(config_data.get("domains", []), named_filesets)
         self._populate_domain_buttons(button_map, sys_dto.pud_domain_keys, pud_domains)
 
-        base_render = self._build_render(sys_dto.ui_render_data, sets_map)
+        base_render = self._build_render(sys_dto.ui_render_data, named_filesets)
 
         base_resolvers = self._build_resolvers(
             shared_domains_data.get("base_resolvers", []), 
-            sets_map
+            named_filesets
         )
 
         keyboard = Keyboard(
@@ -149,12 +152,22 @@ class RuntimeConfigAssembler:
             ui_render=base_render,
             base_resolvers=base_resolvers
         )
-        
-    def _build_resolvers(self, res_dicts: list[dict], sets_map: dict[str, Any]) -> list[Resolver]:
+
+    def _build_named_filesets(
+        self, shared_sets: dict[str, Any], pud_sets: dict[str, Any]
+    ) -> dict[str, FileSet]:
+        result = {}
+        for k, v in shared_sets.items():
+            result[k] = self._build_fileset(v)
+        for k, v in pud_sets.items():
+            result[k] = self._build_fileset(v)
+        return result
+
+    def _build_resolvers(self, res_dicts: list[dict], named_filesets: dict[str, FileSet]) -> list[Resolver]:
         resolvers = []
         for res_dict in res_dicts:
             dto = self.dto_fact.resolver_cfg(res_dict)
-            resolvers.append(self._build_resolver_from_dto(dto, sets_map))
+            resolvers.append(self._build_resolver_from_dto(dto, named_filesets))
         return resolvers
 
     def _populate_domain_buttons(
@@ -163,15 +176,11 @@ class RuntimeConfigAssembler:
         for prim_char, domain in zip(keys, domains):
             button_map[prim_char].inhabitant = domain
 
-    def _build_fileset(self, data: dict | list | None) -> FileSet:
-        if isinstance(data, dict):
-            return FileSet(
-                includes=data.get("includes", []),
-                excludes=data.get("excludes", [])
-            )
-        elif isinstance(data, list):
-            return FileSet(includes=data, excludes=[])
-        return FileSet()
+    def _build_fileset(self, data: dict[str, Any] | None) -> FileSet:
+        return FileSet(
+            includes=data.get("includes", []),
+            excludes=data.get("excludes", []),
+        )
 
     def _build_file(self, raw_item: str | dict, is_full_path: bool = False) -> File:
         if isinstance(raw_item, dict):
@@ -182,7 +191,7 @@ class RuntimeConfigAssembler:
             return File(name=name, full_path_from_pud=full_path, truncation_spec=trunc_spec)
         return File(name=str(raw_item), full_path_from_pud=is_full_path)
 
-    def _build_resolver_from_dto(self, dto: ResolverDTO, sets_map: dict[str, Any]) -> Resolver:
+    def _build_resolver_from_dto(self, dto: ResolverDTO, named_filesets: dict[str, FileSet]) -> Resolver:
         if dto.type in ("multi-document-retrieval", "full-path-file-retrieval"):
             is_full_path = dto.type == "full-path-file-retrieval"
             raw_files = dto.files or []
@@ -193,27 +202,32 @@ class RuntimeConfigAssembler:
             )
 
         if dto.type == "repo_content":
-            fileset_data = dto.fileset
-            if isinstance(fileset_data, str) and fileset_data in sets_map:
-                fileset_data = sets_map[fileset_data]
+            if isinstance(dto.fileset, str):
+                fileset_obj = named_filesets.get(dto.fileset)
+            else:
+                fileset_obj = self._build_fileset(dto.fileset)
             return RepoContentResolver(
                 anchor=dto.anchor,
-                fileset=self._build_fileset(fileset_data)
+                fileset=fileset_obj
             )
 
         if dto.type == "repo-manifest":
-            pud_data = dto.pud_fileset
-            if isinstance(pud_data, str) and pud_data in sets_map:
-                pud_data = sets_map[pud_data]
+            if isinstance(dto.pud_fileset, str):
+                pud_fileset_obj = named_filesets.get(dto.pud_fileset)
+            else:
+                pud_fileset_obj = self._build_fileset(dto.pud_fileset)
 
-            shared_data = dto.shared_fileset
-            if isinstance(shared_data, str) and shared_data in sets_map:
-                shared_data = sets_map[shared_data]
+            if isinstance(dto.shared_fileset, str):
+                shared_fileset_obj = named_filesets.get(dto.shared_fileset)
+            elif isinstance(dto.shared_fileset, dict):
+                shared_fileset_obj = self._build_fileset(dto.shared_fileset)
+            else:
+                shared_fileset_obj = None
 
             return ManifestResolver(
                 anchor=dto.anchor,
-                pud_fileset=self._build_fileset(pud_data),
-                shared_fileset=self._build_fileset(shared_data) if shared_data else None
+                pud_fileset=pud_fileset_obj,
+                shared_fileset=shared_fileset_obj
             )
 
         if dto.type in ("kb_info", "kb_state"):
@@ -221,9 +235,9 @@ class RuntimeConfigAssembler:
 
         raise ValueError(f"Unsupported resolver type: {dto.type}")
 
-    def _build_render(self, data: dict[str, Any], sets_map: dict[str, Any]) -> Render:
+    def _build_render(self, data: dict[str, Any], named_filesets: dict[str, FileSet]) -> Render:
         dto = self.dto_fact.render_cfg(data)
-        resolvers = self._build_resolvers(dto.resolver_dicts, sets_map)
+        resolvers = self._build_resolvers(dto.resolver_dicts, named_filesets)
         return Render(
             template=dto.template,
             resolvers=resolvers,
@@ -231,20 +245,20 @@ class RuntimeConfigAssembler:
             inherit_domain=dto.inherit_domain,
         )
 
-    def _build_prompts(self, dicts: list[dict[str, Any]], sets_map: dict[str, Any]) -> list[Prompt]:
+    def _build_prompts(self, dicts: list[dict[str, Any]], named_filesets: dict[str, FileSet]) -> list[Prompt]:
         prompts = []
         for d in dicts:
             prdto = self.dto_fact.prompt_cfg(d)
-            render = self._build_render(prdto.render, sets_map)
+            render = self._build_render(prdto.render, named_filesets)
             prompts.append(Prompt(name=prdto.name, render=render))
         return prompts
 
-    def _build_domains(self, dicts: list[dict[str, Any]], sets_map: dict[str, Any]) -> list[Domain]:
+    def _build_domains(self, dicts: list[dict[str, Any]], named_filesets: dict[str, FileSet]) -> list[Domain]:
         domains = []
         for d in dicts:
             dto = self.dto_fact.domain_cfg(d)
-            resolvers = self._build_resolvers(dto.resolvers, sets_map)
-            prompts = self._build_prompts(dto.prompts, sets_map)
+            resolvers = self._build_resolvers(dto.resolvers, named_filesets)
+            prompts = self._build_prompts(dto.prompts, named_filesets)
             domains.append(
                 Domain(
                     name=dto.name,

@@ -122,8 +122,29 @@ III. Slated for implementation:
                     - use 'dto.name', 'render' to build Prompt, append to prompts
                 return prompts
 
-    - Phase 7: FileSetDTO
-        [ ] 'config_dtos.py':
+    - Phase 7: Build Named FileSet Map
+        [x] 'utilities.py, RuntimeConfigAssembler':
+            - add '_build_named_filesets(shared_sets: dict[str, Any], pud_sets: dict[str, Any]) -> dict[str, FileSet]'
+                - instantiate result map
+                - iterate and build 'FileSet' instances from 'shared_sets' into result map via '_build_fileset'
+                - iterate and build 'FileSet' instances from 'pud_sets' into result map via '_build_fileset', overwriting any existing shared keys
+                - assume that any fileset is a dict, per the shape of the yaml provided. do not invent 'what if' cases 
+                - return result map
+            - in 'assemble': 
+                - use '_build_named_filesets' to get 'named_filesets'
+                - pass that into '_build_domains' and '_build_render'
+                    (align all passthroughs of old 'sets_map' to new name 'named_filesets' downstream)
+            - in '_build_resolver_from_dto', the only consumer of 'named_filesets'
+                - in 'repo_content' branch
+                    - if 'dto.fileset' is str, then retrieve fileset from 'named_filesets' 
+                    - if dict then convert dict to FileSet via helper 'self._build_fileset'
+                    - instantiate and return 'RepoContentResolver'
+                - in 'repo-manifest branch:
+                    - use same pattern for 'dto.pud_fileset' and 'dto.shared_fileset'
+                    - then instantiate and return 'ManifestResolver'
+
+    - Phase 8: FileSetDTO (on hold)
+        [x] 'config_dtos.py':
             - Define FileSetDTO: 'includes: [str]', 'excludes: [str]'
             - Add 'fileset_cfg(self, data: dict[str, Any]) -> FileSetDTO' method to 'DTOFactory'
                 - includes is mandatory, no fallback
