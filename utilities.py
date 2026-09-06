@@ -134,7 +134,14 @@ class RuntimeConfigAssembler:
         pud_domains = [self._build_domain(d, sets_map) for d in pud_domain_dicts]
         self._populate_domain_buttons(button_map, sys_dto.pud_domain_keys, pud_domains)
 
-        base_render = self._build_render(sys_dto.ui_render_data, sets_map)
+        ui_render_dto = self.dto_fact.render_cfg(sys_dto.ui_render_data)
+        ui_resolvers = [self._build_resolver(r, sets_map) for r in ui_render_dto.resolver_dicts]
+        base_render = Render(
+            template=ui_render_dto.template,
+            resolvers=ui_resolvers,
+            inherit_base=ui_render_dto.inherit_base,
+            inherit_domain=ui_render_dto.inherit_domain,
+        )
         base_resolvers = [self._build_resolver(r, sets_map) for r in shared_domains_data.get("base_resolvers", [])]
 
         keyboard = Keyboard(

@@ -41,6 +41,8 @@ II. Items to refine & QC:
     - the prompt compilation system seems kinda wack now, but perhaps its ok? i dont know.
         - perhaps I add nested state? depart from inhabitant model into state = [domain][prompt] or something like that?
 
+III. Slated for implementation:
+
 2. Introduce DTO layer to replace raw dictionary access in RuntimeConfigAssembler.
     - Phase 1: Introduce SystemConfigDataDTO. Supplies the assembler with a typed class from which it can satisfy its dependencies.
         [x] Create SystemConfigDataDTO with from_dict() parsing in config_dtos.py.
@@ -57,17 +59,23 @@ II. Items to refine & QC:
             - Add '__init__' method to 'RuntimeConfigAssembler' that instantiates 'self.dto_fact = DTOFactory()'
             - Update 'assemble' method to call 'self.dto_fact.sys_cfg(kb_def_data)' instead of 'SystemConfigDataDTO.from_dict'        
     - Phase 3: RenderDTO introduction
-        [ ] 'config_dtos.py':
+        [x] 'config_dtos.py':
             - Define RenderDTO to represent typed render configuration input
                 - members: template (str), inherit_base (bool), inherit_domain (bool), and resolver_dicts (list[dict[str, Any]])
             - Add 'render_cfg(self, data: dict[str, Any]) -> RenderDTO' method to 'DTOFactory'
                 - retain failfast approach observed in 'sys_cfg' method
-        [ ] 'utilities.py, RuntimeConfigAssembler.assemble':
+        [x] 'utilities.py, RuntimeConfigAssembler.assemble':
             - Convert 'sys_dto.ui_render_data' to 'RenderDTO' via 'self.dto_fact.render_cfg'
             - Build base resolvers by mapping 'ui_render_dto.resolver_dicts' through 'self._build_resolver(r, {})'
             - Instantiate 'base_render' as a 'Render' domain object directly using 'RenderDTO' fields and resolved resolvers
-
-III. Slated for implementation:
+    - Phase 4: ResolverDTO introduction:
+        [ ] 'config_dtos.py':
+            - Define ResolverDTO
+                - ??
+            - Add 'resolver_cfg(self, data: dict[str, Any]) -> ResolverDTO' method to 'DTOFactory'
+                - ??
+        [ ] 'utilities.py, RuntimeConfigAssembler.assemble':
+            - ??
 
 IV. Recently implemented:
 
