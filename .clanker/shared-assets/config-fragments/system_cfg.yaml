@@ -1,11 +1,10 @@
-kb_def:
-  render: 
-    template: ui_template
-    inherit_base: false
-    inherit_domain: false
-    resolvers:
-      - { id: ui, type: kb_info }
-  rows:
-    shared_domains_row: '1234567890'
-    pud_domains_row: qwerty
-    prompts_row: asdfgh
+ui_render: 
+  template: ui_template
+  inherit_base: false
+  inherit_domain: false
+  resolvers:
+    - { id: ui, type: kb_info }
+button_rows:
+  shared_domains_row: '1234567890'
+  pud_domains_row: qwerty
+  prompts_row: asdfgh

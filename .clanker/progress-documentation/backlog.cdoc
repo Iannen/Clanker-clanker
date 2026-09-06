@@ -53,6 +53,23 @@ II. Items to refine & QC:
     - we start with system config. its easier to tackle  & good way to learn the pattern
         - DTOs go in separate file
 
+2. Introduce DTO layer to replace raw dictionary access in RuntimeConfigAssembler.
+    - Phase 1: Introduce SystemConfigDataDTO. Supplies the assembler with a typed class from which it can satisfy its dependencies.
+        - [x] Create SystemConfigDataDTO with from_dict() parsing in config_dtos.py.
+        - [x] Refactor RuntimeConfigAssembler to instantiate SystemConfigDataDTO directly.
+        - [x] Use typed fields (shared_domain_keys, pud_domain_keys, prompt_keys, ui_render_data) to construct the keyboard and base render without raw dict accesses.
+        - [x] Flatten existing 'system_cfg.yaml' to appropriate structure
+
+    - Phase 2: Introduce class DTOFactory to handle DTO instantiation, migrating from_dict from DTO's to DTOFactory.
+        - [ ] 'utilities.py'
+            - add member  dto_fact to RuntimeConfigAssembler
+            - update assemble to use that instead of deleted SystemConfigDataDTO from_dict method
+        - [ ] 'config_dtos.py':
+            - declare 'DTOFactory':
+                - sole member 'sys_cfg(self, data: dict[str, Any]) -> SystemConfigDataDTO:'
+                - inherits SystemConfigDataDTO from dict member functionally equivalent
+
+
 
 III. Slated for implementation:
             

@@ -4,6 +4,7 @@ import re
 from typing import Any
 from ruamel.yaml import YAML
 from models import *
+from config_dtos import *
 
 class DefaultContentShaper:
     def normalize_file_spec(self, item: str | dict) -> tuple[str, int | None]:
@@ -116,23 +117,21 @@ class ConfigValidator:
 
 class RuntimeConfigAssembler:
     def assemble(self, config_data: dict, kb_def_data: dict, shared_domains_data: dict) -> RuntimeConfig:
-        kb_def = kb_def_data.get("kb_def", {})
-        button_map = self._build_button_map(kb_def.get("rows", {}))
+        sys_dto = SystemConfigDataDTO.from_dict(kb_def_data)
+
+        button_map = self._build_button_map(sys_dto)
+
         sets_map = {**shared_domains_data.get("filesets", {}), **config_data.get("filesets", {})}
         shared_domain_dicts = shared_domains_data.get("domains", [])
         pud_domain_dicts = config_data.get("domains", [])
 
         shared_domains = [self._build_domain(d, sets_map) for d in shared_domain_dicts]
-        shared_domain_keys = kb_def.get("rows", {}).get("shared_domains_row", [])
-        for prim_char, domain in zip(shared_domain_keys, shared_domains):
-            button_map[prim_char].inhabitant = domain
+        self._populate_domain_buttons(button_map, sys_dto.shared_domain_keys, shared_domains)
 
         pud_domains = [self._build_domain(d, sets_map) for d in pud_domain_dicts]
-        pud_domain_keys = kb_def.get("rows", {}).get("pud_domains_row", [])
-        for prim_char, domain in zip(pud_domain_keys, pud_domains):
-            button_map[prim_char].inhabitant = domain
+        self._populate_domain_buttons(button_map, sys_dto.pud_domain_keys, pud_domains)
 
-        base_render = self._build_render(kb_def.get("render", {}), sets_map)
+        base_render = self._build_render(sys_dto.ui_render_data, sets_map)
         base_resolvers = [self._build_resolver(r, sets_map) for r in shared_domains_data.get("base_resolvers", [])]
 
         keyboard = Keyboard(
@@ -145,6 +144,12 @@ class RuntimeConfigAssembler:
             ui_render=base_render,
             base_resolvers=base_resolvers
         )
+
+    def _populate_domain_buttons(
+        self, button_map: dict[str, Button], keys: str, domains: list[Domain]
+    ) -> None:
+        for prim_char, domain in zip(keys, domains):
+            button_map[prim_char].inhabitant = domain
 
     def _build_fileset(self, data: dict | list | None) -> FileSet:
         if isinstance(data, dict):
@@ -231,25 +236,16 @@ class RuntimeConfigAssembler:
             resolvers=resolvers
         )
 
-    def _build_button_map(self, rows_data: dict) -> dict[str, Button]:
+    def _build_button_map(self, sys_dto: SystemConfigDataDTO) -> dict[str, Button]:
         button_map = {}
-        for row_key, row_keys in rows_data.items():
-            if row_key == 'prompts_row':
-                btn_type = Button.TYPE_PROMPT
-            elif row_key in ('pud_domains_row', 'shared_domains_row'):
-                btn_type = Button.TYPE_DOMAIN
-            else:
-                btn_type = row_key
 
-            for key_char in row_keys:
-                btn = Button(
-                    type=btn_type,
-                    key=key_char,
-                    inhabitant=None
-                )
-                button_map[key_char] = btn
+        for key_char in sys_dto.shared_domain_keys:
+            button_map[key_char] = Button(type=Button.TYPE_DOMAIN, key=key_char, inhabitant=None)
+
+        for key_char in sys_dto.pud_domain_keys:
+            button_map[key_char] = Button(type=Button.TYPE_DOMAIN, key=key_char, inhabitant=None)
+
+        for key_char in sys_dto.prompt_keys:
+            button_map[key_char] = Button(type=Button.TYPE_PROMPT, key=key_char, inhabitant=None)
+
         return button_map
-
-class ConfigDTOMapper:
-    def build_system_dto(self, system_cfg_data: dict[str, Any]) -> SystemCfgDTO:
-        return SystemCfgDTO.from_dict(system_cfg_data)
