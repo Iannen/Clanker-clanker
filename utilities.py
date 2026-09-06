@@ -249,3 +249,7 @@ class RuntimeConfigAssembler:
                 )
                 button_map[key_char] = btn
         return button_map
+
+class ConfigDTOMapper:
+    def build_system_dto(self, system_cfg_data: dict[str, Any]) -> SystemCfgDTO:
+        return SystemCfgDTO.from_dict(system_cfg_data)
