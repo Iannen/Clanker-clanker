@@ -116,8 +116,11 @@ class ConfigValidator:
             raise ConfigViolations("\n".join(msg_parts))
 
 class RuntimeConfigAssembler:
+    def __init__(self) -> None:
+        self.dto_fact = DTOFactory()
+
     def assemble(self, config_data: dict, kb_def_data: dict, shared_domains_data: dict) -> RuntimeConfig:
-        sys_dto = SystemConfigDataDTO.from_dict(kb_def_data)
+        sys_dto = self.dto_fact.sys_cfg(kb_def_data)
 
         button_map = self._build_button_map(sys_dto)
 

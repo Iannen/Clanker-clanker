@@ -41,38 +41,34 @@ II. Items to refine & QC:
     - the prompt compilation system seems kinda wack now, but perhaps its ok? i dont know.
         - perhaps I add nested state? depart from inhabitant model into state = [domain][prompt] or something like that?
 
-2.  Introduce DTO layer to match shape of configs, improving config assembly into app data model.
-    [ ] Phase 1, introduce a helper to 'RuntimeConfigAssembler' which can absorb 'dict -> dto' responsibilities in a progressive manner:
-        - 'utilities.py'
-            - new class 'ConfigDTOFactory'
-                - in this phase, accepts the system config, returns dtos.
-            - 'RuntimeConfigAssembler'
-                - uses 'ConfigDTOFactory' to get DTOs
-                - then converts the DTO's to model classes, using new members only.
-                
-    - we start with system config. its easier to tackle  & good way to learn the pattern
-        - DTOs go in separate file
-
 2. Introduce DTO layer to replace raw dictionary access in RuntimeConfigAssembler.
     - Phase 1: Introduce SystemConfigDataDTO. Supplies the assembler with a typed class from which it can satisfy its dependencies.
-        - [x] Create SystemConfigDataDTO with from_dict() parsing in config_dtos.py.
-        - [x] Refactor RuntimeConfigAssembler to instantiate SystemConfigDataDTO directly.
-        - [x] Use typed fields (shared_domain_keys, pud_domain_keys, prompt_keys, ui_render_data) to construct the keyboard and base render without raw dict accesses.
-        - [x] Flatten existing 'system_cfg.yaml' to appropriate structure
-
-    - Phase 2: Introduce class DTOFactory to handle DTO instantiation, migrating from_dict from DTO's to DTOFactory.
-        - [ ] 'utilities.py'
-            - add member  dto_fact to RuntimeConfigAssembler
-            - update assemble to use that instead of deleted SystemConfigDataDTO from_dict method
-        - [ ] 'config_dtos.py':
-            - declare 'DTOFactory':
-                - sole member 'sys_cfg(self, data: dict[str, Any]) -> SystemConfigDataDTO:'
-                - inherits SystemConfigDataDTO from dict member functionally equivalent
-
-
+        [x] Create SystemConfigDataDTO with from_dict() parsing in config_dtos.py.
+        [x] Refactor RuntimeConfigAssembler to instantiate SystemConfigDataDTO directly.
+        [x] Use typed fields (shared_domain_keys, pud_domain_keys, prompt_keys, ui_render_data) to construct the keyboard and base render without raw dict accesses.
+        [x] Flatten existing 'system_cfg.yaml' to appropriate structure
+    - Phase 2 DTO Factory Migration
+        [x] 'config_dtos.py': Implement DTOFactory and clean up SystemConfigDataDTO
+            - Add 'DTOFactory' class with method 'sys_cfg(self, data: dict[str, Any]) -> SystemConfigDataDTO'
+            - Move the dict parsing logic from 'SystemConfigDataDTO.from_dict' into 'DTOFactory.sys_cfg'
+                - do NOT introduce defensive defaults. maintain observed failfast pattern, in new method AND downstream of it.
+            - Remove 'from_dict' class method from 'SystemConfigDataDTO'
+        [x] 'utilities.py': Update RuntimeConfigAssembler to use DTOFactory
+            - Add '__init__' method to 'RuntimeConfigAssembler' that instantiates 'self.dto_fact = DTOFactory()'
+            - Update 'assemble' method to call 'self.dto_fact.sys_cfg(kb_def_data)' instead of 'SystemConfigDataDTO.from_dict'        
+    - Phase 3: RenderDTO introduction
+        [ ] 'config_dtos.py':
+            - Define RenderDTO to represent typed render configuration input
+                - members: template (str), inherit_base (bool), inherit_domain (bool), and resolver_dicts (list[dict[str, Any]])
+            - Add 'render_cfg(self, data: dict[str, Any]) -> RenderDTO' method to 'DTOFactory'
+                - retain failfast approach observed in 'sys_cfg' method
+        [ ] 'utilities.py, RuntimeConfigAssembler.assemble':
+            - Convert 'sys_dto.ui_render_data' to 'RenderDTO' via 'self.dto_fact.render_cfg'
+            - Build base resolvers by mapping 'ui_render_dto.resolver_dicts' through 'self._build_resolver(r, {})'
+            - Instantiate 'base_render' as a 'Render' domain object directly using 'RenderDTO' fields and resolved resolvers
 
 III. Slated for implementation:
-            
+
 IV. Recently implemented:
 
 V. Critical bugs
