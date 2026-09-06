@@ -1,8 +1,8 @@
 node: Perhaps this can develop into a usecase based overview, rather than an attempt at some 'architectural' thing
 
-asset validation:
+config validation & config assembly:
 - config validation -> the config validation file
-- .. others
+- sort of dto based now
 
 what else to mention?
 

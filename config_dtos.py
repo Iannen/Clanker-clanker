@@ -1,9 +1,10 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
+from models import ConfigAssemblyFailure, Render
 
 @dataclass
-class SystemConfigDataDTO:
+class SysCfgDTO:
     shared_domain_keys: str
     pud_domain_keys: str
     prompt_keys: str
@@ -34,27 +35,23 @@ class DomainDTO:
 @dataclass
 class PromptDTO:
     name: str
-    renders: dict[str, Any]
-
-    @property
-    def render(self) -> dict[str, Any]:
-        return self.renders
+    render: dict[str, Any]
 
 class DTOFactory:
-    def sys_cfg(self, data: dict[str, Any]) -> SystemConfigDataDTO:
-        return SystemConfigDataDTO(
-            shared_domain_keys=str(data["button_rows"]["shared_domains_row"]),
-            pud_domain_keys=str(data["button_rows"]["pud_domains_row"]),
-            prompt_keys=str(data["button_rows"]["prompts_row"]),
-            ui_render_data=data["ui_render"],
+    def sys_cfg(self, data: dict[str, Any]) -> SysCfgDTO:
+        return SysCfgDTO(
+            self.req_str(data, ["button_rows", "shared_domains_row"]),
+            self.req_str(data, ["button_rows", "pud_domains_row"]),
+            self.req_str(data, ["button_rows", "prompts_row"]),
+            self.req_dict(data, ["ui_render"]),
         )
         
     def render_cfg(self, data: dict[str, Any]) -> RenderDTO:
         return RenderDTO(
-            template=str(data.get("template", "prompt_template")),
-            inherit_base=bool(data.get("inherit_base", True)),
-            inherit_domain=bool(data.get("inherit_domain", True)),
-            resolver_dicts=list(data.get("resolvers", [])),
+            self.req_str(data, ["template"], Render.template),
+            self.req_bool(data, ["inherit_base"], Render.inherit_base),
+            self.req_bool(data, ["inherit_domain"], Render.inherit_domain),
+            self.req_list(data, ["resolvers"]),
         )
 
     def resolver_cfg(self, data: dict[str, Any]) -> ResolverDTO:
@@ -79,13 +76,42 @@ class DTOFactory:
         )
     def domain_cfg(self, data: dict[str, Any]) -> DomainDTO:
         return DomainDTO(
-            name=str(data["name"]),
-            resolvers=list(data.get("resolvers", [])),
-            prompts=list(data.get("prompts", [])),
+            self.req_str(data, ["name"]),
+            self.req_list(data, ["resolvers"]),
+            self.req_list(data, ["prompts"]),
         )
 
     def prompt_cfg(self, data: dict[str, Any]) -> PromptDTO:
         return PromptDTO(
-            name=str(data["name"]),
-            renders=dict(data.get("render", {})),
+            self.req_str(data, ["name"]),
+            self.req_dict(data, ["render"], default={}),
         )
+
+    def _req(self, data: Any, path: list[str], target_type: type, default: Any = None) -> Any:
+        curr = data
+        path_str = " -> ".join(path)
+        try:
+            for k in path:
+                curr = curr[k]
+        except (KeyError, TypeError, IndexError):
+            if default is not None:
+                return default
+            raise ConfigAssemblyFailure(f"Missing required config path: '{path_str}'")
+
+        if not isinstance(curr, target_type) or (target_type is str and isinstance(curr, bool)):
+            raise ConfigAssemblyFailure(
+                f"Type mismatch at path '{path_str}': expected {target_type.__name__}, got {type(curr).__name__}"
+            )
+        return curr
+
+    def req_str(self, data: Any, path: list[str], default: Any = None) -> str: 
+        return self._req(data, path, str, default)
+
+    def req_dict(self, data: Any, path: list[str], default: Any = None) -> dict[str, Any]: 
+        return self._req(data, path, dict, default)
+
+    def req_list(self, data: Any, path: list[str], default: Any = None) -> list[Any]: 
+        return self._req(data, path, list, default)
+
+    def req_bool(self, data: Any, path: list[str], default: Any = None) -> bool: 
+        return self._req(data, path, bool, default)

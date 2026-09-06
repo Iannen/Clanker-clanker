@@ -163,16 +163,11 @@ class RuntimeConfigAssembler:
             result[k] = self._build_fileset(v)
         return result
 
-    def _build_resolvers(self, res_dicts: list[dict], named_filesets: dict[str, FileSet]) -> list[Resolver]:
-        resolvers = []
-        for res_dict in res_dicts:
-            dto = self.dto_fact.resolver_cfg(res_dict)
-            resolvers.append(self._build_resolver_from_dto(dto, named_filesets))
-        return resolvers
+    def _build_resolvers(self, dicts: list[dict], named_filesets: dict[str, FileSet]) -> list[Resolver]:
+        return [self._build_resolver_from_dto(self.dto_fact.resolver_cfg(d), named_filesets)for d in dicts]
 
-    def _populate_domain_buttons(
-        self, button_map: dict[str, Button], keys: str, domains: list[Domain]
-    ) -> None:
+    def _populate_domain_buttons(self, button_map: dict[str, Button], keys: str, domains: list[Domain]) -> None:
+        if len(domains) > len(keys): raise ConfigAssemblyFailure
         for prim_char, domain in zip(keys, domains):
             button_map[prim_char].inhabitant = domain
 
@@ -268,7 +263,7 @@ class RuntimeConfigAssembler:
             )
         return domains
 
-    def _build_button_map(self, sys_dto: SystemConfigDataDTO) -> dict[str, Button]:
+    def _build_button_map(self, sys_dto: SysCfgDTO) -> dict[str, Button]:
         button_map = {}
 
         for key_char in sys_dto.shared_domain_keys:
