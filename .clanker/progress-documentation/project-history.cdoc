@@ -310,3 +310,9 @@ LXI: ENGINE AND GAMEENGINE CONSOLIDATION
     - Merged base class `Engine` into `GameEngine` and renamed the unified class to `AppEngine` to remove the informational baseclass experiment and reduce indirection
     - Eliminated pass-through helpers (`_add_to_board` and `_dispatch_cmd`) in favor of in-line logic within the execution run method
     - Retained targeted workflow helper methods (`_bootstrap`, `_display_ui`, `_wire_num_row`, `_set_selected_num_btn`, `_compile_to_clipboard`, and `_render`)
+
+LXII: MOVE SHARED DOMAINS TO ASDF ROW AND SUPPORT DUAL DOMAIN ROWS
+    - Added explicit row semantics (Button.TYPE_DOMAIN, Button.TYPE_PROMPT) inside models.py to remove magic strings
+    - Updated system_cfg.yaml row definitions and layout mapping to support dual domain rows (shared domains and pud domains) with optimized keyboard ergonomics
+    - Refactored RuntimeConfigAssembler in utilities.py to organize assembly into distinct acquisition, consumption, and finalization phases
+    - Enhanced AppEngine and AssemblyService in clanker.py to handle dual domain row state, selection clearing, and UI resolution correctly

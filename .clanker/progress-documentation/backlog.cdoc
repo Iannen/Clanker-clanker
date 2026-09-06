@@ -10,7 +10,7 @@ II. Items to refine & QC:
 
 1. Usability push
     - 1a: expand Truncation Functionality (delayed for yaml DTO item)
-    - 1b: move Shared Domains to ASDF Row (now refining)
+    - 1b: move Shared Domains to ASDF Row - implemented, history item 'LXII'
     - 1c: new 'follow up' resolver (delayed for yaml DTO item)
     - 1d: investigate ways to capitalize on semantics of yaml for prompt gen (delayed for yaml DTO item)
 
@@ -40,50 +40,6 @@ II. Items to refine & QC:
         - perhaps I add nested state? depart from inhabitant model into state = [domain][prompt] or something like that?
 
 III. Slated for implementation:
-
-1b. Move shared domains to ASDF row with explicit row semantics
-    [ ] 'models.py, class Button': add members to remove magic strings downstream
-        - TYPE_DOMAIN = "domain"
-        - TYPE_PROMPT = "prompt"
-
-    [ ] 'shared-assets/config-fragments/system_cfg.yaml': Rename row definitions
-        - 'domain_row: '1234567890'' -> 'pud_domains_row:  ..' 
-        - 'prompt_row: qwer' -> 'prompts_row: ..'
-        - 'action_row: asdf' -> 'shared_domains_row: ..'
-
-    [ ] 'utilities.py': Update RuntimeConfigAssembler domain mapping methods
-        - '_build_button_map':
-            - instead of assigning row key to the buttons type:
-                - assign Button.TYPE_PROMPT if row_key == 'prompts_row'
-                - assign Button.TYPE_DOMAIN if row_key in ('pud_domains_row', 'shared_domains_row')
-        - 'assemble': Organize in phases. Split up shared and pud domains assignments. Remove defensive fallbacks.
-            - acquistion phase:
-                - 'kb_def = kb_def_data.get("kb_def")'
-                - 'button map = kb_def.get("rows")'
-                - 'sets_map = {**shared_domains_data.get("filesets"), **config_data.get("filesets")}'
-                - 'shared_domain_dicts = shared_domains_data.get("domains")'
-                - 'pud_domain_dicts = config_data.get("domains")'
-            - consumption phase:
-                - 'shared_domains = [self._build_domain(d, sets_map) for d in shared_domain_dicts]'
-                - 'shared_domain_keys = kb_def.get("rows").get("shared_domains_row")'
-                - then zip 'shared_domain_keys' and 'shared_domains', iterate and assign 'button_map[prim_char].inhabitant = domain'
-                - 'pud_domains = [self._build_domain(d, sets_map) for d in pud_domain_dicts]'
-                - 'pud_domain_keys = kb_def.get("rows").get("pud_domains_row")'
-                - then zip 'pud_domain_keys' and 'pud_domains', iterate and assign 'button_map[prim_char].inhabitant = domain'
-            - final phase
-                - 'base_render = self._build_render(kb_def.get("render"), sets_map)'
-                - 'base_resolvers = [self._build_resolver(r, sets_map) for r in shared_domains_data.get("base_resolvers")]'
-                - instantiate Keyboard, RuntimeConfig as before and return
-    [ ] 'clanker.py': Support dual domain rows in AppEngine and AssemblyService
-        - 'AppEngine':
-            - '_wire_num_row': target 'Button.TYPE_DOMAIN'
-            - '_set_selected_num_btn':
-                - Update type check: 'if ref_btn.type != Button.TYPE_DOMAIN'
-                - clear inhabitants of 'Button.TYPE_PROMPT'
-        - 'AssemblyService._res_ui': 
-            - Update: 'if btn.type == "domain_row"' -> 'if btn.type == Button.TYPE_DOMAIN'
-            - update: 'elif btn.type == Button.TYPE_PROMPT"'
-            - Remove: 'elif btn.type == "action_row"' and 'action' type references.
             
 IV. Recently implemented:
 
