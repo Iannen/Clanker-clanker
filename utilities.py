@@ -125,13 +125,11 @@ class RuntimeConfigAssembler:
         button_map = self._build_button_map(sys_dto)
 
         sets_map = {**shared_domains_data.get("filesets", {}), **config_data.get("filesets", {})}
-        shared_domain_dicts = shared_domains_data.get("domains", [])
-        pud_domain_dicts = config_data.get("domains", [])
 
-        shared_domains = [self._build_domain(d, sets_map) for d in shared_domain_dicts]
+        shared_domains = self._build_domains(shared_domains_data.get("domains", []), sets_map)
         self._populate_domain_buttons(button_map, sys_dto.shared_domain_keys, shared_domains)
 
-        pud_domains = [self._build_domain(d, sets_map) for d in pud_domain_dicts]
+        pud_domains = self._build_domains(config_data.get("domains", []), sets_map)
         self._populate_domain_buttons(button_map, sys_dto.pud_domain_keys, pud_domains)
 
         ui_render_dto = self.dto_fact.render_cfg(sys_dto.ui_render_data)
@@ -240,14 +238,20 @@ class RuntimeConfigAssembler:
             render=self._build_render_from_dto(render_dto, sets_map)
         )
 
-    def _build_domain(self, data: dict, sets_map: dict[str, Any]) -> Domain:
-        prompts = [self._build_prompt(p, sets_map) for p in data.get("prompts", [])]
-        resolvers = self._build_resolvers(data.get("resolvers", []), sets_map)
-        return Domain(
-            name=data["name"],
-            prompts=prompts,
-            resolvers=resolvers
-        )
+    def _build_domains(self, dicts: list[dict[str, Any]], sets_map: dict[str, Any]) -> list[Domain]:
+        domains = []
+        for d in dicts:
+            dto = self.dto_fact.domain_cfg(d)
+            resolvers = self._build_resolvers(dto.resolvers, sets_map)
+            prompts = [self._build_prompt(p, sets_map) for p in dto.prompts]
+            domains.append(
+                Domain(
+                    name=dto.name,
+                    prompts=prompts,
+                    resolvers=resolvers
+                )
+            )
+        return domains
 
     def _build_button_map(self, sys_dto: SystemConfigDataDTO) -> dict[str, Button]:
         button_map = {}

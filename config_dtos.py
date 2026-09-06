@@ -25,6 +25,12 @@ class ResolverDTO:
     pud_fileset: str | dict[str, Any] | None = None
     shared_fileset: str | dict[str, Any] | None = None
 
+@dataclass
+class DomainDTO:
+    name: str
+    resolvers: list[dict[str, Any]]
+    prompts: list[dict[str, Any]]
+
 class DTOFactory:
     def sys_cfg(self, data: dict[str, Any]) -> SystemConfigDataDTO:
         return SystemConfigDataDTO(
@@ -61,4 +67,10 @@ class DTOFactory:
             fileset=fileset_val,
             pud_fileset=data.get("pud_fileset"),
             shared_fileset=data.get("shared_fileset"),
+        )
+    def domain_cfg(self, data: dict[str, Any]) -> DomainDTO:
+        return DomainDTO(
+            name=str(data["name"]),
+            resolvers=list(data.get("resolvers", [])),
+            prompts=list(data.get("prompts", [])),
         )

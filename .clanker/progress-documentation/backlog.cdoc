@@ -87,14 +87,14 @@ III. Slated for implementation:
                 - matches on dto type
                 - returns domain class Resolver
     - Phase 5: DomainDTO
-        [ ] 'config_dtos.py':
+        [x] 'config_dtos.py':
             - Define DomainDTO
                 - 'name:str' (not nonnable)
                 - 'resolvers: [dict]'
                 - 'prompts: [dict]'
             - Add 'domain_cfg(self, data: dict[str, Any]) -> DomainDTO' method to 'DTOFactory'
-
-        [ ] 'utilities.py, RuntimeConfigAssembler':
+        
+        [x] 'utilities.py, RuntimeConfigAssembler':
             - new member '_build_domains(dicts, filesets) -> [Domain]' 
                 - declare 'domains = []' to aggregate
                 - for d in dicts, get dto
@@ -108,6 +108,19 @@ III. Slated for implementation:
                 - dispatch 'shared_domains_data.get("domains", [])' to '_build_domains' to get 'shared_domains'
                 - dispatch 'config_data.get("domains", [])' to '_build_domains' to get 'pud_domains'
 
+    - Phase 6: PromptDTO
+        [ ] 'config_dtos.py':
+            - Define PromptDTO: 'name: str', 'renders: dict'
+            - Add 'prompt_cfg(self, data: dict[str, Any]) -> PromptDTO' method to 'DTOFactory'
+        [ ] 'utilities.py, RuntimeConfigAssembler':
+            - new member '_build_prompts(dicts, filesets) -> [Prompt]' 
+                - declare 'prompts = []' to aggregate
+                - for dict in dicts:
+                    - use 'self.dto_fact.prompt_cfg' to get prdto
+                    - user self.dto_fact.render_cfg to get renderdto
+                    - use self._build_render_from_dto to get 'render: Render'
+                    - use 'dto.name', 'render' to build Prompt, append to prompts
+                return prompts
 IV. Recently implemented:
 
 V. Critical bugs
