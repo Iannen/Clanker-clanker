@@ -16,6 +16,15 @@ class RenderDTO:
     inherit_domain: bool
     resolver_dicts: list[dict[str, Any]]
 
+@dataclass
+class ResolverDTO:
+    anchor: str
+    type: str
+    files: list[Any] | None = None
+    fileset: str | dict[str, Any] | None = None
+    pud_fileset: str | dict[str, Any] | None = None
+    shared_fileset: str | dict[str, Any] | None = None
+
 class DTOFactory:
     def sys_cfg(self, data: dict[str, Any]) -> SystemConfigDataDTO:
         return SystemConfigDataDTO(
@@ -31,4 +40,25 @@ class DTOFactory:
             inherit_base=bool(data["inherit_base"]),
             inherit_domain=bool(data["inherit_domain"]),
             resolver_dicts=list(data["resolvers"]),
+        )
+
+    def resolver_cfg(self, data: dict[str, Any]) -> ResolverDTO:
+        res_type = str(data["type"])
+        fileset_val: str | dict[str, Any] | None = None
+
+        if res_type == "repo_content":
+            if "fileset" in data:
+                fileset_val = data["fileset"]
+            else:
+                fileset_val = {
+                    "includes": data.get("includes"),
+                    "excludes": data.get("excludes", []),
+                }
+        return ResolverDTO(
+            anchor=str(data["id"]),
+            type=res_type,
+            files=data.get("files"),
+            fileset=fileset_val,
+            pud_fileset=data.get("pud_fileset"),
+            shared_fileset=data.get("shared_fileset"),
         )

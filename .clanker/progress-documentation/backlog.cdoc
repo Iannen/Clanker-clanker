@@ -68,14 +68,25 @@ III. Slated for implementation:
             - Convert 'sys_dto.ui_render_data' to 'RenderDTO' via 'self.dto_fact.render_cfg'
             - Build base resolvers by mapping 'ui_render_dto.resolver_dicts' through 'self._build_resolver(r, {})'
             - Instantiate 'base_render' as a 'Render' domain object directly using 'RenderDTO' fields and resolved resolvers
-    - Phase 4: ResolverDTO introduction:
-        [ ] 'config_dtos.py':
-            - Define ResolverDTO
-                - ??
+
+    - Phase 4: ResolverDTO introduction
+        [ ] 'config_dtos.py':
+            - Define ResolverDTO to represent raw resolver configuration data
+                - members: anchor (str), type (str), files (list[Any] | None), fileset (str | dict[str, Any] | None), pud_fileset (str | dict[str, Any] | None), shared_fileset (str | dict[str, Any] | None)
             - Add 'resolver_cfg(self, data: dict[str, Any]) -> ResolverDTO' method to 'DTOFactory'
-                - ??
-        [ ] 'utilities.py, RuntimeConfigAssembler.assemble':
-            - ??
+                - Map data.id to dto anchor
+                - if data.type is repo_content:
+                    - If data.fileset is a string, set dto.fileset to the string
+                    - If data.fileset is a dict, set dto.fileset to the dict
+                    - If fileset key is missing, collect data.includes and data.excludes into dict, set dto.fileset to the dict
+                - Map optional files, pud_fileset, and shared_fileset fields
+                - maintain failfast approach observed in prior factory methods
+
+        [ ] 'utilities.py, RuntimeConfigAssembler':
+            - DTOFactory.resolver_cfg 
+            - dispatch resolver dto to a helper
+                - matches on dto type
+                - returns domain class Resolver
 
 IV. Recently implemented:
 

@@ -35,7 +35,7 @@ class ConfigValidator:
         for idx, line in enumerate(raw_text.splitlines(), start=1):
             if "'" in line:
                 parts = line.split("'")
-                if len(parts) == 3:  # exactly one pair (start, content, end)
+                if len(parts) == 3:
                     content = parts[1]
                     is_digits = content.isdigit()
                     has_double_quote = '"' in content
@@ -135,14 +135,20 @@ class RuntimeConfigAssembler:
         self._populate_domain_buttons(button_map, sys_dto.pud_domain_keys, pud_domains)
 
         ui_render_dto = self.dto_fact.render_cfg(sys_dto.ui_render_data)
-        ui_resolvers = [self._build_resolver(r, sets_map) for r in ui_render_dto.resolver_dicts]
+
+        ui_resolvers = self._build_resolvers(ui_render_dto.resolver_dicts, sets_map)
+
         base_render = Render(
             template=ui_render_dto.template,
             resolvers=ui_resolvers,
             inherit_base=ui_render_dto.inherit_base,
             inherit_domain=ui_render_dto.inherit_domain,
         )
-        base_resolvers = [self._build_resolver(r, sets_map) for r in shared_domains_data.get("base_resolvers", [])]
+
+        base_resolvers = self._build_resolvers(
+            shared_domains_data.get("base_resolvers", []), 
+            sets_map
+        )
 
         keyboard = Keyboard(
             button_map=button_map,
@@ -154,6 +160,13 @@ class RuntimeConfigAssembler:
             ui_render=base_render,
             base_resolvers=base_resolvers
         )
+        
+    def _build_resolvers(self, res_dicts: list[dict], sets_map: dict[str, Any]) -> list[Resolver]:
+        resolvers = []
+        for res_dict in res_dicts:
+            dto = self.dto_fact.resolver_cfg(res_dict)
+            resolvers.append(self._build_resolver_from_dto(dto, sets_map))
+        return resolvers
 
     def _populate_domain_buttons(
         self, button_map: dict[str, Button], keys: str, domains: list[Domain]
@@ -180,50 +193,47 @@ class RuntimeConfigAssembler:
             return File(name=name, full_path_from_pud=full_path, truncation_spec=trunc_spec)
         return File(name=str(raw_item), full_path_from_pud=is_full_path)
 
-    def _build_resolver(self, data: dict, sets_map: dict[str, Any]) -> Resolver:
-        res_copy = copy.deepcopy(data)
-        res_id = res_copy.pop("id")
-        res_type_str = res_copy.pop("type")
-
-        if res_type_str in ("multi-document-retrieval", "full-path-file-retrieval"):
-            is_full_path = res_type_str == "full-path-file-retrieval"
-            raw_files = res_copy.get("files", [])
+    def _build_resolver_from_dto(self, dto: ResolverDTO, sets_map: dict[str, Any]) -> Resolver:
+        if dto.type in ("multi-document-retrieval", "full-path-file-retrieval"):
+            is_full_path = dto.type == "full-path-file-retrieval"
+            raw_files = dto.files or []
             file_objs = [self._build_file(f, is_full_path=is_full_path) for f in raw_files]
             return MultiDocResolver(
-                anchor=res_id,
+                anchor=dto.anchor,
                 files=Filelist(files=file_objs)
             )
 
-        if res_type_str == "repo_content":
-            pointer_key = res_copy.pop("fileset", None)
-            fileset_data = sets_map.get(pointer_key) if pointer_key and pointer_key in sets_map else res_copy
+        if dto.type == "repo_content":
+            fileset_data = dto.fileset
+            if isinstance(fileset_data, str) and fileset_data in sets_map:
+                fileset_data = sets_map[fileset_data]
             return RepoContentResolver(
-                anchor=res_id,
+                anchor=dto.anchor,
                 fileset=self._build_fileset(fileset_data)
             )
 
-        if res_type_str == "repo-manifest":
-            pud_data = res_copy.get("pud_fileset")
+        if dto.type == "repo-manifest":
+            pud_data = dto.pud_fileset
             if isinstance(pud_data, str) and pud_data in sets_map:
                 pud_data = sets_map[pud_data]
 
-            shared_data = res_copy.get("shared_fileset")
+            shared_data = dto.shared_fileset
             if isinstance(shared_data, str) and shared_data in sets_map:
                 shared_data = sets_map[shared_data]
 
             return ManifestResolver(
-                anchor=res_id,
+                anchor=dto.anchor,
                 pud_fileset=self._build_fileset(pud_data),
                 shared_fileset=self._build_fileset(shared_data) if shared_data else None
             )
 
-        if res_type_str in ("kb_info", "kb_state"):
-            return KBStateResolver(anchor=res_id)
+        if dto.type in ("kb_info", "kb_state"):
+            return KBStateResolver(anchor=dto.anchor)
 
-        raise ValueError(f"Unsupported resolver type: {res_type_str}")
+        raise ValueError(f"Unsupported resolver type: {dto.type}")
 
     def _build_render(self, data: dict, sets_map: dict[str, Any]) -> Render:
-        resolvers = [self._build_resolver(r, sets_map) for r in data.get("resolvers", [])]
+        resolvers = self._build_resolvers(data.get("resolvers", []), sets_map)
         return Render(
             template=data.get("template", "prompt_template"),
             resolvers=resolvers,
@@ -239,7 +249,7 @@ class RuntimeConfigAssembler:
 
     def _build_domain(self, data: dict, sets_map: dict[str, Any]) -> Domain:
         prompts = [self._build_prompt(p, sets_map) for p in data.get("prompts", [])]
-        resolvers = [self._build_resolver(r, sets_map) for r in data.get("resolvers", [])]
+        resolvers = self._build_resolvers(data.get("resolvers", []), sets_map)
         return Domain(
             name=data["name"],
             prompts=prompts,
