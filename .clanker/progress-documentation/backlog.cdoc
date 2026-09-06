@@ -9,83 +9,20 @@ I. Ideas, complaints and non-critical bugs:
 II. Items to refine & QC:
 
 1. Usability push
-    - 1a: expand Truncation Functionality
-    - 1b: move Shared Domains to ASDF Row
-    - 1c: new 'follow up' resolver
-    - 1d: investigate ways to capitalize on semantics of yaml for prompt gen
+    - 1a: expand Truncation Functionality (delayed for yaml DTO item)
+    - 1b: move Shared Domains to ASDF Row (now refining)
+    - 1c: new 'follow up' resolver (delayed for yaml DTO item)
+    - 1d: investigate ways to capitalize on semantics of yaml for prompt gen (delayed for yaml DTO item)
 
-1a. Expand truncation functionality with regex range and tail support. by 'problem' i mean -> validation concern.
-    [ ] 'models.py': 
-        - 'TruncationSpec'
-            - add 'from_line: str | None': regex match lines till a hit. if not None, and no match its a problem
-            - add 'up_to: str | None': regex match lines (starting from the from line hit) till a hit. if not None, and no match its a problem
-            - 'tail_lines: int | None' as before.
-        - 'File'
-            - rename to 'FileSpec'
-            - new member: 'PUD_REPO_REL: ClassVar[object] = object()'
-            - new member: 'FALLBACK_BYNAME: ClassVar[object] = object()'
-            - new member: 'src_strat: object' 
-            - 'name: Str' -> 'name: Str | None'
-            - new member: rel_path: str | None
-        - 'ContentShaper'
-            - remove method 'trim_to_tail'
-            - add 'process_file_content(self, spec: FileSpec, content: str) -> str
-    [ ] 'clanker.py AssemblyService._res_multi_doc': refactor to retrieve filecontents one at a time & rationalize its logic:
-        - declare 'fragments' to aggregate
-        - for file_spec in resolver.files.files:
-            - if file_spec.src_strat is FileSpec.PUD_REPO_REL: 
-                - content = self.files.read_asset(BasePathTokens.PUD + '/' + file_spec.rel_path)
-            - if file_spec.src_strat is FileSpec.FALLBACK_BYNAME:  
-                - content= self.files.get_content_with_fallback(file_spec.name)
-            - processed_content = self.shaper.process_file_content(file_spec, content)
-            - then add to content 'fragments'. we know the name if pud_repo_rel cuz assembler puts it on file_spec during assembly
-        - return {anchor + concatenated contents}
-
-    [ ] 'utilities.py':
-        - 'DefaultContentShaper'
-            - remove method 'trim_to_tail'
-            - implement `process_file_content(self, spec: FileSpec, content: str) -> str`:
-                - returns raw content unchanged if `spec.truncation_spec` is None
-                - validate mutual exclusivity: raise error if `tail_lines` and (`from_line` or `up_to`) are both set
-                - for regex slicing:
-                    - find first line matching `from_line` regex; raise error if set but unmatched
-                    - find first line matching `up_to` regex starting after `from_line` match; raise error if set but unmatched
-                    - return line range slice (include the 'from_line' but not the 'upto_line')
-                - for tail slicing:
-                    - if `tail_lines` exceeds line count, treat as non-fatal no-op and return full content
-                    - return last N lines of content
-        - 'RuntimeConfigAssembler':
-            - refactor `_build_file` to `_build_file_spec(self, raw_item: str | dict)` -> FileSpec:
-                - if `raw_item` is `str`:
-                    - set `src_strat = FileSpec.FALLBACK_BYNAME`
-                    - set `name = raw_item`
-                    - rest of the FileSpec members default to None
-                - if `raw_item` is `dict`:
-                    - set `src_strat = FileSpec.PUD_REPO_REL`
-                    - extract `src` from dict. if None then raise ex
-                    - extract `from_line`, `up_to`, `tail_lines` from dict
-                    - trunc_spec = _build_trunc_spec(from_line, up_to, tail_lines)  
-
-                    - XOR validate `tail_lines` is not None || one or both of `from_line`  `up_to` is not None
-                        - > else raise some notice or failure - what do we have on hand?
-                    - then assign values 
-                    - then branch:
-                        - in tail_lines branch:
-                            build trunc spec with tail_lines member set to the tail_lines of the dict, rest of trunc spec defaults to none
-                        - in the other branch:
-                    - build `TruncationSpec` 
-                    - if dict specifies a relative path target (`rel_path` / `full_path`):
-                        - set `src_strat = FileSpec.PUD_REPO_REL`
-                        - set `rel_path = <value>`
-                        - set `name = path_basename(<value>)`
-                    - else (filename target `file` / `name`):
-                        - set `src_strat = FileSpec.FALLBACK_BYNAME`
-                        - set `name = <value>`
-                        - set `rel_path = None`
-
-1b. Move shared domains to ASDF row
-    - consultant instruction: investigate this further to develop item.
-        - is this straightforward? what is scope of item.
+1a. Enhance file resolution strategies and truncation capabilities
+    - Rename 'File' -> 'FileSpec' for better semantics in codebase
+    - Support explicit dual-mode file resolution: 
+        - exact repository-relative paths (`PUD_REPO_REL`) 
+        - standard name-based fallback lookups (`FALLBACK_BYNAME`).
+    - Extend content truncation to support 
+        - regex-based range slicing (`from_line` inclusive through `up_to` exclusive)
+        - failing validation if configured patterns are not matched.
+    - Retain tail line truncation (`tail_lines`) as a mutually exclusive alternative to regex range slicing
 
 1c. New 'follow up' resolver:
     - lets the llm specify required context on some format, like an md resolver
@@ -104,6 +41,50 @@ II. Items to refine & QC:
 
 III. Slated for implementation:
 
+1b. Move shared domains to ASDF row with explicit row semantics
+    [ ] 'models.py, class Button': add members to remove magic strings downstream
+        - TYPE_DOMAIN = "domain"
+        - TYPE_PROMPT = "prompt"
+
+    [ ] 'shared-assets/config-fragments/system_cfg.yaml': Rename row definitions
+        - 'domain_row: '1234567890'' -> 'pud_domains_row:  ..' 
+        - 'prompt_row: qwer' -> 'prompts_row: ..'
+        - 'action_row: asdf' -> 'shared_domains_row: ..'
+
+    [ ] 'utilities.py': Update RuntimeConfigAssembler domain mapping methods
+        - '_build_button_map':
+            - instead of assigning row key to the buttons type:
+                - assign Button.TYPE_PROMPT if row_key == 'prompts_row'
+                - assign Button.TYPE_DOMAIN if row_key in ('pud_domains_row', 'shared_domains_row')
+        - 'assemble': Organize in phases. Split up shared and pud domains assignments. Remove defensive fallbacks.
+            - acquistion phase:
+                - 'kb_def = kb_def_data.get("kb_def")'
+                - 'button map = kb_def.get("rows")'
+                - 'sets_map = {**shared_domains_data.get("filesets"), **config_data.get("filesets")}'
+                - 'shared_domain_dicts = shared_domains_data.get("domains")'
+                - 'pud_domain_dicts = config_data.get("domains")'
+            - consumption phase:
+                - 'shared_domains = [self._build_domain(d, sets_map) for d in shared_domain_dicts]'
+                - 'shared_domain_keys = kb_def.get("rows").get("shared_domains_row")'
+                - then zip 'shared_domain_keys' and 'shared_domains', iterate and assign 'button_map[prim_char].inhabitant = domain'
+                - 'pud_domains = [self._build_domain(d, sets_map) for d in pud_domain_dicts]'
+                - 'pud_domain_keys = kb_def.get("rows").get("pud_domains_row")'
+                - then zip 'pud_domain_keys' and 'pud_domains', iterate and assign 'button_map[prim_char].inhabitant = domain'
+            - final phase
+                - 'base_render = self._build_render(kb_def.get("render"), sets_map)'
+                - 'base_resolvers = [self._build_resolver(r, sets_map) for r in shared_domains_data.get("base_resolvers")]'
+                - instantiate Keyboard, RuntimeConfig as before and return
+    [ ] 'clanker.py': Support dual domain rows in AppEngine and AssemblyService
+        - 'AppEngine':
+            - '_wire_num_row': target 'Button.TYPE_DOMAIN'
+            - '_set_selected_num_btn':
+                - Update type check: 'if ref_btn.type != Button.TYPE_DOMAIN'
+                - clear inhabitants of 'Button.TYPE_PROMPT'
+        - 'AssemblyService._res_ui': 
+            - Update: 'if btn.type == "domain_row"' -> 'if btn.type == Button.TYPE_DOMAIN'
+            - update: 'elif btn.type == Button.TYPE_PROMPT"'
+            - Remove: 'elif btn.type == "action_row"' and 'action' type references.
+            
 IV. Recently implemented:
 
 V. Critical bugs

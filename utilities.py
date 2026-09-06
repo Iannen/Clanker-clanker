@@ -116,20 +116,21 @@ class ConfigValidator:
 
 class RuntimeConfigAssembler:
     def assemble(self, config_data: dict, kb_def_data: dict, shared_domains_data: dict) -> RuntimeConfig:
-        sets_map = {**shared_domains_data.get("filesets", {}), **config_data.get("filesets", {})}
-
-        shared_domains = shared_domains_data.get("domains", [])
-        user_domains = config_data.get("domains", [])
-        combined_domains = shared_domains + user_domains
-
-        domains = [self._build_domain(d, sets_map) for d in combined_domains]
-
         kb_def = kb_def_data.get("kb_def", {})
         button_map = self._build_button_map(kb_def.get("rows", {}))
+        sets_map = {**shared_domains_data.get("filesets", {}), **config_data.get("filesets", {})}
+        shared_domain_dicts = shared_domains_data.get("domains", [])
+        pud_domain_dicts = config_data.get("domains", [])
 
-        domain_keys = kb_def.get("rows", {}).get("domain_row", [])
-        for prim_char, domain_obj in zip(domain_keys, domains):
-            button_map[prim_char].inhabitant = domain_obj
+        shared_domains = [self._build_domain(d, sets_map) for d in shared_domain_dicts]
+        shared_domain_keys = kb_def.get("rows", {}).get("shared_domains_row", [])
+        for prim_char, domain in zip(shared_domain_keys, shared_domains):
+            button_map[prim_char].inhabitant = domain
+
+        pud_domains = [self._build_domain(d, sets_map) for d in pud_domain_dicts]
+        pud_domain_keys = kb_def.get("rows", {}).get("pud_domains_row", [])
+        for prim_char, domain in zip(pud_domain_keys, pud_domains):
+            button_map[prim_char].inhabitant = domain
 
         base_render = self._build_render(kb_def.get("render", {}), sets_map)
         base_resolvers = [self._build_resolver(r, sets_map) for r in shared_domains_data.get("base_resolvers", [])]
@@ -233,9 +234,16 @@ class RuntimeConfigAssembler:
     def _build_button_map(self, rows_data: dict) -> dict[str, Button]:
         button_map = {}
         for row_key, row_keys in rows_data.items():
+            if row_key == 'prompts_row':
+                btn_type = Button.TYPE_PROMPT
+            elif row_key in ('pud_domains_row', 'shared_domains_row'):
+                btn_type = Button.TYPE_DOMAIN
+            else:
+                btn_type = row_key
+
             for key_char in row_keys:
                 btn = Button(
-                    type=row_key,
+                    type=btn_type,
                     key=key_char,
                     inhabitant=None
                 )

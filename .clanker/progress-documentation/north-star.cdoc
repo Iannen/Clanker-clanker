@@ -19,6 +19,12 @@
 - Repository contract
     - Purpose: enforce that PUD documentation is structurally uniform, for the benefit of user cognition and Github Metarepo handling of PUDs
     - such and so documents shall exist, in such and so dirs. Allow for PUD expansion beyond default by way of set recognition
+    - i propose the repo root look like
+        .clanker
+        content (more general than 'src')
+        README.md
+    - i arrived at this by looking at a 'bragpack' that i made to zip the project for comprehensive review (more ez on model than urlpass)
+        
 - Runtime config validation 
     - Purpose: ensure configuration stability and extension adherence across PUD specific and shared config fragments, for the benefit of reader cognition
     - all config frags must obey a common policy

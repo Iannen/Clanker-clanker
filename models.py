@@ -157,6 +157,9 @@ class Domain:
 
 @dataclass
 class Button:
+    TYPE_DOMAIN: ClassVar[str] = "domain"
+    TYPE_PROMPT: ClassVar[str] = "prompt"
+
     type: str
     key: str
     inhabitant: Domain | Prompt | None = None

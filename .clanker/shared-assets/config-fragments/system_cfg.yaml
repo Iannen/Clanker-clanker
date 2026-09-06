@@ -6,6 +6,10 @@ kb_def:
     resolvers:
       - { id: ui, type: kb_info }
   rows:
-    domain_row: '1234567890'
-    prompt_row: qwer
-    action_row: asdf
+    shared_domains_row: '1234567890'
+    pud_domains_row: qwerty
+    prompts_row: asdfgh
+
+    #pud_domains_row: '1234567890'
+    #prompts_row: qwer
+    #shared_domains_row: asdf

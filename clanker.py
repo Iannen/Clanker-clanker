@@ -103,7 +103,7 @@ class AppEngine:
                 raise ProgramExit
 
     def _wire_num_row(self) -> None:
-        for btn in self.kb.get_unique_buttons("domain_row"):
+        for btn in self.kb.get_unique_buttons(Button.TYPE_DOMAIN):
             btn.action = self._set_selected_num_btn
 
     def _set_selected_num_btn(self, key: str | None) -> ActionResult:
@@ -111,15 +111,14 @@ class AppEngine:
             case = "none"
         else:
             ref_btn = self.kb.button_map[key]
-            if ref_btn.type != "domain_row":
+            if ref_btn.type != Button.TYPE_DOMAIN:
                 raise ValueError("Selected button is not a number button")
             case = "empty" if ref_btn.inhabitant is None else "inhabited"
 
         self.kb.selected_key = key
-        prompt_btns = self.kb.get_unique_buttons("prompt_row")
-        action_btns = self.kb.get_unique_buttons("action_row")
+        prompt_btns = self.kb.get_unique_buttons(Button.TYPE_PROMPT)
 
-        for b in prompt_btns + action_btns:
+        for b in prompt_btns:
             b.inhabitant = b.action = None
 
         if case == "inhabited":
@@ -334,7 +333,7 @@ class AssemblyService:
         for btn in keyboard.get_unique_buttons():
             label = ""
             template = btn_inactive
-            if btn.type == "domain_row":
+            if btn.type == Button.TYPE_DOMAIN:
                 if btn.key == keyboard.selected_key:
                     template = btn_hl
                     label = btn.inhabitant.name if btn.inhabitant else ""
@@ -342,15 +341,10 @@ class AssemblyService:
                     template = btn_active
                     label = btn.inhabitant.name
 
-            elif btn.type == "prompt_row":
+            elif btn.type == Button.TYPE_PROMPT:
                 if btn.inhabitant:
                     template = btn_active
                     label = btn.inhabitant.name
-
-            elif btn.type == "action_row":
-                if btn.inhabitant:
-                    template = btn_active
-                    label = getattr(btn.inhabitant, "name", str(btn.inhabitant))
 
             repl_map |= btn.get_repl_map(label, template)
         return repl_map
