@@ -36,10 +36,10 @@ class DTOFactory:
         
     def render_cfg(self, data: dict[str, Any]) -> RenderDTO:
         return RenderDTO(
-            template=str(data["template"]),
-            inherit_base=bool(data["inherit_base"]),
-            inherit_domain=bool(data["inherit_domain"]),
-            resolver_dicts=list(data["resolvers"]),
+            template=str(data.get("template", "prompt_template")),
+            inherit_base=bool(data.get("inherit_base", True)),
+            inherit_domain=bool(data.get("inherit_domain", True)),
+            resolver_dicts=list(data.get("resolvers", [])),
         )
 
     def resolver_cfg(self, data: dict[str, Any]) -> ResolverDTO:

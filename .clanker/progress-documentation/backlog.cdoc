@@ -70,7 +70,7 @@ III. Slated for implementation:
             - Instantiate 'base_render' as a 'Render' domain object directly using 'RenderDTO' fields and resolved resolvers
 
     - Phase 4: ResolverDTO introduction
-        [ ] 'config_dtos.py':
+        [x] 'config_dtos.py':
             - Define ResolverDTO to represent raw resolver configuration data
                 - members: anchor (str), type (str), files (list[Any] | None), fileset (str | dict[str, Any] | None), pud_fileset (str | dict[str, Any] | None), shared_fileset (str | dict[str, Any] | None)
             - Add 'resolver_cfg(self, data: dict[str, Any]) -> ResolverDTO' method to 'DTOFactory'
@@ -81,12 +81,32 @@ III. Slated for implementation:
                     - If fileset key is missing, collect data.includes and data.excludes into dict, set dto.fileset to the dict
                 - Map optional files, pud_fileset, and shared_fileset fields
                 - maintain failfast approach observed in prior factory methods
-
-        [ ] 'utilities.py, RuntimeConfigAssembler':
+        [x] 'utilities.py, RuntimeConfigAssembler':
             - DTOFactory.resolver_cfg 
             - dispatch resolver dto to a helper
                 - matches on dto type
                 - returns domain class Resolver
+    - Phase 5: DomainDTO
+        [ ] 'config_dtos.py':
+            - Define DomainDTO
+                - 'name:str' (not nonnable)
+                - 'resolvers: [dict]'
+                - 'prompts: [dict]'
+            - Add 'domain_cfg(self, data: dict[str, Any]) -> DomainDTO' method to 'DTOFactory'
+
+        [ ] 'utilities.py, RuntimeConfigAssembler':
+            - new member '_build_domains(dicts, filesets) -> [Domain]' 
+                - declare 'domains = []' to aggregate
+                - for d in dicts, get dto
+                    - use '_build_resolvers' on dto.resolvers to get 'resolvers'
+                    - declare 'prompts = []'
+                    - for p in dto.prompts
+                        -use '_build_prompt' and aggregate in 'prompts'
+                    - use 'dto.name', 'resolvers' and 'prompts' to construct a Domain -> add to 'domains'
+                - return 'domains'
+            - assemble
+                - dispatch 'shared_domains_data.get("domains", [])' to '_build_domains' to get 'shared_domains'
+                - dispatch 'config_data.get("domains", [])' to '_build_domains' to get 'pud_domains'
 
 IV. Recently implemented:
 

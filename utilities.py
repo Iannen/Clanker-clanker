@@ -135,15 +135,7 @@ class RuntimeConfigAssembler:
         self._populate_domain_buttons(button_map, sys_dto.pud_domain_keys, pud_domains)
 
         ui_render_dto = self.dto_fact.render_cfg(sys_dto.ui_render_data)
-
-        ui_resolvers = self._build_resolvers(ui_render_dto.resolver_dicts, sets_map)
-
-        base_render = Render(
-            template=ui_render_dto.template,
-            resolvers=ui_resolvers,
-            inherit_base=ui_render_dto.inherit_base,
-            inherit_domain=ui_render_dto.inherit_domain,
-        )
+        base_render = self._build_render_from_dto(ui_render_dto, sets_map)
 
         base_resolvers = self._build_resolvers(
             shared_domains_data.get("base_resolvers", []), 
@@ -232,19 +224,20 @@ class RuntimeConfigAssembler:
 
         raise ValueError(f"Unsupported resolver type: {dto.type}")
 
-    def _build_render(self, data: dict, sets_map: dict[str, Any]) -> Render:
-        resolvers = self._build_resolvers(data.get("resolvers", []), sets_map)
+    def _build_render_from_dto(self, dto: RenderDTO, sets_map: dict[str, Any]) -> Render:
+        resolvers = self._build_resolvers(dto.resolver_dicts, sets_map)
         return Render(
-            template=data.get("template", "prompt_template"),
+            template=dto.template,
             resolvers=resolvers,
-            inherit_base=data.get("inherit_base", True),
-            inherit_domain=data.get("inherit_domain", True)
+            inherit_base=dto.inherit_base,
+            inherit_domain=dto.inherit_domain,
         )
 
     def _build_prompt(self, data: dict, sets_map: dict[str, Any]) -> Prompt:
+        render_dto = self.dto_fact.render_cfg(data.get("render", {}))
         return Prompt(
             name=data["name"],
-            render=self._build_render(data.get("render", {}), sets_map)
+            render=self._build_render_from_dto(render_dto, sets_map)
         )
 
     def _build_domain(self, data: dict, sets_map: dict[str, Any]) -> Domain:
