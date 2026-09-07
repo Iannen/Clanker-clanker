@@ -75,15 +75,75 @@ Clanker is a homegrown TUI application which attempts to adress the various chal
             ...
     ```
 
-- *KYC-flavoured SaaS registrations*
+- *KYC-themed registrations*
 
   ![SaaS Shaming Signup UI](presentation/saas_shaming.png)
     
-Clanker attempts to adress these ills by way of an opinionated if somewhat sprawling feature set, emergent from its authors dogfooding practices;
+Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionated' feature set;
 
-- *asd * 
-- *asd * 
-- *asd * 
+- *YAML-configured domain -> prompt model, makes it easy to 'get her in there'*
+  ```YAML
+  filesets:
+  core: {includes: [clanker.py, models.py]}
+  ad-hoc: {includes: [utilities.py, adapters.py], excludes: []} 
+  # Yes it's true. I had no 'excludes' on hand to demonstrate the concept.
+  
+domains:
+- name: script-dev
+  resolvers:
+    - { id: repo_content, type: repo_content, fileset: core }
+    - { id: domain_fragments, type: multi-document-retrieval, files: [backlog.cdoc], }
+  prompts:
+    - name: plan
+      render:
+        resolvers:
+          - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.md, backlog-output-instructions.md] }
+    - name: impl
+      render:
+        resolvers:
+          - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.md, code-output-instruction.md]}
+    - name: bl-drain
+      render:
+        resolvers:
+          - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 8}, history-output-instructions.md]}
+  ```
+- *The Clanker Loop*
+
+    ```mermaid
+    flowchart TD
+        A[Optional: Draft thoughts in North Star doc] --> B[1. Plan backlog items]
+        B --> C[2. Ask LLM to generate code]
+        C --> D{3. Satisfied?}
+        D -- Yes --> E[Accept outputs]
+        D -- No --> C
+        E --> F[4. LLM updates project history]
+        F --> G[5. Rinse & Repeat]
+    ```
+
+
+
+- A semistructured LLM-assisted development workflow built around explicit domains and development operations.
+- A closed development loop spanning planning, implementation, review, refinement, and documentation.
+- Persistent project context that survives individual LLM conversations and model sessions.
+- Built-in progress documentation that keeps development history and project knowledge alongside the code.
+- Declaratively defined, project-specific prompts and development workflows.
+- Domain-oriented navigation that lets the developer work by development concern rather than manually hunting through files.
+- Repeatable prompt recipes that make successful LLM interactions reproducible.
+- Version-controlled `.clanker` project configuration that turns the project's LLM workflow into part of the repository itself.
+- Context curation that separates the question of what the developer wants to accomplish from the mechanics of supplying the LLM with the necessary material.
+- A lightweight keyboard-driven interface for rapidly selecting domains and prompts.
+- A persistent interface between the developer's project and otherwise ephemeral LLM sessions.
+- A mechanism for continuously refining the project's own LLM-assisted development methodology through dogfooding.
+- A foundation for iterative context gathering, where future interactions can request additional project context rather than requiring everything up front.
+- A foundation for detecting missing, unused, or dangling context assets.
+- A foundation for formally describing the project's structure and conventions through universal project contracts.
+- A foundation for packaging coherent project context into review bundles for comprehensive LLM-assisted reviews.
+- A foundation for extending context management from individual projects to collections of related projects.
+- A practical way to make LLM-assisted software development more persistent, repeatable, contextual, and project-specific.
+
+
+
+
 
 
 - **Status & Roadmap**: Functional active prototype with a stable resolution pipeline, full keyboard interface, and core template engine. Continuous efforts are directed toward refining default asset schemas and stabilizing progress tracking mechanisms.
