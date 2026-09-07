@@ -11,6 +11,7 @@ I. Ideas, complaints and non-critical bugs:
     - ez fix is to adjust template.
     - rabbithole solution is to have app write template to rowspec
 - clankers pud assets collide with its own assets!
+    - gonna have to split up Clanker's .clanker dir, so its easy to differentiate between pud and shared assets
 II. Items to refine & QC:
 
 1. Usability push

@@ -1,5 +1,5 @@
-# Clanker: AIO HIL Solo Dev tool
-
+# Clanker clanker; 
+## AIO HIL Solo Dev tool
 Clanker is a homegrown TUI application which attempts to adress the various challenges facing the vibecoding solo develpoer, as experienced by its author.  
 
 
@@ -161,27 +161,31 @@ Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionat
 
 ---
 
-# Terminal-First Prompt Engineering Workflow
-Clanker serves as a bridge between local repository state and external LLM environments, standardizing project context into clipboard-ready prompts without external API dependencies.
+## the middle section
+### some usage examples, possible link out for ez
 
-- **Use-Case Breakdown**:
-  - **Context Aggregation**: Automatically packs repository trees, individual files, and configuration fragments using delimited tags.
-  - **Dynamic Resolution**: Evaluates YAML configurations to bundle domain-specific prompt layouts with active code files.
-  - **Progress Tracking**: Tracks evolving architecture across development sessions using a template-driven documentation system (`.cdoc`).
+### an 'architecture' part
+#### strategy based stuff
+- P/A attempt, primarily for benefit of high signal core when prompting
+#### componet based description of src code
+- then something to describe src code as components:
+    - while loop engine
+    - dual purpose render pipeline
+    - ex system to implement failfast death by exit 1 policy
+    - config ingestion system, RuntimeConfig assembly
 
-- **Architecture & Structure**:
-  - `clanker.py`: Implements the presentation, execution engine (`AppEngine`), state management (`SessionService`), and template hydration pipeline (`AssemblyService`).
-  - `models.py`: Defines core data classes, protocol interfaces (`FileBridgePort`, `IOBridgePort`), custom domain exception hierarchies, and domain entities (`Keyboard`, `Resolver`, `Domain`).
+#### explanation of .clanker contents 
 
-- **Usage & Workflow**:
+### apologetic 'yeah i know man' section? ugh
+
+
+### easy 'howto' section, kinda
   1. Launch `clank` within any project repository.
   2. Press numeric keys `1-0` to toggle active development domains.
   3. Press hotkeys (`Q`, `W`, `E`, `R`) to compile context-aware prompts directly into the system clipboard.
   4. Paste into your preferred LLM chat window.
 
----
-
-# Project Access & Setup
+## The outro
 
 - **Review Options**:
   - **Manual Review**: Examine `clanker.py` and `models.py` for decoupled service architecture and protocol contracts.
@@ -205,9 +209,9 @@ Clanker serves as a bridge between local repository state and external LLM envir
     '''
 
 - **Notes & Disclaimers**:
-  - **LLM Performance Notes**:
-    - *Gemini*: Recommended choice for consistent handling of long structured context templates.
-    - *ChatGPT*: Highly functional, though occasionally sensitive to very large prompt payloads.
-    - *Grok*: Operational, but bound by free-tier volume limits.
-    - *Claude*: Performs accurately across initial tested configurations.
-  - **General Notice**: This tool is developed with LLM assistance. Users should inspect local scripts prior to running execution symlinks in critical production environments.
+  - **Subjective LLM Performance Notes**:
+    - *Gemini*: The daily driver. 
+    - *ChatGPT*: Feels flaky and sycophantic, but more accepting of filedumps
+    - *Grok*: Not viable with free tier restrictions, but has a great feel to it.
+    - *Claude*: Barely tried it - it felt very slow.
+  
