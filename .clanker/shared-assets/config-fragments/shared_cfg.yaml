@@ -27,7 +27,7 @@ domains:
   - name: presentation
     # Purpose: standardized readme development across projects
     resolvers:
-      - { id: domain_fragments, type: multi-document-retrieval, files: [{file: README.md, full_path_from_pud: true}] }
+      - { id: domain_fragments, type: multi-document-retrieval, files: [{file: README.md, full_path_from_pud: true}, readme.structure] }
     prompts:
       - name: core
         render:

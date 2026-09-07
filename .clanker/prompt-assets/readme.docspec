@@ -1,0 +1,27 @@
+I. Intent of the Clanker Repository
+- Showcase an efficient, terminal-driven utility for local LLM prompt assembly and context injection.
+- Serve as a modular tool designed to inspect, refactor, and evolve codebases (including itself).
+
+II. Intended Audience
+- Developers and "vibe coders" looking to streamline context injection into browser-based LLMs.
+- Technical recruiters and engineers evaluating software design, architecture, and Python competency.
+
+III. Intended Impression (Emergent from content)
+- Pragmatic and developer-focused: Solves real context-assembly overhead in terminal workflows.
+- Modular & extensible: Clean separation of concerns (engine, services, adapters, models).
+- Meta-aware: Self-refining architecture designed to operate on its own source files.
+
+IV. Structure
+1. Title & Value Proposition (Quick pitch on browser-based vibe-coding elevation)
+2. Core Features & Key Concepts (YAML configurations, context resolvers, keyboard navigation)
+3. Installation & Quickstart (Cloning, making executable, terminal usage)
+4. Context & Architecture Overview (Brief breakdown of how resolvers, templates, and domain layouts fit together)
+5. Project Status & Roadmap
+
+V. Style
+- Direct, functional, and developer-friendly.
+- Concise with minimal fluff; heavy use of code snippets and ASCII terminal hints where applicable.
+
+VI. Call to Action
+- Clone or copy `clanker.py` to get started locally.
+- Use Clanker on itself to explore custom YAML configurations and prompt assembly.

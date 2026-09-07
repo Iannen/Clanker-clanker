@@ -46,3 +46,7 @@ randomthought: the user has the choice of inline yml declarations, or root level
     - > new ConfigTranslator & all that makes this possible
 randomthought: new resolver, to compile a project into a zip file for that coveted attaboy review
     - > yes! but need to finish ConfigTranslator and that to make such jobs approachable
+
+8. file extensions for class based document selection, semantic context
+
+9. 'F1' type prompts, for things like 'how do use clanker'

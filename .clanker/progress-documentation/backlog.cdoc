@@ -10,6 +10,7 @@ I. Ideas, complaints and non-critical bugs:
     - this is due to the ui template being constrained to 4 buttons for the two keyrows.
     - ez fix is to adjust template.
     - rabbithole solution is to have app write template to rowspec
+- clankers pud assets collide with its own assets!
 II. Items to refine & QC:
 
 1. Usability push
