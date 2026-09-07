@@ -1,14 +1,6 @@
 1. Implement functionality to support the management of a Github Profile Repository as a root / management project of the user.
     - I expect this would need a new resolver to 'peek' at content of other repositories (local repositories)
 
-2. Differentiate shared and PUD specific domains by UI keys they map to
-    - Currently ASDF row is not used.
-    - Perhaps default domains and such can map there? So you get..
-        '1234567890' -> PUD specific domains
-        'QWER' -> Prompts for active domain
-        'ASDF' -> Shared domains
-    - Tis to be mulled
-
 3. Built in asset status system
     - To learn if there are dangling assets, not in use
 
@@ -47,23 +39,10 @@ These become bootstrap validation phases:
         - Design 
         - Document management
         - Code generation
-    - hm this implies that there is 'one consultant', which does not match the reality of llm context resets.
-
-8.  Extract more value out of Config contents
-    - filename and their extensions can combine to convey meaning
-        - 'core.doctrine', 'backlog-output.instruction', 'something.template'
-    - the configs contain information which is currently not utilized, ex:
-'''
-domains: 
-- name: script-dev # <- 'script-dev' informs of purpose
-  resolvers:
-    - { id: repo_content, type: repo_content, fileset: default_repo_content } # the name of the fileset conveys meaning
-    - { id: domain_fragments, type: multi-document-retrieval, files: [backlog.md], } # if I had named filelists, then that would convey meaning too
-  renders:
-    - name: plan # we planning right
-      resolvers:
-        - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.md, backlog-output-instructions.md] } 
-'''
+    - hm this implies that there is 'one consultant', which does not match the reality of llm context resets
+        - something MIB themed? Poor creatures
 
 randomthought: the user has the choice of inline yml declarations, or root level named declarations for as many things as possible
+    - > new ConfigTranslator & all that makes this possible
 randomthought: new resolver, to compile a project into a zip file for that coveted attaboy review
+    - > yes! but need to finish ConfigTranslator and that to make such jobs approachable

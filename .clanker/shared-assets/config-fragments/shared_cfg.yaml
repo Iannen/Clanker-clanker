@@ -42,9 +42,9 @@ domains:
 
   - name: north-star
     resolvers:
-      - { id: domain_fragments, type: multi-document-retrieval, files: [north-star.md] }
+      - { id: domain_fragments, type: multi-document-retrieval, files: [north-star.cdoc] }
     prompts:
-      - name: ns-plan
+      - name: core
         render:
           resolvers:
             - { id: prompt_fragments, type: multi-document-retrieval, files: [] }
