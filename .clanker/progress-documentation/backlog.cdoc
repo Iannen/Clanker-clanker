@@ -80,16 +80,9 @@ II. Items to refine & QC:
             - btn_map = self._create_btn_map(kb_spec, shared_domains, pud_domains)
             - then construct finished product, return to caller
 
-3. update .git to be rid of pycache stuff
-
-4. divvy up the cfg assembly into two things
-    - the configs + whatever becomes of 'DTOFactory'
-        - the strictness / boundary thing
-    - the assembler + 'DTOFactory'
-        - for 'who does what' work
-
-5. qol imp: 
+3. qol imp: 
     - make prompt compilation msg say which domain, prompt was used in addition to just line/char
+    - turns into a pipeline refactor. oh well
 
 III. Slated for implementation:
 
