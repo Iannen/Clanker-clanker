@@ -1,9 +1,10 @@
-# Clanker: AIO Solo Dev tool
+# Clanker: AIO HIL Solo Dev tool
 
-Clanker is a homegrown TUI application which attempts to solve the various challenges facing the vibecoding solo develpoer, as experienced by its author.
-  
-  
-- *Redundant in-line commentary, error masking default values*  
+Clanker is a homegrown TUI application which attempts to adress the various challenges facing the vibecoding solo develpoer, as experienced by its author.  
+
+
+### textosaurus rex
+- *Verbose LLM outputs, littered with redundant in-line commentary and error masking default values*  
     ```python
     # function to retrieve and return the users items
     def process_user_items(user_id, items):
@@ -20,7 +21,7 @@ Clanker is a homegrown TUI application which attempts to solve the various chall
     ! [rejected]        main -> main (fetch first)
     error: failed to push some refs to 'github.com:user/clanker.git'
     hint: Updates were rejected because the remote contains work that you do
-    ...
+    ```
 
 - *The perils of freedom*
     ```
@@ -45,11 +46,46 @@ Clanker is a homegrown TUI application which attempts to solve the various chall
     ├── config.json.bak2
     └── .env.backup_copy
     ```
+- *The monolithic single-file project, to facilitate ease of prompting*
+    ```python
+    import os, sys, json, time, sqlite3, asyncio, logging, re
+    from dataclasses import dataclass
+    from typing import Dict, List, Optional, Any, Union
+
+    class ServerApplication:
+        def __init__(self, config):
+            ...
+    
+    # ... [450 lines of middleware, CORS, and startup hooks omitted] ...
+
+    class UserController:
+        def handle_user_request(self, request):
+            ...
+
+    # ... [800 lines of request parsing and route logic omitted] ...
+
+    class UserService:
+        def process_user_business_logic(self, payload):
+            ...
+
+    # ... [650 lines of validation, domain logic, and error handlers omitted] ...
+
+    class UserRepository:
+        def execute_raw_db_query(self, query, params):
+            ...
+    ```
+
 - *KYC-flavoured SaaS registrations*
 
   ![SaaS Shaming Signup UI](presentation/saas_shaming.png)
-  
-Lightweight, keyboard-mapped navigation; zero vendor lock-in; YAML-based template resolution; integrated progress tracking.
+    
+Clanker attempts to adress these ills by way of an opinionated if somewhat sprawling feature set, emergent from its authors dogfooding practices;
+
+- *asd * 
+- *asd * 
+- *asd * 
+
+
 - **Status & Roadmap**: Functional active prototype with a stable resolution pipeline, full keyboard interface, and core template engine. Continuous efforts are directed toward refining default asset schemas and stabilizing progress tracking mechanisms.
 
 ---
