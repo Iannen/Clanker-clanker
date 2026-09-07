@@ -316,3 +316,42 @@ LXII: MOVE SHARED DOMAINS TO ASDF ROW AND SUPPORT DUAL DOMAIN ROWS
     - Updated system_cfg.yaml row definitions and layout mapping to support dual domain rows (shared domains and pud domains) with optimized keyboard ergonomics
     - Refactored RuntimeConfigAssembler in utilities.py to organize assembly into distinct acquisition, consumption, and finalization phases
     - Enhanced AppEngine and AssemblyService in clanker.py to handle dual domain row state, selection clearing, and UI resolution correctly
+
+LXIII: DTO-DRIVEN CONFIG INGESTION AND BOUNDARY VALIDATION [FEATURE]
+    - Goal: Replace raw dictionary access across configuration parsing with a strongly typed DTO abstraction layer and establish a strict failfast boundary at configuration ingestion to eliminate downstream defensive code and fallbacks.
+    - Phase 1: SystemConfigDataDTO Ingestion
+        - Introduced SystemConfigDataDTO to replace raw dict access during keyboard and base render construction in RuntimeConfigAssembler.
+        - Flattened system_cfg.yaml structure to align directly with typed fields.
+    - Phase 2: DTOFactory Extraction
+        - Extracted parsing logic out of SystemConfigDataDTO.from_dict into a dedicated DTOFactory.sys_cfg method.
+        - Wired RuntimeConfigAssembler to utilize DTOFactory instance for initial config mapping.
+    - Phase 3: RenderDTO Introduction
+        - Defined RenderDTO for render configurations and added DTOFactory.render_cfg.
+        - Refactored base render and resolver initialization inside RuntimeConfigAssembler to consume RenderDTO.
+    - Phase 4: ResolverDTO Abstraction
+        - Defined initial ResolverDTO and factory method resolver_cfg handling anchor and fileset mapping.
+        - Implemented assembler resolver dispatch helper mapping typed DTOs to domain Resolver instances.
+    - Phase 5: DomainDTO Integration
+        - Defined DomainDTO and added DTOFactory.domain_cfg.
+        - Updated RuntimeConfigAssembler with _build_domains to construct domain models strictly via DTO pipelines.
+    - Phase 6: PromptDTO Integration
+        - Defined PromptDTO and DTOFactory.prompt_cfg.
+        - Added _build_prompts in assembler to encapsulate prompt creation through DTO transformations.
+    - Phase 7: Named FileSet Mapping
+        - Implemented _build_named_filesets in assembler to resolve PUD vs shared fileset precedence rules.
+        - Updated RepoContentResolver and ManifestResolver construction logic to consume resolved named filesets.
+    - Phase 8: ResolverDTO Hierarchy Specialization
+        - Refactored ResolverDTO into specialized subclasses: MultiDocResolverDTO, RepoContentResolverDTO, ManifestResolverDTO, and KBStateResolverDTO.
+        - Updated DTOFactory.resolver_cfg to delegate to specialized private parsing methods (_mdr_cfg, _repo_cfg, _manif_cfg, _ui_cfg).
+    - Phase 9: FileSetDTO Standardization
+        - Defined FileSetDTO and added DTOFactory.fileset_cfg.
+        - Refactored _build_fileset to instantiate domain FileSet directly from FileSetDTO.
+    - Phase 10: Complete File-Level DTO Coverage
+        - Defined TruncationSpecDTO, FileDTO, and FilelistDTO alongside Tier 1 factory methods.
+        - Updated MultiDocResolverDTO and assembler file construction routines to process file lists via typed DTO chains.
+    - Failfast Policy Validation Accumulator
+        - Established DTOFactory as the definitive fail-fast boundary for all incoming YAML config inputs.
+        - Implemented strict type assertion helpers (req_str, req_dict, req_list, req_bool, req_int, req_str_or_dict) to immediately raise errors on invalid or missing properties.
+        - Completely removed fallback defaults across all DTO factory methods to guarantee downstream type safety and eliminate defensive handling in assembly code.
+    - Note: While this feature successfully establishes complete type safety and insulates domain models from raw dictionary structures, it introduces noticeable boilerplate and visual bloat inside config_dtos.py. 
+      This complexity is properly contained within the DTO boundary, but future structural consolidation may be desirable.
