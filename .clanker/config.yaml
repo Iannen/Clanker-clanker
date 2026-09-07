@@ -1,8 +1,9 @@
 filesets:
   core: {includes: [clanker.py, models.py], excludes: []}
   ad-hoc: {includes: [utilities.py, adapters.py], excludes: []}
-  system_cfg_assembly: {includes: [utilities.py, models.py, config_dtos.py, .clanker/shared-assets/config-fragments, .clanker/config.yaml]}
-
+  cfg_assembly: {includes: [utilities.py, models.py, config_dtos.py]}
+  cfg_validation: {includes: [models.py, config_dtos.py, .clanker/shared-assets/config-fragments, .clanker/config.yaml]}
+  
 domains:
 - name: script-dev
   resolvers:
@@ -35,7 +36,27 @@ domains:
 
 - name: cfg_assembly
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: system_cfg_assembly }
+    - { id: repo_content, type: repo_content, fileset: cfg_assembly }
+    - { id: domain_fragments, type: multi-document-retrieval, files: [backlog.cdoc], }
+  prompts:
+    - name: plan
+      render:
+        resolvers:
+          - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.md, backlog-output-instructions.md] }
+
+    - name: bl-impl
+      render:
+        resolvers:
+          - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.md, code-output-instruction.md]}
+
+    - name: bl-drain
+      render:
+        resolvers:
+          - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 8}, history-output-instructions.md]}
+
+- name: cfg_validation
+  resolvers:
+    - { id: repo_content, type: repo_content, fileset: cfg_validation }
     - { id: domain_fragments, type: multi-document-retrieval, files: [backlog.cdoc], }
   prompts:
     - name: plan
