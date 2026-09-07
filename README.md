@@ -1,69 +1,95 @@
-# Clanker
+# Clanker: AI-Driven Terminal Prompt Assembly Utility
 
-Clanker is an AI-driven, terminal-based repository development utility by morning, and a basic prompt assembler by night.
+Clanker is a homegrown TUI application which attempts to solve the challenges facing the vibecoding solo develpoer, as experienced by its author.
+  
+  
+- *Redundant in-line commentary, error masking default values*  
+    ```python
+    # function to retrieve and return the users items
+    def process_user_items(user_id, items):
+        #todo: find nice example
+    ```
+- *Fear-inducing git operations*
+    ```
+    $ git add .
+    $ git commit -m "fixed minor bug in process_user_items"
+    [main 4f82a1c] fixed minor bug in process_user_items
+    1 file changed, 2 insertions(+), 1 deletion(-)
+    $ git push origin main
+    To github.com:user/clanker.git
+    ! [rejected]        main -> main (fetch first)
+    error: failed to push some refs to 'github.com:user/clanker.git'
+    hint: Updates were rejected because the remote contains work that you do
+    ...
+- *Enslavement by registrations*
+    ```html
+    <!-- Verification Required -->
+    <div class="auth-modal">
+      <h3>Enter 6-Digit Authenticator Code</h3>
+      <p>We sent a push notification to your registered mobile device...</p>
+      <input type="text" placeholder="000 000" maxlength="6" autofocus />
+      <button class="btn-primary" disabled>Verify (Resend in 45s)</button>
+      
+      <div class="error-banner">
+        Session expired. Please <a href="/sso/login">log in again</a> to request a new code.
+      </div>
+    </div>
+    ```
 
-The idea is to elevate the familiar browser-based copy/paste vibe coding experience.
+<then features to mitigate>
+  - 
+Lightweight, keyboard-mapped navigation; zero vendor lock-in; YAML-based template resolution; integrated progress tracking.
+- **Status & Roadmap**: Functional active prototype with a stable resolution pipeline, full keyboard interface, and core template engine. Continuous efforts are directed toward refining default asset schemas and stabilizing progress tracking mechanisms.
 
 ---
 
-### I: Why
+# Terminal-First Prompt Engineering Workflow
+Clanker serves as a bridge between local repository state and external LLM environments, standardizing project context into clipboard-ready prompts without external API dependencies.
 
-For the hell of it. We all love tooling here, right?
+- **Use-Case Breakdown**:
+  - **Context Aggregation**: Automatically packs repository trees, individual files, and configuration fragments using delimited tags.
+  - **Dynamic Resolution**: Evaluates YAML configurations to bundle domain-specific prompt layouts with active code files.
+  - **Progress Tracking**: Tracks evolving architecture across development sessions using a template-driven documentation system (`.cdoc`).
+
+- **Architecture & Structure**:
+  - `clanker.py`: Implements the presentation, execution engine (`AppEngine`), state management (`SessionService`), and template hydration pipeline (`AssemblyService`).
+  - `models.py`: Defines core data classes, protocol interfaces (`FileBridgePort`, `IOBridgePort`), custom domain exception hierarchies, and domain entities (`Keyboard`, `Resolver`, `Domain`).
+
+- **Usage & Workflow**:
+  1. Launch `clank` within any project repository.
+  2. Press numeric keys `1-0` to toggle active development domains.
+  3. Press hotkeys (`Q`, `W`, `E`, `R`) to compile context-aware prompts directly into the system clipboard.
+  4. Paste into your preferred LLM chat window.
 
 ---
 
-### II: Highlights
+# Project Access & Setup
 
-- **YAML-Driven Prompt Configuration**: 
-    - Let the LLM write your YAML - configuring domains of interest with prompts to suit your workflows
-- **Self-Refining Loop**: 
-    - Use Clanker on itself to refactor, debloat, and evolve the tool as you see fit.
-- **Keyboard-Driven Flow**: 
-    1. Numkeys 1-0 -> select a domain
-    2. QWER -> fetch a prompt to the clipboard
-    3. Paste & go
+- **Review Options**:
+  - **Manual Review**: Examine `clanker.py` and `models.py` for decoupled service architecture and protocol contracts.
+  - **Conversational Agent Review**: Pass the repository URL directly to an AI agent for code pattern analysis.
+  - **Evaluative Review**: Pass `evalcopy.zip` to an AI model for structured architecture audits.
 
----
+- **Installation & Prerequisites**:
+  - **Prerequisites**: Python 3.10+ and `ruamel.yaml`.
+    '''bash
+    pip install ruamel.yaml
+    '''
+  - **Clone Repository**:
+    '''bash
+    git clone https://github.com/Iannen/Clanker-clanker.git
+    cd Clanker-clanker
+    '''
+  - **Symlink Setup**:
+    '''bash
+    chmod +x clanker.py
+    sudo ln -s "$(pwd)/clanker.py" /usr/local/bin/clank
+    '''
 
-### III: Installation
-
-`cd` into a directory of your choice, and then:
-
-#### Option A: Clone the repo (Recommended)
-Step right into my shoes with the current set of supporting markdown assets and my DIY project documentation.
-
-```bash
-git clone https://github.com/Iannen/Clanker-clanker.git
-cd Clanker-clanker
-```
-
-#### Option B: Script only
-Download or paste clanker.py directly as a standalone script.
-```bash
-nano clanker.py
-# Paste full script contents, save & exit:
-# Ctrl+Shift+V -> Ctrl+X -> Y -> Enter
-```
-
-#### Make it executable & symlink to your PATH
-```bash
-chmod +x clanker.py
-sudo ln -s "$(pwd)/clanker.py" /usr/local/bin/clank
-```
-
-### IV: Hello World!
-
-Run the app, grab a prompt, and feed it to your model:
-
-```bash
-clank
-# Press '4', then 'q'.
-```
-A prompt is now on your clipboard. Give this to some LLM and ask it what in the world this is.
-
-### IV: Project status:
-
-**31.08.26**
-It's quite functional, so I will leave it be for now.
-If I think of something clever, I'll just put it in the NS document.
-... well I will probably wind up aligning doc extensions in this and other projects, cleaning up the configs and such.
+- **Notes & Disclaimers**:
+  - **LLM Performance Notes**:
+    - *Gemini*: Recommended choice for consistent handling of long structured context templates.
+    - *ChatGPT*: Highly functional, though occasionally sensitive to very large prompt payloads.
+    - *Grok*: Operational, but bound by free-tier volume limits.
+    - *Claude*: Performs accurately across initial tested configurations.
+  - **General Notice**: This tool is developed with LLM assistance. Users should inspect local scripts prior to running execution symlinks in critical production environments.
