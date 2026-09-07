@@ -113,7 +113,27 @@ Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionat
   ```
 - *Built in collection of progress documentation*
   ```plantext
-  the doc set
+    .clanker/progress-documentation/
+  ├── architecture.cdoc
+  ├── backlog.cdoc
+  ├── north-star.cdoc
+  └── project-history.cdoc
+
+  ---.clanker/progress-documentation/architecture.cdoc---
+  // For gentlemen proficient in such matters
+
+  ---.clanker/progress-documentation/backlog.cdoc---
+  // The most used document
+  I. Ideas, complaints and non-critical bugs:
+  II. Items to refine & QC:
+  III. Slated for implementation:
+  IV. Recently implemented:
+  V. Critical bugs
+
+  === .clanker/progress-documentation/north-star.cdoc ===
+  // A dropbox of sorts
+  === .clanker/progress-documentation/project-history.cdoc ===
+  // a ledger of completed backlog items, compressed & formatted by Clanker
   ```
 - *The Clanker Loop*
 
