@@ -7,7 +7,7 @@ I. Ideas, complaints and non-critical bugs:
 - arrow keys interpreted as esc
 - does AssemblyService take on validation as we get serious about validation? hm.
 - the rendered UI does not properly display empty buttons for 'qwerty' and 'asdfgh' rows
-
+- qol: make prompt compilation msg say which domain, which prompt in addition to line/char
 II. Items to refine & QC:
 
 1. Usability push
@@ -171,23 +171,7 @@ III. Slated for implementation:
                 - looks up named filesets from 'named_filesets', instantiates via _build_fileset if dict
                 - as of now DTOFactory cant service downstream of Resolver, so Assembler takes care of it by existing in-house logic for now
 
-    - Failfast accumulation: Establish DTOFactory as the fail-fast boundary for any values received by yaml configs. Align DTO classes creates thus far
-        Goal: Promote downstream certainty to reduce fallbacks and defensive approaches taken by LLMs
-        [x] Add req_xxx method on DTOFactory to assert any received yaml value conforms to strict expectations.
-            - req_str(self, data: Any, path: list[str]) -> str:
-            - req_dict(self, data: Any, path: list[str]) -> dict[str, Any]:
-            - req_list(self, data: Any, path: list[str]) -> list[Any]:
-            - req_bool(self, data: Any, path: list[str]) -> bool:
-            - new resolver method and helpers need treatment
-        [x] Current DTO's have been given the treatment:
-            - [x] SysCfgDTO (`sys_cfg`)
-            - [x] RenderDTO (`render_cfg`)
-            - [x] DomainDTO (`domain_cfg`)
-            - [x] PromptDTO (`prompt_cfg`)
-            - all the resolverDTOs need the treatment
-                    
-
-    - Phase 8: FileSetDTO (on hold)
+    - Phase 9: FileSetDTO -> we need to revise all below content for phase 9, as this is now coming off a shelf
         [ ] 'config_dtos.py':
             - Define FileSetDTO: 'includes: [str]', 'excludes: [str]'
             - Add 'fileset_cfg(self, data: dict[str, Any]) -> FileSetDTO' method to 'DTOFactory'
@@ -198,6 +182,25 @@ III. Slated for implementation:
             - edit '_build_fileset(dict) -> Fileset' 
                 use 'self.dto_fact.fileset_cfg' to get dto
                 then use dto includes and excludes to construct and return 'fileset: Fileset'
+
+    - Failfast policy validation accumulator: Establish DTOFactory as the fail-fast boundary for any values received by yaml configs. Align DTO classes creates thus far
+        Goal: Promote downstream certainty to reduce fallbacks and defensive approaches taken by LLMs
+        [x] Add req_xxx method on DTOFactory to assert any received yaml value conforms to strict expectations.
+            [x] req_str(self, data: Any, path: list[str]) -> str:
+            [x] req_dict(self, data: Any, path: list[str]) -> dict[str, Any]:
+            [x] req_list(self, data: Any, path: list[str]) -> list[Any]:
+            [x] req_bool(self, data: Any, path: list[str]) -> bool:
+        [ ] Current DTO's have been given the treatment:
+            - [x] SysCfgDTO (`sys_cfg`)
+            - [x] RenderDTO (`render_cfg`)
+            - [x] DomainDTO (`domain_cfg`)
+            - [x] PromptDTO (`prompt_cfg`)
+            - [x] ResolverDTO (`resolver_cfg`)
+            - [x] MultiDocResolverDTO (`_mdr_cfg`)
+            - [x] RepoContentResolverDTO (`_repo_cfg`)
+            - [x] ManifestResolverDTO (`_manif_cfg`)
+            - [x] KBStateResolverDTO (`_ui_cfg`)
+            - [ ] nextdtoclass (its factory method)
 
 IV. Recently implemented:
 

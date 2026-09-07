@@ -1,5 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
+from abc import ABC
 from typing import Any
 from models import ConfigAssemblyFailure, Render
 
@@ -18,7 +19,7 @@ class RenderDTO:
     resolver_dicts: list[dict[str, Any]]
 
 @dataclass
-class ResolverDTO:
+class ResolverDTO(ABC):
     anchor: str
     type: str
 
@@ -68,49 +69,66 @@ class DTOFactory:
         )
 
     def resolver_cfg(self, data: dict[str, Any]) -> ResolverDTO:
-        res_type = str(data.get("type", ""))
+        res_type = self.req_str(data, ["type"])
+        anchor = self.req_str(data, ["id"])
+
         if res_type in ("multi-document-retrieval", "full-path-file-retrieval"):
-            return self._mdr_cfg(data, res_type)
+            return self._mdr_cfg(data, anchor, res_type)
         if res_type == "repo_content":
-            return self._repo_cfg(data, res_type)
+            return self._repo_cfg(data, anchor, res_type)
         if res_type == "repo-manifest":
-            return self._manif_cfg(data, res_type)
+            return self._manif_cfg(data, anchor, res_type)
         if res_type in ("kb_info", "kb_state"):
-            return self._ui_cfg(data, res_type)
+            return self._ui_cfg(anchor, res_type)
         raise ConfigAssemblyFailure(f"Unsupported resolver type: '{res_type}'")
 
-    def _mdr_cfg(self, data: dict[str, Any], res_type: str) -> MultiDocResolverDTO:
+    def _mdr_cfg(self, data: dict[str, Any], anchor: str, res_type: str) -> MultiDocResolverDTO:
+        files = self.req_list(data, ["files"], default=[])
         return MultiDocResolverDTO(
-            anchor=str(data["id"]),
+            anchor=anchor,
             type=res_type,
-            files=data.get("files", []),
+            files=files,
         )
 
-    def _repo_cfg(self, data: dict[str, Any], res_type: str) -> RepoContentResolverDTO:
+    def _repo_cfg(self, data: dict[str, Any], anchor: str, res_type: str) -> RepoContentResolverDTO:
         if "fileset" in data:
             fileset_val = data["fileset"]
+            if not isinstance(fileset_val, (str, dict)):
+                raise ConfigAssemblyFailure(
+                    f"Type mismatch at path 'fileset': expected str or dict, got {type(fileset_val).__name__}"
+                )
         else:
             fileset_val = {
-                "includes": data.get("includes", []),
-                "excludes": data.get("excludes", []),
+                "includes": self.req_list(data, ["includes"], default=[]),
+                "excludes": self.req_list(data, ["excludes"], default=[]),
             }
         return RepoContentResolverDTO(
-            anchor=str(data["id"]),
+            anchor=anchor,
             type=res_type,
             fileset=fileset_val,
         )
 
-    def _manif_cfg(self, data: dict[str, Any], res_type: str) -> ManifestResolverDTO:
+    def _manif_cfg(self, data: dict[str, Any], anchor: str, res_type: str) -> ManifestResolverDTO:
+        pud_fileset = data.get("pud_fileset", {})
+        if not isinstance(pud_fileset, (str, dict)):
+            raise ConfigAssemblyFailure(
+                f"Type mismatch at path 'pud_fileset': expected str or dict, got {type(pud_fileset).__name__}"
+            )
+        shared_fileset = data.get("shared_fileset")
+        if shared_fileset is not None and not isinstance(shared_fileset, (str, dict)):
+            raise ConfigAssemblyFailure(
+                f"Type mismatch at path 'shared_fileset': expected str or dict, got {type(shared_fileset).__name__}"
+            )
         return ManifestResolverDTO(
-            anchor=str(data["id"]),
+            anchor=anchor,
             type=res_type,
-            pud_fileset=data.get("pud_fileset", {}),
-            shared_fileset=data.get("shared_fileset"),
+            pud_fileset=pud_fileset,
+            shared_fileset=shared_fileset,
         )
 
-    def _ui_cfg(self, data: dict[str, Any], res_type: str) -> KBStateResolverDTO:
+    def _ui_cfg(self, anchor: str, res_type: str) -> KBStateResolverDTO:
         return KBStateResolverDTO(
-            anchor=str(data["id"]),
+            anchor=anchor,
             type=res_type,
         )
         
