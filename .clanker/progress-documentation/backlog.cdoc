@@ -7,7 +7,9 @@ I. Ideas, complaints and non-critical bugs:
 - arrow keys interpreted as esc
 - does AssemblyService take on validation as we get serious about validation? hm.
 - the rendered UI does not properly display empty buttons for 'qwerty' and 'asdfgh' rows
-- qol: make prompt compilation msg say which domain, which prompt in addition to line/char
+    - this is due to the ui template being constrained to 4 buttons for the two keyrows.
+    - ez fix is to adjust template.
+    - rabbithole solution is to have app write template to rowspec
 II. Items to refine & QC:
 
 1. Usability push
@@ -85,6 +87,9 @@ II. Items to refine & QC:
         - the strictness / boundary thing
     - the assembler + 'DTOFactory'
         - for 'who does what' work
+
+5. qol imp: 
+    - make prompt compilation msg say which domain, prompt was used in addition to just line/char
 
 III. Slated for implementation:
 
