@@ -171,10 +171,11 @@ class RuntimeConfigAssembler:
         for prim_char, domain in zip(keys, domains):
             button_map[prim_char].inhabitant = domain
 
-    def _build_fileset(self, data: dict[str, Any] | None) -> FileSet:
+    def _build_fileset(self, raw_data: Any) -> FileSet:
+        dto = self.dto_fact.fileset_cfg(raw_data)
         return FileSet(
-            includes=data.get("includes", []),
-            excludes=data.get("excludes", []),
+            includes=dto.includes,
+            excludes=dto.excludes,
         )
 
     def _build_file(self, raw_item: str | dict, is_full_path: bool = False) -> File:

@@ -171,17 +171,29 @@ III. Slated for implementation:
                 - looks up named filesets from 'named_filesets', instantiates via _build_fileset if dict
                 - as of now DTOFactory cant service downstream of Resolver, so Assembler takes care of it by existing in-house logic for now
 
-    - Phase 9: FileSetDTO -> we need to revise all below content for phase 9, as this is now coming off a shelf
-        [ ] 'config_dtos.py':
-            - Define FileSetDTO: 'includes: [str]', 'excludes: [str]'
-            - Add 'fileset_cfg(self, data: dict[str, Any]) -> FileSetDTO' method to 'DTOFactory'
-                - includes is mandatory, no fallback
-                - excludes, fallback to [] so user can omit.
+    - Phase 9: FileSetDTO
+        [x] 'config_dtos.py':
+            - Define FileSetDTO: 'includes: list[str]', 'excludes: list[str]'
+            - Add 'fileset_cfg(self, data: Any) -> FileSetDTO' method to 'DTOFactory'
+                - mandatory 'includes' via req_list(data, ["includes"])
+                - optional 'excludes' via req_list(data, ["excludes"], default=[])
+            - Update '_repo_cfg' inline fileset fallback:
+                - 'includes' has no default (mandatory)
+                - 'excludes' defaults to []
+        [x] 'utilities.py, RuntimeConfigAssembler':
+            - Update '_build_fileset' signature to '_build_fileset(self, raw_data: Any) -> FileSet'
+            - Pass 'raw_data' directly to 'self.dto_fact.fileset_cfg'
+            - Return 'FileSet' instantiated from 'FileSetDTO'
 
+    - Phase 10: Complete DTO Layer
+        [ ] 'config_dtos.py':
+            - Add `req_int` to `DTOFactory`
+            - Define DTOs: `TruncationSpecDTO`, `FileDTO`, `FilelistDTO`
+            - Add `truncation_spec_cfg`, `file_cfg`, `filelist_cfg` to `DTOFactory`
+            - Update `_mdr_cfg` and `MultiDocResolverDTO` to use structured `FileDTO`
         [ ] 'utilities.py, RuntimeConfigAssembler':
-            - edit '_build_fileset(dict) -> Fileset' 
-                use 'self.dto_fact.fileset_cfg' to get dto
-                then use dto includes and excludes to construct and return 'fileset: Fileset'
+            - Update `_build_file` to instantiate `File` and `TruncationSpec` directly from `FileDTO`
+            - Update `_build_resolver_from_dto` for `MultiDocResolverDTO` to process `FileDTO` collection
 
     - Failfast policy validation accumulator: Establish DTOFactory as the fail-fast boundary for any values received by yaml configs. Align DTO classes creates thus far
         Goal: Promote downstream certainty to reduce fallbacks and defensive approaches taken by LLMs
@@ -190,6 +202,10 @@ III. Slated for implementation:
             [x] req_dict(self, data: Any, path: list[str]) -> dict[str, Any]:
             [x] req_list(self, data: Any, path: list[str]) -> list[Any]:
             [x] req_bool(self, data: Any, path: list[str]) -> bool:
+            [x] req_str_or_dict(self, data: Any, path: list[str], default: Any = None) -> str | dict[str, Any]:
+            [x] `DTOFactory._manif_cfg`: validate `pud_fileset` and `shared_fileset` via `req_str_or_dict`
+            [x] `DTOFactory._repo_cfg`: validate explicit `fileset` via `req_str_or_dict`, fallback to flattened `includes`/`excludes`
+
         [ ] Current DTO's have been given the treatment:
             - [x] SysCfgDTO (`sys_cfg`)
             - [x] RenderDTO (`render_cfg`)
@@ -200,7 +216,10 @@ III. Slated for implementation:
             - [x] RepoContentResolverDTO (`_repo_cfg`)
             - [x] ManifestResolverDTO (`_manif_cfg`)
             - [x] KBStateResolverDTO (`_ui_cfg`)
+            - [x] FileSetDTO (`fileset_cfg`)
             - [ ] nextdtoclass (its factory method)
+            - [] andnext
+            - ..
 
 IV. Recently implemented:
 
