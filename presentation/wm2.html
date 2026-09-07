@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Your Developer Account - Platform Sign Up</title>
+<style>
+  :root {
+    --bg-dark: #0f172a;
+    --card-bg: #1e293b;
+    --card-border: #334155;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent-blue: #38bdf8;
+    --input-bg: #0f172a;
+    --btn-primary: #2563eb;
+    --btn-disabled: #475569;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    font-size: 14px;
+  }
+
+  .portal-wrapper {
+    width: 100%;
+    max-width: 580px;
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+  }
+
+  /* Content Body */
+  .portal-body {
+    padding: 36px;
+  }
+
+  .header {
+    margin-bottom: 28px;
+  }
+
+  .header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+
+  .header p {
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* Form Section */
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .required-asterisk {
+    color: #f87171;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"] {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: #fff;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input:focus {
+    border-color: var(--accent-blue);
+  }
+
+  .field-hint {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 6px;
+    display: block;
+  }
+
+  /* Checkbox & Consent Matrix */
+  .consent-matrix {
+    background: #0f172a;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 16px;
+    margin-top: 24px;
+  }
+
+  .consent-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .consent-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .consent-item input[type="checkbox"] {
+    margin-top: 3px;
+    accent-color: var(--btn-primary);
+  }
+
+  .consent-item label {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
+  /* Action Row */
+  .action-bar {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .btn {
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: not-allowed;
+    border: none;
+    width: 100%;
+  }
+
+  .btn-submit {
+    background: var(--btn-disabled);
+    color: #94a3b8;
+  }
+
+  .footer-links {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 11px;
+    color: #475569;
+  }
+
+  .footer-links a {
+    color: #64748b;
+    text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+
+<div class="portal-wrapper">
+  <div class="portal-body">
+    <div class="header">
+      <h1>Create Your Account</h1>
+      <p>Set up your developer profile to access platform APIs, SDKs, and developer tools.</p>
+    </div>
+
+    <form onsubmit="return false;">
+      <div class="form-group">
+        <label>Full Name <span class="required-asterisk">*</span></label>
+        <input type="text" placeholder="Jane Doe" value="J. Random Developer">
+      </div>
+
+      <div class="form-group">
+        <label>Work Email Address <span class="required-asterisk">*</span></label>
+        <input type="email" placeholder="jane@company.com">
+        <span class="field-hint">Free email domains (gmail, yahoo) are not eligible for API trial keys.</span>
+      </div>
+
+      <div class="form-group">
+        <label>Mobile Phone Number <span class="required-asterisk">*</span></label>
+        <input type="tel" placeholder="+1 (555) 019-2834">
+        <span class="field-hint">Required for mandatory SMS multi-factor authentication setup.</span>
+      </div>
+
+      <div class="consent-matrix">
+        <div class="consent-item">
+          <input type="checkbox" id="c1">
+          <label for="c1">I agree to receive product updates, promotional offers, and partner communications via email and SMS.</label>
+        </div>
+
+        <div class="consent-item">
+          <input type="checkbox" id="c2">
+          <label for="c2">I agree to allow usage telemetry collection, including browser metadata and workspace activity, to personalize marketing content.</label>
+        </div>
+
+        <div class="consent-item">
+          <input type="checkbox" id="c3">
+          <label for="c3">I agree to the <a href="#">Terms of Service</a>, <a href="#">Privacy Policy</a>, and <a href="#">Data Processing Addendum</a>.</label>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button class="btn btn-submit" disabled>Create Account (Select all required options)</button>
+      </div>
+    </form>
+
+    <div class="footer-links">
+      <p>Already have an account? <a href="#">Log In</a> | <a href="#">Enterprise SSO</a></p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

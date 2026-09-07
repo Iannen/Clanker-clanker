@@ -1,6 +1,6 @@
-# Clanker: AI-Driven Terminal Prompt Assembly Utility
+# Clanker: AIO Solo Dev tool
 
-Clanker is a homegrown TUI application which attempts to solve the challenges facing the vibecoding solo develpoer, as experienced by its author.
+Clanker is a homegrown TUI application which attempts to solve the various challenges facing the vibecoding solo develpoer, as experienced by its author.
   
   
 - *Redundant in-line commentary, error masking default values*  
@@ -21,23 +21,11 @@ Clanker is a homegrown TUI application which attempts to solve the challenges fa
     error: failed to push some refs to 'github.com:user/clanker.git'
     hint: Updates were rejected because the remote contains work that you do
     ...
-- *Enslavement by registrations*
-    ```html
-    <!-- Verification Required -->
-    <div class="auth-modal">
-      <h3>Enter 6-Digit Authenticator Code</h3>
-      <p>We sent a push notification to your registered mobile device...</p>
-      <input type="text" placeholder="000 000" maxlength="6" autofocus />
-      <button class="btn-primary" disabled>Verify (Resend in 45s)</button>
-      
-      <div class="error-banner">
-        Session expired. Please <a href="/sso/login">log in again</a> to request a new code.
-      </div>
-    </div>
-    ```
+- *KYC-flavoured SaaS registrations*
 
-<then features to mitigate>
-  - 
+  ![SaaS Shaming Signup UI](presentation/saas_shaming.png)
+
+ 
 Lightweight, keyboard-mapped navigation; zero vendor lock-in; YAML-based template resolution; integrated progress tracking.
 - **Status & Roadmap**: Functional active prototype with a stable resolution pipeline, full keyboard interface, and core template engine. Continuous efforts are directed toward refining default asset schemas and stabilizing progress tracking mechanisms.
 

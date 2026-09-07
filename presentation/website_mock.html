@@ -1,0 +1,1593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enterprise Cloud Platform v4.12 - Verification Required</title>
+<style>
+  :root {
+    --bg-dark: #0f172a;
+    --card-bg: #1e293b;
+    --card-border: #334155;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent-blue: #38bdf8;
+    --accent-red: #f87171;
+    --accent-amber: #fbbf24;
+    --accent-green: #4ade80;
+    --input-bg: #0f172a;
+    --btn-primary: #2563eb;
+    --btn-disabled: #475569;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    font-size: 14px;
+  }
+
+  .portal-wrapper {
+    width: 100%;
+    max-width: 680px;
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+  }
+
+  /* Top System Banner */
+  .system-banner {
+    background: #090d16;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--card-border);
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: monospace;
+  }
+
+  .system-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--accent-amber);
+    border-radius: 50%;
+  }
+
+  /* Progress Bar */
+  .progress-tracker {
+    display: flex;
+    background: #111827;
+    border-bottom: 1px solid var(--card-border);
+  }
+
+  .step {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    border-right: 1px solid var(--card-border);
+    background: rgba(255,255,255,0.02);
+  }
+
+  .step.completed {
+    color: var(--accent-green);
+  }
+
+  .step.active {
+    background: var(--card-bg);
+    color: var(--accent-blue);
+    font-weight: bold;
+    border-bottom: 2px solid var(--accent-blue);
+  }
+
+  /* Content Body */
+  .portal-body {
+    padding: 32px;
+  }
+
+  .header {
+    margin-bottom: 24px;
+  }
+
+  .header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+
+  .header p {
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* Notice Callout */
+  .alert-box {
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 24px;
+    color: var(--accent-red);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .alert-box strong {
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  /* Form Section */
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .required-asterisk {
+    color: var(--accent-red);
+  }
+
+  input[type="text"],
+  input[type="email"],
+  select,
+  textarea {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: #fff;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent-blue);
+  }
+
+  .field-hint {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 6px;
+    display: block;
+  }
+
+  /* File Dropzone Mock */
+  .dropzone {
+    border: 2px dashed var(--card-border);
+    border-radius: 6px;
+    padding: 24px;
+    text-align: center;
+    background: rgba(15, 23, 42, 0.5);
+    cursor: pointer;
+  }
+
+  .dropzone p {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+
+  .dropzone span {
+    font-size: 11px;
+    color: #64748b;
+  }
+
+  /* Nested Privacy Interrogations */
+  .privacy-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* Checkbox & Consent Matrix */
+  .consent-matrix {
+    background: #0f172a;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 16px;
+    margin-top: 24px;
+  }
+
+  .consent-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .consent-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .consent-item input[type="checkbox"] {
+    margin-top: 3px;
+    accent-color: var(--btn-primary);
+  }
+
+  .consent-item label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: none;
+    letter-spacing: normal;
+    font-weight: normal;
+    line-height: 1.4;
+  }
+
+  /* Action Row */
+  .action-bar {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .timer {
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--accent-amber);
+  }
+
+  .btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: not-allowed;
+    border: none;
+  }
+
+  .btn-submit {
+    background: var(--btn-disabled);
+    color: #94a3b8;
+  }
+
+  .footer-links {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 11px;
+    color: #475569;
+  }
+
+  .footer-links a {
+    color: #64748b;
+    text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+
+<div class="portal-wrapper">
+  <div class="system-banner">
+    <span>AUTH_GATEWAY // PROD-US-EAST-1</span>
+    <div class="system-status">
+      <div class="status-dot"></div>
+      <span>SESSION TEMP-LOCKED (300s)</span>
+    </div>
+  </div>
+
+  <div class="progress-tracker">
+    <div class="step completed">1. SSO Auth</div>
+    <div class="step completed">2. Device 2FA</div>
+    <div class="step active">3. Compliance & KYC</div>
+    <div class="step">4. Manager Approval</div>
+    <div class="step">5. Environment Provision</div>
+  </div>
+
+  <div class="portal-body">
+    <div class="header">
+      <h1>Mandatory Identity & Compliance Verification</h1>
+      <p>To execute <code>clanker spinup --env dev</code>, corporate compliance policy 904-C requires real-time identity matching and telemetry consent.</p>
+    </div>
+
+    <div class="alert-box">
+      <strong>ACTION REQUIRED: High Risk CLI Action Detected</strong>
+      Executing terminal requests requires linking a verified human identity, SSN/National ID, and biometric proof of presence. Unverified sessions terminate in 04:59.
+    </div>
+
+    <form onsubmit="return false;">
+      <div class="privacy-grid">
+        <div class="form-group">
+          <label>Government Full Legal Name <span class="required-asterisk">*</span></label>
+          <input type="text" placeholder="As it appears on Passport" value="J. Random Developer">
+        </div>
+
+        <div class="form-group">
+          <label>Tax Identifier / SSN <span class="required-asterisk">*</span></label>
+          <input type="text" placeholder="XXX-XX-XXXX">
+          <span class="field-hint">Required for local dev environment audit trails.</span>
+        </div>
+      </div>
+
+      <div class="privacy-grid">
+        <div class="form-group">
+          <label>Residential Address (30-Day Proof) <span class="required-asterisk">*</span></label>
+          <input type="text" placeholder="123 Corporate Way, Suite 400">
+        </div>
+
+        <div class="form-group">
+          <label>Personal Mobile Number <span class="required-asterisk">*</span></label>
+          <input type="email" placeholder="+1 (555) 019-2834">
+          <span class="field-hint">Used for biometric SMS step-up verification.</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Proof of Identity Document (Utility Bill / Passport PDF) <span class="required-asterisk">*</span></label>
+        <div class="dropzone">
+          <p>Drag & Drop government ID or notarized proof of address</p>
+          <span>Accepted formats: .PDF, .PNG (Max 25MB)</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Reason for Local CLI Execution <span class="required-asterisk">*</span></label>
+        <select>
+          <option value="" selected disabled>-- Select Corporate Justification --</option>
+          <option value="1">Urgent Production Hotfix (Requires CTO Sign-off)</option>
+          <option value="2">Routine Feature Development (Requires Jira Ticket #)</option>
+          <option value="3">Experimental / Spike (Subject to Data Harvesting)</option>
+        </select>
+      </div>
+
+      <div class="consent-matrix">
+        <div class="consent-item">
+          <input type="checkbox" id="c1">
+          <label for="c1">I agree to allow <strong>Enterprise Telemetry Engine</strong> to record active terminal sessions, environment variables, keystroke dynamics, and background processes.</label>
+        </div>
+
+        <div class="consent-item">
+          <input type="checkbox" id="c2">
+          <label for="c2">I grant permission to cross-reference my personal credit history and biometric photo with third-party verification partners (Data-Broker Corp).</label>
+        </div>
+
+        <div class="consent-item">
+          <input type="checkbox" id="c3">
+          <label for="c3">I understand that closing this browser tab will cancel the active terminal process and require a 15-minute cool-down period.</label>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <div class="timer">Session expires in: <b>04:59</b></div>
+        <button class="btn btn-submit" disabled>Submit & Request CLI Token (Disabled)</button>
+      </div>
+    </form>
+
+    <div class="footer-links">
+      <p>Questions? Contact <a href="#">Compliance Desk</a> | <a href="#">Privacy Policy (Updated 2026)</a> | <a href="#">Opt-Out Request (Requires Mail-in Form)</a></p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enterprise Cloud Platform v4.12 - Verification Required</title>
+<style>
+  :root {
+    --bg-dark: #0f172a;
+    --card-bg: #1e293b;
+    --card-border: #334155;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent-blue: #38bdf8;
+    --accent-red: #f87171;
+    --accent-amber: #fbbf24;
+    --accent-green: #4ade80;
+    --input-bg: #0f172a;
+    --btn-primary: #2563eb;
+    --btn-disabled: #475569;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    font-size: 14px;
+  }
+
+  .portal-wrapper {
+    width: 100%;
+    max-width: 680px;
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+  }
+
+  /* Top System Banner */
+  .system-banner {
+    background: #090d16;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--card-border);
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: monospace;
+  }
+
+  .system-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--accent-amber);
+    border-radius: 50%;
+  }
+
+  /* Progress Bar */
+  .progress-tracker {
+    display: flex;
+    background: #111827;
+    border-bottom: 1px solid var(--card-border);
+  }
+
+  .step {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    border-right: 1px solid var(--card-border);
+    background: rgba(255,255,255,0.02);
+  }
+
+  .step.completed {
+    color: var(--accent-green);
+  }
+
+  .step.active {
+    background: var(--card-bg);
+    color: var(--accent-blue);
+    font-weight: bold;
+    border-bottom: 2px solid var(--accent-blue);
+  }
+
+  /* Content Body */
+  .portal-body {
+    padding: 32px;
+  }
+
+  .header {
+    margin-bottom: 24px;
+  }
+
+  .header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+
+  .header p {
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* Notice Callout */
+  .alert-box {
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 24px;
+    color: var(--accent-red);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .alert-box strong {
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  /* Form Section */
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .required-asterisk {
+    color: var(--accent-red);
+  }
+
+  input[type="text"],
+  input[type="email"],
+  select,
+  textarea {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: #fff;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent-blue);
+  }
+
+  .field-hint {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 6px;
+    display: block;
+  }
+
+  /* File Dropzone Mock */
+  .dropzone {
+    border: 2px dashed var(--card-border);
+    border-radius: 6px;
+    padding: 24px;
+    text-align: center;
+    background: rgba(15, 23, 42, 0.5);
+    cursor: pointer;
+  }
+
+  .dropzone p {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+
+  .dropzone span {
+    font-size: 11px;
+    color: #64748b;
+  }
+
+  /* Nested Privacy Interrogations */
+  .privacy-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* Checkbox & Consent Matrix */
+  .consent-matrix {
+    background: #0f172a;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 16px;
+    margin-top: 24px;
+  }
+
+  .consent-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .consent-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .consent-item input[type="checkbox"] {
+    margin-top: 3px;
+    accent-color: var(--btn-primary);
+  }
+
+  .consent-item label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: none;
+    letter-spacing: normal;
+    font-weight: normal;
+    line-height: 1.4;
+  }
+
+  /* Action Row */
+  .action-bar {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .timer {
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--accent-amber);
+  }
+
+  .btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: not-allowed;
+    border: none;
+  }
+
+  .btn-submit {
+    background: var(--btn-disabled);
+    color: #94a3b8;
+  }
+
+  .footer-links {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 11px;
+    color: #475569;
+  }
+
+  .footer-links a {
+    color: #64748b;
+    text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+
+<div class="portal-wrapper">
+  <div class="system-banner">
+    <span>AUTH_GATEWAY // PROD-US-EAST-1</span>
+    <div class="system-status">
+      <div class="status-dot"></div>
+      <span>SESSION TEMP-LOCKED (300s)</span>
+    </div>
+  </div>
+
+  <div class="progress-tracker">
+    <div class="step completed">1. SSO Auth</div>
+    <div class="step completed">2. Device 2FA</div>
+    <div class="step active">3. Compliance & KYC</div>
+    <div class="step">4. Manager Approval</div>
+    <div class="step">5. Environment Provision</div>
+  </div>
+
+  <div class="portal-body">
+    <div class="header">
+      <h1>Mandatory Identity & Compliance Verification</h1>
+      <p>To execute <code>clanker spinup --env dev</code>, corporate compliance policy 904-C requires real-time identity matching and telemetry consent.</p>
+    </div>
+
+    <div class="alert-box">
+      <strong>ACTION REQUIRED: High Risk CLI Action Detected</strong>
+      Executing terminal requests requires linking a verified human identity, SSN/National ID, and biometric proof of presence. Unverified sessions terminate in 04:59.
+    </div>
+
+    <form onsubmit="return false;">
+      <div class="privacy-grid">
+        <div class="form-group">
+          <label>Government Full Legal Name <span class="required-asterisk">*</span></label>
+          <input type="text" placeholder="As it appears on Passport" value="J. Random Developer">
+        </div>
+
+        <div class="form-group">
+          <label>Tax Identifier / SSN <span class="required-asterisk">*</span></label>
+          <input type="text" placeholder="XXX-XX-XXXX">
+          <span class="field-hint">Required for local dev environment audit trails.</span>
+        </div>
+      </div>
+
+      <div class="privacy-grid">
+        <div class="form-group">
+          <label>Residential Address (30-Day Proof) <span class="required-asterisk">*</span></label>
+          <input type="text" placeholder="123 Corporate Way, Suite 400">
+        </div>
+
+        <div class="form-group">
+          <label>Personal Mobile Number <span class="required-asterisk">*</span></label>
+          <input type="email" placeholder="+1 (555) 019-2834">
+          <span class="field-hint">Used for biometric SMS step-up verification.</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Proof of Identity Document (Utility Bill / Passport PDF) <span class="required-asterisk">*</span></label>
+        <div class="dropzone">
+          <p>Drag & Drop government ID or notarized proof of address</p>
+          <span>Accepted formats: .PDF, .PNG (Max 25MB)</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Reason for Local CLI Execution <span class="required-asterisk">*</span></label>
+        <select>
+          <option value="" selected disabled>-- Select Corporate Justification --</option>
+          <option value="1">Urgent Production Hotfix (Requires CTO Sign-off)</option>
+          <option value="2">Routine Feature Development (Requires Jira Ticket #)</option>
+          <option value="3">Experimental / Spike (Subject to Data Harvesting)</option>
+        </select>
+      </div>
+
+      <div class="consent-matrix">
+        <div class="consent-item">
+          <input type="checkbox" id="c1">
+          <label for="c1">I agree to allow <strong>Enterprise Telemetry Engine</strong> to record active terminal sessions, environment variables, keystroke dynamics, and background processes.</label>
+        </div>
+
+        <div class="consent-item">
+          <input type="checkbox" id="c2">
+          <label for="c2">I grant permission to cross-reference my personal credit history and biometric photo with third-party verification partners (Data-Broker Corp).</label>
+        </div>
+
+        <div class="consent-item">
+          <input type="checkbox" id="c3">
+          <label for="c3">I understand that closing this browser tab will cancel the active terminal process and require a 15-minute cool-down period.</label>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <div class="timer">Session expires in: <b>04:59</b></div>
+        <button class="btn btn-submit" disabled>Submit & Request CLI Token (Disabled)</button>
+      </div>
+    </form>
+
+    <div class="footer-links">
+      <p>Questions? Contact <a href="#">Compliance Desk</a> | <a href="#">Privacy Policy (Updated 2026)</a> | <a href="#">Opt-Out Request (Requires Mail-in Form)</a></p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enterprise Cloud Platform v4.12 - Verification Required</title>
+<style>
+  :root {
+    --bg-dark: #0f172a;
+    --card-bg: #1e293b;
+    --card-border: #334155;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent-blue: #38bdf8;
+    --accent-red: #f87171;
+    --accent-amber: #fbbf24;
+    --accent-green: #4ade80;
+    --input-bg: #0f172a;
+    --btn-primary: #2563eb;
+    --btn-disabled: #475569;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    font-size: 14px;
+  }
+
+  .portal-wrapper {
+    width: 100%;
+    max-width: 680px;
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+  }
+
+  /* Top System Banner */
+  .system-banner {
+    background: #090d16;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--card-border);
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: monospace;
+  }
+
+  .system-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--accent-amber);
+    border-radius: 50%;
+  }
+
+  /* Progress Bar */
+  .progress-tracker {
+    display: flex;
+    background: #111827;
+    border-bottom: 1px solid var(--card-border);
+  }
+
+  .step {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    border-right: 1px solid var(--card-border);
+    background: rgba(255,255,255,0.02);
+  }
+
+  .step.completed {
+    color: var(--accent-green);
+  }
+
+  .step.active {
+    background: var(--card-bg);
+    color: var(--accent-blue);
+    font-weight: bold;
+    border-bottom: 2px solid var(--accent-blue);
+  }
+
+  /* Content Body */
+  .portal-body {
+    padding: 32px;
+  }
+
+  .header {
+    margin-bottom: 24px;
+  }
+
+  .header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+
+  .header p {
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* Notice Callout */
+  .alert-box {
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 24px;
+    color: var(--accent-red);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .alert-box strong {
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  /* Form Section */
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .required-asterisk {
+    color: var(--accent-red);
+  }
+
+  input[type="text"],
+  input[type="email"],
+  select,
+  textarea {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: #fff;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent-blue);
+  }
+
+  .field-hint {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 6px;
+    display: block;
+  }
+
+  /* File Dropzone Mock */
+  .dropzone {
+    border: 2px dashed var(--card-border);
+    border-radius: 6px;
+    padding: 24px;
+    text-align: center;
+    background: rgba(15, 23, 42, 0.5);
+    cursor: pointer;
+  }
+
+  .dropzone p {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+
+  .dropzone span {
+    font-size: 11px;
+    color: #64748b;
+  }
+
+  /* Nested Privacy Interrogations */
+  .privacy-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* Checkbox & Consent Matrix */
+  .consent-matrix {
+    background: #0f172a;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 16px;
+    margin-top: 24px;
+  }
+
+  .consent-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .consent-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .consent-item input[type="checkbox"] {
+    margin-top: 3px;
+    accent-color: var(--btn-primary);
+  }
+
+  .consent-item label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: none;
+    letter-spacing: normal;
+    font-weight: normal;
+    line-height: 1.4;
+  }
+
+  /* Action Row */
+  .action-bar {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .timer {
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--accent-amber);
+  }
+
+  .btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: not-allowed;
+    border: none;
+  }
+
+  .btn-submit {
+    background: var(--btn-disabled);
+    color: #94a3b8;
+  }
+
+  .footer-links {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 11px;
+    color: #475569;
+  }
+
+  .footer-links a {
+    color: #64748b;
+    text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+
+<div class="portal-wrapper">
+  <div class="system-banner">
+    <span>AUTH_GATEWAY // PROD-US-EAST-1</span>
+    <div class="system-status">
+      <div class="status-dot"></div>
+      <span>SESSION TEMP-LOCKED (300s)</span>
+    </div>
+  </div>
+
+  <div class="progress-tracker">
+    <div class="step completed">1. SSO Auth</div>
+    <div class="step completed">2. Device 2FA</div>
+    <div class="step active">3. Compliance & KYC</div>
+    <div class="step">4. Manager Approval</div>
+    <div class="step">5. Environment Provision</div>
+  </div>
+
+  <div class="portal-body">
+    <div class="header">
+      <h1>Mandatory Identity & Compliance Verification</h1>
+      <p>To execute <code>clanker spinup --env dev</code>, corporate compliance policy 904-C requires real-time identity matching and telemetry consent.</p>
+    </div>
+
+    <div class="alert-box">
+      <strong>ACTION REQUIRED: High Risk CLI Action Detected</strong>
+      Executing terminal requests requires linking a verified human identity, SSN/National ID, and biometric proof of presence. Unverified sessions terminate in 04:59.
+    </div>
+
+    <form onsubmit="return false;">
+      <div class="privacy-grid">
+        <div class="form-group">
+          <label>Government Full Legal Name <span class="required-asterisk">*</span></label>
+          <input type="text" placeholder="As it appears on Passport" value="J. Random Developer">
+        </div>
+
+        <div class="form-group">
+          <label>Tax Identifier / SSN <span class="required-asterisk">*</span></label>
+          <input type="text" placeholder="XXX-XX-XXXX">
+          <span class="field-hint">Required for local dev environment audit trails.</span>
+        </div>
+      </div>
+
+      <div class="privacy-grid">
+        <div class="form-group">
+          <label>Residential Address (30-Day Proof) <span class="required-asterisk">*</span></label>
+          <input type="text" placeholder="123 Corporate Way, Suite 400">
+        </div>
+
+        <div class="form-group">
+          <label>Personal Mobile Number <span class="required-asterisk">*</span></label>
+          <input type="email" placeholder="+1 (555) 019-2834">
+          <span class="field-hint">Used for biometric SMS step-up verification.</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Proof of Identity Document (Utility Bill / Passport PDF) <span class="required-asterisk">*</span></label>
+        <div class="dropzone">
+          <p>Drag & Drop government ID or notarized proof of address</p>
+          <span>Accepted formats: .PDF, .PNG (Max 25MB)</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Reason for Local CLI Execution <span class="required-asterisk">*</span></label>
+        <select>
+          <option value="" selected disabled>-- Select Corporate Justification --</option>
+          <option value="1">Urgent Production Hotfix (Requires CTO Sign-off)</option>
+          <option value="2">Routine Feature Development (Requires Jira Ticket #)</option>
+          <option value="3">Experimental / Spike (Subject to Data Harvesting)</option>
+        </select>
+      </div>
+
+      <div class="consent-matrix">
+        <div class="consent-item">
+          <input type="checkbox" id="c1">
+          <label for="c1">I agree to allow <strong>Enterprise Telemetry Engine</strong> to record active terminal sessions, environment variables, keystroke dynamics, and background processes.</label>
+        </div>
+
+        <div class="consent-item">
+          <input type="checkbox" id="c2">
+          <label for="c2">I grant permission to cross-reference my personal credit history and biometric photo with third-party verification partners (Data-Broker Corp).</label>
+        </div>
+
+        <div class="consent-item">
+          <input type="checkbox" id="c3">
+          <label for="c3">I understand that closing this browser tab will cancel the active terminal process and require a 15-minute cool-down period.</label>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <div class="timer">Session expires in: <b>04:59</b></div>
+        <button class="btn btn-submit" disabled>Submit & Request CLI Token (Disabled)</button>
+      </div>
+    </form>
+
+    <div class="footer-links">
+      <p>Questions? Contact <a href="#">Compliance Desk</a> | <a href="#">Privacy Policy (Updated 2026)</a> | <a href="#">Opt-Out Request (Requires Mail-in Form)</a></p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enterprise Cloud Platform v4.12 - Verification Required</title>
+<style>
+  :root {
+    --bg-dark: #0f172a;
+    --card-bg: #1e293b;
+    --card-border: #334155;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent-blue: #38bdf8;
+    --accent-red: #f87171;
+    --accent-amber: #fbbf24;
+    --accent-green: #4ade80;
+    --input-bg: #0f172a;
+    --btn-primary: #2563eb;
+    --btn-disabled: #475569;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    font-size: 14px;
+  }
+
+  .portal-wrapper {
+    width: 100%;
+    max-width: 680px;
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+  }
+
+  /* Top System Banner */
+  .system-banner {
+    background: #090d16;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--card-border);
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: monospace;
+  }
+
+  .system-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--accent-amber);
+    border-radius: 50%;
+  }
+
+  /* Progress Bar */
+  .progress-tracker {
+    display: flex;
+    background: #111827;
+    border-bottom: 1px solid var(--card-border);
+  }
+
+  .step {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    border-right: 1px solid var(--card-border);
+    background: rgba(255,255,255,0.02);
+  }
+
+  .step.completed {
+    color: var(--accent-green);
+  }
+
+  .step.active {
+    background: var(--card-bg);
+    color: var(--accent-blue);
+    font-weight: bold;
+    border-bottom: 2px solid var(--accent-blue);
+  }
+
+  /* Content Body */
+  .portal-body {
+    padding: 32px;
+  }
+
+  .header {
+    margin-bottom: 24px;
+  }
+
+  .header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+
+  .header p {
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* Notice Callout */
+  .alert-box {
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 24px;
+    color: var(--accent-red);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .alert-box strong {
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  /* Form Section */
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .required-asterisk {
+    color: var(--accent-red);
+  }
+
+  input[type="text"],
+  input[type="email"],
+  select,
+  textarea {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: #fff;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent-blue);
+  }
+
+  .field-hint {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 6px;
+    display: block;
+  }
+
+  /* File Dropzone Mock */
+  .dropzone {
+    border: 2px dashed var(--card-border);
+    border-radius: 6px;
+    padding: 24px;
+    text-align: center;
+    background: rgba(15, 23, 42, 0.5);
+    cursor: pointer;
+  }
+
+  .dropzone p {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+
+  .dropzone span {
+    font-size: 11px;
+    color: #64748b;
+  }
+
+  /* Nested Privacy Interrogations */
+  .privacy-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* Checkbox & Consent Matrix */
+  .consent-matrix {
+    background: #0f172a;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 16px;
+    margin-top: 24px;
+  }
+
+  .consent-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .consent-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .consent-item input[type="checkbox"] {
+    margin-top: 3px;
+    accent-color: var(--btn-primary);
+  }
+
+  .consent-item label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: none;
+    letter-spacing: normal;
+    font-weight: normal;
+    line-height: 1.4;
+  }
+
+  /* Action Row */
+  .action-bar {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .timer {
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--accent-amber);
+  }
+
+  .btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: not-allowed;
+    border: none;
+  }
+
+  .btn-submit {
+    background: var(--btn-disabled);
+    color: #94a3b8;
+  }
+
+  .footer-links {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 11px;
+    color: #475569;
+  }
+
+  .footer-links a {
+    color: #64748b;
+    text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+
+<div class="portal-wrapper">
+  <div class="system-banner">
+    <span>AUTH_GATEWAY // PROD-US-EAST-1</span>
+    <div class="system-status">
+      <div class="status-dot"></div>
+      <span>SESSION TEMP-LOCKED (300s)</span>
+    </div>
+  </div>
+
+  <div class="progress-tracker">
+    <div class="step completed">1. SSO Auth</div>
+    <div class="step completed">2. Device 2FA</div>
+    <div class="step active">3. Compliance & KYC</div>
+    <div class="step">4. Manager Approval</div>
+    <div class="step">5. Environment Provision</div>
+  </div>
+
+  <div class="portal-body">
+    <div class="header">
+      <h1>Mandatory Identity & Compliance Verification</h1>
+      <p>To execute <code>clanker spinup --env dev</code>, corporate compliance policy 904-C requires real-time identity matching and telemetry consent.</p>
+    </div>
+
+    <div class="alert-box">
+      <strong>ACTION REQUIRED: High Risk CLI Action Detected</strong>
+      Executing terminal requests requires linking a verified human identity, SSN/National ID, and biometric proof of presence. Unverified sessions terminate in 04:59.
+    </div>
+
+    <form onsubmit="return false;">
+      <div class="privacy-grid">
+        <div class="form-group">
+          <label>Government Full Legal Name <span class="required-asterisk">*</span></label>
+          <input type="text" placeholder="As it appears on Passport" value="J. Random Developer">
+        </div>
+
+        <div class="form-group">
+          <label>Tax Identifier / SSN <span class="required-asterisk">*</span></label>
+          <input type="text" placeholder="XXX-XX-XXXX">
+          <span class="field-hint">Required for local dev environment audit trails.</span>
+        </div>
+      </div>
+
+      <div class="privacy-grid">
+        <div class="form-group">
+          <label>Residential Address (30-Day Proof) <span class="required-asterisk">*</span></label>
+          <input type="text" placeholder="123 Corporate Way, Suite 400">
+        </div>
+
+        <div class="form-group">
+          <label>Personal Mobile Number <span class="required-asterisk">*</span></label>
+          <input type="email" placeholder="+1 (555) 019-2834">
+          <span class="field-hint">Used for biometric SMS step-up verification.</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Proof of Identity Document (Utility Bill / Passport PDF) <span class="required-asterisk">*</span></label>
+        <div class="dropzone">
+          <p>Drag & Drop government ID or notarized proof of address</p>
+          <span>Accepted formats: .PDF, .PNG (Max 25MB)</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Reason for Local CLI Execution <span class="required-asterisk">*</span></label>
+        <select>
+          <option value="" selected disabled>-- Select Corporate Justification --</option>
+          <option value="1">Urgent Production Hotfix (Requires CTO Sign-off)</option>
+          <option value="2">Routine Feature Development (Requires Jira Ticket #)</option>
+          <option value="3">Experimental / Spike (Subject to Data Harvesting)</option>
+        </select>
+      </div>
+
+      <div class="consent-matrix">
+        <div class="consent-item">
+          <input type="checkbox" id="c1">
+          <label for="c1">I agree to allow <strong>Enterprise Telemetry Engine</strong> to record active terminal sessions, environment variables, keystroke dynamics, and background processes.</label>
+        </div>
+
+        <div class="consent-item">
+          <input type="checkbox" id="c2">
+          <label for="c2">I grant permission to cross-reference my personal credit history and biometric photo with third-party verification partners (Data-Broker Corp).</label>
+        </div>
+
+        <div class="consent-item">
+          <input type="checkbox" id="c3">
+          <label for="c3">I understand that closing this browser tab will cancel the active terminal process and require a 15-minute cool-down period.</label>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <div class="timer">Session expires in: <b>04:59</b></div>
+        <button class="btn btn-submit" disabled>Submit & Request CLI Token (Disabled)</button>
+      </div>
+    </form>
+
+    <div class="footer-links">
+      <p>Questions? Contact <a href="#">Compliance Desk</a> | <a href="#">Privacy Policy (Updated 2026)</a> | <a href="#">Opt-Out Request (Requires Mail-in Form)</a></p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
