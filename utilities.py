@@ -178,20 +178,21 @@ class RuntimeConfigAssembler:
             excludes=dto.excludes,
         )
 
-    def _build_file(self, raw_item: str | dict, is_full_path: bool = False) -> File:
-        if isinstance(raw_item, dict):
-            name = raw_item.get("file", raw_item.get("name", ""))
-            tail_lines = raw_item.get("tail_lines")
-            full_path = raw_item.get("full_path_from_pud", is_full_path)
-            trunc_spec = TruncationSpec(tail_lines=tail_lines) if tail_lines is not None else None
-            return File(name=name, full_path_from_pud=full_path, truncation_spec=trunc_spec)
-        return File(name=str(raw_item), full_path_from_pud=is_full_path)
+    def _build_file(self, file_dto: FileDTO) -> File:
+        trunc_spec = (
+            TruncationSpec(tail_lines=file_dto.truncation_spec.tail_lines)
+            if file_dto.truncation_spec is not None
+            else None
+        )
+        return File(
+            name=file_dto.name,
+            full_path_from_pud=file_dto.full_path_from_pud,
+            truncation_spec=trunc_spec,
+        )
 
     def _build_resolver_from_dto(self, dto: ResolverDTO, named_filesets: dict[str, FileSet]) -> Resolver:
         if isinstance(dto, MultiDocResolverDTO):
-            is_full_path = dto.type == "full-path-file-retrieval"
-            raw_files = dto.files or []
-            file_objs = [self._build_file(f, is_full_path=is_full_path) for f in raw_files]
+            file_objs = [self._build_file(f) for f in dto.files.files]
             return MultiDocResolver(
                 anchor=dto.anchor,
                 files=Filelist(files=file_objs)

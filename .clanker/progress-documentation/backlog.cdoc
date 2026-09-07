@@ -185,15 +185,21 @@ III. Slated for implementation:
             - Pass 'raw_data' directly to 'self.dto_fact.fileset_cfg'
             - Return 'FileSet' instantiated from 'FileSetDTO'
 
-    - Phase 10: Complete DTO Layer
-        [ ] 'config_dtos.py':
-            - Add `req_int` to `DTOFactory`
-            - Define DTOs: `TruncationSpecDTO`, `FileDTO`, `FilelistDTO`
-            - Add `truncation_spec_cfg`, `file_cfg`, `filelist_cfg` to `DTOFactory`
-            - Update `_mdr_cfg` and `MultiDocResolverDTO` to use structured `FileDTO`
-        [ ] 'utilities.py, RuntimeConfigAssembler':
-            - Update `_build_file` to instantiate `File` and `TruncationSpec` directly from `FileDTO`
-            - Update `_build_resolver_from_dto` for `MultiDocResolverDTO` to process `FileDTO` collection
+    - Phase 10: Complete DTO Layer: Implement TruncationSpec, File and Filelist DTOs.
+        [x] 'config_dtos.py': Implement file-level DTOs, Tier 1 helper methods, and update MDR resolver processing
+            - Add `req_int(self, data: Any, path: list[str], default: Any = None) -> int` to `DTOFactory`
+            - Define dataclasses `TruncationSpecDTO(tail_lines: int | None)`, `FileDTO(name: str, full_path_from_pud: bool, truncation_spec: TruncationSpecDTO | None)`, and `FilelistDTO(files: list[FileDTO])`
+            - Add Tier 1 public DTO factory methods `(self, data: Any)`:
+                - `truncation_spec_cfg(self, data: Any) -> TruncationSpecDTO`: parses `tail_lines` via `req_int`
+                - `file_cfg(self, data: Any) -> FileDTO`: supports polymorphic `str` or `dict` input (`file` key lookup with `full_path_from_pud` defaulting to `False`)
+                - `filelist_cfg(self, data: Any) -> FilelistDTO`: validates list via `req_list`, mapping `file_cfg` over elements
+            - Update `MultiDocResolverDTO` attribute `files` to type `FilelistDTO`
+            - Update Tier 2 helper `DTOFactory._mdr_cfg(self, data, anchor, res_type)`:
+                - Parse `files` via `self.filelist_cfg(self.req_list(data, ["files"], default=[]))`
+                - If `res_type == "full-path-file-retrieval"`, set `full_path_from_pud = True` on the resulting `FileDTO` items
+        [x] 'utilities.py': Refactor file construction to consume FileDTO
+            - Update `_build_file(self, file_dto: FileDTO) -> File` to instantiate `File` and optional `TruncationSpec` directly from `FileDTO`
+            - Update `_build_resolver_from_dto` for `MultiDocResolverDTO` to map `dto.files.files` via `self._build_file` wrapped in `Filelist`
 
     - Failfast policy validation accumulator: Establish DTOFactory as the fail-fast boundary for any values received by yaml configs. Align DTO classes creates thus far
         Goal: Promote downstream certainty to reduce fallbacks and defensive approaches taken by LLMs
@@ -217,9 +223,9 @@ III. Slated for implementation:
             - [x] ManifestResolverDTO (`_manif_cfg`)
             - [x] KBStateResolverDTO (`_ui_cfg`)
             - [x] FileSetDTO (`fileset_cfg`)
-            - [ ] nextdtoclass (its factory method)
-            - [] andnext
-            - ..
+            - [x] TruncationSpecDTO (`truncation_spec_cfg`)
+            - [x] FileDTO (`file_cfg`)
+            - [x] FilelistDTO (`filelist_cfg`)
 
 IV. Recently implemented:
 

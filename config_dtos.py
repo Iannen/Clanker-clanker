@@ -24,8 +24,22 @@ class ResolverDTO(ABC):
     type: str
 
 @dataclass
+class TruncationSpecDTO:
+    tail_lines: int | None = None
+
+@dataclass
+class FileDTO:
+    name: str
+    full_path_from_pud: bool = False
+    truncation_spec: TruncationSpecDTO | None = None
+
+@dataclass
+class FilelistDTO:
+    files: list[FileDTO] = field(default_factory=list)
+
+@dataclass
 class MultiDocResolverDTO(ResolverDTO):
-    files: list[Any] = field(default_factory=list)
+    files: FilelistDTO = field(default_factory=FilelistDTO)
 
 @dataclass
 class RepoContentResolverDTO(ResolverDTO):
@@ -87,12 +101,33 @@ class DTOFactory:
             return self._ui_cfg(anchor, res_type)
         raise ConfigAssemblyFailure(f"Unsupported resolver type: '{res_type}'")
 
+    def truncation_spec_cfg(self, data: Any) -> TruncationSpecDTO:
+        return TruncationSpecDTO(
+            tail_lines=self.req_int(data, ["tail_lines"]) if isinstance(data, dict) and "tail_lines" in data else None
+        )
+
+    def file_cfg(self, data: Any) -> FileDTO:
+        if isinstance(data, dict):
+            name = self.req_str(data, ["file"]) if "file" in data else self.req_str(data, ["name"])
+            full_path = self.req_bool(data, ["full_path_from_pud"], default=False)
+            trunc_spec = self.truncation_spec_cfg(data) if "tail_lines" in data else None
+            return FileDTO(name=name, full_path_from_pud=full_path, truncation_spec=trunc_spec)
+        return FileDTO(name=self.req_str({"file": data}, ["file"]))
+
+    def filelist_cfg(self, data: Any) -> FilelistDTO:
+        raw_list = self.req_list({"files": data}, ["files"]) if not isinstance(data, list) else data
+        return FilelistDTO(files=[self.file_cfg(f) for f in raw_list])
+
     def _mdr_cfg(self, data: dict[str, Any], anchor: str, res_type: str) -> MultiDocResolverDTO:
-        files = self.req_list(data, ["files"], default=[])
+        raw_files = self.req_list(data, ["files"], default=[])
+        filelist_dto = self.filelist_cfg(raw_files)
+        if res_type == "full-path-file-retrieval":
+            for f in filelist_dto.files:
+                f.full_path_from_pud = True
         return MultiDocResolverDTO(
             anchor=anchor,
             type=res_type,
-            files=files,
+            files=filelist_dto,
         )
 
     def _repo_cfg(self, data: dict[str, Any], anchor: str, res_type: str) -> RepoContentResolverDTO:
@@ -180,6 +215,9 @@ class DTOFactory:
 
     def req_bool(self, data: Any, path: list[str], default: Any = None) -> bool: 
         return self._req(data, path, bool, default)
+
+    def req_int(self, data: Any, path: list[str], default: Any = None) -> int:
+        return self._req(data, path, int, default)
 
     def req_str_or_dict(self, data: Any, path: list[str], default: Any = None) -> str | dict[str, Any]:
         return self._req(data, path, (str, dict), default)
