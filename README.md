@@ -21,11 +21,34 @@ Clanker is a homegrown TUI application which attempts to solve the various chall
     error: failed to push some refs to 'github.com:user/clanker.git'
     hint: Updates were rejected because the remote contains work that you do
     ...
+
+- *The perils of freedom*
+    ```
+    .
+    ├── app/
+    │   ├── main.py
+    │   ├── main_old.py
+    │   ├── main_v2_working.py
+    │   ├── main_FINAL_v3.py
+    │   └── utils_broken.py
+    ├── scripts/
+    │   ├── deploy.sh
+    │   ├── deploy_fix.sh
+    │   ├── quick_patch.sh
+    │   └── DO_NOT_RUN.sh
+    ├── notes/
+    │   ├── todo.txt
+    │   ├── todo2_real.txt
+    │   └── scratchpad_untitled3.txt
+    ├── config.json
+    ├── config.json.bak
+    ├── config.json.bak2
+    └── .env.backup_copy
+    ```
 - *KYC-flavoured SaaS registrations*
 
   ![SaaS Shaming Signup UI](presentation/saas_shaming.png)
-
- 
+  
 Lightweight, keyboard-mapped navigation; zero vendor lock-in; YAML-based template resolution; integrated progress tracking.
 - **Status & Roadmap**: Functional active prototype with a stable resolution pipeline, full keyboard interface, and core template engine. Continuous efforts are directed toward refining default asset schemas and stabilizing progress tracking mechanisms.
 
