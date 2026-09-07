@@ -187,7 +187,7 @@ class RuntimeConfigAssembler:
         return File(name=str(raw_item), full_path_from_pud=is_full_path)
 
     def _build_resolver_from_dto(self, dto: ResolverDTO, named_filesets: dict[str, FileSet]) -> Resolver:
-        if dto.type in ("multi-document-retrieval", "full-path-file-retrieval"):
+        if isinstance(dto, MultiDocResolverDTO):
             is_full_path = dto.type == "full-path-file-retrieval"
             raw_files = dto.files or []
             file_objs = [self._build_file(f, is_full_path=is_full_path) for f in raw_files]
@@ -196,7 +196,7 @@ class RuntimeConfigAssembler:
                 files=Filelist(files=file_objs)
             )
 
-        if dto.type == "repo_content":
+        if isinstance(dto, RepoContentResolverDTO):
             if isinstance(dto.fileset, str):
                 fileset_obj = named_filesets.get(dto.fileset)
             else:
@@ -206,7 +206,7 @@ class RuntimeConfigAssembler:
                 fileset=fileset_obj
             )
 
-        if dto.type == "repo-manifest":
+        if isinstance(dto, ManifestResolverDTO):
             if isinstance(dto.pud_fileset, str):
                 pud_fileset_obj = named_filesets.get(dto.pud_fileset)
             else:
@@ -225,10 +225,10 @@ class RuntimeConfigAssembler:
                 shared_fileset=shared_fileset_obj
             )
 
-        if dto.type in ("kb_info", "kb_state"):
+        if isinstance(dto, KBStateResolverDTO):
             return KBStateResolver(anchor=dto.anchor)
 
-        raise ValueError(f"Unsupported resolver type: {dto.type}")
+        raise ValueError(f"Unsupported resolver type: {type(dto)}")
 
     def _build_render(self, data: dict[str, Any], named_filesets: dict[str, FileSet]) -> Render:
         dto = self.dto_fact.render_cfg(data)

@@ -47,6 +47,7 @@ These become bootstrap validation phases:
         - Design 
         - Document management
         - Code generation
+    - hm this implies that there is 'one consultant', which does not match the reality of llm context resets.
 
 8.  Extract more value out of Config contents
     - filename and their extensions can combine to convey meaning

@@ -142,26 +142,53 @@ III. Slated for implementation:
                 - in 'repo-manifest branch:
                     - use same pattern for 'dto.pud_fileset' and 'dto.shared_fileset'
                     - then instantiate and return 'ManifestResolver'
-    - Phase 8: Establish DTOFactory as the fail-fast boundary for any values received by yaml configs.
-        [ ] Add req_xxx method on DTOFactory to assert any received yaml value conforms to strict expectations.
+
+    - Phase 8: Refactor ResolverDTO baseclass of a new set of specialized ResolverDTO classes
+        [x] 'config_dtos.py': 
+            New resolver DTOs:
+                class ResolverDTO: anchor: str
+                class MultiDocResolverDTO(ResolverDTO): 
+                    files: list[Any]
+                class RepoContentResolverDTO(ResolverDTO): 
+                    fileset: str | dict[any]
+                class ManifestResolverDTO(ResolverDTO):
+                    pud_fileset: str | dict[any]
+                    shared_fileset: str | dict[str, Any] | None
+                class KBStateResolverDTO(ResolverDTO): pass
+            DTOFactory.resolver_cfg:
+                - matches on dict type attr, delegates to private helpers
+                - returns specialized dto to caller
+            DTOFactory: new helpers
+                _mdr_cfg:
+                _repo_cfg:
+                _manif_cfg:
+                _ui_cfg:
+
+        [x] 'utilities.py, RuntimeConfigAssembler':
+            - Assembler passes resolver dicts to DTOFactory single method
+            - DTOFactory handles the complexity if translating it into a DTO, returns to Assembler
+            - Assembler matches on dto type, then
+                - looks up named filesets from 'named_filesets', instantiates via _build_fileset if dict
+                - as of now DTOFactory cant service downstream of Resolver, so Assembler takes care of it by existing in-house logic for now
+
+    - Failfast accumulation: Establish DTOFactory as the fail-fast boundary for any values received by yaml configs. Align DTO classes creates thus far
+        Goal: Promote downstream certainty to reduce fallbacks and defensive approaches taken by LLMs
+        [x] Add req_xxx method on DTOFactory to assert any received yaml value conforms to strict expectations.
             - req_str(self, data: Any, path: list[str]) -> str:
             - req_dict(self, data: Any, path: list[str]) -> dict[str, Any]:
             - req_list(self, data: Any, path: list[str]) -> list[Any]:
             - req_bool(self, data: Any, path: list[str]) -> bool:
-        [ ] Current DTO's have been given the treatment:
+            - new resolver method and helpers need treatment
+        [x] Current DTO's have been given the treatment:
             - [x] SysCfgDTO (`sys_cfg`)
             - [x] RenderDTO (`render_cfg`)
             - [x] DomainDTO (`domain_cfg`)
             - [x] PromptDTO (`prompt_cfg`)
-            - [ ] ResolverDTO (`resolver_cfg`)  
-                - refactor to dto per type
-                    - the repo_content 
-                        - fileset is either str | dict. 
-                        - the caller checks the type. if str, then look in map. if dict then caller uses that to create the filese
-                    - manifest resolvers. same deal, but two such members (pud_fileset/shared_fileset)
+            - all the resolverDTOs need the treatment
+                    
 
     - Phase 8: FileSetDTO (on hold)
-        [x] 'config_dtos.py':
+        [ ] 'config_dtos.py':
             - Define FileSetDTO: 'includes: [str]', 'excludes: [str]'
             - Add 'fileset_cfg(self, data: dict[str, Any]) -> FileSetDTO' method to 'DTOFactory'
                 - includes is mandatory, no fallback

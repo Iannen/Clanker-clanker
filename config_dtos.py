@@ -21,10 +21,23 @@ class RenderDTO:
 class ResolverDTO:
     anchor: str
     type: str
-    files: list[Any] | None = None
-    fileset: str | dict[str, Any] | None = None
-    pud_fileset: str | dict[str, Any] | None = None
+
+@dataclass
+class MultiDocResolverDTO(ResolverDTO):
+    files: list[Any] = field(default_factory=list)
+
+@dataclass
+class RepoContentResolverDTO(ResolverDTO):
+    fileset: str | dict[str, Any] = field(default_factory=dict)
+
+@dataclass
+class ManifestResolverDTO(ResolverDTO):
+    pud_fileset: str | dict[str, Any] = field(default_factory=dict)
     shared_fileset: str | dict[str, Any] | None = None
+
+@dataclass
+class KBStateResolverDTO(ResolverDTO):
+    pass
 
 @dataclass
 class DomainDTO:
@@ -55,25 +68,52 @@ class DTOFactory:
         )
 
     def resolver_cfg(self, data: dict[str, Any]) -> ResolverDTO:
-        res_type = str(data["type"])
-        fileset_val: str | dict[str, Any] | None = None
-
+        res_type = str(data.get("type", ""))
+        if res_type in ("multi-document-retrieval", "full-path-file-retrieval"):
+            return self._mdr_cfg(data, res_type)
         if res_type == "repo_content":
-            if "fileset" in data:
-                fileset_val = data["fileset"]
-            else:
-                fileset_val = {
-                    "includes": data.get("includes"),
-                    "excludes": data.get("excludes", []),
-                }
-        return ResolverDTO(
+            return self._repo_cfg(data, res_type)
+        if res_type == "repo-manifest":
+            return self._manif_cfg(data, res_type)
+        if res_type in ("kb_info", "kb_state"):
+            return self._ui_cfg(data, res_type)
+        raise ConfigAssemblyFailure(f"Unsupported resolver type: '{res_type}'")
+
+    def _mdr_cfg(self, data: dict[str, Any], res_type: str) -> MultiDocResolverDTO:
+        return MultiDocResolverDTO(
             anchor=str(data["id"]),
             type=res_type,
-            files=data.get("files"),
+            files=data.get("files", []),
+        )
+
+    def _repo_cfg(self, data: dict[str, Any], res_type: str) -> RepoContentResolverDTO:
+        if "fileset" in data:
+            fileset_val = data["fileset"]
+        else:
+            fileset_val = {
+                "includes": data.get("includes", []),
+                "excludes": data.get("excludes", []),
+            }
+        return RepoContentResolverDTO(
+            anchor=str(data["id"]),
+            type=res_type,
             fileset=fileset_val,
-            pud_fileset=data.get("pud_fileset"),
+        )
+
+    def _manif_cfg(self, data: dict[str, Any], res_type: str) -> ManifestResolverDTO:
+        return ManifestResolverDTO(
+            anchor=str(data["id"]),
+            type=res_type,
+            pud_fileset=data.get("pud_fileset", {}),
             shared_fileset=data.get("shared_fileset"),
         )
+
+    def _ui_cfg(self, data: dict[str, Any], res_type: str) -> KBStateResolverDTO:
+        return KBStateResolverDTO(
+            anchor=str(data["id"]),
+            type=res_type,
+        )
+        
     def domain_cfg(self, data: dict[str, Any]) -> DomainDTO:
         return DomainDTO(
             self.req_str(data, ["name"]),
