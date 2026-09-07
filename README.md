@@ -85,7 +85,7 @@ Clanker is a homegrown TUI application which attempts to adress the various chal
 
 Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionated' feature set;
 
-- *YAML-configured 'domain -> prompt' prompt generation model*
+- *YAML-configured 'domain -> prompt' model*
 
   ```yaml
   filesets:
@@ -111,7 +111,7 @@ Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionat
           resolvers:
             - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 8}, history-output-instructions.md]}
   ```
-- *Built in collection of progress documentation*
+- *Built in collection of progress documentation, for a semistructured IDE internal documentation process*
   ```plantext
     .clanker/progress-documentation/
   ├── architecture.cdoc
@@ -148,33 +148,16 @@ Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionat
         F --> G[5. Rinse & Repeat]
     ```
 
-
-
-- A semistructured LLM-assisted development workflow built around explicit domains and development operations.
-- A closed development loop spanning planning, implementation, review, refinement, and documentation.
-- Persistent project context that survives individual LLM conversations and model sessions.
-- Built-in progress documentation that keeps development history and project knowledge alongside the code.
-- Declaratively defined, project-specific prompts and development workflows.
-- Domain-oriented navigation that lets the developer work by development concern rather than manually hunting through files.
-- Repeatable prompt recipes that make successful LLM interactions reproducible.
-- Version-controlled `.clanker` project configuration that turns the project's LLM workflow into part of the repository itself.
-- Context curation that separates the question of what the developer wants to accomplish from the mechanics of supplying the LLM with the necessary material.
 - A lightweight keyboard-driven interface for rapidly selecting domains and prompts.
-- A persistent interface between the developer's project and otherwise ephemeral LLM sessions.
-- A mechanism for continuously refining the project's own LLM-assisted development methodology through dogfooding.
-- A foundation for iterative context gathering, where future interactions can request additional project context rather than requiring everything up front.
-- A foundation for detecting missing, unused, or dangling context assets.
-- A foundation for formally describing the project's structure and conventions through universal project contracts.
-- A foundation for packaging coherent project context into review bundles for comprehensive LLM-assisted reviews.
-- A foundation for extending context management from individual projects to collections of related projects.
-- A practical way to make LLM-assisted software development more persistent, repeatable, contextual, and project-specific.
+- project specific assets, fallback to global assets 
+- llm as consultant and workhorse
+- vendor independence through browser interface boundary
+- simple af UI.
 
+### Status & Roadmap
 
-
-
-
-
-- **Status & Roadmap**: Functional active prototype with a stable resolution pipeline, full keyboard interface, and core template engine. Continuous efforts are directed toward refining default asset schemas and stabilizing progress tracking mechanisms.
+- functional WIP application, primarily used on itself.
+- Ongoing efforts target configuration ingestion to promote yaml validation and ease the implementation of new features.
 
 ---
 
