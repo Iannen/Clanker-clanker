@@ -3,7 +3,8 @@
 Clanker is a homegrown TUI application which attempts to adress the various challenges facing the vibecoding solo develpoer, as experienced by its author.  
 
 
-### textosaurus rex
+### Complaints and grievances of the vibecoding solo developer
+
 - *Verbose LLM outputs, littered with redundant in-line commentary and error masking default values*  
     ```python
     # function to retrieve and return the users items
@@ -79,9 +80,12 @@ Clanker is a homegrown TUI application which attempts to adress the various chal
 
   ![SaaS Shaming Signup UI](presentation/saas_shaming.png)
     
+
+### Clanker features
+
 Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionated' feature set;
 
-- *YAML-configured domain -> prompt model, makes it easy to 'get her in there'*
+- *YAML-configured 'domain -> prompt' prompt generation model*
 
   ```yaml
   filesets:
@@ -107,7 +111,10 @@ Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionat
           resolvers:
             - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 8}, history-output-instructions.md]}
   ```
-
+- *Built in collection of progress documentation*
+  ```plantext
+  the doc set
+  ```
 - *The Clanker Loop*
 
     ```mermaid
