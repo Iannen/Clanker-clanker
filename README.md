@@ -82,31 +82,32 @@ Clanker is a homegrown TUI application which attempts to adress the various chal
 Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionated' feature set;
 
 - *YAML-configured domain -> prompt model, makes it easy to 'get her in there'*
-  ```YAML
+
+  ```yaml
   filesets:
   core: {includes: [clanker.py, models.py]}
   ad-hoc: {includes: [utilities.py, adapters.py], excludes: []} 
-  # Yes it's true. I had no 'excludes' on hand to demonstrate the concept.
   
-domains:
-- name: script-dev
-  resolvers:
-    - { id: repo_content, type: repo_content, fileset: core }
-    - { id: domain_fragments, type: multi-document-retrieval, files: [backlog.cdoc], }
-  prompts:
-    - name: plan
-      render:
-        resolvers:
-          - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.md, backlog-output-instructions.md] }
-    - name: impl
-      render:
-        resolvers:
-          - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.md, code-output-instruction.md]}
-    - name: bl-drain
-      render:
-        resolvers:
-          - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 8}, history-output-instructions.md]}
+  domains:
+  - name: script-dev
+    resolvers:
+      - { id: repo_content, type: repo_content, fileset: core }
+      - { id: domain_fragments, type: multi-document-retrieval, files: [backlog.cdoc], }
+    prompts:
+      - name: plan
+        render:
+          resolvers:
+            - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.md, backlog-output-instructions.md] }
+      - name: impl
+        render:
+          resolvers:
+            - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.md, code-output-instruction.md]}
+      - name: bl-drain
+        render:
+          resolvers:
+            - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 8}, history-output-instructions.md]}
   ```
+
 - *The Clanker Loop*
 
     ```mermaid
