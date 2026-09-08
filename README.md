@@ -25,9 +25,9 @@ Large language models are a great thing.
 Free and readily available, they enable the people of the world not only to learn and explore, but also to work and be productive.  
   
 For the vibecoder in particular, their significance cannot be overstated.  The LLM is like the sun in the sky, without which there could be no light, no life. 
-Absent its brilliant radiance, he walks in shadows, quickly falling prey to dark practices like 'book-reading' or 'diligent study'.  
-<obligatory Sam Altman joke placeholder>
-<find a way to use the term next-token-generator, to offset the sungod stuff>
+Absent their brilliant radiance, he walks in shadows, quickly falling prey to dark practices like 'book-reading' or 'diligent study'.  
+Many thanks are owed to Sam Altman.  
+Thank you, Sam.  
 
 To get the most out of the interactions, one should make an effort to understand how an LLM works.  While I have not really done so, I nevertheless postulate that at their core, the utterly impressive systems we see taking hold in society and conversation, are best understood as *harnessed controlled next-token-generators*.
 
@@ -38,11 +38,11 @@ Devoid of soul, their only concern is this:
 - Return to caller
 
 It's the job of the caller to interpret these tokens.  
-Tool calls and agentic systems work by recognizing certain pre-determined patterns in the stream of tokens, and translating them into whatever actions the designers have chosen.  Generation is halted not by the next-token generator itself, but by the harness on receipt of a stop token.  
-The mechanism is to simply stop asking for the next token.
+Tool calls and agentic systems work by recognizing certain pre-determined patterns in the stream of tokens, and translat them into whatever actions the designers have elected to implement.  Generation is halted not by the next-token generator itself, but by the harness,  on receipt of a designate 'stop' token.  
+The mechanism to cease generation is to simply stop asking for the next token.  
   
 So let us not be frustrated with the next-token generators, should their outputs not align with our desires.  
-Let us instead calmly identify what annoys us, so we may develop mitigating strategies to counter the tendencies which offend us.
+Let us instead calmly identify what annoys us, so we may develop mitigating strategies to counter their tendencies which offend us.
 
 These are the things which drove the vibecoder nuts: 
 <blockquote>
