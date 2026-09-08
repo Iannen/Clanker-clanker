@@ -5,6 +5,27 @@ Clanker is a homegrown TUI application which attempts to adress the various chal
 
 ### Complaints and grievances of the vibecoding solo developer
 
+
+- *Frustration aligned large language models*
+  <details>
+  <summary>Repeated in-line commentary</summary>
+  ```python
+  def hello():
+      print("Hello, World!")
+      return True
+  ```
+  </details>
+  <details>
+  <summary>Error masking fallbacks</summary>
+  ```python
+  def hello():
+      print("Hello, World!")
+      return True
+  ```
+  </details>
+
+
+      
 - *Verbose LLM outputs, littered with redundant in-line commentary and error masking default values*  
     ```python
     # function to retrieve and return the users items
