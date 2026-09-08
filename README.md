@@ -441,15 +441,80 @@ Symlink it
 
 <blank>
 
-#### ignorable pushdown marker 
+## indentation fight club
+
+I am working on some formatting for my markdown collapsibles in my github readme
+The issue I have is that the collapsible is left aligned, which ruins readability.  
+
+### baseline
 
 <details>
-<summary> templatosaurus rex </summary>
+<summary> what I have now </summary>
 
   ```python
   def hello():
       print("Hello, World!")
       return True
   ```
+
+</details>
+  
+   
+### summar internal indentation, got sanitized
+
+<details>
+<summary>&nbsp;summary internal indentation</summary>
+
+  ```python
+  def hello():
+      print("Hello, World!")
+      return True
+  ```
+
+</details>
+
+### blockquote
+
+<blockquote>
+<details>
+<summary> blockquotes at least color it </summary>
+
+```python
+def hello():
+    print("Hello, World!")
+    return True
+```
+
+<details>
+<summary> blockquotes at least color it </summary>
+![SaaS Shaming Signup UI](presentation/saas_shaming.png)
+</details>
+
+</details>
+<details>
+<summary> blockquotes at least color it </summary>
+
+![SaaS Shaming Signup UI](presentation/saas_shaming.png)
+
+</details>
+</blockquote>
+
+### the workshop
+
+<details>
+<summary style="padding-left: 20px;"> lets see </summary>
+
+```python
+def hello():
+    print("Hello, World!")
+    return True
+```
+
+</details>
+
+<details>
+<summary style="padding-left: 20px;"> lets see </summary>
+
+![SaaS Shaming Signup UI](presentation/saas_shaming.png)
 
 </details>
