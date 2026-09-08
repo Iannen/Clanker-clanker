@@ -18,13 +18,13 @@ Its core tenents be these:
 
 - vibecoding related frustrations
 - saas / attention economy related frustrations
+- reader beware: some creative liberties are taken below
 
 #### Frustration aligned large language models
 
 - llms are great
 - but only next token generators at heart
 - users must take control of interaction
-- some creative liberties taken below
 
 <blockquote>
 <details>
@@ -92,7 +92,10 @@ def factorial(n):
 
 #### Fear-inducing git operations
 
-Git is great, but has at certain moments in time produced some less-than-reassuring outputs:
+It is with great humility and respect that I include mentions of Git under my grievance list.
+ 
+I'm sure the technically savvy reader will have a different take on it, but surely it cannot be denied, that in certain times and places of SpaceTime,  
+some less-than-reassuring outputs have been generated:
   
 <blockquote>
 <details>
@@ -114,7 +117,7 @@ Git is great, but has at certain moments in time produced some less-than-reassur
 <details>
 <summary>Scary cryptic denials, continued</summary>
 
-    ```
+```
 $ git rebase main
 Auto-merging src/app.py
 CONFLICT (content): Merge conflict in src/app.py
@@ -123,15 +126,14 @@ hint: Resolve all conflicts manually, mark them as resolved with
 hint: "git add/rm <conflicted_files>", then run "git rebase --continue".
 hint: You can instead skip this commit: run "git rebase --skip".
 hint: To abort and get back to the state before "git rebase", run "git rebase --abort".
-    ```
+```
 
 </details>
 </blockquote>
 
 #### The perils of freedom
 
-- freedom is great, we want that
-- but then we must be responsible and structured
+
 
 <blockquote>
 <details>
