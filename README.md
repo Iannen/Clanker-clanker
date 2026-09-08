@@ -5,10 +5,23 @@ Clanker is a homegrown TUI application which attempts to adress the various chal
 
 ### Complaints and grievances of the vibecoding solo developer
 
+Here follows a thematic representation of such.
 
-- *Frustration aligned large language models*
-  <details>
-  <summary>Repeated in-line commentary</summary>
+#### Frustration aligned large language models
+
+<details>
+<summary>Repeated in-line commentary</summary>
+
+  ```python
+  def hello():
+      print("Hello, World!")
+      return True
+  ```
+
+</details>
+
+<details>
+<summary>Error masking fallbacks</summary>
 
   ```python
   def hello():
@@ -16,27 +29,14 @@ Clanker is a homegrown TUI application which attempts to adress the various chal
       return True
   ```
 
-  </details>
-  <details>
-  <summary>Error masking fallbacks</summary>
-
-  ```python
-  def hello():
-      print("Hello, World!")
-      return True
-  ```
+</details>
   
-  </details>
 
+#### Fear-inducing git operations
 
-      
-- *Verbose LLM outputs, littered with redundant in-line commentary and error masking default values*  
-    ```python
-    # function to retrieve and return the users items
-    def process_user_items(user_id, items):
-        #todo: find nice example
-    ```
-- *Fear-inducing git operations*
+<details>
+<summary>After an on-Github 'quickfix' </summary>
+
     ```
     $ git add .
     $ git commit -m "fixed minor bug in process_user_items"
@@ -49,7 +49,13 @@ Clanker is a homegrown TUI application which attempts to adress the various chal
     hint: Updates were rejected because the remote contains work that you do
     ```
 
-- *The perils of freedom*
+</details>
+
+#### The perils of freedom
+
+<details>
+<summary>Difficulties of planning</summary>
+
     ```
     .
     ├── app/
@@ -72,7 +78,14 @@ Clanker is a homegrown TUI application which attempts to adress the various chal
     ├── config.json.bak2
     └── .env.backup_copy
     ```
-- *The monolithic single-file project, to facilitate ease of prompting*
+
+</details>
+
+#### Unsustainable context management practices
+
+<details>
+<summary>One file to rule them all, and in technical debt bind them</summary>
+
     ```python
     import os, sys, json, time, sqlite3, asyncio, logging, re
     from dataclasses import dataclass
@@ -81,19 +94,16 @@ Clanker is a homegrown TUI application which attempts to adress the various chal
     class ServerApplication:
         def __init__(self, config):
             ...
-    
     # ... [450 lines of middleware, CORS, and startup hooks omitted] ...
 
     class UserController:
         def handle_user_request(self, request):
             ...
-
     # ... [800 lines of request parsing and route logic omitted] ...
 
     class UserService:
         def process_user_business_logic(self, payload):
             ...
-
     # ... [650 lines of validation, domain logic, and error handlers omitted] ...
 
     class UserRepository:
@@ -101,16 +111,100 @@ Clanker is a homegrown TUI application which attempts to adress the various chal
             ...
     ```
 
-- *KYC-themed registrations*
+</details>
+
+#### Distractions from the workflow loop
+
+<details>
+<summary>asd</summary>
 
   ![SaaS Shaming Signup UI](presentation/saas_shaming.png)
+
+</details>
     
 
 ### Clanker features
 
 Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionated' feature set;
 
-- *YAML-configured 'domain -> prompt' model*
+#### YAML-configured compilation pipeline
+
+<details>
+<summary> Model of project domains with prompts, to organize content </summary>
+
+  ```python
+  def hello():
+      print("Hello, World!")
+      print("Lets do a mermaid")
+      return True
+  ```
+
+</details>
+
+<details>
+<summary>a yaml config</summary>
+
+  ```yaml
+  filesets:
+  core: {includes: [clanker.py, models.py]}
+  ad-hoc: {includes: [utilities.py, adapters.py], excludes: []} 
+  
+  domains:
+  - name: script-dev
+    resolvers:
+      - { id: repo_content, type: repo_content, fileset: core }
+      - { id: domain_fragments, type: multi-document-retrieval, files: [backlog.cdoc], }
+    prompts:
+      - name: plan
+        render:
+          resolvers:
+            - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.md, backlog-output-instructions.md] }
+      - name: impl
+        render:
+          resolvers:
+            - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.md, code-output-instruction.md]}
+      - name: bl-drain
+        render:
+          resolvers:
+            - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 8}, history-output-instructions.md]}
+  ```
+
+</details>
+
+<details>
+<summary> the ugly but functional truth 1 </summary>
+
+  ![UI on program start ](presentation/saas_shaming.png)
+
+</details>
+
+<details>
+<summary> the ugly but functional truth 2 </summary>
+
+  ![UI after domain selection ](presentation/saas_shaming.png)
+
+</details>
+
+<details>
+<summary> the ugly but functional truth 3 </summary>
+
+  ![UI after prompt selection](presentation/saas_shaming.png)
+
+</details>
+
+
+#### pushdown marker
+
+<details>
+<summary> templatosaurus rex </summary>
+
+  ```python
+  def hello():
+      print("Hello, World!")
+      return True
+  ```
+
+</details>
 
   ```yaml
   filesets:
