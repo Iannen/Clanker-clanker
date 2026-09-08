@@ -3,7 +3,7 @@
 Clanker is a homegrown TUI application and ongoing dogfooding experiment.
 It attempts to be a all-in-one vibecoding solution, which promotes a human-in-the-loop centric and measured methodology.
 
-Its core tenents are these:
+Its core tenents be these:
 - Agents are consultants and workhorses
 - The user should be in control of the workflow and tooling
 - The external dependencies of the workflow should be kept to a minimum
@@ -92,12 +92,11 @@ def factorial(n):
 
 #### Fear-inducing git operations
 
-- git too great
-- but we mostly just want a save button
-
+Git is great, but has at certain moments in time produced some less-than-reassuring outputs:
+  
 <blockquote>
 <details>
-<summary>After an on-Github 'quickfix' </summary>
+<summary>Scary, cryptic denials</summary>
 
     ```
     $ git add .
@@ -109,6 +108,21 @@ def factorial(n):
     ! [rejected]        main -> main (fetch first)
     error: failed to push some refs to 'github.com:user/clanker.git'
     hint: Updates were rejected because the remote contains work that you do
+    ```
+
+</details>
+<details>
+<summary>Scary cryptic denials, continued</summary>
+
+    ```
+$ git rebase main
+Auto-merging src/app.py
+CONFLICT (content): Merge conflict in src/app.py
+error: could not apply 7b31a8c... update database schemas
+hint: Resolve all conflicts manually, mark them as resolved with
+hint: "git add/rm <conflicted_files>", then run "git rebase --continue".
+hint: You can instead skip this commit: run "git rebase --skip".
+hint: To abort and get back to the state before "git rebase", run "git rebase --abort".
     ```
 
 </details>
