@@ -475,16 +475,10 @@ Barely tried it - it felt very slow and engineered.
 
 ### Further deepdive
 
-To lessen the burden of further investigation, a set of ready-to-go prompts are supplied below.
-Drop one of the prompts off with your llm of choice, and then supply either of  
+To lessen the burden of further investigation, a set of ready-to-go prompts are supplied below.  
   
-```plaintext
-https://github.com/Iannen/Clanker-clanker
-```
-```plaintext
-clanker-evalcopy.zip -> does not exist yet for reference
-```
-
+Pick one of these prompt and pass it to your llm of choice
+  
 <blockquote>
 <details>
 <summary>Code Review</summary>
@@ -547,6 +541,14 @@ For now, simply return a short acknowledgement of these instructions. Then ask t
 
 </details>
 </blockquote>
+  
+And then supply either of these:  
+```plaintext
+https://github.com/Iannen/Clanker-clanker
+```
+```plaintext
+clanker-evalcopy.zip -> does not exist yet for reference
+```
 
 ### Installation & Prerequisites
 
