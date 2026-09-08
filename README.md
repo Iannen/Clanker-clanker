@@ -2,11 +2,16 @@
 
 Clanker is a homegrown TUI application which attempts to adress the various challenges facing the vibecoding solo developer.  
 
+[AIO, HIL, TUI]
+
 core tenents:
 - user in control
 - user can modify app 
 - easy efficient workflow
 - curated dependencies to user workflow
+
+- big experiment
+- little experience with proper agentic systems, or other solutions. DIY / NIH prone person disclaimer
 
 ### Complaints and grievances of the vibecoding solo developer
 
@@ -468,20 +473,82 @@ Cons:
 
 Barely tried it - it felt very slow and engineered.
 
-### The intended review options
+### Further deepdive
 
-a. Feel free to browse source code and such things.
+To lessen the burden of further investigation, a set of ready-to-go prompts are supplied below.
+Drop one of the prompts off with your llm of choice, and then supply either of  
+  
+  `theurl`  
+  `clanker-evalcopy.zip`
 
-b. Drop the below prompt into an llm, and then converse with it at your leisure
-```plaintext
-a yet to be supplied prompt
-```
+<blockquote>
+<details>
+<summary>Code review</summary>
 
-c. Drop the non-existant 'clanker-evalcopy.zip' off with your favourite llm, and then converse
-  - removes the .git dir 
-  - leaving only the pertinent stuff behind
+  ```plaintext
+Perform a merciless technical review of the Clanker codebase. Be direct and critical. Focus on:
+
+- Overall structure and coherence
+- Complexity vs. necessity
+- Consistency of style and patterns
+- Fragility, hidden assumptions, and sharp edges
+- Signs of over-engineering or under-engineering
+- Any obvious technical debt or maintenance hazards
+
+Do not soften the feedback. Do not comment on documentation quality or user experience unless it directly affects the code’s integrity. Judge the code as it stands.
+
+For now, simply return a short acknowledgement of these instructions. Then ask to be supplied either an url to the repository, or a zip file of its contents.
+  ```
+
+</details>
+
+<details>
+<summary>Usability analysis</summary>
+
+  ```plaintext
+Evaluate the Clanker project strictly from the perspective of its intended user: a vibe-coding solo developer who wants structure without heavy process, and who values staying in control.
+
+Assess:
+
+- How clear and usable the core workflow appears
+- Cognitive load and friction points
+- Whether the tool feels like it would actually help in day-to-day LLM-assisted coding
+- How well the interface and configuration model support rapid iteration
+- Whether the design respects the user’s time and attention
+- Any places where the tool might get in the way instead of helping
+
+For now, simply return a short acknowledgement of these instructions. Then ask to be supplied either an url to the repository, or a zip file of its contents.
+  ```
+
+</details>
+
+<details>
+<summary>Project history analysis</summary>
+
+  ```plaintext
+Analyze the Clanker project’s trajectory and momentum. 
+
+Assess:
+
+- Whether the project shows coherent direction or signs of thrashing
+- How the scope and design decisions have developed over time
+- Whether the progress documentation and history demonstrate real learning and forward motion
+- Current maturity level and likely next risks
+- Whether the project appears to be converging or still searching for its shape
+
+Be analytical and grounded in the evidence present in the files and '.clanker/progress-documentation' directory.
+
+For now, simply return a short acknowledgement of these instructions. Then ask to be supplied either an url to the repository, or a zip file of its contents.
+  ```
+
+</details>
+</blockquote>
 
 ### Installation & Prerequisites
+
+#### python and ruamel deps
+
+- does are there other deps?
 
 You need python on your system. 
 <howto box>
@@ -497,3 +564,4 @@ Symlink it
 ### Parting words of wisdom and other disclaimers 
 
 - perhaps something will come to me
+- perhaps look at clankerized projects of iannen repo cta?
