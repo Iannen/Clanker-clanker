@@ -35,6 +35,7 @@ Here follows a thematic representation of such.
 
 #### Fear-inducing git operations
 
+<blockquote>
 <details>
 <summary>After an on-Github 'quickfix' </summary>
 
@@ -51,9 +52,11 @@ Here follows a thematic representation of such.
     ```
 
 </details>
+</blockquote>
 
 #### The perils of freedom
 
+<blockquote>
 <details>
 <summary>Difficulties of planning</summary>
 
@@ -81,9 +84,11 @@ Here follows a thematic representation of such.
     ```
 
 </details>
+</blockquote>
 
 #### Unsustainable context management practices
 
+<blockquote>
 <details>
 <summary>One file to rule them all, and in technical debt bind them</summary>
 
@@ -113,16 +118,18 @@ Here follows a thematic representation of such.
     ```
 
 </details>
+</blockquote>
 
 #### Distractions from the workflow loop
 
+<blockquote>
 <details>
 <summary>asd</summary>
 
   ![SaaS Shaming Signup UI](presentation/saas_shaming.png)
 
 </details>
-    
+</blockquote>
 
 ### Clanker features
 
