@@ -1,19 +1,19 @@
 # Clanker clanker; 
 
-Clanker is a homegrown TUI application which attempts to adress the various challenges facing the vibecoding solo developer.  
+Clanker is a homegrown TUI application and ongoing dogfooding experiment.
+It attempts to be a all-in-one vibecoding solution, which promotes a human-in-the-loop centric and measured methodology.
 
-[AIO, HIL, TUI]
+Its core tenents:
+- Agents are consultants and workhorses
+- The user is in control of all things, including the Clanker application
+- The external dependencies of the users workflows are kept to a minimum
+- ..and encapsulated in strict boundaries to extract the sought after functionality
 
-core tenents:
-- user in control
-- user can modify app 
-- easy efficient workflow
-- curated dependencies to user workflow
+<have not actually tried other tools disclaimer. a bit of copilot, a bit of continue dev.>
 
-- big experiment
-- little experience with proper agentic systems, or other solutions. DIY / NIH prone person disclaimer
+<then, if possible at this point, transition to the complaintslist in a non-arrogant manner. it seems it should end with a question, to which a complaintslist is the answer>
 
-### Complaints and grievances of the vibecoding solo developer
+### <Pitfalls ?> Complaints and grievances of the vibecoding solo developer
 
 - vibecoding related frustrations
 - saas / attention economy related frustrations
@@ -23,15 +23,32 @@ core tenents:
 - llms are great
 - but only next token generators at heart
 - users must take control of interaction
+- some creative liberties taken below
 
 <blockquote>
 <details>
 <summary>Repeated in-line commentary</summary>
 
-  ```python
-  def hello():
-      print("Hello, World!")
-      return True
+  ```javascript
+function processUserData(userList) {
+  // Initialize an empty array to store the results
+  const result = [];
+
+  // Loop through each user in the user list array
+  for (let i = 0; i < userList.length; i++) {
+    // Access the current user at index i
+    const currentUser = userList[i];
+
+    // Check if the current user object has an isActive property set to true
+    if (currentUser.isActive === true) {
+      // Push the active user object into the result array
+      result.push(currentUser);
+    }
+  }
+
+  // Return the final array containing only active users
+  return result;
+}
   ```
 
 </details>
@@ -40,9 +57,33 @@ core tenents:
 <summary>Error masking fallbacks</summary>
 
   ```python
-  def hello():
-      print("Hello, World!")
-      return True
+def get_user_profile(user_id):
+    try:
+        response = requests.get(f"https://api.internal.net/v1/users/{user_id}", timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        return UserProfile(
+            user_id=data["id"],
+            name=data["name"],
+            is_active=data["is_active"],
+            roles=data["roles"]
+        )
+    except Exception:
+        return UserProfile()
+  ```
+
+</details>
+
+<details>
+<summary>Conversational fluff</summary>
+
+  ```python
+<huge amounts of conversational fluff placeholder>
+
+def factorial(n):
+    if n == 0 or n == 1:
+        return 1
+    return n * factorial(n - 1)
   ```
 
 </details>
