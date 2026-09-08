@@ -3,11 +3,12 @@
 Clanker is a homegrown TUI application and ongoing dogfooding experiment.
 It attempts to be a all-in-one vibecoding solution, which promotes a human-in-the-loop centric and measured methodology.
 
-Its core tenents:
+Its core tenents are these:
 - Agents are consultants and workhorses
-- The user is in control of all things, including the Clanker application
-- The external dependencies of the users workflows are kept to a minimum
-- ..and encapsulated in strict boundaries to extract the sought after functionality
+- The user should be in control of the workflow and tooling
+- The external dependencies of the workflow should be kept to a minimum
+- ..and encapsulated in strict boundaries 
+- ..with sought after functionality extracted from them, and integrated into one coherent system.
 
 <have not actually tried other tools disclaimer. a bit of copilot, a bit of continue dev.>
 
@@ -27,7 +28,7 @@ Its core tenents:
 
 <blockquote>
 <details>
-<summary>Repeated in-line commentary</summary>
+<summary>In-line commentary</summary>
 
   ```javascript
 function processUserData(userList) {
