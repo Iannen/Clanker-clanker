@@ -9,19 +9,23 @@ Clanker is a homegrown TUI application which attempts to adress the various chal
 - *Frustration aligned large language models*
   <details>
   <summary>Repeated in-line commentary</summary>
+
   ```python
   def hello():
       print("Hello, World!")
       return True
   ```
+
   </details>
   <details>
   <summary>Error masking fallbacks</summary>
+
   ```python
   def hello():
       print("Hello, World!")
       return True
   ```
+  
   </details>
 
 
