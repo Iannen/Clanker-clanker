@@ -1,13 +1,19 @@
 # Clanker clanker; 
 
-Clanker is a homegrown TUI application and ongoing dogfooding experiment.  
-It attempts to be an all-in-one vibecoding solution, which promotes a human-in-the-loop centric and measured methodology.
+*Clank* is a homegrown TUI application and ongoing dogfooding experiment.  
+It attempts to be an all-in-one vibecoding solution, that promotes a human-in-the-loop centric AI first workflow.
 
-<have not actually tried other tools disclaimer. a bit of copilot, a bit of continue dev.>
+It came into being to address a loosely defined set of grievances and pitfalls of process, as experienced by its author on his journeys.  
+Stricken with NIH syndrome and an increasing need to justify the investment, he now assumes that his experiences would apply to any budding developer who sits down in front of a computer, armed with nothing but an idea, an IDE and an LLM of choice or convenience.
 
-<then, if possible at this point, transition to the complaintslist in a non-arrogant manner. it seems it should end with a question, to which a complaintslist is the answer>
+Please note the following: I have little to no experience with the tools available in the marketplace, agentic, free or otherwise.  
+The opinions and any apparent assertions of fact expressed in this document are not well researched, or even researched at all.  
 
-### <Pitfalls ?> Complaints and grievances of the vibecoding solo developer
+I will end the introduction here, quoting the 47th President of the United States as my disclaimer:
+
+**I stand by nothing.**
+
+### Complaints of the vibecoding solo developer
 
 - vibecoding related frustrations
 - saas / attention economy related frustrations
@@ -15,10 +21,30 @@ It attempts to be an all-in-one vibecoding solution, which promotes a human-in-t
 
 #### Frustration aligned large language models
 
-- llms are great
-- but only next token generators at heart
-- users must take control of interaction
+Large language models are a great thing.  
+Free and readily available, they enable the people of the world not only to learn and explore, but also to work and be productive.  
+  
+For the vibecoder in particular, their significance cannot be overstated.  The LLM is like the sun in the sky, without which there could be no light, no life. 
+Absent its brilliant radiance, he walks in shadows, quickly falling prey to dark practices like 'book-reading' or 'diligent study'.  
+<obligatory Sam Altman joke placeholder>
+<find a way to use the term next-token-generator, to offset the sungod stuff>
 
+To get the most out of the interactions, one should make an effort to understand how an LLM works.  While I have not really done so, I nevertheless postulate that at their core, the utterly impressive systems we see taking hold in society and conversation, are best understood as *harnessed controlled next-token-generators*.
+
+
+Devoid of soul, their only concern is this:
+- Assign numeric values to a static set of tokens, such that the values assigned sum to 1
+- Select the token with the highest probability
+- Return to caller
+
+It's the job of the caller to interpret these tokens.  
+Tool calls and agentic systems work by recognizing certain pre-determined patterns in the stream of tokens, and translating them into whatever actions the designers have chosen.  Generation is halted not by the next-token generator itself, but by the harness on receipt of a stop token.  
+The mechanism is to simply stop asking for the next token.
+  
+So let us not be frustrated with the next-token generators, should their outputs not align with our desires.  
+Let us instead calmly identify what annoys us, so we may develop mitigating strategies to counter the tendencies which offend us.
+
+These are the things which drove the vibecoder nuts: 
 <blockquote>
 <details>
 <summary>In-line commentary</summary>
