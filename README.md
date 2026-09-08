@@ -299,8 +299,8 @@ It held out for a while, but eventually..
 - certain members became config / assets
 - other members became python files of their own
 
-In an attempt to retain the advantages of the unifile, 'wheat and chaff' (or shit and cinnamon) saw implementation:
-- Let certain file contain high signal business logic
+In an attempt to retain the advantages of the unifile, a 'wheat and chaff' (or shit and cinnamon) split emerged:
+- Let certain file contain high signal business logic and similar, to expose the workings of the app in an information dense manner.
 - And other files contain the boilerplate, the low level transformations etc
 
 In conversations with llm's, this was identified as the *Ports and Adapters* architecture:
