@@ -1,13 +1,23 @@
 # Clanker clanker; 
-## AIO HIL Solo Dev tool
-Clanker is a homegrown TUI application which attempts to adress the various challenges facing the vibecoding solo develpoer, as experienced by its author.  
 
+Clanker is a homegrown TUI application which attempts to adress the various challenges facing the vibecoding solo developer.  
+
+core tenents:
+- user in control
+- user can modify app 
+- easy efficient workflow
+- curated dependencies to user workflow
 
 ### Complaints and grievances of the vibecoding solo developer
 
-Here follows a thematic representation of such.
+- vibecoding related frustrations
+- saas / attention economy related frustrations
 
 #### Frustration aligned large language models
+
+- llms are great
+- but only next token generators at heart
+- users must take control of interaction
 
 <blockquote>
 <details>
@@ -35,6 +45,9 @@ Here follows a thematic representation of such.
 
 #### Fear-inducing git operations
 
+- git too great
+- but we mostly just want a save button
+
 <blockquote>
 <details>
 <summary>After an on-Github 'quickfix' </summary>
@@ -55,6 +68,9 @@ Here follows a thematic representation of such.
 </blockquote>
 
 #### The perils of freedom
+
+- freedom is great, we want that
+- but then we must be responsible and structured
 
 <blockquote>
 <details>
@@ -87,6 +103,9 @@ Here follows a thematic representation of such.
 </blockquote>
 
 #### Unsustainable context management practices
+
+- easy in the beginning
+- but then later you get fkd
 
 <blockquote>
 <details>
@@ -122,6 +141,11 @@ Here follows a thematic representation of such.
 
 #### Distractions from the workflow loop
 
+- saas critique
+- may cost money
+- always cost time and effort
+- then discover, not right fit / otherwise frustrating
+
 <blockquote>
 <details>
 <summary>asd</summary>
@@ -133,9 +157,14 @@ Here follows a thematic representation of such.
 
 ### Clanker features
 
+- born out of dogfooding clanker -> intro mention of dogfooding
+- not 'features', but some other word to say 'these are the marbles'
+
 Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionated' feature set;
 
 #### YAML-configured compilation pipeline (extract model thing in preceding section)
+
+- llm assisted config management for ez
 
 <blockquote>
 <details>
@@ -204,6 +233,10 @@ Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionat
 
 #### Built in collection of progress documentation, for a semistructured IDE internal documentation process
 
+- becomes what you make of it
+- llm assisted for ez
+- planning is great learning, presumably leads to better outcomes
+
 <blockquote>
 <details>
 <summary> pls divvy me up </summary>
@@ -237,6 +270,8 @@ Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionat
 
 #### A workflow loop
 
+- loops are addictive
+
 <blockquote>
 <details>
 <summary> loop </summary>
@@ -265,6 +300,9 @@ Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionat
 
 ### Status & Roadmap
 
+- conclusive of above
+- reign in hype with honesty
+
 I find Clanker to be a functional WIP application, producing for me...
 - Challenges to tackle
 - The means to do so
@@ -279,6 +317,8 @@ Ongoing efforts target configuration ingestion, as this is thought to unlock
   - ease implementation of new features
 
 ## The breakdown
+
+- outline the breakdown
 
 Here follows an technical breakdown of Clanker, per the authors
   - ..understanding of matters technical and architectural
@@ -305,7 +345,12 @@ At the same time, it should be understandable if the user can't be bothered with
 
 ### Under the hood
 
-#### strategy based stuff
+- order children properly
+
+#### 'Architecture' - a bad word
+
+- explain high/low split -> in conclusion say 'we need nested approach'
+- declarative config / assets, app as interpreter (?)
 
 Clanker was unifile
   - let the llm see the whole thing - correct context 
@@ -327,6 +372,8 @@ In conversations with llm's, this was identified as the *Ports and Adapters* arc
 Then explain the members of the codebase on those terms.
 
 #### Clanker Components
+
+- 'component' may carry meaning with technical reader where i use the term as i please
 
 The components, their responsibilities
 - AppEngine class
@@ -356,6 +403,8 @@ The components, their responsibilities
 
 #### explanation of .clanker contents 
 
+- declarative side of it
+
 - the configs
   - system config 
   - shared config
@@ -365,27 +414,19 @@ The components, their responsibilities
 
 - templates
 
-### apologetic 'yeah i know man' section? ugh
+### 'reflections' on the above
 
 Not apologetic but honest and reflective. Conclusive of the above
 
-### easy 'howto' section, kinda
-
-is this required? I'm not so sure. it feels kinda repetitive at this point  
-
-1. Launch `clank` within any project repository.
-2. Press numeric keys `1-0` to toggle active development domains.
-3. Press hotkeys (`Q`, `W`, `E`, `R`) to compile context-aware prompts directly into the system clipboard.
-4. Paste into your preferred LLM chat window.
-
 ## Final thoughs
 
-some text here
+- not pushy 
+- but cta
 
 ### LLM Vendor breakdown
 
-some text here, saying this is subjective off-the-cuff stuff.
-free tier freeloaders perspective, if you will
+- too big?
+- say subjective, from a freeloaders perspective
 
 #### Google 
 
@@ -455,4 +496,4 @@ Symlink it
 
 ### Parting words of wisdom and other disclaimers 
 
-<blank>
+- perhaps something will come to me
