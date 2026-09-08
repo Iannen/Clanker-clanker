@@ -137,6 +137,7 @@ Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionat
 
 #### YAML-configured compilation pipeline (extract model thing in preceding section)
 
+<blockquote>
 <details>
 <summary> Model of project domains with prompts, to organize content </summary>
 
@@ -199,9 +200,11 @@ Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionat
   ![UI after prompt selection](presentation/saas_shaming.png)
 
 </details>
+</blockquote>
 
 #### Built in collection of progress documentation, for a semistructured IDE internal documentation process
 
+<blockquote>
 <details>
 <summary> pls divvy me up </summary>
 
@@ -230,9 +233,11 @@ Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionat
   ```
 
 </details>
+</blockquote>
 
 #### A workflow loop
 
+<blockquote>
 <details>
 <summary> loop </summary>
 
@@ -248,12 +253,15 @@ Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionat
     ```
 
 </details>
+</blockquote>
 
 - A lightweight keyboard-driven interface for rapidly selecting domains and prompts.
 - project specific assets, fallback to global assets 
 - llm as consultant and workhorse
 - vendor independence through browser interface boundary
 - simple af UI.
+- pud & shared assets and config 
+- Clanker, progressive webapp LLM & IDE of choice trifecta -> le done
 
 ### Status & Roadmap
 
@@ -448,33 +456,3 @@ Symlink it
 ### Parting words of wisdom and other disclaimers 
 
 <blank>
-
-
-### blockquote
-
-<blockquote>
-</blockquote>
-
-<blockquote>
-<details>
-<summary> blockquotes at least color it </summary>
-
-```python
-def hello():
-    print("Hello, World!")
-    return True
-```
-
-<details>
-<summary> blockquotes at least color it </summary>
-![SaaS Shaming Signup UI](presentation/saas_shaming.png)
-</details>
-
-</details>
-<details>
-<summary> blockquotes at least color it </summary>
-
-![SaaS Shaming Signup UI](presentation/saas_shaming.png)
-
-</details>
-</blockquote>
