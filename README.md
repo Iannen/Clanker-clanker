@@ -9,6 +9,7 @@ Here follows a thematic representation of such.
 
 #### Frustration aligned large language models
 
+<blockquote>
 <details>
 <summary>Repeated in-line commentary</summary>
 
@@ -30,7 +31,7 @@ Here follows a thematic representation of such.
   ```
 
 </details>
-  
+</blockquote>
 
 #### Fear-inducing git operations
 
@@ -441,39 +442,11 @@ Symlink it
 
 <blank>
 
-## indentation fight club
-
-I am working on some formatting for my markdown collapsibles in my github readme
-The issue I have is that the collapsible is left aligned, which ruins readability.  
-
-### baseline
-
-<details>
-<summary> what I have now </summary>
-
-  ```python
-  def hello():
-      print("Hello, World!")
-      return True
-  ```
-
-</details>
-  
-   
-### summar internal indentation, got sanitized
-
-<details>
-<summary>&nbsp;summary internal indentation</summary>
-
-  ```python
-  def hello():
-      print("Hello, World!")
-      return True
-  ```
-
-</details>
 
 ### blockquote
+
+<blockquote>
+</blockquote>
 
 <blockquote>
 <details>
@@ -498,23 +471,3 @@ def hello():
 
 </details>
 </blockquote>
-
-### the workshop
-
-<details>
-<summary style="padding-left: 20px;"> lets see </summary>
-
-```python
-def hello():
-    print("Hello, World!")
-    return True
-```
-
-</details>
-
-<details>
-<summary style="padding-left: 20px;"> lets see </summary>
-
-![SaaS Shaming Signup UI](presentation/saas_shaming.png)
-
-</details>
