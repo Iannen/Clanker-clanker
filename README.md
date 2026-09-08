@@ -478,12 +478,12 @@ Barely tried it - it felt very slow and engineered.
 To lessen the burden of further investigation, a set of ready-to-go prompts are supplied below.
 Drop one of the prompts off with your llm of choice, and then supply either of  
   
-  `theurl`  
-  `clanker-evalcopy.zip`
+```https://github.com/Iannen/Clanker-clanker```
+```clanker-evalcopy.zip -> does not exist yet for reference```
 
 <blockquote>
 <details>
-<summary>Code review</summary>
+<summary>Code Review</summary>
 
   ```plaintext
 Perform a merciless technical review of the Clanker codebase. Be direct and critical. Focus on:
@@ -503,7 +503,7 @@ For now, simply return a short acknowledgement of these instructions. Then ask t
 </details>
 
 <details>
-<summary>Usability analysis</summary>
+<summary>Usability Analysis</summary>
 
   ```plaintext
 Evaluate the Clanker project strictly from the perspective of its intended user: a vibe-coding solo developer who wants structure without heavy process, and who values staying in control.
@@ -523,7 +523,7 @@ For now, simply return a short acknowledgement of these instructions. Then ask t
 </details>
 
 <details>
-<summary>Project history analysis</summary>
+<summary>Project History Analysis</summary>
 
   ```plaintext
 Analyze the Clanker project’s trajectory and momentum. 
