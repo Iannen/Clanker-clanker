@@ -12,6 +12,8 @@ I. Ideas, complaints and non-critical bugs:
     - rabbithole solution is to have app write template to rowspec
 - clankers pud assets collide with its own assets!
     - gonna have to split up Clanker's .clanker dir, so its easy to differentiate between pud and shared assets
+
+- give serious thought to scrapping 'from repo root' tack on functionality. we can get repo content via dedicated resolver
 II. Items to refine & QC:
 
 1. Usability push

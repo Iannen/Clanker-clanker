@@ -1,14 +1,7 @@
 # Clanker clanker; 
 
-Clanker is a homegrown TUI application and ongoing dogfooding experiment.
-It attempts to be a all-in-one vibecoding solution, which promotes a human-in-the-loop centric and measured methodology.
-
-Its core tenents be these:
-- Agents are consultants and workhorses
-- The user should be in control of the workflow and tooling
-- The external dependencies of the workflow should be kept to a minimum
-- ..and encapsulated in strict boundaries 
-- ..with sought after functionality extracted from them, and integrated into one coherent system.
+Clanker is a homegrown TUI application and ongoing dogfooding experiment.  
+It attempts to be an all-in-one vibecoding solution, which promotes a human-in-the-loop centric and measured methodology.
 
 <have not actually tried other tools disclaimer. a bit of copilot, a bit of continue dev.>
 
@@ -217,6 +210,15 @@ hint: To abort and get back to the state before "git rebase", run "git rebase --
 
 </details>
 </blockquote>
+
+### What then?
+
+To help combat these ills, the following working principles are declared:
+- Agents are consultants and workhorses
+- The user should be in control of the workflow and the tooling
+- External dependencies of the workflow should be kept to a minimum
+- ..encapsulated in strict boundaries 
+- ..with sought after functionality extracted integrated into one coherent system.
 
 ### Clanker features
 
@@ -610,20 +612,23 @@ clanker-evalcopy.zip -> does not exist yet for reference
 
 ### Installation & Prerequisites
 
-#### python and ruamel deps
+The Clanker install process:
+1. Clone the repository
+'''bash
+git clone https://github.com/Iannen/Clanker-clanker.git
+cd Clanker-clanker
+'''
+2. Install python
+3. then install ruamel.yaml, a python add-on
+4. Configure a shortcut, I use 'clank'
+  - Linux: Symlink in /usr/local/bin
+  - Windows: PowerShell profile alias or doskey shortcut
+  - macOS: Standard zsh alias in ~/.zshrc or /usr/local/bin symlink
+5. then enter the repository directory
+  - input your shortcut
+  - et voila
 
-- does are there other deps?
-
-You need python on your system. 
-<howto box>
-Per my understanding, python does not come with baked-in yaml parsing capabilites, so you will unfortunately have to install ruamel.yaml dependency via pip
-<howto box>
-
-Then, clone the repository to your preferred location
-<howto box>
-
-Symlink it
-<howto box. what about windows users? mac?>
+For instructions beyond this - consult a Clanker ;)
 
 ### Parting words of wisdom and other disclaimers 
 

@@ -1,0 +1,34 @@
+Clanker highlights 
+- all in one tool
+-- Built-in, flexible progress documentation system
+-- reusable shared assets
+-- project specific assets
+-- development loop based
+- dogfooding
+-- that works
+-- per author experience  
+- config driven
+- opposes vendor lock in / integration
+    - Leverage free resources
+    - Bail if they get froggy
+-repository delivered
+--the user becomes the developer
+
+project audience
+- vibe coders
+    - Want structure
+    - Automate repeated work
+- DIY tooling enthusiast
+    - to sample
+
+readme style
+- technical content
+-- only where required
+-- Favour readability for all
+-honest, grounded in reality
+--hype and flair is allowd
+--but must resolve appropriately
+
+call to action intent
+- inspect code & assets:
+- try it out:

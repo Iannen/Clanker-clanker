@@ -24,21 +24,20 @@ domains:
             - { id: domain_fragments, type: multi-document-retrieval, files: [config-development-mode.md] }
             - { id: repo_content, type: repo_content, fileset: default_repo_content }
 
-  - name: presentation
-    # Purpose: standardized readme development across projects
+  - name: readme
     resolvers:
-      - { id: domain_fragments, type: multi-document-retrieval, files: [{file: README.md, full_path_from_pud: true}, readme.structure] }
+      - { id: repo_content, type: repo_content, includes: [README.md] } 
     prompts:
-      - name: core
+      - name: structure
         render:
           resolvers:
-            - { id: prompt_fragments, type: multi-document-retrieval, files: [readme.docspec] }
-            - { id: repo_content, type: repo_content, fileset: core }
-      - name: docs
+            - { id: domain_fragments, type: multi-document-retrieval, files: [readme.structure_spec] }
+            - { id: prompt_fragments, type: multi-document-retrieval, files: [readme_structure.analysis_instruction] }
+      - name: content 
         render:
           resolvers:
-            - { id: prompt_fragments, type: multi-document-retrieval, files: [readme.docspec, architecture.cdoc, backlog.cdoc, north-star.cdoc, project-history.cdoc] }
-            - { id: repo_content, type: repo_content, fileset: empty }
+            - { id: domain_fragments, type: multi-document-retrieval, files: [readme_messaging.intent] }
+            - { id: prompt_fragments, type: multi-document-retrieval, files: [readme_content.analysis_instruction] }
 
   - name: north-star
     resolvers:

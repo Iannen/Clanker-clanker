@@ -50,3 +50,5 @@ randomthought: new resolver, to compile a project into a zip file for that covet
 8. file extensions for class based document selection, semantic context
 
 9. 'F1' type prompts, for things like 'how do use clanker'
+
+10. 'wtf are the assets of this prompt' functionality, to promote sanity of the user
