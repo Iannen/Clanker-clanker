@@ -478,8 +478,12 @@ Barely tried it - it felt very slow and engineered.
 To lessen the burden of further investigation, a set of ready-to-go prompts are supplied below.
 Drop one of the prompts off with your llm of choice, and then supply either of  
   
-```https://github.com/Iannen/Clanker-clanker```
-```clanker-evalcopy.zip -> does not exist yet for reference```
+```plaintext
+https://github.com/Iannen/Clanker-clanker
+```
+```plaintext
+clanker-evalcopy.zip -> does not exist yet for reference
+```
 
 <blockquote>
 <details>
