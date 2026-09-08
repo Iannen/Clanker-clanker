@@ -127,7 +127,7 @@ Here follows a thematic representation of such.
 
 Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionated' feature set;
 
-#### YAML-configured compilation pipeline
+#### YAML-configured compilation pipeline (extract model thing in preceding section)
 
 <details>
 <summary> Model of project domains with prompts, to organize content </summary>
@@ -192,45 +192,11 @@ Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionat
 
 </details>
 
-
-#### pushdown marker
+#### Built in collection of progress documentation, for a semistructured IDE internal documentation process
 
 <details>
-<summary> templatosaurus rex </summary>
+<summary> pls divvy me up </summary>
 
-  ```python
-  def hello():
-      print("Hello, World!")
-      return True
-  ```
-
-</details>
-
-  ```yaml
-  filesets:
-  core: {includes: [clanker.py, models.py]}
-  ad-hoc: {includes: [utilities.py, adapters.py], excludes: []} 
-  
-  domains:
-  - name: script-dev
-    resolvers:
-      - { id: repo_content, type: repo_content, fileset: core }
-      - { id: domain_fragments, type: multi-document-retrieval, files: [backlog.cdoc], }
-    prompts:
-      - name: plan
-        render:
-          resolvers:
-            - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.md, backlog-output-instructions.md] }
-      - name: impl
-        render:
-          resolvers:
-            - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.md, code-output-instruction.md]}
-      - name: bl-drain
-        render:
-          resolvers:
-            - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 8}, history-output-instructions.md]}
-  ```
-- *Built in collection of progress documentation, for a semistructured IDE internal documentation process*
   ```plantext
     .clanker/progress-documentation/
   ├── architecture.cdoc
@@ -254,7 +220,13 @@ Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionat
   === .clanker/progress-documentation/project-history.cdoc ===
   // a ledger of completed backlog items, compressed & formatted by Clanker
   ```
-- *The Clanker Loop*
+
+</details>
+
+#### A workflow loop
+
+<details>
+<summary> loop </summary>
 
     ```mermaid
     flowchart TD
@@ -267,6 +239,8 @@ Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionat
         F --> G[5. Rinse & Repeat]
     ```
 
+</details>
+
 - A lightweight keyboard-driven interface for rapidly selecting domains and prompts.
 - project specific assets, fallback to global assets 
 - llm as consultant and workhorse
@@ -275,28 +249,120 @@ Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionat
 
 ### Status & Roadmap
 
-- functional WIP application, primarily used on itself.
-- Ongoing efforts target configuration ingestion to promote yaml validation and ease the implementation of new features.
+I find Clanker to be a functional WIP application, producing for me...
+- Challenges to tackle
+- The means to do so
+  
+  
+Ongoing efforts target configuration ingestion, as this is thought to unlock
+- proper yaml validation
+  - asset existence / compliance
+  - proper user feedback, perhaps autofix options where possible
+- decoupling of data and model
+  - structure the conversion of data into app model classes
+  - ease implementation of new features
 
----
+## Under the hood
 
-## the middle section
-### some usage examples, possible link out for ez
+Here follows an technical breakdown of Clanker, per the authors
+  - ..understanding of matters technical and architectural
+  - ..recollection of the particulars
+  - ..ability to convert the above to a easily digestible breakdown
 
-### an 'architecture' part
+I wish myself luck. But first, lets kick the can on that one and let ourselves be distracted an offering of usage examples:
+
+### Clanker use examples
+
+
+I think we can link out to actual docs showing the llm convos, extra points if we have commit ids and stuff.
+At the same time, it should be understandable if the user can't be bothered with clicking links. I respect such a position
+
+#### Clankerization of a project
+
+#### A backlog planning session
+
+#### Implementation of an item
+
+#### Draining to project history
+
+### Under the hood
+
 #### strategy based stuff
-- P/A attempt, primarily for benefit of high signal core when prompting
-#### componet based description of src code
-- then something to describe src code as components:
-    - while loop engine
-    - dual purpose render pipeline
-    - ex system to implement failfast death by exit 1 policy
-    - config ingestion system, RuntimeConfig assembly
+
+Clanker was unifile
+  - let the llm see the whole thing - correct context 
+  - easy to drop off in the browser - ease of prompting
+
+It held out for a while, but eventually..
+- certain members became config / assets
+- other members became python files of their own
+
+In an attempt to retain the advantages of the unifile, 'wheat and chaff' (or shit and cinnamon) saw implementation:
+- Let certain file contain high signal business logic
+- And other files contain the boilerplate, the low level transformations etc
+
+In conversations with llm's, this was identified as the *Ports and Adapters* architecture:
+- namedrop some guys
+- explain in own words what that is about
+- explain benefit it provides in selecting assets to form a proper prompt context for an llm
+
+Then explain the members of the codebase on those terms.
+
+#### Clanker Components
+
+The components, their responsibilities
+- AppEngine class
+  - Delegates work to a service layer
+    - first bootstrap / config ingestion to get RuntimeContext
+    - then while loop
+      - get key input
+      - effectute
+      - display msg
+  - hotel manager (prompts as button inhabitants)
+
+- dual purpose render pipeline
+  - used for the UI renders
+  - and prompt compilation
+
+- ex system to implement failfast death by exit 1 policy
+  - an early invention
+  - to play around
+  - an attempt at discouringing defensive coding (app death is fine and encouraged)
+
+- config ingestion system
+  - main function is to provide the RTC, else no Clanker
+  - secondary to collect diagnostic info about issues with configs and the assets they reference
+    - style preferences (no littering)
+    - non-existent assets
+    - things of that nature
 
 #### explanation of .clanker contents 
 
+- the configs
+  - system config 
+  - shared config
+  - pud config
+
+- prompt assets
+
+- templates
+
 ### apologetic 'yeah i know man' section? ugh
 
+Not apologetic but honest and reflective. Conclusive of the above
+
+#### pushdown marker
+
+<details>
+<summary> templatosaurus rex </summary>
+
+  ```python
+  def hello():
+      print("Hello, World!")
+      return True
+  ```
+
+</details>
 
 ### easy 'howto' section, kinda
   1. Launch `clank` within any project repository.
