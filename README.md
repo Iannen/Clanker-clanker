@@ -262,7 +262,7 @@ Ongoing efforts target configuration ingestion, as this is thought to unlock
   - structure the conversion of data into app model classes
   - ease implementation of new features
 
-## Under the hood
+## The breakdown
 
 Here follows an technical breakdown of Clanker, per the authors
   - ..understanding of matters technical and architectural
@@ -284,6 +284,8 @@ At the same time, it should be understandable if the user can't be bothered with
 #### Implementation of an item
 
 #### Draining to project history
+
+#### The ship
 
 ### Under the hood
 
@@ -351,7 +353,95 @@ The components, their responsibilities
 
 Not apologetic but honest and reflective. Conclusive of the above
 
-#### pushdown marker
+### easy 'howto' section, kinda
+
+is this required? I'm not so sure. it feels kinda repetitive at this point  
+
+1. Launch `clank` within any project repository.
+2. Press numeric keys `1-0` to toggle active development domains.
+3. Press hotkeys (`Q`, `W`, `E`, `R`) to compile context-aware prompts directly into the system clipboard.
+4. Paste into your preferred LLM chat window.
+
+## Final thoughs
+
+some text here
+
+### LLM Vendor breakdown
+
+some text here, saying this is subjective off-the-cuff stuff.
+free tier freeloaders perspective, if you will
+
+#### Google 
+
+The daily driver
+
+Pros:
+  - Flash -> great
+  - Flash-lite -> less great, but highly serviceable
+  - usage limits -> great
+
+Cons:
+  - 32k character input limit
+  - fear-inducing security filters
+  - some backend failures on display
+
+#### ChatGPT
+
+Sees little use for work. Used for 'rate my project' filedumps.
+The OG - much respect.
+
+Pros: 
+  - bigger ctx, no idea of particulars
+  - usage limits dont feel constrained
+  - accepting of urls and zip files
+Cons:
+  - Feels dumber, more sycophantic
+  - Has a brittle feel to it
+
+#### Grok
+
+Pros:
+  - mature tone, feels great
+  - takes filedumps, like ChatGPT
+
+Cons:
+  - Very restrictive on the free tier, so not serviceable 
+
+#### Claude
+
+Barely tried it - it felt very slow and engineered.
+
+### The intended review options
+
+a. Feel free to browse source code and such things.
+
+b. Drop the below prompt into an llm, and then converse with it at your leisure
+```plaintext
+a yet to be supplied prompt
+```
+
+c. Drop the non-existant 'clanker-evalcopy.zip' off with your favourite llm, and then converse
+  - removes the .git dir 
+  - leaving only the pertinent stuff behind
+
+### Installation & Prerequisites
+
+You need python on your system. 
+<howto box>
+Per my understanding, python does not come with baked-in yaml parsing capabilites, so you will unfortunately have to install ruamel.yaml dependency via pip
+<howto box>
+
+Then, clone the repository to your preferred location
+<howto box>
+
+Symlink it
+<howto box. what about windows users? mac?>
+
+### Parting words of wisdom and other disclaimers 
+
+<blank>
+
+#### ignorable pushdown marker 
 
 <details>
 <summary> templatosaurus rex </summary>
@@ -363,40 +453,3 @@ Not apologetic but honest and reflective. Conclusive of the above
   ```
 
 </details>
-
-### easy 'howto' section, kinda
-  1. Launch `clank` within any project repository.
-  2. Press numeric keys `1-0` to toggle active development domains.
-  3. Press hotkeys (`Q`, `W`, `E`, `R`) to compile context-aware prompts directly into the system clipboard.
-  4. Paste into your preferred LLM chat window.
-
-## The outro
-
-- **Review Options**:
-  - **Manual Review**: Examine `clanker.py` and `models.py` for decoupled service architecture and protocol contracts.
-  - **Conversational Agent Review**: Pass the repository URL directly to an AI agent for code pattern analysis.
-  - **Evaluative Review**: Pass `evalcopy.zip` to an AI model for structured architecture audits.
-
-- **Installation & Prerequisites**:
-  - **Prerequisites**: Python 3.10+ and `ruamel.yaml`.
-    '''bash
-    pip install ruamel.yaml
-    '''
-  - **Clone Repository**:
-    '''bash
-    git clone https://github.com/Iannen/Clanker-clanker.git
-    cd Clanker-clanker
-    '''
-  - **Symlink Setup**:
-    '''bash
-    chmod +x clanker.py
-    sudo ln -s "$(pwd)/clanker.py" /usr/local/bin/clank
-    '''
-
-- **Notes & Disclaimers**:
-  - **Subjective LLM Performance Notes**:
-    - *Gemini*: The daily driver. 
-    - *ChatGPT*: Feels flaky and sycophantic, but more accepting of filedumps
-    - *Grok*: Not viable with free tier restrictions, but has a great feel to it.
-    - *Claude*: Barely tried it - it felt very slow.
-  
