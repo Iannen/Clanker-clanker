@@ -47,6 +47,12 @@ II. Items to refine & QC:
     - the prompt compilation system seems kinda wack now, but perhaps its ok? i dont know.
         - perhaps I add nested state? depart from inhabitant model into state = [domain][prompt] or something like that?
 
+3. qol imp: 
+    - make prompt compilation msg say which domain, prompt was used in addition to just line/char
+    - turns into a pipeline refactor. oh well
+
+III. Slated for implementation:
+
 2. Refactor Config Assembly: Transition DTOFactory to ConfigTranslator
     [ ] 'config_dtos.py':
         - new member 'class KbSpec'
@@ -83,12 +89,6 @@ II. Items to refine & QC:
             - (ui_render, kb_spec) = helper.process_sys_cfg(sys_cfg)
             - btn_map = self._create_btn_map(kb_spec, shared_domains, pud_domains)
             - then construct finished product, return to caller
-
-3. qol imp: 
-    - make prompt compilation msg say which domain, prompt was used in addition to just line/char
-    - turns into a pipeline refactor. oh well
-
-III. Slated for implementation:
 
 IV. Recently implemented:
 
