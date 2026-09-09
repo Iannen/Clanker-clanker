@@ -355,3 +355,9 @@ LXIII: DTO-DRIVEN CONFIG INGESTION AND BOUNDARY VALIDATION [FEATURE]
         - Completely removed fallback defaults across all DTO factory methods to guarantee downstream type safety and eliminate defensive handling in assembly code.
     - Note: While this feature successfully establishes complete type safety and insulates domain models from raw dictionary structures, it introduces noticeable boilerplate and visual bloat inside config_dtos.py. 
       This complexity is properly contained within the DTO boundary, but future structural consolidation may be desirable.
+
+LXIV: REFACTOR CONFIG ASSEMBLY - TRANSITION DTOFACTORY TO CONFIGTRANSLATOR
+    - Strategy: Establish the new ConfigTranslator contract with the config validator while keeping DTOFactory onboard as a transitory implementation detail to cap job scope.
+    - Created ConfigTranslator to handle extraction logic (extract_filesets, extract_domains, process_sys_cfg) and domain model instantiation.
+    - Kept existing DTOFactory methods intact internally to avoid broad cascading changes across raw DTO parsing.
+    - Updated RuntimeConfigAssembler to assemble runtime configuration via KbSpec and precedence-aware fileset resolution.

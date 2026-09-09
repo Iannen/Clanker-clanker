@@ -53,43 +53,6 @@ II. Items to refine & QC:
 
 III. Slated for implementation:
 
-2. Refactor Config Assembly: Transition DTOFactory to ConfigTranslator
-    [ ] 'config_dtos.py':
-        - new member 'class KbSpec'
-            - shared_domain_keys, pud_domain_keys and prompt_keys str members
-        - 'DTOFactory' and all 'xxDTO' classes: leave completely unchanged in file.
-        - new member 'ConfigTranslator':
-            - extract_filesets (doms_cfg_dict) -> dict[FileSet]
-                - only concerned extraction of named top level filesets into dict of appdomain type FileSet
-                - uses existing 'DTOFactory' to do this.
-            - extract_domains(doms_cfg_dict, filesetmap) -> [Domain]
-                - only concerned extraction of named top level domains into list of appdomain type Domain
-                - uses existing 'DTOFactory' to do this.
-            - process_sys_cfg (dict) -> (Render, KbSpec)
-                - uses existing 'DTOFactory' to do this.
-
-    [ ] 'utilities.py': Refactor RuntimeConfigAssembler to new orchestration flow
-        - new set of helpers
-            - _get_filesetmap(sharedcfg, pudcfg) -> dict[str->FileSet]
-                - shared_sets = helper.extract_filesets(sharedcfg)
-                - pud_sets = helper.extract_filesets(pudcfg)
-                - merges them so that pud filesets take precedence over shared ones where naming conflict exists (fallback behavour)
-            - _create_btn_map(kb_spec, shared_domains, pud_domains)
-                - btn_map = {}
-                - shr_dom_btns = [btns from kb_spec.shared_domain_keys]
-                - if len(shared_domains)>len(shr_dom_btns), raise ex, else zip, add inhabitants then add to btn_map
-                - pud_dom_btns = [btns from kb_spec.pud_domain_keys]
-                - if len(pud_domains)>len(pud_dom_btns), raise ex, else zip, add inhabitants then add to btn_map
-                - prompt_btns = [btns from kb_spec.prompt_keys] -> add to btn_map
-                - return btn_map to caller
-        - '.assemble': 
-            - fileset_map = self._get_filesetmap(shared_cfg, pud_cfg)
-            - shared_domains = helper.extract_domains(shared_cfg, fileset_map)
-            - pud_domains = helper.extract_domains(pud_cfg, fileset_map)
-            - (ui_render, kb_spec) = helper.process_sys_cfg(sys_cfg)
-            - btn_map = self._create_btn_map(kb_spec, shared_domains, pud_domains)
-            - then construct finished product, return to caller
-
 IV. Recently implemented:
 
 V. Critical bugs
