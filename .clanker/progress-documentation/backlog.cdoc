@@ -47,9 +47,19 @@ II. Items to refine & QC:
     - the prompt compilation system seems kinda wack now, but perhaps its ok? i dont know.
         - perhaps I add nested state? depart from inhabitant model into state = [domain][prompt] or something like that?
 
-3. qol imp: 
+2. qol imp: 
     - make prompt compilation msg say which domain, prompt was used in addition to just line/char
     - turns into a pipeline refactor. oh well
+
+3. Rationalize config translation and DTO layer @ consultant, the hot item
+    [ ] 'config_dtos.py': Streamline translation layer and eliminate redundant DTOs
+        - Eliminate pass-through DTO classes (e.g., DomainDTO, FileDTO, PromptDTO)
+        - Update ConfigTranslator and DTOFactory to translate config dicts directly into domain models
+            - @consultant i think we combine them, actually, needs investgation
+    [ ] 'utilities.py': Align RuntimeConfigAssembler with self-contained default instantiation
+        - Define ConfigTranslatorProtocol directly alongside RuntimeConfigAssembler as its consumer-side contract
+        - Annotate translator dependency with ConfigTranslatorProtocol
+        - Retain explicit default instantiation of ConfigTranslator to keep utilities self-contained for LLM context slicing
 
 III. Slated for implementation:
 

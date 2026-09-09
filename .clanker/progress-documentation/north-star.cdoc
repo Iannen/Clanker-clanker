@@ -56,3 +56,41 @@ randomthought: new resolver, to compile a project into a zip file for that covet
 11. Use Clanker to compile readme.
     - a resolver
     - cli functionality, for ship integration
+
+
+Interface Wisdom: The Fractal Context Pattern
+---------------------------------------------
+
+Treat code structure like a fractal tree, where every node—from the overall system down to an individual class—is entirely self-explaining.
+
+* Self-Contained Nodes: Every class or module (Node A) should be understandable in isolation. It contains its own execution logic alongside lightweight contracts (interfaces) that define what it needs from its immediate neighbors.
+* Recursive Clarity: Just as the overall System is understood by reading its core components and their relationships, Node A is understood by reading its logic and its sub-dependencies—without needing to inspect the actual internal code of those sub-dependencies.
+* Natural Context Slicing: When asking an AI to modify, repair, or extend Node A, you only need to provide Node A. Because Node A explicitly defines the "shapes" of its dependencies right alongside itself, the AI gains full context without needing to scan the wider codebase.
+* Frictionless in Structural Languages: This approach is effortless in languages like Python, Go, and TypeScript, where objects automatically satisfy an interface if they have matching methods—avoiding explicit "implements" declarations that create circular file links.
+
+Visual Representation:
+
+[System Level]
+└── Core System
+    ├── Logic: Orchestrates application flow
+    ├── Needs Interface: [Component A Contract]
+    └── Needs Interface: [Component B Contract]
+
+       │
+       ▼ (Zooming in to Component A)
+
+[Module Level]
+└── Component A
+    ├── Logic: Handles business rule execution
+    ├── Default Instance: Component A1 (ready to run out-of-the-box)
+    ├── Needs Interface: [Sub-Dependency 1 Contract]
+    └── Needs Interface: [Sub-Dependency 2 Contract]
+
+       │
+       ▼ (Zooming in to Sub-Dependency 1)
+
+[Leaf Level]
+└── Sub-Dependency 1
+    ├── Logic: Low-level utility / adapter action
+    └── Dependencies: None (Terminal Leaf)
+
