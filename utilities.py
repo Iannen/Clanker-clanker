@@ -126,7 +126,7 @@ class RuntimeConfigAssembler:
         ui_render, kb_spec = self.translator.process_sys_cfg(kb_def_data)
 
         button_map = self._create_btn_map(kb_spec, shared_domains, pud_domains)
-
+        # TODO: smell alert
         base_resolvers = [
             self.translator._build_resolver_from_dto(self.translator.dto_fact.resolver_cfg(r), fileset_map)
             for r in shared_domains_data.get("base_resolvers", [])

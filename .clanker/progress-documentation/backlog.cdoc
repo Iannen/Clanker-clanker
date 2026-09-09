@@ -51,11 +51,14 @@ II. Items to refine & QC:
     - make prompt compilation msg say which domain, prompt was used in addition to just line/char
     - turns into a pipeline refactor. oh well
 
-3. Rationalize config translation and DTO layer @ consultant, the hot item
+4. Rationalize config translation and DTO layer @ consultant, the hot item
     [ ] 'config_dtos.py': Streamline translation layer and eliminate redundant DTOs
         - Eliminate pass-through DTO classes (e.g., DomainDTO, FileDTO, PromptDTO)
         - Update ConfigTranslator and DTOFactory to translate config dicts directly into domain models
             - @consultant i think we combine them, actually, needs investgation
+            - what I like about the old system is this  
+                1. the req methods, those are some keepers
+                2. 
     [ ] 'utilities.py': Align RuntimeConfigAssembler with self-contained default instantiation
         - Define ConfigTranslatorProtocol directly alongside RuntimeConfigAssembler as its consumer-side contract
         - Annotate translator dependency with ConfigTranslatorProtocol
@@ -63,6 +66,16 @@ II. Items to refine & QC:
 
 III. Slated for implementation:
 
+3. Smellfix & Translator Protocol
+    [ ] 'utilities.py': Define ConfigTranslatorProtocol and refactor RuntimeConfigAssembler
+        - define 'ConfigTranslatorProtocol' directly alongside RuntimeConfigAssembler as its consumer-side interface
+        - annotate 'RuntimeConfigAssembler.translator' dependency with 'ConfigTranslatorProtocol' while retaining explicit default instantiation
+        - replace direct private accesses 'translator._build_resolver_from_dto' and 'translator.dto_fact' with 'self.translator.get_resolvers'
+        - move 'base_resolvers' resolution up to execute directly after 'fileset_map' is obtained near the top of 'assemble'
+    [ ] 'config_dtos.py': Expose public resolver translation interface on ConfigTranslator
+        - add 'get_resolvers(self, raw_resolvers: list[dict[str, Any]], filesetmap: dict[str, FileSet]) -> list[Resolver]' method
+        - satisfy 'ConfigTranslatorProtocol' contract by exposing public entry points for filesets, domains, system config, and base resolvers
+        
 IV. Recently implemented:
 
 V. Critical bugs
