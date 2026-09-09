@@ -361,3 +361,8 @@ LXIV: REFACTOR CONFIG ASSEMBLY - TRANSITION DTOFACTORY TO CONFIGTRANSLATOR
     - Created ConfigTranslator to handle extraction logic (extract_filesets, extract_domains, process_sys_cfg) and domain model instantiation.
     - Kept existing DTOFactory methods intact internally to avoid broad cascading changes across raw DTO parsing.
     - Updated RuntimeConfigAssembler to assemble runtime configuration via KbSpec and precedence-aware fileset resolution.
+
+LXV: SMELLFIX & TRANSLATOR PROTOCOL REFACTOR
+    - Defined ConfigTranslatorProtocol in utilities.py as the consumer-side interface for RuntimeConfigAssembler.
+    - Added public get_resolvers method to ConfigTranslator in config_dtos.py to satisfy the protocol contract.
+    - Updated RuntimeConfigAssembler to call get_resolvers instead of accessing private translator methods, and reordered base_resolvers resolution to run immediately after fileset_map.

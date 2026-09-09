@@ -146,6 +146,9 @@ class ConfigTranslator:
             truncation_spec=trunc_spec,
         )
 
+    def get_resolvers(self, raw_resolvers: list[dict[str, Any]], filesetmap: dict[str, FileSet]) -> list[Resolver]:
+        return [self._build_resolver_from_dto(self.dto_fact.resolver_cfg(r), filesetmap) for r in raw_resolvers]
+
     def _build_resolver_from_dto(self, dto: ResolverDTO, named_filesets: dict[str, FileSet]) -> Resolver:
         if isinstance(dto, MultiDocResolverDTO):
             file_objs = [self._build_file(f) for f in dto.files.files]

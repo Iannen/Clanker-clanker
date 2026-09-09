@@ -115,22 +115,25 @@ class ConfigValidator:
             msg_parts.extend(violations)
             raise ConfigViolations("\n".join(msg_parts))
 
+class ConfigTranslatorProtocol(Protocol):
+    def extract_filesets(self, doms_cfg_dict: dict[str, Any]) -> dict[str, FileSet]: ...
+    def extract_domains(self, doms_cfg_dict: dict[str, Any], filesetmap: dict[str, FileSet]) -> list[Domain]: ...
+    def process_sys_cfg(self, sys_cfg: dict[str, Any]) -> tuple[Render, KbSpec]: ...
+    def get_resolvers(self, raw_resolvers: list[dict[str, Any]], filesetmap: dict[str, FileSet]) -> list[Resolver]: ...
+
+
 class RuntimeConfigAssembler:
-    def __init__(self, translator: ConfigTranslator | None = None) -> None:
+    def __init__(self, translator: ConfigTranslatorProtocol | None = None) -> None:
         self.translator = translator or ConfigTranslator()
 
     def assemble(self, config_data: dict, kb_def_data: dict, shared_domains_data: dict) -> RuntimeConfig:
         fileset_map = self._get_filesetmap(shared_domains_data, config_data)
+        base_resolvers = self.translator.get_resolvers(shared_domains_data.get("base_resolvers", []), fileset_map)
         shared_domains = self.translator.extract_domains(shared_domains_data, fileset_map)
         pud_domains = self.translator.extract_domains(config_data, fileset_map)
         ui_render, kb_spec = self.translator.process_sys_cfg(kb_def_data)
 
         button_map = self._create_btn_map(kb_spec, shared_domains, pud_domains)
-        # TODO: smell alert
-        base_resolvers = [
-            self.translator._build_resolver_from_dto(self.translator.dto_fact.resolver_cfg(r), fileset_map)
-            for r in shared_domains_data.get("base_resolvers", [])
-        ]
 
         keyboard = Keyboard(button_map=button_map, selected_key=None)
 
