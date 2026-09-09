@@ -116,165 +116,57 @@ class ConfigValidator:
             raise ConfigViolations("\n".join(msg_parts))
 
 class RuntimeConfigAssembler:
-    def __init__(self) -> None:
-        self.dto_fact = DTOFactory()
+    def __init__(self, translator: ConfigTranslator | None = None) -> None:
+        self.translator = translator or ConfigTranslator()
 
     def assemble(self, config_data: dict, kb_def_data: dict, shared_domains_data: dict) -> RuntimeConfig:
-        sys_dto = self.dto_fact.sys_cfg(kb_def_data)
+        fileset_map = self._get_filesetmap(shared_domains_data, config_data)
+        shared_domains = self.translator.extract_domains(shared_domains_data, fileset_map)
+        pud_domains = self.translator.extract_domains(config_data, fileset_map)
+        ui_render, kb_spec = self.translator.process_sys_cfg(kb_def_data)
 
-        button_map = self._build_button_map(sys_dto)
+        button_map = self._create_btn_map(kb_spec, shared_domains, pud_domains)
 
-        named_filesets = self._build_named_filesets(
-            shared_domains_data.get("filesets", {}),
-            config_data.get("filesets", {})
-        )
+        base_resolvers = [
+            self.translator._build_resolver_from_dto(self.translator.dto_fact.resolver_cfg(r), fileset_map)
+            for r in shared_domains_data.get("base_resolvers", [])
+        ]
 
-        shared_domains = self._build_domains(shared_domains_data.get("domains", []), named_filesets)
-        self._populate_domain_buttons(button_map, sys_dto.shared_domain_keys, shared_domains)
-
-        pud_domains = self._build_domains(config_data.get("domains", []), named_filesets)
-        self._populate_domain_buttons(button_map, sys_dto.pud_domain_keys, pud_domains)
-
-        base_render = self._build_render(sys_dto.ui_render_data, named_filesets)
-
-        base_resolvers = self._build_resolvers(
-            shared_domains_data.get("base_resolvers", []), 
-            named_filesets
-        )
-
-        keyboard = Keyboard(
-            button_map=button_map,
-            selected_key=None
-        )
+        keyboard = Keyboard(button_map=button_map, selected_key=None)
 
         return RuntimeConfig(
             keyboard=keyboard,
-            ui_render=base_render,
-            base_resolvers=base_resolvers
+            ui_render=ui_render,
+            base_resolvers=base_resolvers,
         )
 
-    def _build_named_filesets(
-        self, shared_sets: dict[str, Any], pud_sets: dict[str, Any]
-    ) -> dict[str, FileSet]:
-        result = {}
-        for k, v in shared_sets.items():
-            result[k] = self._build_fileset(v)
-        for k, v in pud_sets.items():
-            result[k] = self._build_fileset(v)
-        return result
+    def _get_filesetmap(self, sharedcfg: dict, pudcfg: dict) -> dict[str, FileSet]:
+        shared_sets = self.translator.extract_filesets(sharedcfg)
+        pud_sets = self.translator.extract_filesets(pudcfg)
+        merged = dict(shared_sets)
+        merged.update(pud_sets)
+        return merged
 
-    def _build_resolvers(self, dicts: list[dict], named_filesets: dict[str, FileSet]) -> list[Resolver]:
-        return [self._build_resolver_from_dto(self.dto_fact.resolver_cfg(d), named_filesets)for d in dicts]
+    def _create_btn_map(self, kb_spec: KbSpec, shared_domains: list[Domain], pud_domains: list[Domain]) -> dict[str, Button]:
+        btn_map: dict[str, Button] = {}
 
-    def _populate_domain_buttons(self, button_map: dict[str, Button], keys: str, domains: list[Domain]) -> None:
-        if len(domains) > len(keys): raise ConfigAssemblyFailure
-        for prim_char, domain in zip(keys, domains):
-            button_map[prim_char].inhabitant = domain
+        shr_dom_btns = list(kb_spec.shared_domain_keys)
+        if len(shared_domains) > len(shr_dom_btns):
+            raise ConfigAssemblyFailure("More shared domains configured than available key slots")
+        for key_char, dom in zip(shr_dom_btns, shared_domains):
+            btn_map[key_char] = Button(type=Button.TYPE_DOMAIN, key=key_char, inhabitant=dom)
+        for key_char in shr_dom_btns[len(shared_domains):]:
+            btn_map[key_char] = Button(type=Button.TYPE_DOMAIN, key=key_char, inhabitant=None)
 
-    def _build_fileset(self, raw_data: Any) -> FileSet:
-        dto = self.dto_fact.fileset_cfg(raw_data)
-        return FileSet(
-            includes=dto.includes,
-            excludes=dto.excludes,
-        )
+        pud_dom_btns = list(kb_spec.pud_domain_keys)
+        if len(pud_domains) > len(pud_dom_btns):
+            raise ConfigAssemblyFailure("More PUD domains configured than available key slots")
+        for key_char, dom in zip(pud_dom_btns, pud_domains):
+            btn_map[key_char] = Button(type=Button.TYPE_DOMAIN, key=key_char, inhabitant=dom)
+        for key_char in pud_dom_btns[len(pud_domains):]:
+            btn_map[key_char] = Button(type=Button.TYPE_DOMAIN, key=key_char, inhabitant=None)
 
-    def _build_file(self, file_dto: FileDTO) -> File:
-        trunc_spec = (
-            TruncationSpec(tail_lines=file_dto.truncation_spec.tail_lines)
-            if file_dto.truncation_spec is not None
-            else None
-        )
-        return File(
-            name=file_dto.name,
-            full_path_from_pud=file_dto.full_path_from_pud,
-            truncation_spec=trunc_spec,
-        )
+        for key_char in kb_spec.prompt_keys:
+            btn_map[key_char] = Button(type=Button.TYPE_PROMPT, key=key_char, inhabitant=None)
 
-    def _build_resolver_from_dto(self, dto: ResolverDTO, named_filesets: dict[str, FileSet]) -> Resolver:
-        if isinstance(dto, MultiDocResolverDTO):
-            file_objs = [self._build_file(f) for f in dto.files.files]
-            return MultiDocResolver(
-                anchor=dto.anchor,
-                files=Filelist(files=file_objs)
-            )
-
-        if isinstance(dto, RepoContentResolverDTO):
-            if isinstance(dto.fileset, str):
-                fileset_obj = named_filesets.get(dto.fileset)
-            else:
-                fileset_obj = self._build_fileset(dto.fileset)
-            return RepoContentResolver(
-                anchor=dto.anchor,
-                fileset=fileset_obj
-            )
-
-        if isinstance(dto, ManifestResolverDTO):
-            if isinstance(dto.pud_fileset, str):
-                pud_fileset_obj = named_filesets.get(dto.pud_fileset)
-            else:
-                pud_fileset_obj = self._build_fileset(dto.pud_fileset)
-
-            if isinstance(dto.shared_fileset, str):
-                shared_fileset_obj = named_filesets.get(dto.shared_fileset)
-            elif isinstance(dto.shared_fileset, dict):
-                shared_fileset_obj = self._build_fileset(dto.shared_fileset)
-            else:
-                shared_fileset_obj = None
-
-            return ManifestResolver(
-                anchor=dto.anchor,
-                pud_fileset=pud_fileset_obj,
-                shared_fileset=shared_fileset_obj
-            )
-
-        if isinstance(dto, KBStateResolverDTO):
-            return KBStateResolver(anchor=dto.anchor)
-
-        raise ValueError(f"Unsupported resolver type: {type(dto)}")
-
-    def _build_render(self, data: dict[str, Any], named_filesets: dict[str, FileSet]) -> Render:
-        dto = self.dto_fact.render_cfg(data)
-        resolvers = self._build_resolvers(dto.resolver_dicts, named_filesets)
-        return Render(
-            template=dto.template,
-            resolvers=resolvers,
-            inherit_base=dto.inherit_base,
-            inherit_domain=dto.inherit_domain,
-        )
-
-    def _build_prompts(self, dicts: list[dict[str, Any]], named_filesets: dict[str, FileSet]) -> list[Prompt]:
-        prompts = []
-        for d in dicts:
-            prdto = self.dto_fact.prompt_cfg(d)
-            render = self._build_render(prdto.render, named_filesets)
-            prompts.append(Prompt(name=prdto.name, render=render))
-        return prompts
-
-    def _build_domains(self, dicts: list[dict[str, Any]], named_filesets: dict[str, FileSet]) -> list[Domain]:
-        domains = []
-        for d in dicts:
-            dto = self.dto_fact.domain_cfg(d)
-            resolvers = self._build_resolvers(dto.resolvers, named_filesets)
-            prompts = self._build_prompts(dto.prompts, named_filesets)
-            domains.append(
-                Domain(
-                    name=dto.name,
-                    prompts=prompts,
-                    resolvers=resolvers
-                )
-            )
-        return domains
-
-    def _build_button_map(self, sys_dto: SysCfgDTO) -> dict[str, Button]:
-        button_map = {}
-
-        for key_char in sys_dto.shared_domain_keys:
-            button_map[key_char] = Button(type=Button.TYPE_DOMAIN, key=key_char, inhabitant=None)
-
-        for key_char in sys_dto.pud_domain_keys:
-            button_map[key_char] = Button(type=Button.TYPE_DOMAIN, key=key_char, inhabitant=None)
-
-        for key_char in sys_dto.prompt_keys:
-            button_map[key_char] = Button(type=Button.TYPE_PROMPT, key=key_char, inhabitant=None)
-
-        return button_map
+        return btn_map

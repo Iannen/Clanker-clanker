@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from abc import ABC
 from typing import Any
-from models import ConfigAssemblyFailure, Render
+from models import *
 
 @dataclass
 class SysCfgDTO:
@@ -69,6 +69,118 @@ class PromptDTO:
 class FileSetDTO:
     includes: list[str]
     excludes: list[str]
+
+@dataclass
+class KbSpec:
+    shared_domain_keys: str
+    pud_domain_keys: str
+    prompt_keys: str
+
+class ConfigTranslator:
+    def __init__(self, dto_factory: DTOFactory | None = None) -> None:
+        self.dto_fact = dto_factory or DTOFactory()
+
+    def extract_filesets(self, doms_cfg_dict: dict[str, Any]) -> dict[str, FileSet]:
+        raw_filesets = doms_cfg_dict.get("filesets", {})
+        result = {}
+        for k, v in raw_filesets.items():
+            dto = self.dto_fact.fileset_cfg(v)
+            result[k] = FileSet(includes=dto.includes, excludes=dto.excludes)
+        return result
+
+    def extract_domains(self, doms_cfg_dict: dict[str, Any], filesetmap: dict[str, FileSet]) -> list[Domain]:
+        raw_domains = doms_cfg_dict.get("domains", [])
+        domains = []
+        for d in raw_domains:
+            dto = self.dto_fact.domain_cfg(d)
+            resolvers = [self._build_resolver_from_dto(self.dto_fact.resolver_cfg(r), filesetmap) for r in dto.resolvers]
+            prompts = self._build_prompts(dto.prompts, filesetmap)
+            domains.append(Domain(name=dto.name, prompts=prompts, resolvers=resolvers))
+        return domains
+
+    def process_sys_cfg(self, sys_cfg: dict[str, Any]) -> tuple[Render, KbSpec]:
+        sys_dto = self.dto_fact.sys_cfg(sys_cfg)
+        kb_spec = KbSpec(
+            shared_domain_keys=sys_dto.shared_domain_keys,
+            pud_domain_keys=sys_dto.pud_domain_keys,
+            prompt_keys=sys_dto.prompt_keys,
+        )
+        render_dto = self.dto_fact.render_cfg(sys_dto.ui_render_data)
+        resolvers = [self._build_resolver_from_dto(self.dto_fact.resolver_cfg(r), {}) for r in render_dto.resolver_dicts]
+        ui_render = Render(
+            template=render_dto.template,
+            resolvers=resolvers,
+            inherit_base=render_dto.inherit_base,
+            inherit_domain=render_dto.inherit_domain,
+        )
+        return ui_render, kb_spec
+
+    def _build_prompts(self, dicts: list[dict[str, Any]], filesetmap: dict[str, FileSet]) -> list[Prompt]:
+        prompts = []
+        for d in dicts:
+            prdto = self.dto_fact.prompt_cfg(d)
+            render_dto = self.dto_fact.render_cfg(prdto.render)
+            resolvers = [self._build_resolver_from_dto(self.dto_fact.resolver_cfg(r), filesetmap) for r in render_dto.resolver_dicts]
+            render = Render(
+                template=render_dto.template,
+                resolvers=resolvers,
+                inherit_base=render_dto.inherit_base,
+                inherit_domain=render_dto.inherit_domain,
+            )
+            prompts.append(Prompt(name=prdto.name, render=render))
+        return prompts
+
+    def _build_fileset(self, raw_data: Any) -> FileSet:
+        dto = self.dto_fact.fileset_cfg(raw_data)
+        return FileSet(includes=dto.includes, excludes=dto.excludes)
+
+    def _build_file(self, file_dto: FileDTO) -> File:
+        trunc_spec = (
+            TruncationSpec(tail_lines=file_dto.truncation_spec.tail_lines)
+            if file_dto.truncation_spec is not None
+            else None
+        )
+        return File(
+            name=file_dto.name,
+            full_path_from_pud=file_dto.full_path_from_pud,
+            truncation_spec=trunc_spec,
+        )
+
+    def _build_resolver_from_dto(self, dto: ResolverDTO, named_filesets: dict[str, FileSet]) -> Resolver:
+        if isinstance(dto, MultiDocResolverDTO):
+            file_objs = [self._build_file(f) for f in dto.files.files]
+            return MultiDocResolver(anchor=dto.anchor, files=Filelist(files=file_objs))
+
+        if isinstance(dto, RepoContentResolverDTO):
+            if isinstance(dto.fileset, str):
+                fileset_obj = named_filesets.get(dto.fileset, FileSet())
+            else:
+                fileset_obj = self._build_fileset(dto.fileset)
+            return RepoContentResolver(anchor=dto.anchor, fileset=fileset_obj)
+
+        if isinstance(dto, ManifestResolverDTO):
+            if isinstance(dto.pud_fileset, str):
+                pud_fileset_obj = named_filesets.get(dto.pud_fileset, FileSet())
+            else:
+                pud_fileset_obj = self._build_fileset(dto.pud_fileset)
+
+            if isinstance(dto.shared_fileset, str):
+                shared_fileset_obj = named_filesets.get(dto.shared_fileset, FileSet())
+            elif isinstance(dto.shared_fileset, dict):
+                shared_fileset_obj = self._build_fileset(dto.shared_fileset)
+            else:
+                shared_fileset_obj = None
+
+            return ManifestResolver(
+                anchor=dto.anchor,
+                pud_fileset=pud_fileset_obj,
+                shared_fileset=shared_fileset_obj,
+            )
+
+        if isinstance(dto, KBStateResolverDTO):
+            return KBStateResolver(anchor=dto.anchor)
+
+        raise ConfigAssemblyFailure(f"Unsupported resolver type: {type(dto)}")
 
 class DTOFactory:
     def sys_cfg(self, data: dict[str, Any]) -> SysCfgDTO:
