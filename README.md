@@ -38,7 +38,7 @@ Devoid of soul, their only concern is this:
 - Return to caller
 
 It's the job of the caller to interpret these tokens.  
-Tool calls and agentic systems work by recognizing certain pre-determined patterns in the stream of tokens, and translat them into whatever actions the designers have elected to implement.  Generation is halted not by the next-token generator itself, but by the harness,  on receipt of a designate 'stop' token.  
+Tool calls and agentic systems work by recognizing certain pre-determined patterns in the stream of tokens, and translate them into whatever actions the designers have elected to implement.  Generation is halted not by the next-token generator itself, but by the harness,  on receipt of a designate 'stop' token.  
 The mechanism to cease generation is to simply stop asking for the next token.  
   
 So let us not be frustrated with the next-token generators, should their outputs not align with our desires.  
@@ -109,11 +109,13 @@ def factorial(n):
 </details>
 </blockquote>
 
+<Here i essentially conclude that we must control the inputs to control the outputs. the whole bit is about saying 'llms are next token generators, we get value by picking the right context' (so the apps ability to do so is the solution)>
+
 #### Fear-inducing git operations
 
 It is with great humility and respect that I include mentions of Git under my grievance list.
  
-I'm sure the technically savvy reader will have a different take on it, but surely it cannot be denied, that in certain times and places of SpaceTime,  
+I'm sure the technically savvy reader will have a different take on it, but surely it cannot be denied, that at certain times  
 some less-than-reassuring outputs have been generated:
   
 <blockquote>
@@ -422,7 +424,12 @@ I wish myself luck. But first, lets kick the can on that one and let ourselves b
 
 
 I think we can link out to actual docs showing the llm convos, extra points if we have commit ids and stuff.
-At the same time, it should be understandable if the user can't be bothered with clicking links. I respect such a position
+At the same time, it should be understandable at a glance
+
+#### Readme maintenance
+
+[📖 Readme writing usecase example](presentation/usecases/readme_work/readme_writing.md)  
+[📖 Readme structure alignment usecase example](presentation/usecases/readme_work/readme_structure_alignment.md)
 
 #### Clankerization of a project
 
