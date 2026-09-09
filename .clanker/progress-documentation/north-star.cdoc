@@ -52,3 +52,7 @@ randomthought: new resolver, to compile a project into a zip file for that covet
 9. 'F1' type prompts, for things like 'how do use clanker'
 
 10. 'wtf are the assets of this prompt' functionality, to promote sanity of the user
+
+11. Use Clanker to compile readme.
+    - a resolver
+    - cli functionality, for ship integration

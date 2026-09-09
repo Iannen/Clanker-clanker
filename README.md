@@ -303,23 +303,23 @@ Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionat
 </details>
 
 <details>
-<summary> the ugly but functional truth 1 </summary>
+<summary> UI on boot </summary>
 
-  ![UI on program start ](presentation/saas_shaming.png)
-
-</details>
-
-<details>
-<summary> the ugly but functional truth 2 </summary>
-
-  ![UI after domain selection ](presentation/saas_shaming.png)
+  ![UI on program start ](presentation/image_lib/clanker_boot.png)
 
 </details>
 
 <details>
-<summary> the ugly but functional truth 3 </summary>
+<summary> UI on domain selection </summary>
 
-  ![UI after prompt selection](presentation/saas_shaming.png)
+  ![UI after domain selection ](presentation/image_lib/readme_domselect.png)
+
+</details>
+
+<details>
+<summary> UI on prompt selection </summary>
+
+  ![UI after prompt selection](presentation/image_lib/readme_content_promptgrab.png)
 
 </details>
 </blockquote>
@@ -334,7 +334,7 @@ Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionat
 <details>
 <summary> pls divvy me up </summary>
 
-  ```plantext
+  ```plaintext
     .clanker/progress-documentation/
   ├── architecture.cdoc
   ├── backlog.cdoc
@@ -369,16 +369,16 @@ Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionat
 <details>
 <summary> loop </summary>
 
-    ```mermaid
-    flowchart TD
-        A[Optional: Draft thoughts in North Star doc] --> B[1. Plan backlog items]
-        B --> C[2. Ask LLM to generate code]
-        C --> D{3. Satisfied?}
-        D -- Yes --> E[Accept outputs]
-        D -- No --> C
-        E --> F[4. LLM updates project history]
-        F --> G[5. Rinse & Repeat]
-    ```
+```mermaid
+flowchart TD
+    A[Optional: Draft thoughts in North Star doc] --> B[1. Plan backlog items]
+    B --> C[2. Ask LLM to generate code]
+    C --> D{3. Satisfied?}
+    D -- Yes --> E[Accept outputs]
+    D -- No --> C
+    E --> F[4. LLM updates project history]
+    F --> G[5. Rinse & Repeat]
+```
 
 </details>
 </blockquote>
