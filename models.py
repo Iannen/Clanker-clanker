@@ -104,7 +104,6 @@ class TruncationSpec:
 @dataclass
 class File:
     name: str
-    full_path_from_pud: bool = False
     truncation_spec: TruncationSpec | None = None
 
 @dataclass

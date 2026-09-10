@@ -252,22 +252,13 @@ class AssemblyService:
             filename = file_obj.name
             tail_lines = file_obj.truncation_spec.tail_lines if file_obj.truncation_spec else None
 
-            if file_obj.full_path_from_pud:
-                tokenized_path = f"<PUD>/{filename}"
-                try:
-                    content = self.files.read_asset(tokenized_path)
-                    content = self.shaper.trim_to_tail(content, tail_lines)
-                except FileNotFoundError:
-                    content = f"[{resolver.anchor}: No content found at '{filename}']"
-                tag_name = filename
+            basename = Path(filename).name
+            raw_content = contents_map.get(filename)
+            if raw_content is not None:
+                content = self.shaper.trim_to_tail(raw_content, tail_lines)
             else:
-                basename = Path(filename).name
-                raw_content = contents_map.get(filename)
-                if raw_content is not None:
-                    content = self.shaper.trim_to_tail(raw_content, tail_lines)
-                else:
-                    content = f"[{resolver.anchor}: No content found at '{filename}']"
-                tag_name = basename
+                content = f"[{resolver.anchor}: No content found at '{filename}']"
+            tag_name = basename
 
             fragments.append(f"<{tag_name}>\n{content}\n</{tag_name}>")
 

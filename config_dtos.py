@@ -30,7 +30,6 @@ class TruncationSpecDTO:
 @dataclass
 class FileDTO:
     name: str
-    full_path_from_pud: bool = False
     truncation_spec: TruncationSpecDTO | None = None
 
 @dataclass
@@ -143,7 +142,6 @@ class ConfigTranslator:
         )
         return File(
             name=file_dto.name,
-            full_path_from_pud=file_dto.full_path_from_pud,
             truncation_spec=trunc_spec,
         )
 
@@ -207,7 +205,7 @@ class DTOFactory:
         res_type = self.req_str(data, ["type"])
         anchor = self.req_str(data, ["id"])
 
-        if res_type in ("multi-document-retrieval", "full-path-file-retrieval"):
+        if res_type == "multi-document-retrieval":
             return self._mdr_cfg(data, anchor, res_type)
         if res_type == "repo_content":
             return self._repo_cfg(data, anchor, res_type)
@@ -225,9 +223,8 @@ class DTOFactory:
     def file_cfg(self, data: Any) -> FileDTO:
         if isinstance(data, dict):
             filename = self.req_str(data, ["file"])
-            full_path = self.req_bool(data, ["full_path_from_pud"], default=False)
             trunc_spec = self.truncation_spec_cfg(data) if "tail_lines" in data else None
-            return FileDTO(name=filename, full_path_from_pud=full_path, truncation_spec=trunc_spec)
+            return FileDTO(name=filename, truncation_spec=trunc_spec)
         return FileDTO(name=self.req_str({"file": data}, ["file"]))
 
     def filelist_cfg(self, data: Any) -> FilelistDTO:
@@ -237,9 +234,6 @@ class DTOFactory:
     def _mdr_cfg(self, data: dict[str, Any], anchor: str, res_type: str) -> MultiDocResolverDTO:
         raw_files = self.req_list(data, ["files"], default=[])
         filelist_dto = self.filelist_cfg(raw_files)
-        if res_type == "full-path-file-retrieval":
-            for f in filelist_dto.files:
-                f.full_path_from_pud = True
         return MultiDocResolverDTO(
             anchor=anchor,
             type=res_type,

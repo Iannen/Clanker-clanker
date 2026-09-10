@@ -50,33 +50,19 @@ II. Items to refine & QC:
     - make prompt compilation msg say which domain, prompt was used in addition to just line/char
     - turns into a pipeline refactor. oh well
 
-4. Rationalize config translation and DTO layer @ consultant, the hot item
-    [ ] 'config_dtos.py': Streamline translation layer and eliminate redundant DTOs
-        - Eliminate pass-through DTO classes (e.g., DomainDTO, FileDTO, PromptDTO)
-        - Update ConfigTranslator and DTOFactory to translate config dicts directly into domain models
-            - @consultant i think we combine them, actually, needs investgation
-            - what I like about the old system is this  
-                1. the req methods, those are some keepers
-                2. 
-    [ ] 'utilities.py': Align RuntimeConfigAssembler with self-contained default instantiation
-        - Define ConfigTranslatorProtocol directly alongside RuntimeConfigAssembler as its consumer-side contract
-        - Annotate translator dependency with ConfigTranslatorProtocol
-        - Retain explicit default instantiation of ConfigTranslator to keep utilities self-contained for LLM context slicing
-
-5. give serious thought to scrapping 'from repo root' tack on functionality. we can get repo content via dedicated resolver
 
 III. Slated for implementation:
 
+4. Rationalize config translation and DTO layer @ consultant, the hot item
+    [ ] 'config_dtos.py': Streamline translation layer and eliminate redundant DTOs
+        - Rename DTOFactory to 'ValueExtractor'
+            - containing path extraction and type-enforcement methods (`req_str`, `req_dict`, `req_list`, etc.)
+            - consultant retain current set of req methods, and the internal helper too
+        - Update ConfigTranslator to take `ValueExtractor` and directly map raw config dicts into domain models (`Domain`, `Prompt`, `Render`, `File`, `FileSet`, `Resolver` subclasses) via compositional parsing methods
+        - Eliminate redundant intermediate DTO classes (`SysCfgDTO`, `RenderDTO`, `ResolverDTO` hierarchy, `TruncationSpecDTO`, `FileDTO`, `FilelistDTO`, `DomainDTO`, `PromptDTO`, `FileSetDTO`)
+        - Retain 'KbSpec' for holding system UI key assignments passed to RuntimeConfigAssembler
+        - Preserve public method contract in ConfigTranslator to satisfy ConfigTranslatorProtocol in 'utilities.py'
+
 IV. Recently implemented:
-
-5. Cleanliness business
-    [x] 'models.py': Make TruncationSpec tail_lines non-optional
-        - Update TruncationSpec dataclass definition so tail_lines requires an explicit int (tail_lines: int)
-        - Update FileSet so includes and excludes require explicit lists (includes: list[str], excludes: list[str])
-
-    [x] 'config_dtos.py': Replace unvalidated dict access with extraction helpers
-        - Update extract_filesets to use req_dict with explicit default value {} instead of raw .get() call
-        - Update extract_domains to use req_list with no fallback, so that cfg sans domains are forbidden per validation
-        - Refactor truncation_spec_cfg to use req_int with default=None instead of manually guarding key presence with in data and isinstance checks
 
 V. Critical bugs

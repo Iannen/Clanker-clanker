@@ -366,3 +366,13 @@ LXV: SMELLFIX & TRANSLATOR PROTOCOL REFACTOR
     - Defined ConfigTranslatorProtocol in utilities.py as the consumer-side interface for RuntimeConfigAssembler.
     - Added public get_resolvers method to ConfigTranslator in config_dtos.py to satisfy the protocol contract.
     - Updated RuntimeConfigAssembler to call get_resolvers instead of accessing private translator methods, and reordered base_resolvers resolution to run immediately after fileset_map.
+
+LXVI: CONFIG TRANSLATION & MODEL CLEANLINESS BUSINESS
+    - Updated TruncationSpec in models.py to mandate an explicit integer for tail_lines, and updated FileSet to require explicit lists for includes and excludes.
+    - Updated extract_filesets in config_dtos.py to use req_dict with default={}, and extract_domains to use req_list without fallback to enforce domain presence.
+    - Refactored truncation_spec_cfg in config_dtos.py to use req_int with default=None instead of manual key presence guards.
+
+LXVII: REMOVE FULL-PATH FILE RETRIEVAL FUNCTIONALITY FROM MULTIDOCRESOLVER STACK
+    - Stripped full_path_from_pud attribute from File dataclass in models.py
+    - Removed full-path retrieval logic, res_type aliases, and DTO attributes from config_dtos.py
+    - Removed full_path_from_pud conditional branch in AssemblyService._res_multi_doc within clanker.py to enforce standardized name-based fallback lookup
