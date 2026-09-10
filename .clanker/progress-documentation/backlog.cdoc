@@ -50,78 +50,14 @@ II. Items to refine & QC:
     - make prompt compilation msg say which domain, prompt was used in addition to just line/char
     - turns into a pipeline refactor. oh well
 
+3. more ingestion work @ consultant lets develop this some
+    - prettify assembler more
+        - reduce passing of things in favour of native handling
+        - extract helpers for stages
+            - to reflect dependency ordering which is taken care of by RTCA
+    - look towards dto file, see what the playa move is now.
 III. Slated for implementation:
 
 IV. Recently implemented:
-
-3. Hardened config translation & error aggregation
-    Phase 1: 
-    [x] 'models.py': Add error collector domain model
-        - Add `ErrorCollector` type with path context stack (`push_path`/`pop_path`) for cross-layer error aggregation
-            - Formats error messages with active YAML path (e.g. `domains[0] -> resolvers[1]`)
-            - Accumulates complaints across parsing pass and raises single `ConfigAssemblyFailure` on flush
-    [x] 'utilities.py': Update protocol definitions and pass collector in assembler
-        - Add `FilesetMapProtocol` interface defining fileset lookup contract for external visibility
-        - Update `RuntimeConfigAssembler.assemble` to instantiate `ErrorCollector` and pass it to translator methods
-        - Update `ConfigTranslatorProtocol` to accept `ErrorCollector` as a mandatory position-based argument (no '= None' default)
-    [x] 'config_dtos.py'
-        - Update `ConfigTranslator` to match protocol method signatures with required `ErrorCollector` argument (no '= None' default; unused until Phase 2)
-        - Implement `FilesetMap` conforming to `FilesetMapProtocol` that wraps dict lookup
-            - Records complaint to `ErrorCollector` on missing key hit while returning `None` to allow parsing to continue
-    [x] 'ConfigValidator'& 'ConfigValidatorProtocol'
-        - removed 'assert_filesets_not_neglected member, in anticipation of folding such things into the new system
-
-    Phase2: RuntimeConfigAssembler prettiness buff
-        info: there is no other part of system that instantiates a translator. it occurs only once, at start of system
-        [x] 'utilities.py, RuntimeConfigAssembler' Remove the passing of the collector everywhere:
-            -  init:
-                - receive a collector from caller
-                - optionally instantiate one self, if nothing passed
-                - pass it to setter method of 'ConfigTranslator' to store on self
-                    - this eliminates need for continues passdown, clearing up both ConfigTranslator protocol and implementation method sigs
-            - assemble
-                - before call to 'self._create_btn_map'
-                - extract collector from self.translator via getter method (marking end of translator LC)
-                - pass collector to 'self._create_btn_map'
-                - move call to 'collector.raise_if_any()' to occur AFTER 'self._create_btn_map'
-            - '_create_btn_map'
-                - use collector rather than ex raising currently on display
-            - align 'ConfigTranslatorProtocol' method signatures
-        [x] 'config_dtos.py' 
-            - 'ConfigTranslator'
-                - add setter and getter method for the collector, which is now stored on self.
-                - when instantiating FilesetMap, pass self.collector to it
-            - carry forward the following situation in the file: the collector is only made available in anticipation of later phases, it sees no functional use
-                - in 'FilesetMap', usage of collector.add_complaint shall remain commented out
-                - do NOT introduce any usages of the collector elsewhere.
-
-    Phase 3: more RuntimeConfigAssembler prettiness buffs
-        [x] 'config_dtos.py': Implement stateful FilesetMap lifecycle and internal translator cleanup
-            - Add `merge(self, other: FilesetMap) -> FilesetMap` method on `FilesetMap` that returns a new instance with merged underlying dict data and retains `self._collector`
-            - Update `ConfigTranslator.extract_filesets` to construct and return a functional `FilesetMap` initialized with `self.collector`
-            - Add `set_filesetmap` method on `ConfigTranslator` to store the active `FilesetMap` instance on `self._filesetmap`
-            - Update `ConfigTranslator` methods (`extract_domains`, `get_resolvers`, `_build_render`, `_build_resolver`) and internal call sites to use `self._filesetmap` directly, removing now redundant `filesetmap` argument from signatures
-            - carry forward the following situation in the file: the collector is only made available in anticipation of later phases, it sees no functional use
-                - in 'FilesetMap', usage of collector.add_complaint shall remain commented out
-                - do NOT introduce any usages of the collector elsewhere.
-        [x] 'utilities.py': Update protocols and RuntimeConfigAssembler assembly pipeline
-            - Update `FilesetMapProtocol` interface to declare `merge` method signature
-            - Update `ConfigTranslatorProtocol` interface to declare `set_filesetmap` and remove now redundant `filesetmap` argument from `extract_domains` and `get_resolvers` signatures
-            - Update `RuntimeConfigAssembler.assemble` flow:
-                - Extract `shared_map` and `pud_map` via `translator.extract_filesets`
-                - Merge maps into a new `FilesetMap` via `shared_map.merge(pud_map)` and pass to `translator.set_filesetmap`
-                - Invoke `get_resolvers` and `extract_domains` without passing `filesetmap`
-                - Remove `_get_filesetmap` helper method and the `#smell` comment
-
-    Phase 4: even more RuntimeConfigAssembler prettiness buffs
-        [x] 'utilities.py': Update RuntimeConfigAssembler to store and manage the error collector natively
-            - Store `collector` on `self` during `__init__`, passing it to the translator and eliminating getter/setter boilerplate during assembly
-            - Pass the raw `shared_domains_data` dictionary directly to `self.translator.get_resolvers` without pre-extracting members in the assembler
-            - Invoke `collector.raise_if_any()` directly from the assembler instance
-        [x] 'config_dtos.py': Update ConfigTranslator to handle raw dict extraction and carry forward collector constraints
-            - Update `get_resolvers` to accept the raw `shared_domains_data` dict and extract base resolvers internally using its extractor
-            - Carry forward the following situation in the file: the collector is only made available in anticipation of later phases, it sees no functional use
-                - In 'FilesetMap', usage of collector.add_complaint shall remain commented out
-                - Do NOT introduce any usages of the collector elsewhere.
 
 V. Critical bugs
