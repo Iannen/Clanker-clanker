@@ -50,6 +50,8 @@ II. Items to refine & QC:
     - make prompt compilation msg say which domain, prompt was used in addition to just line/char
     - turns into a pipeline refactor. oh well
 
+III. Slated for implementation:
+
 3. Hardened config translation & error aggregation
     Phase 1: 
     [x] 'models.py': Add error collector domain model
@@ -92,17 +94,36 @@ II. Items to refine & QC:
                 - do NOT introduce any usages of the collector elsewhere.
 
     Phase 3: more RuntimeConfigAssembler prettiness buffs
-        [ ] 'utilities.py, RuntimeConfigAssembler'
-        [ ] 'config_dtos.py' 
+        [x] 'config_dtos.py': Implement stateful FilesetMap lifecycle and internal translator cleanup
+            - Add `merge(self, other: FilesetMap) -> FilesetMap` method on `FilesetMap` that returns a new instance with merged underlying dict data and retains `self._collector`
+            - Update `ConfigTranslator.extract_filesets` to construct and return a functional `FilesetMap` initialized with `self.collector`
+            - Add `set_filesetmap` method on `ConfigTranslator` to store the active `FilesetMap` instance on `self._filesetmap`
+            - Update `ConfigTranslator` methods (`extract_domains`, `get_resolvers`, `_build_render`, `_build_resolver`) and internal call sites to use `self._filesetmap` directly, removing now redundant `filesetmap` argument from signatures
+            - carry forward the following situation in the file: the collector is only made available in anticipation of later phases, it sees no functional use
+                - in 'FilesetMap', usage of collector.add_complaint shall remain commented out
+                - do NOT introduce any usages of the collector elsewhere.
+        [x] 'utilities.py': Update protocols and RuntimeConfigAssembler assembly pipeline
+            - Update `FilesetMapProtocol` interface to declare `merge` method signature
+            - Update `ConfigTranslatorProtocol` interface to declare `set_filesetmap` and remove now redundant `filesetmap` argument from `extract_domains` and `get_resolvers` signatures
+            - Update `RuntimeConfigAssembler.assemble` flow:
+                - Extract `shared_map` and `pud_map` via `translator.extract_filesets`
+                - Merge maps into a new `FilesetMap` via `shared_map.merge(pud_map)` and pass to `translator.set_filesetmap`
+                - Invoke `get_resolvers` and `extract_domains` without passing `filesetmap`
+                - Remove `_get_filesetmap` helper method and the `#smell` comment
 
+    Phase 4: even more RuntimeConfigAssembler prettiness buffs
+        [ ] 'utilities.py, RuntimeConfigAssembler': store collector on self, then access from self as required
+            - init : store collector on self
+            - other places in RTCA: the translator will mutate the collector, so we dont need to acquire it via a setter. we can just use it from self, not needing to pass it around 
+            - assemble:
+                - 'self.translator.get_resolvers' should simply be passed the 'shared_domains_data' dict, RTCA should not extract a member. otherside might need align
+        
     Phase: n
     [ ] 'config_dtos.py': Implement complaint collection and explicit container types
         - Revise `ValueExtractor` API to support path context tracking and explicit `req_*` / `opt_*` methods
             - Add dedicated `opt_str`, `opt_list`, `opt_bool`, `opt_int` methods requiring explicit default values
             - Allow optional direct key extraction without forcing list path wrapper for single keys
         - Update `ConfigTranslator` to traverse config trees with path context tracking and trigger `ErrorCollector.raise_if_any()` on completion
-
-III. Slated for implementation:
 
 IV. Recently implemented:
 

@@ -25,7 +25,6 @@ class KbSpec:
     pud_domain_keys: str
     prompt_keys: str
 
-
 class FilesetMap:
     def __init__(self, data: dict[str, FileSet], collector: ErrorCollector) -> None:
         self._data = data
@@ -37,10 +36,16 @@ class FilesetMap:
             return None
         return self._data[key]
 
+    def merge(self, other: FilesetMap) -> FilesetMap:
+        merged_data = dict(self._data)
+        merged_data.update(other._data)
+        return FilesetMap(data=merged_data, collector=self._collector)
+
 class ConfigTranslator:
     def __init__(self, extractor: ValueExtractor | None = None) -> None:
         self.extractor = extractor or ValueExtractor()
         self.collector: ErrorCollector = ErrorCollector()
+        self._filesetmap: FilesetMapProtocol | None = None
 
     def set_collector(self, collector: ErrorCollector) -> None:
         self.collector = collector
@@ -48,19 +53,21 @@ class ConfigTranslator:
     def get_collector(self) -> ErrorCollector:
         return self.collector
 
+    def set_filesetmap(self, filesetmap: FilesetMapProtocol) -> None:
+        self._filesetmap = filesetmap
+
     def extract_filesets(
         self, doms_cfg_dict: dict[str, Any]
-    ) -> dict[str, FileSet]:
+    ) -> FilesetMap:
         raw_filesets = self.extractor.req_dict(doms_cfg_dict, ["filesets"], default={})
         result = {}
         for k, v in raw_filesets.items():
             result[k] = self._build_fileset(v)
-        return result
+        return FilesetMap(data=result, collector=self.collector)
 
     def extract_domains(
         self,
         doms_cfg_dict: dict[str, Any],
-        filesetmap: FilesetMapProtocol,
     ) -> list[Domain]:
         raw_domains = self.extractor.req_list(doms_cfg_dict, ["domains"])
         domains = []
@@ -69,8 +76,8 @@ class ConfigTranslator:
             raw_resolvers = self.extractor.req_list(d, ["resolvers"])
             raw_prompts = self.extractor.req_list(d, ["prompts"])
 
-            resolvers = [self._build_resolver(r, filesetmap, self.collector) for r in raw_resolvers]
-            prompts = self._build_prompts(raw_prompts, filesetmap, self.collector)
+            resolvers = [self._build_resolver(r, self.collector) for r in raw_resolvers]
+            prompts = self._build_prompts(raw_prompts, self.collector)
             domains.append(Domain(name=name, prompts=prompts, resolvers=resolvers))
         return domains
 
@@ -83,41 +90,38 @@ class ConfigTranslator:
             prompt_keys=self.extractor.req_str(sys_cfg, ["button_rows", "prompts_row"]),
         )
         ui_render_data = self.extractor.req_dict(sys_cfg, ["ui_render"])
-        ui_render = self._build_render(ui_render_data, FilesetMap({}, self.collector), self.collector)
+        ui_render = self._build_render(ui_render_data, self.collector)
         return ui_render, kb_spec
 
     def get_resolvers(
         self,
         raw_resolvers: list[dict[str, Any]],
-        filesetmap: FilesetMapProtocol,
     ) -> list[Resolver]:
-        return [self._build_resolver(r, filesetmap, self.collector) for r in raw_resolvers]
+        return [self._build_resolver(r, self.collector) for r in raw_resolvers]
 
     def _build_prompts(
         self,
         dicts: list[dict[str, Any]],
-        filesetmap: FilesetMapProtocol,
         collector: ErrorCollector,
     ) -> list[Prompt]:
         prompts = []
         for d in dicts:
             name = self.extractor.req_str(d, ["name"])
             render_dict = self.extractor.req_dict(d, ["render"], default={})
-            render = self._build_render(render_dict, filesetmap, collector)
+            render = self._build_render(render_dict, collector)
             prompts.append(Prompt(name=name, render=render))
         return prompts
 
     def _build_render(
         self,
         render_dict: dict[str, Any],
-        filesetmap: FilesetMapProtocol,
         collector: ErrorCollector,
     ) -> Render:
         template = self.extractor.req_str(render_dict, ["template"], Render.template)
         inherit_base = self.extractor.req_bool(render_dict, ["inherit_base"], Render.inherit_base)
         inherit_domain = self.extractor.req_bool(render_dict, ["inherit_domain"], Render.inherit_domain)
         raw_resolvers = self.extractor.req_list(render_dict, ["resolvers"])
-        resolvers = [self._build_resolver(r, filesetmap, collector) for r in raw_resolvers]
+        resolvers = [self._build_resolver(r, collector) for r in raw_resolvers]
         return Render(
             template=template,
             resolvers=resolvers,
@@ -144,7 +148,6 @@ class ConfigTranslator:
     def _build_resolver(
         self,
         data: dict[str, Any],
-        filesetmap: FilesetMapProtocol,
         collector: ErrorCollector,
     ) -> Resolver:
         res_type = self.extractor.req_str(data, ["type"])
@@ -165,7 +168,7 @@ class ConfigTranslator:
                 }
 
             if isinstance(fileset_val, str):
-                fileset_obj = filesetmap.get(fileset_val)
+                fileset_obj = self._filesetmap.get(fileset_val) if self._filesetmap else None
             else:
                 fileset_obj = self._build_fileset(fileset_val)
             return RepoContentResolver(anchor=anchor, fileset=fileset_obj or FileSet(includes=[], excludes=[]))
@@ -180,12 +183,12 @@ class ConfigTranslator:
             shared_val = self.extractor.req_str_or_dict(data, ["shared_fileset"], default={})
 
             if isinstance(pud_val, str):
-                pud_fileset_obj = filesetmap.get(pud_val)
+                pud_fileset_obj = self._filesetmap.get(pud_val) if self._filesetmap else None
             else:
                 pud_fileset_obj = self._build_fileset(pud_val) if pud_val else None
 
             if isinstance(shared_val, str):
-                shared_fileset_obj = filesetmap.get(shared_val)
+                shared_fileset_obj = self._filesetmap.get(shared_val) if self._filesetmap else None
             elif isinstance(shared_val, dict) and shared_val:
                 shared_fileset_obj = self._build_fileset(shared_val)
             else:

@@ -56,17 +56,18 @@ class ConfigValidator:
 
 class FilesetMapProtocol(Protocol):
     def get(self, key: str) -> FileSet | None: ...
+    def merge(self, other: FilesetMapProtocol) -> FilesetMapProtocol: ...
 
 class ConfigTranslatorProtocol(Protocol):
     def set_collector(self, collector: ErrorCollector) -> None: ...
     def get_collector(self) -> ErrorCollector: ...
     def extract_filesets(
         self, doms_cfg_dict: dict[str, Any]
-    ) -> dict[str, FileSet]: ...
+    ) -> FilesetMapProtocol: ...
+    def set_filesetmap(self, filesetmap: FilesetMapProtocol) -> None: ...
     def extract_domains(
         self,
         doms_cfg_dict: dict[str, Any],
-        filesetmap: FilesetMapProtocol,
     ) -> list[Domain]: ...
     def process_sys_cfg(
         self, sys_cfg: dict[str, Any]
@@ -74,7 +75,6 @@ class ConfigTranslatorProtocol(Protocol):
     def get_resolvers(
         self,
         raw_resolvers: list[dict[str, Any]],
-        filesetmap: FilesetMapProtocol,
     ) -> list[Resolver]: ...
 
 
@@ -88,12 +88,16 @@ class RuntimeConfigAssembler:
         self.translator.set_collector(collector or ErrorCollector())
 
     def assemble(self, config_data: dict, kb_def_data: dict, shared_domains_data: dict) -> RuntimeConfig:
-        fileset_map = self._get_filesetmap(shared_domains_data, config_data)
+        shared_map = self.translator.extract_filesets(shared_domains_data)
+        pud_map = self.translator.extract_filesets(config_data)
+        merged_map = shared_map.merge(pud_map)
+        self.translator.set_filesetmap(merged_map)
+
         base_resolvers = self.translator.get_resolvers(
-            shared_domains_data.get("base_resolvers"), fileset_map
+            shared_domains_data.get("base_resolvers") # in general, the RTCA should just pass the incoming cfg dicts town, not extract anything prior
         )
-        shared_domains = self.translator.extract_domains(shared_domains_data, fileset_map)
-        pud_domains = self.translator.extract_domains(config_data, fileset_map)
+        shared_domains = self.translator.extract_domains(shared_domains_data)
+        pud_domains = self.translator.extract_domains(config_data)
         ui_render, kb_spec = self.translator.process_sys_cfg(kb_def_data)
 
         collector = self.translator.get_collector()
@@ -108,15 +112,6 @@ class RuntimeConfigAssembler:
             ui_render=ui_render,
             base_resolvers=base_resolvers,
         )
-
-    def _get_filesetmap(
-        self, sharedcfg: dict, pudcfg: dict
-    ) -> FilesetMap:
-        shared_sets = self.translator.extract_filesets(sharedcfg)
-        pud_sets = self.translator.extract_filesets(pudcfg)
-        merged = dict(shared_sets)
-        merged.update(pud_sets)
-        return FilesetMap(data=merged, collector=self.translator.get_collector()) #smell
 
     def _create_btn_map(
         self,
