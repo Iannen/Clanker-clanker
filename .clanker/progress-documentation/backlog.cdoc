@@ -1,48 +1,15 @@
 I. Ideas, complaints and non-critical bugs:
-- configs should be validated to disallow non-existent filesets (now just fail silently)
-- filesets: new concept, 'omits' added as a manifest of files not supplied
-- Visual upgrade to UI template
-- the user should not have to start & stop the app for config updates to become online
-- can we do without any external deps like ruamel & pydantic, lessening the install burden?
 - arrow keys interpreted as esc
-- does AssemblyService take on validation as we get serious about validation? hm.
 - the rendered UI does not properly display empty buttons for 'qwerty' and 'asdfgh' rows
     - this is due to the ui template being constrained to 4 buttons for the two keyrows.
     - ez fix is to adjust template.
     - rabbithole solution is to have app write template to rowspec
-- clankers pud assets collide with its own assets!
-    - gonna have to split up Clanker's .clanker dir, so its easy to differentiate between pud and shared assets
 
 II. Items to refine & QC:
-
-1. Usability push
-    - 1a: expand Truncation Functionality - implemented, history item 'LXXI'
-    - 1b: move Shared Domains to ASDF Row - implemented, history item 'LXII'
-    - 1c: new 'follow up' resolver (delayed for yaml DTO item)
-        - I think this is too fanciful to get into at this stage. back to NS
-    - 1d: investigate ways to capitalize on semantics of yaml for prompt gen (delayed for yaml DTO item)
-        - hm this is value, but also kinda pie in the sky. I think it goes back to NS for now.
-
-1c. New 'follow up' resolver:
-    - lets the llm specify required context on some format, like an md resolver
-    - accepts the llm artifact, returns requested content compiled to clipboard for dropoff
-    - the file dependency issue: repo_content resolver should have some kinda of 'display omits' functionality:
-        - so that files not shared can be informed of, on format like:
-            '<PUD>src/adapters/myadapter.py: xx lines'
-            '<PUD>src/adapters/myotheradapter.py: xx lines'
-
-1d. Investigate ways to capitalize on semantics of yaml for prompt gen
-    - name attrs: domain.name, prompt.name, fileset.name, filelist.name
-    - anchor names: base_fragments, the rest
-    - basically, the name of a domain, name of a prompt, should feature in the prompt to provide ctx.
-    - the prompt compilation system seems kinda wack now, but perhaps its ok? i dont know.
-        - perhaps I add nested state? depart from inhabitant model into state = [domain][prompt] or something like that?
 
 2. qol imp: 
     - make prompt compilation msg say which domain, prompt was used in addition to just line/char
     - turns into a pipeline refactor. oh well
-
-3. I need a way to receive updates in a 'temp' fashion, for when I have updates that span several llm contexts!
 
 4. i should be able to add more than just filesets as named bottom level sets.
     - MD resolver prime target, I can put it in shared cfg -> reuse it in domains of pud cfgs

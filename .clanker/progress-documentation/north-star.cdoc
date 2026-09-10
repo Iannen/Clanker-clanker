@@ -1,59 +1,55 @@
-1. Implement functionality to support the management of a Github Profile Repository as a root / management project of the user.
-    - I expect this would need a new resolver to 'peek' at content of other repositories (local repositories)
+I. Universal Contracts & Multi-Repo Intelligence
+- Repository Contract: Enforce uniform PUD directory structures (.clanker/, content/, README.md) to standardize layout across repositories.
+    - the contract must be specified. 
+    - i think it could mandate no cource files in repo root
+    - uniformity in .clanker dir across pud and clanker itself. clanker will have to carry shared assets of all types in a separate directory
+- Multi-Repo / Metarepo Support: Support resolvers capable of peeking into external local repositories to manage GitHub Profile Repositories and multi-project workspaces.
 
-3. Built in asset status system
-    - To learn if there are dangling assets, not in use
+II. Context value strategies:
+- Use all available metadata when rendering a prompt
+  - The configs contain much metadata which is not used
+        - project, domain, and prompt names (`domain.name`, `prompt.name`)
+- Try to find architectural answers to questions of LLM context production
+    - see 'purported wisdom/Fractal Context Pattern.md' for an idea
 
-4. Elevate the ship script role
-    - Can it do more than offer a 'save button'
+III. Config Asset Hygiene, management
+- Asset Lifecycle & Audit System
+  - Track dangling assets, unused templates, and unreferenced workspace files.
+  - Asset Sanity Inspection: Quick diagnostic tools ("wtf are the assets of this prompt") for payload visibility.
+- Lookahead & Validation
+  - Pre-flight validate fileset references, asset directories, and template paths during config ingestion to disallow silent failures.
+- Asset Namespace Separation
+  - Split internal operational assets from project-specific (PUD) assets to eliminate collisions.
+- Dynamic Synchronization & Reuse
+  - Support hot-reloading/re-validation of configuration on disk without app restarts.
+  - Support named, bottom-level shared declarations (filesets, MD resolvers, prompt frags) to keep PUD configurations DRY.
 
-5. Universal Project Contract & Validation Systems
-- Repository contract
-    - Purpose: enforce that PUD documentation is structurally uniform, for the benefit of user cognition and Github Metarepo handling of PUDs
-    - such and so documents shall exist, in such and so dirs. Allow for PUD expansion beyond default by way of set recognition
-    - i propose the repo root look like
-        .clanker
-        content (more general than 'src')
-        README.md
-    - i arrived at this by looking at a 'bragpack' that i made to zip the project for comprehensive review (more ez on model than urlpass)
-        
-- Runtime config validation 
-    - Purpose: ensure configuration stability and extension adherence across PUD specific and shared config fragments, for the benefit of reader cognition
-    - all config frags must obey a common policy
-- Template asset validation 
-    - Purpose: aggressively ensure stability of pud initialization assets 
-    - all template assets must adhere to a policy
-The contracts and policies should be declarative 'first class' members of Clanker codebase.
-These become bootstrap validation phases:
-    Violation ? aggregated feedback into Failure ex, inform user of path forward on app crash : bootstrap phase succeeds
-    ..
-    ..
+IV. Automation & practicality concerns
+- Enhanced Ship Role & Automation
+  - Elevate the ship script into an active orchestration pipeline.
+  - Use built-in compilation resolvers for automated artifact generation (packaging context archives, README compiling).
+- Multi-Context LLM Workflows
+  - Streamline reception and incorporation of LLM artifacts (refactor plans, doc updates, backlogs) with human oversight.
+  - Stepwise Code Updates: Staging mechanism to receive code updates iteratively across multiple context resets without breaking app usability.
+  - Follow-Up & Omission Resolver: Request dynamic follow-up context with explicit visibility into omitted/unshared workspace files.
 
-6. Next frontiers?
-- Development speed — automate the reception and incorporation of LLM-produced artifacts (document updates, refactor plans, backlog items, etc.) while keeping human judgment in the loop.
-- Project scale — represent project context as nested nodes with explicit dependencies and language-appropriate interfaces, allowing context to scale with architectural complexity.
-- Configuration management — use the same contextual dependency graph to make configuration declarative, composable, and consistent with the project's architectural boundaries.
+V. User / otherpeople oriented
+- 'Clanker clanker;' Identity: Frame LLM contexts as short-lived object instances (`clanker`) of a broader pattern (`Clanker`). 
+   Reclaims the term to highlight understanding, lifecycle awareness, and practical empowerment over fear.
+- Built-In Guidance ('F1' Prompts): Native, instant help routes for Clanker usage and operational prompts.
+- Find a way to get ruamel out of here, lessening the treshold
+- Visual upgrade to UI template
+- Find way to compile this thing into 'evalcopy.zip'
+  - stripping out .git
+  - and other assets that just pwn the llm context window
+  - for that coveted attaboy review, bypassing the manual labour of constructing the zip
+    - for other people to drop off at an llm
+    - but probable me mostly :)
 
-7. Project rename: Clanker -> Clanker Consultant
-    - Lets the user recruit public llm resources as a consultant to their project, assisting with tasks such as
-        - Design 
-        - Document management
-        - Code generation
-    - hm this implies that there is 'one consultant', which does not match the reality of llm context resets
-        - something MIB themed? Poor creatures
-
-randomthought: the user has the choice of inline yml declarations, or root level named declarations for as many things as possible
-    - > new ConfigTranslator & all that makes this possible
-    - > yes
-randomthought: new resolver, to compile a project into a zip file for that coveted attaboy review
-    - > yes! but need to finish ConfigTranslator and that to make such jobs approachable
-
-8. file extensions for class based document selection, semantic context
-
-9. 'F1' type prompts, for things like 'how do use clanker'
-
-10. 'wtf are the assets of this prompt' functionality, to promote sanity of the user
-
-11. Use Clanker to compile readme.
-    - a resolver
-    - cli functionality, for ship integration
+VI. Expand project horizon: 
+    -Clanker as general document compiler
+        - to better manage documents, the readme in particular, it would be great to reuse Clankers rendering engine for such things
+            - much more ez to work with, presumably
+            - better than github actions, cuz no github dependency
+    - Clanker for non-code repositories
+        - sheet music
