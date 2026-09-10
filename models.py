@@ -99,7 +99,7 @@ class Config:
 
 @dataclass
 class TruncationSpec:
-    tail_lines: int | None = None
+    tail_lines: int
 
 @dataclass
 class File:
@@ -113,8 +113,8 @@ class Filelist:
 
 @dataclass
 class FileSet:
-    includes: list[str] = field(default_factory=list)
-    excludes: list[str] = field(default_factory=list)
+    includes: list[str]
+    excludes: list[str]
 
 @dataclass
 class Resolver:

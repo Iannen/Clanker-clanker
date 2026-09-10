@@ -13,7 +13,6 @@ I. Ideas, complaints and non-critical bugs:
 - clankers pud assets collide with its own assets!
     - gonna have to split up Clanker's .clanker dir, so its easy to differentiate between pud and shared assets
 
-- give serious thought to scrapping 'from repo root' tack on functionality. we can get repo content via dedicated resolver
 II. Items to refine & QC:
 
 1. Usability push
@@ -64,8 +63,20 @@ II. Items to refine & QC:
         - Annotate translator dependency with ConfigTranslatorProtocol
         - Retain explicit default instantiation of ConfigTranslator to keep utilities self-contained for LLM context slicing
 
+5. give serious thought to scrapping 'from repo root' tack on functionality. we can get repo content via dedicated resolver
+
 III. Slated for implementation:
-        
+
 IV. Recently implemented:
+
+5. Cleanliness business
+    [x] 'models.py': Make TruncationSpec tail_lines non-optional
+        - Update TruncationSpec dataclass definition so tail_lines requires an explicit int (tail_lines: int)
+        - Update FileSet so includes and excludes require explicit lists (includes: list[str], excludes: list[str])
+
+    [x] 'config_dtos.py': Replace unvalidated dict access with extraction helpers
+        - Update extract_filesets to use req_dict with explicit default value {} instead of raw .get() call
+        - Update extract_domains to use req_list with no fallback, so that cfg sans domains are forbidden per validation
+        - Refactor truncation_spec_cfg to use req_int with default=None instead of manually guarding key presence with in data and isinstance checks
 
 V. Critical bugs

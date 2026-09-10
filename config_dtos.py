@@ -81,7 +81,7 @@ class ConfigTranslator:
         self.dto_fact = dto_factory or DTOFactory()
 
     def extract_filesets(self, doms_cfg_dict: dict[str, Any]) -> dict[str, FileSet]:
-        raw_filesets = doms_cfg_dict.get("filesets", {})
+        raw_filesets = self.dto_fact.req_dict(doms_cfg_dict, ["filesets"], default={})
         result = {}
         for k, v in raw_filesets.items():
             dto = self.dto_fact.fileset_cfg(v)
@@ -89,7 +89,7 @@ class ConfigTranslator:
         return result
 
     def extract_domains(self, doms_cfg_dict: dict[str, Any], filesetmap: dict[str, FileSet]) -> list[Domain]:
-        raw_domains = doms_cfg_dict.get("domains", [])
+        raw_domains = self.dto_fact.req_list(doms_cfg_dict, ["domains"])
         domains = []
         for d in raw_domains:
             dto = self.dto_fact.domain_cfg(d)
@@ -135,6 +135,7 @@ class ConfigTranslator:
         return FileSet(includes=dto.includes, excludes=dto.excludes)
 
     def _build_file(self, file_dto: FileDTO) -> File:
+
         trunc_spec = (
             TruncationSpec(tail_lines=file_dto.truncation_spec.tail_lines)
             if file_dto.truncation_spec is not None
@@ -156,19 +157,19 @@ class ConfigTranslator:
 
         if isinstance(dto, RepoContentResolverDTO):
             if isinstance(dto.fileset, str):
-                fileset_obj = named_filesets.get(dto.fileset, FileSet())
+                fileset_obj = named_filesets.get(dto.fileset)
             else:
                 fileset_obj = self._build_fileset(dto.fileset)
             return RepoContentResolver(anchor=dto.anchor, fileset=fileset_obj)
 
         if isinstance(dto, ManifestResolverDTO):
             if isinstance(dto.pud_fileset, str):
-                pud_fileset_obj = named_filesets.get(dto.pud_fileset, FileSet())
+                pud_fileset_obj = named_filesets.get(dto.pud_fileset)
             else:
                 pud_fileset_obj = self._build_fileset(dto.pud_fileset)
 
             if isinstance(dto.shared_fileset, str):
-                shared_fileset_obj = named_filesets.get(dto.shared_fileset, FileSet())
+                shared_fileset_obj = named_filesets.get(dto.shared_fileset)
             elif isinstance(dto.shared_fileset, dict):
                 shared_fileset_obj = self._build_fileset(dto.shared_fileset)
             else:
@@ -218,15 +219,15 @@ class DTOFactory:
 
     def truncation_spec_cfg(self, data: Any) -> TruncationSpecDTO:
         return TruncationSpecDTO(
-            tail_lines=self.req_int(data, ["tail_lines"]) if isinstance(data, dict) and "tail_lines" in data else None
+            tail_lines=self.req_int(data, ["tail_lines"], default=None)
         )
 
     def file_cfg(self, data: Any) -> FileDTO:
         if isinstance(data, dict):
-            name = self.req_str(data, ["file"]) if "file" in data else self.req_str(data, ["name"])
+            filename = self.req_str(data, ["file"])
             full_path = self.req_bool(data, ["full_path_from_pud"], default=False)
             trunc_spec = self.truncation_spec_cfg(data) if "tail_lines" in data else None
-            return FileDTO(name=name, full_path_from_pud=full_path, truncation_spec=trunc_spec)
+            return FileDTO(name=filename, full_path_from_pud=full_path, truncation_spec=trunc_spec)
         return FileDTO(name=self.req_str({"file": data}, ["file"]))
 
     def filelist_cfg(self, data: Any) -> FilelistDTO:
