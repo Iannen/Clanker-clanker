@@ -50,11 +50,17 @@ II. Items to refine & QC:
     - make prompt compilation msg say which domain, prompt was used in addition to just line/char
     - turns into a pipeline refactor. oh well
 
+V. Config Translation & Validation Hardening:
+    - [ ] Strict Fileset Resolution: Raise explicit `ConfigAssemblyFailure` when resolving string keys against `filesetmap` instead of silently returning `None`
+    - [ ] Uniform File Specification Parsing: Standardize `_build_file` error handling so type mismatch failures accurately report parent key/index context
+    - [ ] Pre-flight Validation Boundary: Consolidate structural dictionary checks in `ValueExtractor` to fail fast before domain model instantiation begins
 
 III. Slated for implementation:
 
+IV. Recently implemented:
+
 4. Rationalize config translation and DTO layer @ consultant, the hot item
-    [ ] 'config_dtos.py': Streamline translation layer and eliminate redundant DTOs
+    [x] 'config_dtos.py': Streamline translation layer and eliminate redundant DTOs
         - Rename DTOFactory to 'ValueExtractor'
             - containing path extraction and type-enforcement methods (`req_str`, `req_dict`, `req_list`, etc.)
             - consultant retain current set of req methods, and the internal helper too
@@ -62,7 +68,5 @@ III. Slated for implementation:
         - Eliminate redundant intermediate DTO classes (`SysCfgDTO`, `RenderDTO`, `ResolverDTO` hierarchy, `TruncationSpecDTO`, `FileDTO`, `FilelistDTO`, `DomainDTO`, `PromptDTO`, `FileSetDTO`)
         - Retain 'KbSpec' for holding system UI key assignments passed to RuntimeConfigAssembler
         - Preserve public method contract in ConfigTranslator to satisfy ConfigTranslatorProtocol in 'utilities.py'
-
-IV. Recently implemented:
 
 V. Critical bugs
