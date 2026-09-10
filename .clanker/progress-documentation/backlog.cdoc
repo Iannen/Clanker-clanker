@@ -50,18 +50,6 @@ II. Items to refine & QC:
     - make prompt compilation msg say which domain, prompt was used in addition to just line/char
     - turns into a pipeline refactor. oh well
 
-3. Config Translation & Validation Hardening: @consultant, these are not set in store, but my thoughts presented to you on the subject matter
-    - introduce 'pukebucket' complaints aggregator pattern, separating non-critical issues and critical issues. 
-        - the show should go on as far as possible, allowing as much complaints to be collected (to truble the user as few times as possible)
-        - the upstream caller deals with this further (crash app, allow)
-    - revise the set of req methods on offer
-        - req_xx(data, optional pathlist) - no path, use data directly
-        - opt_xx(data, optional pathlist, fallback) - do we have need for opts as it stand now?
-    - so the ValueExtractor and ConfigTranslator - different puking responsibilities?
-    - also, the fileset map -> does it return silent none if no match? it should result in puke, not None, i think
-
-III. Slated for implementation:
-
 3. Hardened config translation & error aggregation
     Phase 1: 
     [x] 'models.py': Add error collector domain model
@@ -81,7 +69,7 @@ III. Slated for implementation:
 
     Phase2: RuntimeConfigAssembler prettiness buff
         info: there is no other part of system that instantiates a translator. it occurs only once, at start of system
-        [ ] 'utilities.py, RuntimeConfigAssembler' Remove the passing of the collector everywhere:
+        [x] 'utilities.py, RuntimeConfigAssembler' Remove the passing of the collector everywhere:
             -  init:
                 - receive a collector from caller
                 - optionally instantiate one self, if nothing passed
@@ -94,9 +82,18 @@ III. Slated for implementation:
                 - move call to 'collector.raise_if_any()' to occur AFTER 'self._create_btn_map'
             - '_create_btn_map'
                 - use collector rather than ex raising currently on display
-        [ ] 'config_dtos.py' 
+            - align 'ConfigTranslatorProtocol' method signatures
+        [x] 'config_dtos.py' 
             - 'ConfigTranslator'
                 - add setter and getter method for the collector, which is now stored on self.
+                - when instantiating FilesetMap, pass self.collector to it
+            - carry forward the following situation in the file: the collector is only made available in anticipation of later phases, it sees no functional use
+                - in 'FilesetMap', usage of collector.add_complaint shall remain commented out
+                - do NOT introduce any usages of the collector elsewhere.
+
+    Phase 3: more RuntimeConfigAssembler prettiness buffs
+        [ ] 'utilities.py, RuntimeConfigAssembler'
+        [ ] 'config_dtos.py' 
 
     Phase: n
     [ ] 'config_dtos.py': Implement complaint collection and explicit container types
@@ -105,16 +102,8 @@ III. Slated for implementation:
             - Allow optional direct key extraction without forcing list path wrapper for single keys
         - Update `ConfigTranslator` to traverse config trees with path context tracking and trigger `ErrorCollector.raise_if_any()` on completion
 
-IV. Recently implemented:
+III. Slated for implementation:
 
-4. Rationalize config translation and DTO layer @ consultant, the hot item (transferred, deletable)
-    [x] 'config_dtos.py': Streamline translation layer and eliminate redundant DTOs
-        - Rename DTOFactory to 'ValueExtractor'
-            - containing path extraction and type-enforcement methods (`req_str`, `req_dict`, `req_list`, etc.)
-            - consultant retain current set of req methods, and the internal helper too
-        - Update ConfigTranslator to take `ValueExtractor` and directly map raw config dicts into domain models (`Domain`, `Prompt`, `Render`, `File`, `FileSet`, `Resolver` subclasses) via compositional parsing methods
-        - Eliminate redundant intermediate DTO classes (`SysCfgDTO`, `RenderDTO`, `ResolverDTO` hierarchy, `TruncationSpecDTO`, `FileDTO`, `FilelistDTO`, `DomainDTO`, `PromptDTO`, `FileSetDTO`)
-        - Retain 'KbSpec' for holding system UI key assignments passed to RuntimeConfigAssembler
-        - Preserve public method contract in ConfigTranslator to satisfy ConfigTranslatorProtocol in 'utilities.py'
+IV. Recently implemented:
 
 V. Critical bugs

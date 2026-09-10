@@ -58,43 +58,48 @@ class FilesetMapProtocol(Protocol):
     def get(self, key: str) -> FileSet | None: ...
 
 class ConfigTranslatorProtocol(Protocol):
+    def set_collector(self, collector: ErrorCollector) -> None: ...
+    def get_collector(self) -> ErrorCollector: ...
     def extract_filesets(
-        self, doms_cfg_dict: dict[str, Any], collector: ErrorCollector
+        self, doms_cfg_dict: dict[str, Any]
     ) -> dict[str, FileSet]: ...
     def extract_domains(
         self,
         doms_cfg_dict: dict[str, Any],
         filesetmap: FilesetMapProtocol,
-        collector: ErrorCollector,
     ) -> list[Domain]: ...
     def process_sys_cfg(
-        self, sys_cfg: dict[str, Any], collector: ErrorCollector
+        self, sys_cfg: dict[str, Any]
     ) -> tuple[Render, KbSpec]: ...
     def get_resolvers(
         self,
         raw_resolvers: list[dict[str, Any]],
         filesetmap: FilesetMapProtocol,
-        collector: ErrorCollector,
     ) -> list[Resolver]: ...
 
 
 class RuntimeConfigAssembler:
-    def __init__(self, translator: ConfigTranslatorProtocol | None = None) -> None:
+    def __init__(
+        self,
+        translator: ConfigTranslatorProtocol | None = None,
+        collector: ErrorCollector | None = None,
+    ) -> None:
         self.translator = translator or ConfigTranslator()
+        self.translator.set_collector(collector or ErrorCollector())
 
     def assemble(self, config_data: dict, kb_def_data: dict, shared_domains_data: dict) -> RuntimeConfig:
-        collector = ErrorCollector()
-        fileset_map = self._get_filesetmap(shared_domains_data, config_data, collector)
+        fileset_map = self._get_filesetmap(shared_domains_data, config_data)
         base_resolvers = self.translator.get_resolvers(
-            shared_domains_data.get("base_resolvers"), fileset_map, collector
+            shared_domains_data.get("base_resolvers"), fileset_map
         )
-        shared_domains = self.translator.extract_domains(shared_domains_data, fileset_map, collector)
-        pud_domains = self.translator.extract_domains(config_data, fileset_map, collector)
-        ui_render, kb_spec = self.translator.process_sys_cfg(kb_def_data, collector)
+        shared_domains = self.translator.extract_domains(shared_domains_data, fileset_map)
+        pud_domains = self.translator.extract_domains(config_data, fileset_map)
+        ui_render, kb_spec = self.translator.process_sys_cfg(kb_def_data)
+
+        collector = self.translator.get_collector()
+        button_map = self._create_btn_map(kb_spec, shared_domains, pud_domains, collector)
 
         collector.raise_if_any()
-
-        button_map = self._create_btn_map(kb_spec, shared_domains, pud_domains)
 
         keyboard = Keyboard(button_map=button_map, selected_key=None)
 
@@ -105,20 +110,26 @@ class RuntimeConfigAssembler:
         )
 
     def _get_filesetmap(
-        self, sharedcfg: dict, pudcfg: dict, collector: ErrorCollector
+        self, sharedcfg: dict, pudcfg: dict
     ) -> FilesetMap:
-        shared_sets = self.translator.extract_filesets(sharedcfg, collector)
-        pud_sets = self.translator.extract_filesets(pudcfg, collector)
+        shared_sets = self.translator.extract_filesets(sharedcfg)
+        pud_sets = self.translator.extract_filesets(pudcfg)
         merged = dict(shared_sets)
         merged.update(pud_sets)
-        return FilesetMap(data=merged, collector=collector)
+        return FilesetMap(data=merged, collector=self.translator.get_collector()) #smell
 
-    def _create_btn_map(self, kb_spec: KbSpec, shared_domains: list[Domain], pud_domains: list[Domain]) -> dict[str, Button]:
+    def _create_btn_map(
+        self,
+        kb_spec: KbSpec,
+        shared_domains: list[Domain],
+        pud_domains: list[Domain],
+        collector: ErrorCollector,
+    ) -> dict[str, Button]:
         btn_map: dict[str, Button] = {}
 
         shr_dom_btns = list(kb_spec.shared_domain_keys)
         if len(shared_domains) > len(shr_dom_btns):
-            raise ConfigAssemblyFailure("More shared domains configured than available key slots")
+            collector.add_complaint("More shared domains configured than available key slots")
         for key_char, dom in zip(shr_dom_btns, shared_domains):
             btn_map[key_char] = Button(type=Button.TYPE_DOMAIN, key=key_char, inhabitant=dom)
         for key_char in shr_dom_btns[len(shared_domains):]:
@@ -126,7 +137,7 @@ class RuntimeConfigAssembler:
 
         pud_dom_btns = list(kb_spec.pud_domain_keys)
         if len(pud_domains) > len(pud_dom_btns):
-            raise ConfigAssemblyFailure("More PUD domains configured than available key slots")
+            collector.add_complaint("More PUD domains configured than available key slots")
         for key_char, dom in zip(pud_dom_btns, pud_domains):
             btn_map[key_char] = Button(type=Button.TYPE_DOMAIN, key=key_char, inhabitant=dom)
         for key_char in pud_dom_btns[len(pud_domains):]:

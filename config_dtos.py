@@ -15,6 +15,7 @@ from models import (
     KBStateResolver,
     TruncationSpec,
     ConfigAssemblyFailure,
+    ErrorCollector,
 )
 
 
@@ -39,9 +40,16 @@ class FilesetMap:
 class ConfigTranslator:
     def __init__(self, extractor: ValueExtractor | None = None) -> None:
         self.extractor = extractor or ValueExtractor()
+        self.collector: ErrorCollector = ErrorCollector()
+
+    def set_collector(self, collector: ErrorCollector) -> None:
+        self.collector = collector
+
+    def get_collector(self) -> ErrorCollector:
+        return self.collector
 
     def extract_filesets(
-        self, doms_cfg_dict: dict[str, Any], collector: ErrorCollector
+        self, doms_cfg_dict: dict[str, Any]
     ) -> dict[str, FileSet]:
         raw_filesets = self.extractor.req_dict(doms_cfg_dict, ["filesets"], default={})
         result = {}
@@ -53,7 +61,6 @@ class ConfigTranslator:
         self,
         doms_cfg_dict: dict[str, Any],
         filesetmap: FilesetMapProtocol,
-        collector: ErrorCollector,
     ) -> list[Domain]:
         raw_domains = self.extractor.req_list(doms_cfg_dict, ["domains"])
         domains = []
@@ -62,13 +69,13 @@ class ConfigTranslator:
             raw_resolvers = self.extractor.req_list(d, ["resolvers"])
             raw_prompts = self.extractor.req_list(d, ["prompts"])
 
-            resolvers = [self._build_resolver(r, filesetmap, collector) for r in raw_resolvers]
-            prompts = self._build_prompts(raw_prompts, filesetmap, collector)
+            resolvers = [self._build_resolver(r, filesetmap, self.collector) for r in raw_resolvers]
+            prompts = self._build_prompts(raw_prompts, filesetmap, self.collector)
             domains.append(Domain(name=name, prompts=prompts, resolvers=resolvers))
         return domains
 
     def process_sys_cfg(
-        self, sys_cfg: dict[str, Any], collector: ErrorCollector
+        self, sys_cfg: dict[str, Any]
     ) -> tuple[Render, KbSpec]:
         kb_spec = KbSpec(
             shared_domain_keys=self.extractor.req_str(sys_cfg, ["button_rows", "shared_domains_row"]),
@@ -76,16 +83,15 @@ class ConfigTranslator:
             prompt_keys=self.extractor.req_str(sys_cfg, ["button_rows", "prompts_row"]),
         )
         ui_render_data = self.extractor.req_dict(sys_cfg, ["ui_render"])
-        ui_render = self._build_render(ui_render_data, FilesetMap({}, collector), collector)
+        ui_render = self._build_render(ui_render_data, FilesetMap({}, self.collector), self.collector)
         return ui_render, kb_spec
 
     def get_resolvers(
         self,
         raw_resolvers: list[dict[str, Any]],
         filesetmap: FilesetMapProtocol,
-        collector: ErrorCollector,
     ) -> list[Resolver]:
-        return [self._build_resolver(r, filesetmap, collector) for r in raw_resolvers]
+        return [self._build_resolver(r, filesetmap, self.collector) for r in raw_resolvers]
 
     def _build_prompts(
         self,
