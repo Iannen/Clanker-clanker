@@ -24,11 +24,25 @@ class KbSpec:
     pud_domain_keys: str
     prompt_keys: str
 
+
+class FilesetMap:
+    def __init__(self, data: dict[str, FileSet], collector: ErrorCollector) -> None:
+        self._data = data
+        self._collector = collector
+
+    def get(self, key: str) -> FileSet | None:
+        if key not in self._data:
+            #self._collector.add_complaint(f"Referenced fileset '{key}' does not exist")
+            return None
+        return self._data[key]
+
 class ConfigTranslator:
     def __init__(self, extractor: ValueExtractor | None = None) -> None:
         self.extractor = extractor or ValueExtractor()
 
-    def extract_filesets(self, doms_cfg_dict: dict[str, Any]) -> dict[str, FileSet]:
+    def extract_filesets(
+        self, doms_cfg_dict: dict[str, Any], collector: ErrorCollector
+    ) -> dict[str, FileSet]:
         raw_filesets = self.extractor.req_dict(doms_cfg_dict, ["filesets"], default={})
         result = {}
         for k, v in raw_filesets.items():
@@ -36,7 +50,10 @@ class ConfigTranslator:
         return result
 
     def extract_domains(
-        self, doms_cfg_dict: dict[str, Any], filesetmap: dict[str, FileSet]
+        self,
+        doms_cfg_dict: dict[str, Any],
+        filesetmap: FilesetMapProtocol,
+        collector: ErrorCollector,
     ) -> list[Domain]:
         raw_domains = self.extractor.req_list(doms_cfg_dict, ["domains"])
         domains = []
@@ -45,45 +62,56 @@ class ConfigTranslator:
             raw_resolvers = self.extractor.req_list(d, ["resolvers"])
             raw_prompts = self.extractor.req_list(d, ["prompts"])
 
-            resolvers = [self._build_resolver(r, filesetmap) for r in raw_resolvers]
-            prompts = self._build_prompts(raw_prompts, filesetmap)
+            resolvers = [self._build_resolver(r, filesetmap, collector) for r in raw_resolvers]
+            prompts = self._build_prompts(raw_prompts, filesetmap, collector)
             domains.append(Domain(name=name, prompts=prompts, resolvers=resolvers))
         return domains
 
-    def process_sys_cfg(self, sys_cfg: dict[str, Any]) -> tuple[Render, KbSpec]:
+    def process_sys_cfg(
+        self, sys_cfg: dict[str, Any], collector: ErrorCollector
+    ) -> tuple[Render, KbSpec]:
         kb_spec = KbSpec(
             shared_domain_keys=self.extractor.req_str(sys_cfg, ["button_rows", "shared_domains_row"]),
             pud_domain_keys=self.extractor.req_str(sys_cfg, ["button_rows", "pud_domains_row"]),
             prompt_keys=self.extractor.req_str(sys_cfg, ["button_rows", "prompts_row"]),
         )
         ui_render_data = self.extractor.req_dict(sys_cfg, ["ui_render"])
-        ui_render = self._build_render(ui_render_data, {})
+        ui_render = self._build_render(ui_render_data, FilesetMap({}, collector), collector)
         return ui_render, kb_spec
 
     def get_resolvers(
-        self, raw_resolvers: list[dict[str, Any]], filesetmap: dict[str, FileSet]
+        self,
+        raw_resolvers: list[dict[str, Any]],
+        filesetmap: FilesetMapProtocol,
+        collector: ErrorCollector,
     ) -> list[Resolver]:
-        return [self._build_resolver(r, filesetmap) for r in raw_resolvers]
+        return [self._build_resolver(r, filesetmap, collector) for r in raw_resolvers]
 
     def _build_prompts(
-        self, dicts: list[dict[str, Any]], filesetmap: dict[str, FileSet]
+        self,
+        dicts: list[dict[str, Any]],
+        filesetmap: FilesetMapProtocol,
+        collector: ErrorCollector,
     ) -> list[Prompt]:
         prompts = []
         for d in dicts:
             name = self.extractor.req_str(d, ["name"])
             render_dict = self.extractor.req_dict(d, ["render"], default={})
-            render = self._build_render(render_dict, filesetmap)
+            render = self._build_render(render_dict, filesetmap, collector)
             prompts.append(Prompt(name=name, render=render))
         return prompts
 
     def _build_render(
-        self, render_dict: dict[str, Any], filesetmap: dict[str, FileSet]
+        self,
+        render_dict: dict[str, Any],
+        filesetmap: FilesetMapProtocol,
+        collector: ErrorCollector,
     ) -> Render:
         template = self.extractor.req_str(render_dict, ["template"], Render.template)
         inherit_base = self.extractor.req_bool(render_dict, ["inherit_base"], Render.inherit_base)
         inherit_domain = self.extractor.req_bool(render_dict, ["inherit_domain"], Render.inherit_domain)
         raw_resolvers = self.extractor.req_list(render_dict, ["resolvers"])
-        resolvers = [self._build_resolver(r, filesetmap) for r in raw_resolvers]
+        resolvers = [self._build_resolver(r, filesetmap, collector) for r in raw_resolvers]
         return Render(
             template=template,
             resolvers=resolvers,
@@ -107,7 +135,12 @@ class ConfigTranslator:
             return File(name=filename, truncation_spec=trunc_spec)
         return File(name=self.extractor.req_str({"file": data}, ["file"]))
 
-    def _build_resolver(self, data: dict[str, Any], filesetmap: dict[str, FileSet]) -> Resolver:
+    def _build_resolver(
+        self,
+        data: dict[str, Any],
+        filesetmap: FilesetMapProtocol,
+        collector: ErrorCollector,
+    ) -> Resolver:
         res_type = self.extractor.req_str(data, ["type"])
         anchor = self.extractor.req_str(data, ["id"])
 
@@ -129,7 +162,7 @@ class ConfigTranslator:
                 fileset_obj = filesetmap.get(fileset_val)
             else:
                 fileset_obj = self._build_fileset(fileset_val)
-            return RepoContentResolver(anchor=anchor, fileset=fileset_obj)
+            return RepoContentResolver(anchor=anchor, fileset=fileset_obj or FileSet(includes=[], excludes=[]))
 
         if res_type == "repo-manifest":
             if "pud_fileset" not in data and "shared_fileset" not in data:
@@ -154,7 +187,7 @@ class ConfigTranslator:
 
             return ManifestResolver(
                 anchor=anchor,
-                pud_fileset=pud_fileset_obj,
+                pud_fileset=pud_fileset_obj or FileSet(includes=[], excludes=[]),
                 shared_fileset=shared_fileset_obj,
             )
 

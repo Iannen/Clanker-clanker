@@ -54,72 +54,28 @@ class ConfigValidator:
     def get_as_dict(self, raw_text: str) -> dict:
         return self.yaml.load(raw_text) or {}
 
-    def assert_filesets_not_neglected(self, cfg_frag: dict, filepath: str = "") -> None:
-        violations = []
-
-        def _make_key(includes: list, excludes: list) -> str:
-            inc_str = ",".join(sorted(str(x) for x in includes))
-            exc_str = ",".join(sorted(str(x) for x in excludes))
-            return f"inc:[{inc_str}]|exc:[{exc_str}]"
-
-        named_fileset_map: dict[str, str] = {}
-        for set_name, set_def in cfg_frag.get("filesets", {}).items():
-            if isinstance(set_def, dict):
-                inc = set_def.get("includes", [])
-                exc = set_def.get("excludes", [])
-                key = _make_key(inc, exc)
-                named_fileset_map[key] = set_name
-
-        inline_filesets: list[tuple[str, str | None, str | None]] = []
-        for domain in cfg_frag.get("domains", []):
-            if not isinstance(domain, dict):
-                continue
-            domain_name = domain.get("name")
-            for resolver in domain.get("resolvers", []):
-                if not isinstance(resolver, dict):
-                    continue
-                if "fileset" in resolver or "varname" in resolver:
-                    continue
-                inc = resolver.get("includes", [])
-                exc = resolver.get("excludes", [])
-                if inc or exc:
-                    key = _make_key(inc, exc)
-                    inline_filesets.append((key, domain_name, None))
-
-            for prompt in domain.get("prompts", []):
-                if not isinstance(prompt, dict):
-                    continue
-                prompt_name = prompt.get("name")
-                render = prompt.get("render")
-                if not isinstance(render, dict):
-                    continue
-                for resolver in render.get("resolvers", []):
-                    if not isinstance(resolver, dict):
-                        continue
-                    if "fileset" in resolver or "varname" in resolver:
-                        continue
-                    inc = resolver.get("includes", [])
-                    exc = resolver.get("excludes", [])
-                    if inc or exc:
-                        key = _make_key(inc, exc)
-                        inline_filesets.append((key, domain_name, prompt_name))
-
-        for string_key, domain, render in inline_filesets:
-            if string_key in named_fileset_map:
-                violations.append(
-                    f"    domain '{domain}' render '{render}': use named fileset '{named_fileset_map[string_key]}'"
-                )
-
-        if violations:
-            msg_parts = [filepath] if filepath else []
-            msg_parts.extend(violations)
-            raise ConfigViolations("\n".join(msg_parts))
+class FilesetMapProtocol(Protocol):
+    def get(self, key: str) -> FileSet | None: ...
 
 class ConfigTranslatorProtocol(Protocol):
-    def extract_filesets(self, doms_cfg_dict: dict[str, Any]) -> dict[str, FileSet]: ...
-    def extract_domains(self, doms_cfg_dict: dict[str, Any], filesetmap: dict[str, FileSet]) -> list[Domain]: ...
-    def process_sys_cfg(self, sys_cfg: dict[str, Any]) -> tuple[Render, KbSpec]: ...
-    def get_resolvers(self, raw_resolvers: list[dict[str, Any]], filesetmap: dict[str, FileSet]) -> list[Resolver]: ...
+    def extract_filesets(
+        self, doms_cfg_dict: dict[str, Any], collector: ErrorCollector
+    ) -> dict[str, FileSet]: ...
+    def extract_domains(
+        self,
+        doms_cfg_dict: dict[str, Any],
+        filesetmap: FilesetMapProtocol,
+        collector: ErrorCollector,
+    ) -> list[Domain]: ...
+    def process_sys_cfg(
+        self, sys_cfg: dict[str, Any], collector: ErrorCollector
+    ) -> tuple[Render, KbSpec]: ...
+    def get_resolvers(
+        self,
+        raw_resolvers: list[dict[str, Any]],
+        filesetmap: FilesetMapProtocol,
+        collector: ErrorCollector,
+    ) -> list[Resolver]: ...
 
 
 class RuntimeConfigAssembler:
@@ -127,11 +83,16 @@ class RuntimeConfigAssembler:
         self.translator = translator or ConfigTranslator()
 
     def assemble(self, config_data: dict, kb_def_data: dict, shared_domains_data: dict) -> RuntimeConfig:
-        fileset_map = self._get_filesetmap(shared_domains_data, config_data)
-        base_resolvers = self.translator.get_resolvers(shared_domains_data.get("base_resolvers", []), fileset_map)
-        shared_domains = self.translator.extract_domains(shared_domains_data, fileset_map)
-        pud_domains = self.translator.extract_domains(config_data, fileset_map)
-        ui_render, kb_spec = self.translator.process_sys_cfg(kb_def_data)
+        collector = ErrorCollector()
+        fileset_map = self._get_filesetmap(shared_domains_data, config_data, collector)
+        base_resolvers = self.translator.get_resolvers(
+            shared_domains_data.get("base_resolvers"), fileset_map, collector
+        )
+        shared_domains = self.translator.extract_domains(shared_domains_data, fileset_map, collector)
+        pud_domains = self.translator.extract_domains(config_data, fileset_map, collector)
+        ui_render, kb_spec = self.translator.process_sys_cfg(kb_def_data, collector)
+
+        collector.raise_if_any()
 
         button_map = self._create_btn_map(kb_spec, shared_domains, pud_domains)
 
@@ -143,12 +104,14 @@ class RuntimeConfigAssembler:
             base_resolvers=base_resolvers,
         )
 
-    def _get_filesetmap(self, sharedcfg: dict, pudcfg: dict) -> dict[str, FileSet]:
-        shared_sets = self.translator.extract_filesets(sharedcfg)
-        pud_sets = self.translator.extract_filesets(pudcfg)
+    def _get_filesetmap(
+        self, sharedcfg: dict, pudcfg: dict, collector: ErrorCollector
+    ) -> FilesetMap:
+        shared_sets = self.translator.extract_filesets(sharedcfg, collector)
+        pud_sets = self.translator.extract_filesets(pudcfg, collector)
         merged = dict(shared_sets)
         merged.update(pud_sets)
-        return merged
+        return FilesetMap(data=merged, collector=collector)
 
     def _create_btn_map(self, kb_spec: KbSpec, shared_domains: list[Domain], pud_domains: list[Domain]) -> dict[str, Button]:
         btn_map: dict[str, Button] = {}

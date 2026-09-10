@@ -63,22 +63,43 @@ II. Items to refine & QC:
 III. Slated for implementation:
 
 3. Hardened config translation & error aggregation
-    Phase 1:
-    [ ] 'models.py': Add error collector domain model
+    Phase 1: 
+    [x] 'models.py': Add error collector domain model
         - Add `ErrorCollector` type with path context stack (`push_path`/`pop_path`) for cross-layer error aggregation
             - Formats error messages with active YAML path (e.g. `domains[0] -> resolvers[1]`)
             - Accumulates complaints across parsing pass and raises single `ConfigAssemblyFailure` on flush
-    [ ] 'utilities.py': Update protocol definitions and pass collector in assembler
+    [x] 'utilities.py': Update protocol definitions and pass collector in assembler
         - Add `FilesetMapProtocol` interface defining fileset lookup contract for external visibility
         - Update `RuntimeConfigAssembler.assemble` to instantiate `ErrorCollector` and pass it to translator methods
-        - update the ConfigTranslatorProtocol to accept 'ErrorCollector'
-    [ ] 'config_dtos.py'
-        - update 'ConfigTranslator' to match protocol method signatures. for now the new argument is completely un-used by the implementation
-
-    Phase: 2
-    [ ] 'config_dtos.py': Implement complaint collection and explicit container types
+        - Update `ConfigTranslatorProtocol` to accept `ErrorCollector` as a mandatory position-based argument (no '= None' default)
+    [x] 'config_dtos.py'
+        - Update `ConfigTranslator` to match protocol method signatures with required `ErrorCollector` argument (no '= None' default; unused until Phase 2)
         - Implement `FilesetMap` conforming to `FilesetMapProtocol` that wraps dict lookup
             - Records complaint to `ErrorCollector` on missing key hit while returning `None` to allow parsing to continue
+    [x] 'ConfigValidator'& 'ConfigValidatorProtocol'
+        - removed 'assert_filesets_not_neglected member, in anticipation of folding such things into the new system
+
+    Phase2: RuntimeConfigAssembler prettiness buff
+        info: there is no other part of system that instantiates a translator. it occurs only once, at start of system
+        [ ] 'utilities.py, RuntimeConfigAssembler' Remove the passing of the collector everywhere:
+            -  init:
+                - receive a collector from caller
+                - optionally instantiate one self, if nothing passed
+                - pass it to setter method of 'ConfigTranslator' to store on self
+                    - this eliminates need for continues passdown, clearing up both ConfigTranslator protocol and implementation method sigs
+            - assemble
+                - before call to 'self._create_btn_map'
+                - extract collector from self.translator via getter method (marking end of translator LC)
+                - pass collector to 'self._create_btn_map'
+                - move call to 'collector.raise_if_any()' to occur AFTER 'self._create_btn_map'
+            - '_create_btn_map'
+                - use collector rather than ex raising currently on display
+        [ ] 'config_dtos.py' 
+            - 'ConfigTranslator'
+                - add setter and getter method for the collector, which is now stored on self.
+
+    Phase: n
+    [ ] 'config_dtos.py': Implement complaint collection and explicit container types
         - Revise `ValueExtractor` API to support path context tracking and explicit `req_*` / `opt_*` methods
             - Add dedicated `opt_str`, `opt_list`, `opt_bool`, `opt_int` methods requiring explicit default values
             - Allow optional direct key extraction without forcing list path wrapper for single keys

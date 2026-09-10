@@ -166,7 +166,6 @@ class SessionService:
             raw_content = self.files.get_file_contents(fragment_token_path)
             self.validator.assert_no_quotes(raw_content, fragment_token_path)
             cfg_dict = self.validator.get_as_dict(raw_content)
-            self.validator.assert_filesets_not_neglected(cfg_dict, fragment_token_path)
             return cfg_dict
         except ConfigViolations as ex:
             raise UserTask(str(ex)) from ex
