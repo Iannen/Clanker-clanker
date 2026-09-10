@@ -376,3 +376,9 @@ LXVII: REMOVE FULL-PATH FILE RETRIEVAL FUNCTIONALITY FROM MULTIDOCRESOLVER STACK
     - Stripped full_path_from_pud attribute from File dataclass in models.py
     - Removed full-path retrieval logic, res_type aliases, and DTO attributes from config_dtos.py
     - Removed full_path_from_pud conditional branch in AssemblyService._res_multi_doc within clanker.py to enforce standardized name-based fallback lookup
+
+LXVIII: RATIONALIZE CONFIG TRANSLATION AND DTO LAYER
+    - Replaced DTOFactory with ValueExtractor featuring path extraction and type enforcement methods (req_str, req_dict, req_list, etc.)
+    - Updated ConfigTranslator to map raw configuration dicts directly into domain models via ValueExtractor
+    - Eliminated intermediate DTO classes (SysCfgDTO, RenderDTO, ResolverDTO hierarchy, TruncationSpecDTO, FileDTO, FilelistDTO, DomainDTO, PromptDTO, FileSetDTO)
+    - Retained KbSpec for UI key assignment transport and preserved ConfigTranslatorProtocol compatibility in utilities.py

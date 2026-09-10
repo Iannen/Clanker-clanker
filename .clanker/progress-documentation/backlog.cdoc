@@ -50,16 +50,43 @@ II. Items to refine & QC:
     - make prompt compilation msg say which domain, prompt was used in addition to just line/char
     - turns into a pipeline refactor. oh well
 
-V. Config Translation & Validation Hardening:
-    - [ ] Strict Fileset Resolution: Raise explicit `ConfigAssemblyFailure` when resolving string keys against `filesetmap` instead of silently returning `None`
-    - [ ] Uniform File Specification Parsing: Standardize `_build_file` error handling so type mismatch failures accurately report parent key/index context
-    - [ ] Pre-flight Validation Boundary: Consolidate structural dictionary checks in `ValueExtractor` to fail fast before domain model instantiation begins
+3. Config Translation & Validation Hardening: @consultant, these are not set in store, but my thoughts presented to you on the subject matter
+    - introduce 'pukebucket' complaints aggregator pattern, separating non-critical issues and critical issues. 
+        - the show should go on as far as possible, allowing as much complaints to be collected (to truble the user as few times as possible)
+        - the upstream caller deals with this further (crash app, allow)
+    - revise the set of req methods on offer
+        - req_xx(data, optional pathlist) - no path, use data directly
+        - opt_xx(data, optional pathlist, fallback) - do we have need for opts as it stand now?
+    - so the ValueExtractor and ConfigTranslator - different puking responsibilities?
+    - also, the fileset map -> does it return silent none if no match? it should result in puke, not None, i think
 
 III. Slated for implementation:
 
+3. Hardened config translation & error aggregation
+    Phase 1:
+    [ ] 'models.py': Add error collector domain model
+        - Add `ErrorCollector` type with path context stack (`push_path`/`pop_path`) for cross-layer error aggregation
+            - Formats error messages with active YAML path (e.g. `domains[0] -> resolvers[1]`)
+            - Accumulates complaints across parsing pass and raises single `ConfigAssemblyFailure` on flush
+    [ ] 'utilities.py': Update protocol definitions and pass collector in assembler
+        - Add `FilesetMapProtocol` interface defining fileset lookup contract for external visibility
+        - Update `RuntimeConfigAssembler.assemble` to instantiate `ErrorCollector` and pass it to translator methods
+        - update the ConfigTranslatorProtocol to accept 'ErrorCollector'
+    [ ] 'config_dtos.py'
+        - update 'ConfigTranslator' to match protocol method signatures. for now the new argument is completely un-used by the implementation
+
+    Phase: 2
+    [ ] 'config_dtos.py': Implement complaint collection and explicit container types
+        - Implement `FilesetMap` conforming to `FilesetMapProtocol` that wraps dict lookup
+            - Records complaint to `ErrorCollector` on missing key hit while returning `None` to allow parsing to continue
+        - Revise `ValueExtractor` API to support path context tracking and explicit `req_*` / `opt_*` methods
+            - Add dedicated `opt_str`, `opt_list`, `opt_bool`, `opt_int` methods requiring explicit default values
+            - Allow optional direct key extraction without forcing list path wrapper for single keys
+        - Update `ConfigTranslator` to traverse config trees with path context tracking and trigger `ErrorCollector.raise_if_any()` on completion
+
 IV. Recently implemented:
 
-4. Rationalize config translation and DTO layer @ consultant, the hot item
+4. Rationalize config translation and DTO layer @ consultant, the hot item (transferred, deletable)
     [x] 'config_dtos.py': Streamline translation layer and eliminate redundant DTOs
         - Rename DTOFactory to 'ValueExtractor'
             - containing path extraction and type-enforcement methods (`req_str`, `req_dict`, `req_list`, etc.)
