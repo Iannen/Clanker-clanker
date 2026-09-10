@@ -387,3 +387,8 @@ LXIX: INTEGRATE CROSS-LAYER ERROR AGGREGATION AND STREAMLINE CONFIGURATION PIPEL
     - Implemented `ErrorCollector` with path stack tracing for comprehensive configuration assembly error handling
     - Refactored `ConfigTranslator` and `FilesetMap` to handle stateful merging and clean internal dictionary extractions
     - Cleaned up `RuntimeConfigAssembler` execution flow to natively manage error collection and simplify translator protocols
+
+LXX: INTRODUCE SINGLE-USE RUNTIME CONFIG BUILDER PATTERN
+    - Replaced `RuntimeConfigAssembler` with a single-use `RuntimeConfigBuilder` class in `utilities.py` to streamline the configuration lifecycle
+    - Extracted core assembly steps into dedicated helper methods (`_handle_named_filesets`, `_handle_domains`, and `_handle_buttons`) storing intermediate state on self
+    - Refactored `clanker.py` and `SessionService` to instantiate `RuntimeConfigBuilder` directly, leveraging `.build()` to return both collector and configuration instances to `AppEngine`

@@ -32,7 +32,7 @@ class FilesetMap:
 
     def get(self, key: str) -> FileSet | None:
         if key not in self._data:
-            #self._collector.add_complaint(f"Referenced fileset '{key}' does not exist")
+            self._collector.add_complaint(f"Referenced fileset '{key}' does not exist")
             return None
         return self._data[key]
 
@@ -42,9 +42,9 @@ class FilesetMap:
         return FilesetMap(data=merged_data, collector=self._collector)
 
 class ConfigTranslator:
-    def __init__(self, extractor: ValueExtractor | None = None) -> None:
-        self.extractor = extractor or ValueExtractor()
-        self.collector: ErrorCollector = ErrorCollector()
+    def __init__(self, collector: ErrorCollector) -> None:
+        self.extractor = ValueExtractor()
+        self.collector = collector
         self._filesetmap: FilesetMapProtocol | None = None
 
     def set_collector(self, collector: ErrorCollector) -> None:

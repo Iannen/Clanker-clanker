@@ -17,12 +17,12 @@ domains:
         render:
           resolvers:
             - { id: domain_fragments, type: repo-manifest, pud_fileset: all, shared_fileset: clanker-shared-assets }
-            - { id: repo_content, type: repo_content, fileset: default_repo_content }
+            - { id: repo_content, type: repo_content, fileset: core }
       - name: config-dev
         render:
           resolvers:
             - { id: domain_fragments, type: multi-document-retrieval, files: [config-development-mode.md] }
-            - { id: repo_content, type: repo_content, fileset: default_repo_content }
+            - { id: repo_content, type: repo_content, fileset: core }
 
   - name: readme
     resolvers:

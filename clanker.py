@@ -11,6 +11,7 @@ import sys
 import traceback
 from typing import Callable, ClassVar, Any #ClassVar not used?
 from models import *
+from utilities import RuntimeConfigBuilder
 
 class ExceptionPolicy:
     ADOPTED_NOTICES: tuple[type[Exception], ...] = (  
@@ -89,7 +90,9 @@ class AppEngine:
 
     def _bootstrap(self) -> ActionResult:
         try:
-            self.runtime_config = self.session.get_runtime_config()
+            collector, rtc = self.session.get_runtime_config()
+            collector.raise_if_any()
+            self.runtime_config = rtc
             self.kb = self.runtime_config.keyboard
             self._wire_num_row()
             self._set_selected_num_btn(None)
@@ -155,11 +158,9 @@ class SessionService:
         self,
         files: FileBridgePort,
         validator: ConfigValidatorProtocol,
-        assembler: RuntimeConfigAssemblerProtocol
     ) -> None:
         self.files = files
         self.validator = validator
-        self.assembler = assembler
 
     def _get_validated_cfg_fragment(self, fragment_token_path: str) -> dict:
         try:
@@ -170,19 +171,20 @@ class SessionService:
         except ConfigViolations as ex:
             raise UserTask(str(ex)) from ex
 
-    def get_runtime_config(self) -> RuntimeConfig:
+    def get_runtime_config(self) -> (ErrorCollector, RuntimeConfig):
         try:
-            config_data = self._get_validated_cfg_fragment(BasePathTokens.PUD + CfgFragments.PUD_CFG)
+            pud_cfg = self._get_validated_cfg_fragment(BasePathTokens.PUD + CfgFragments.PUD_CFG)
         except FileNotFoundError:
             raise NoConfig
 
         try:
-            kb_def_data = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.SYSTEM_CFG)
-            shared_domains_data = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.SHARED_CFG)
+            sys_cfg = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.SYSTEM_CFG)
+            shared_cfg = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.SHARED_CFG)
         except FileNotFoundError as ex:
             raise ConfigAssemblyFailure(f"Missing configuration fragment: {ex}") from ex
 
-        return self.assembler.assemble(config_data, kb_def_data, shared_domains_data)
+        collector = ErrorCollector()
+        return collector, RuntimeConfigBuilder(pud_cfg, sys_cfg, shared_cfg, collector).build()
 
     def initialize_workspace(self) -> None:
         if self.files.is_cwd_script_dir():
@@ -379,12 +381,11 @@ def main():
         io_adapter = ExceptionPolicy.protect_adapter(IOBridge())
         
         #file 'utilities.py'
-        from utilities import ConfigValidator, DefaultContentShaper, RuntimeConfigAssembler
+        from utilities import ConfigValidator, DefaultContentShaper
         validator = ConfigValidator()
         shaper = DefaultContentShaper()
-        assembler = RuntimeConfigAssembler()
 
-        session = SessionService(files=files_adapter, validator=validator, assembler=assembler)
+        session = SessionService(files=files_adapter, validator=validator)
         renderer = AssemblyService(files=files_adapter, shaper=shaper)
         io = IOService(io_bridge=io_adapter)
 

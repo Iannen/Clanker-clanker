@@ -50,12 +50,6 @@ II. Items to refine & QC:
     - make prompt compilation msg say which domain, prompt was used in addition to just line/char
     - turns into a pipeline refactor. oh well
 
-3. more ingestion work @ consultant lets develop this some
-    - prettify assembler more
-        - reduce passing of things in favour of native handling
-        - extract helpers for stages
-            - to reflect dependency ordering which is taken care of by RTCA
-    - look towards dto file, see what the playa move is now.
 III. Slated for implementation:
 
 IV. Recently implemented:
