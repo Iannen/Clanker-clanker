@@ -95,8 +95,9 @@ class ConfigTranslator:
 
     def get_resolvers(
         self,
-        raw_resolvers: list[dict[str, Any]],
+        shared_domains_data: dict[str, Any],
     ) -> list[Resolver]:
+        raw_resolvers = self.extractor.req_list(shared_domains_data, ["base_resolvers"], default=[])
         return [self._build_resolver(r, self.collector) for r in raw_resolvers]
 
     def _build_prompts(

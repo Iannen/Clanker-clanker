@@ -52,6 +52,8 @@ II. Items to refine & QC:
 
 III. Slated for implementation:
 
+IV. Recently implemented:
+
 3. Hardened config translation & error aggregation
     Phase 1: 
     [x] 'models.py': Add error collector domain model
@@ -112,19 +114,14 @@ III. Slated for implementation:
                 - Remove `_get_filesetmap` helper method and the `#smell` comment
 
     Phase 4: even more RuntimeConfigAssembler prettiness buffs
-        [ ] 'utilities.py, RuntimeConfigAssembler': store collector on self, then access from self as required
-            - init : store collector on self
-            - other places in RTCA: the translator will mutate the collector, so we dont need to acquire it via a setter. we can just use it from self, not needing to pass it around 
-            - assemble:
-                - 'self.translator.get_resolvers' should simply be passed the 'shared_domains_data' dict, RTCA should not extract a member. otherside might need align
-        
-    Phase: n
-    [ ] 'config_dtos.py': Implement complaint collection and explicit container types
-        - Revise `ValueExtractor` API to support path context tracking and explicit `req_*` / `opt_*` methods
-            - Add dedicated `opt_str`, `opt_list`, `opt_bool`, `opt_int` methods requiring explicit default values
-            - Allow optional direct key extraction without forcing list path wrapper for single keys
-        - Update `ConfigTranslator` to traverse config trees with path context tracking and trigger `ErrorCollector.raise_if_any()` on completion
-
-IV. Recently implemented:
+        [x] 'utilities.py': Update RuntimeConfigAssembler to store and manage the error collector natively
+            - Store `collector` on `self` during `__init__`, passing it to the translator and eliminating getter/setter boilerplate during assembly
+            - Pass the raw `shared_domains_data` dictionary directly to `self.translator.get_resolvers` without pre-extracting members in the assembler
+            - Invoke `collector.raise_if_any()` directly from the assembler instance
+        [x] 'config_dtos.py': Update ConfigTranslator to handle raw dict extraction and carry forward collector constraints
+            - Update `get_resolvers` to accept the raw `shared_domains_data` dict and extract base resolvers internally using its extractor
+            - Carry forward the following situation in the file: the collector is only made available in anticipation of later phases, it sees no functional use
+                - In 'FilesetMap', usage of collector.add_complaint shall remain commented out
+                - Do NOT introduce any usages of the collector elsewhere.
 
 V. Critical bugs

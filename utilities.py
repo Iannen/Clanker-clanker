@@ -74,7 +74,7 @@ class ConfigTranslatorProtocol(Protocol):
     ) -> tuple[Render, KbSpec]: ...
     def get_resolvers(
         self,
-        raw_resolvers: list[dict[str, Any]],
+        shared_domains_data: dict[str, Any],
     ) -> list[Resolver]: ...
 
 
@@ -84,26 +84,24 @@ class RuntimeConfigAssembler:
         translator: ConfigTranslatorProtocol | None = None,
         collector: ErrorCollector | None = None,
     ) -> None:
+        self.collector = collector or ErrorCollector()
         self.translator = translator or ConfigTranslator()
-        self.translator.set_collector(collector or ErrorCollector())
+        self.translator.set_collector(self.collector)
 
-    def assemble(self, config_data: dict, kb_def_data: dict, shared_domains_data: dict) -> RuntimeConfig:
-        shared_map = self.translator.extract_filesets(shared_domains_data)
-        pud_map = self.translator.extract_filesets(config_data)
+    def assemble(self, pud_cfg: dict, sys_cfg: dict, shared_cfg: dict) -> RuntimeConfig:
+        shared_map = self.translator.extract_filesets(shared_cfg)
+        pud_map = self.translator.extract_filesets(pud_cfg)
         merged_map = shared_map.merge(pud_map)
         self.translator.set_filesetmap(merged_map)
 
-        base_resolvers = self.translator.get_resolvers(
-            shared_domains_data.get("base_resolvers") # in general, the RTCA should just pass the incoming cfg dicts town, not extract anything prior
-        )
-        shared_domains = self.translator.extract_domains(shared_domains_data)
-        pud_domains = self.translator.extract_domains(config_data)
-        ui_render, kb_spec = self.translator.process_sys_cfg(kb_def_data)
+        base_resolvers = self.translator.get_resolvers(shared_cfg)
+        shared_domains = self.translator.extract_domains(shared_cfg)
+        pud_domains = self.translator.extract_domains(pud_cfg)
+        ui_render, kb_spec = self.translator.process_sys_cfg(sys_cfg)
 
-        collector = self.translator.get_collector()
-        button_map = self._create_btn_map(kb_spec, shared_domains, pud_domains, collector)
+        button_map = self._create_btn_map(kb_spec, shared_domains, pud_domains)
 
-        collector.raise_if_any()
+        self.collector.raise_if_any()
 
         keyboard = Keyboard(button_map=button_map, selected_key=None)
 
@@ -118,13 +116,12 @@ class RuntimeConfigAssembler:
         kb_spec: KbSpec,
         shared_domains: list[Domain],
         pud_domains: list[Domain],
-        collector: ErrorCollector,
     ) -> dict[str, Button]:
         btn_map: dict[str, Button] = {}
 
         shr_dom_btns = list(kb_spec.shared_domain_keys)
         if len(shared_domains) > len(shr_dom_btns):
-            collector.add_complaint("More shared domains configured than available key slots")
+            self.collector.add_complaint("More shared domains configured than available key slots")
         for key_char, dom in zip(shr_dom_btns, shared_domains):
             btn_map[key_char] = Button(type=Button.TYPE_DOMAIN, key=key_char, inhabitant=dom)
         for key_char in shr_dom_btns[len(shared_domains):]:
@@ -132,7 +129,7 @@ class RuntimeConfigAssembler:
 
         pud_dom_btns = list(kb_spec.pud_domain_keys)
         if len(pud_domains) > len(pud_dom_btns):
-            collector.add_complaint("More PUD domains configured than available key slots")
+            self.collector.add_complaint("More PUD domains configured than available key slots")
         for key_char, dom in zip(pud_dom_btns, pud_domains):
             btn_map[key_char] = Button(type=Button.TYPE_DOMAIN, key=key_char, inhabitant=dom)
         for key_char in pud_dom_btns[len(pud_domains):]:
