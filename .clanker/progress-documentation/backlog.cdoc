@@ -16,20 +16,12 @@ I. Ideas, complaints and non-critical bugs:
 II. Items to refine & QC:
 
 1. Usability push
-    - 1a: expand Truncation Functionality (delayed for yaml DTO item)
+    - 1a: expand Truncation Functionality - implemented, history item 'LXXI'
     - 1b: move Shared Domains to ASDF Row - implemented, history item 'LXII'
     - 1c: new 'follow up' resolver (delayed for yaml DTO item)
+        - I think this is too fanciful to get into at this stage. back to NS
     - 1d: investigate ways to capitalize on semantics of yaml for prompt gen (delayed for yaml DTO item)
-
-1a. Enhance file resolution strategies and truncation capabilities
-    - Rename 'File' -> 'FileSpec' for better semantics in codebase
-    - Support explicit dual-mode file resolution: 
-        - exact repository-relative paths (`PUD_REPO_REL`) 
-        - standard name-based fallback lookups (`FALLBACK_BYNAME`).
-    - Extend content truncation to support 
-        - regex-based range slicing (`from_line` inclusive through `up_to` exclusive)
-        - failing validation if configured patterns are not matched.
-    - Retain tail line truncation (`tail_lines`) as a mutually exclusive alternative to regex range slicing
+        - hm this is value, but also kinda pie in the sky. I think it goes back to NS for now.
 
 1c. New 'follow up' resolver:
     - lets the llm specify required context on some format, like an md resolver
@@ -50,6 +42,12 @@ II. Items to refine & QC:
     - make prompt compilation msg say which domain, prompt was used in addition to just line/char
     - turns into a pipeline refactor. oh well
 
+3. I need a way to receive updates in a 'temp' fashion, for when I have updates that span several llm contexts!
+
+4. i should be able to add more than just filesets as named bottom level sets.
+    - MD resolver prime target, I can put it in shared cfg -> reuse it in domains of pud cfgs
+
+5. more ingestion work, to prettify and buff. 
 
 III. Slated for implementation:
 

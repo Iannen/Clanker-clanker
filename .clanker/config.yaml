@@ -8,51 +8,45 @@ domains:
 - name: script-dev
   resolvers:
     - { id: repo_content, type: repo_content, fileset: core }
-    - { id: domain_fragments, type: multi-document-retrieval, files: [backlog.cdoc], }
     
   prompts:
     - name: plan
       render:
         resolvers:
           - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.md, backlog-output-instructions.md] }
-
+          - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: II. Items to refine & QC, up_to: III. Slated for implementation}]}
     - name: bl-impl
       render:
         resolvers:
           - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.md, code-output-instruction.md]}
+          - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: III. Slated for implementation:, up_to: IV. Recently implemented:}]}
 
     - name: bl-drain
       render:
         resolvers:
           - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 8}, history-output-instructions.md]}
-        
-    - name: ad-hoc
-      render:
-        resolvers:
-          - { id: base_fragments, type: multi-document-retrieval, files: [] }
-          - { id: domain_fragments, type: multi-document-retrieval, files: [] }
-          - { id: prompt_fragments, type: multi-document-retrieval, files: [] }
-          - { id: repo_content, type: repo_content, fileset: ad-hoc }
+          - {id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: IV. Recently implemented, up_to: V. Critical bugs}]}
 
 - name: cfg_assembly
   resolvers:
     - { id: repo_content, type: repo_content, fileset: cfg_assembly }
-    - { id: domain_fragments, type: multi-document-retrieval, files: [backlog.cdoc], }
   prompts:
     - name: plan
       render:
         resolvers:
           - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.md, backlog-output-instructions.md] }
-
+          - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: II. Items to refine & QC, up_to: III. Slated for implementation}]}
     - name: bl-impl
       render:
         resolvers:
           - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.md, code-output-instruction.md]}
+          - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: III. Slated for implementation:, up_to: IV. Recently implemented:}]}
 
     - name: bl-drain
       render:
         resolvers:
           - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 8}, history-output-instructions.md]}
+          - {id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: IV. Recently implemented, up_to: V. Critical bugs}]}
 
 - name: cfg_validation
   resolvers:
@@ -63,13 +57,14 @@ domains:
       render:
         resolvers:
           - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.md, backlog-output-instructions.md] }
-
+          - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: II. Items to refine & QC, up_to: III. Slated for implementation}]}
     - name: bl-impl
       render:
         resolvers:
           - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.md, code-output-instruction.md]}
-
+          - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: III. Slated for implementation:, up_to: IV. Recently implemented:}]}
     - name: bl-drain
       render:
         resolvers:
           - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 8}, history-output-instructions.md]}
+          - {id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: IV. Recently implemented, up_to: V. Critical bugs}]}

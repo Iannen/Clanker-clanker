@@ -33,7 +33,7 @@ class FileBridgePort(Protocol):
 
 class ContentShaper(Protocol):
     def normalize_file_spec(self, item: str | dict) -> tuple[str, int | None]: ...
-    def trim_to_tail(self, content: str, tail_lines: int | None) -> str: ...
+    def apply_truncation(self, content: str, spec: TruncationSpec | None) -> str: ...
     def hydrate(
         self, delim: str, template: str, replacements: dict[str, str]
     ) -> str: ...
@@ -119,7 +119,13 @@ class Config:
 
 @dataclass
 class TruncationSpec:
-    tail_lines: int
+    TYPE_TAIL: ClassVar[str] = "tail"
+    TYPE_REGEX_RANGE: ClassVar[str] = "regex_range"
+
+    type: str
+    tail_lines: int | None = None
+    from_line: str | None = None
+    up_to: str | None = None
 
 @dataclass
 class File:

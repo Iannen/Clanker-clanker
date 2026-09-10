@@ -251,12 +251,11 @@ class AssemblyService:
         fragments = []
         for file_obj in resolver.files.files:
             filename = file_obj.name
-            tail_lines = file_obj.truncation_spec.tail_lines if file_obj.truncation_spec else None
 
             basename = Path(filename).name
             raw_content = contents_map.get(filename)
             if raw_content is not None:
-                content = self.shaper.trim_to_tail(raw_content, tail_lines)
+                content = self.shaper.apply_truncation(raw_content, file_obj.truncation_spec)
             else:
                 content = f"[{resolver.anchor}: No content found at '{filename}']"
             tag_name = basename

@@ -392,3 +392,10 @@ LXX: INTRODUCE SINGLE-USE RUNTIME CONFIG BUILDER PATTERN
     - Replaced `RuntimeConfigAssembler` with a single-use `RuntimeConfigBuilder` class in `utilities.py` to streamline the configuration lifecycle
     - Extracted core assembly steps into dedicated helper methods (`_handle_named_filesets`, `_handle_domains`, and `_handle_buttons`) storing intermediate state on self
     - Refactored `clanker.py` and `SessionService` to instantiate `RuntimeConfigBuilder` directly, leveraging `.build()` to return both collector and configuration instances to `AppEngine`
+
+LXXI: EXPAND TRUNCATIONSPEC TO SUPPORT TAIL AND REGEX-BASED SLICING
+    - Expanded `TruncationSpec` model to support mutually exclusive `tail` (via `tail_lines`) and `regex_range` (via `from_line` and `up_to`) truncation strategies
+    - Refactored `ContentShaper` protocol and `DefaultContentShaper` to replace `trim_to_tail` with `apply_truncation` for unified truncation handling
+    - Updated `ConfigTranslator` to validate truncation configuration exclusivity and regex pattern requirements using `ErrorCollector`
+    - Refactored `AssemblyService._res_multi_doc` in `clanker.py` to delegate file content slicing directly to `ContentShaper.apply_truncation`
+    - Enabled targeted slicing of document sections (such as backlog segments), enabling leaner and more tailored prompts for optimized LLM context usage

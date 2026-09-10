@@ -41,12 +41,12 @@ domains:
 
   - name: north-star
     resolvers:
-      - { id: domain_fragments, type: multi-document-retrieval, files: [north-star.cdoc] }
+      - { id: domain_fragments, type: multi-document-retrieval, files: [north-star.cdoc, backlog.cdoc] }
     prompts:
       - name: core
         render:
           resolvers:
-            - { id: prompt_fragments, type: multi-document-retrieval, files: [] }
+            - { id: prompt_fragments, type: multi-document-retrieval, files: [north-star-mode.md] }
             - { id: repo_content, type: repo_content, fileset: core }
 
   - name: config-dev
