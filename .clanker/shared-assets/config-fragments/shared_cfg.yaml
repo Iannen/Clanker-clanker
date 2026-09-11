@@ -9,16 +9,15 @@ filesets:
   clanker-shared-assets: {includes: [.clanker/shared-assets], excludes: []}
 
 domains:
-  - name: config-dev
+  - name: manifest-analysis
     resolvers:
       - { id: prompt_fragments, type: multi-document-retrieval, files: [config.yaml, kb_def.yaml, shared_domains.yaml] }
     prompts:
-      - name: manifest-analysis
+      - name: only m
         render:
           resolvers:
             - { id: domain_fragments, type: repo-manifest, pud_fileset: all, shared_fileset: clanker-shared-assets }
-            - { id: repo_content, type: repo_content, fileset: core }
-      - name: config-dev
+      - name: core
         render:
           resolvers:
             - { id: domain_fragments, type: multi-document-retrieval, files: [config-development-mode.md] }

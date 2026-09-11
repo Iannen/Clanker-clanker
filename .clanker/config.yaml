@@ -3,8 +3,15 @@ filesets:
     content/clanker.py, 
     content/models.py, 
     content/contracts]}
-  cfg_assembly: {includes: [content/models.py, content/config_assembly_system/translation_system]}
-  cfg_validation: {includes: [content/models.py, content/config_assembly_system/translation_system/config_dtos.py, .clanker/shared-assets/config-fragments, .clanker/config.yaml]}
+  cfg_assembly: {includes: [
+    content/models.py, 
+    content/contracts/assembly_system_contract.py,
+    content/config_assembly_system]}
+  cfg_validation: {includes: [
+    content/models.py, 
+    content/config_assembly_system/translation_system/config_dtos.py, 
+    .clanker/shared-assets/config-fragments, 
+    .clanker/config.yaml]}
 
 domains:
 - name: script-dev

@@ -5,40 +5,55 @@ I. Ideas, complaints and non-critical bugs:
     - ez fix is to adjust template.
     - rabbithole solution is to have app write template to rowspec
 
-- MUST find a way to make the system bitch out whenever a type hint is not in scope
+II. Items to refine & QC:
+
+1. qol imp: 
+    - make prompt compilation msg say which domain, prompt was used in addition to just line/char
+    - turns into a pipeline refactor. oh well
+
+2. MUST find a way to make the system bitch out whenever a type hint is not in scope
     - this to enforce that protocol are not just some paper layer
     - dev-time is IDE rabbithole
     - perhaps some test for this? this is what linters and shit do.
         - cons: heavy NIH
-        - pros: project self-containment, IDE independence
+        - pros: project self-containment -> IDE independence
+    - also import hygiene!
 
-II. Items to refine & QC:
-
-2. qol imp: 
-    - make prompt compilation msg say which domain, prompt was used in addition to just line/char
-    - turns into a pipeline refactor. oh well
-
-4. i should be able to add more than just filesets as named bottom level sets.
+3. i should be able to add more than just filesets as named bottom level sets.
     - MD resolver prime target, I can put it in shared cfg -> reuse it in domains of pud cfgs
 
-5. Config assembly work: Declare boundary, member responsibility
-    [ ] Phase 1. Boundary work
-        [x] new files, for organizational purposes
-            - 'config_assembler.py', for impls
-            - 'config_assembler_proto.py', for system curtilage protocols
-        - RuntimeConfigBuilder
-            - relocate to 'config_assembler.py'
-            - transition to stateless singleton (low prio)
-            [x] public contract, protocol in 'config_assembler_proto.py'
-                - assemble(pud_cfg, sys_cfg, shared_cfg) -> tuple[collector, RuntimeConfig]
-            - implementation -> ingestion_tier_one
-        - RuntimeConfig 
-            - model.py member, as now
-        - ErrorCollector
-            - relocated to 'config_assembler.py'
-            [x] protocol representation -> config_assembler_proto.py
-                - for now a simple 'raise_if_any' will do
+4. revise new dir structure, so we dont have simple 'code.py' files, they should ref their system
 
+5. Improve config_assembly_system complaint production
+    [ ] 'config_assembly_system/code.py'
+        - add 'class DomainOverflow'
+            - members to hold info for below
+            - get_msg()->str:
+                - DomainOverflow: <sys_cfg_name> declares <row_keys> for domains <domain_names> of <cfg_filename>, n overflowing
+        - 'ErrorCollector'
+            - add method to accept DomainOverflow  complaints or args required to fashion one., adding it to internal collection of DomainOverflow complaints
+            - add method 'get_domain_overflow_report -> str | None'
+                - if none, then no issue. if yes, then its part of a msg
+
+    [ ] 'config_assembly_system/code.py': 
+        - RuntimeConfigBuilder: 
+            - when zipping buttons, if overflow, then complain to ErrorCollector, using above.
+            - simply omit the overflow - the 'do the best we can but complain' approach (?)
+
+    [ ] 'assembly_system_contract.py'
+        - 'Report'
+            - add get_domain_overflow_report -> str | None
+
+    [ ] 'clanker.py': Refine complaint consumption for capacity and missing fileset cases
+        - SessionService.get_runtime_config:
+            - return type is now only RuntimeConfig
+            - at end, call self.assembler.build to get report and rtc
+            - then call of_rep = report.get_domain_overflow_report
+                - if of_rep is None, then return rtc
+            - else raise notice, embedding report into notice
+        - AppEngine
+            - listen for notice, reraise as failure for display to user
+   
 III. Slated for implementation:
 
 IV. Recently implemented:
