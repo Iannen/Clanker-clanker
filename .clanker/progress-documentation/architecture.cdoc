@@ -21,3 +21,91 @@ III. Shared stuff
 
 
 
+================================================================================
+VI:: EXCEPTION ARCHITECTURE: TWO-TIER GUARD & INVERTED PRINTING POLICY
+================================================================================
+
+1. OVERVIEW
+--------------------------------------------------------------------------------
+The exception handling architecture enforces absolute domain containment and 
+scannable terminal diagnostics. It guarantees that untrusted, third-party, or 
+native operating system exceptions never leak into the core application layer, 
+and that all process-terminating errors are normalized into a unified, strictly 
+typed exception hierarchy (`Fatal` / `Notice`).
+
+The system relies on three distinct operational pillars:
+  - Pillar I:   Boundary Guard (Anti-Corruption Layer)
+  - Pillar II:  Application Guard (Inside Sweeper)
+  - Pillar III: Top-Down Inverted Terminal Presentation
+
+
+2. PILLAR I: BOUNDARY GUARD (PROTECT_ADAPTER)
+--------------------------------------------------------------------------------
+All external adapter dependencies, third-party libraries, and bridge calls are 
+wrapped dynamically via `ExceptionPolicy.protect_adapter`. 
+
+Key Behaviors:
+  - Dynamic Wrapping: Scans target adapter methods at runtime and applies a 
+    transparent protective enclosure around every public method.
+  - Passthrough Exceptions: Explicitly re-raises intended control flow signals 
+    (`Notice` and explicitly adopted notice types).
+  - Normalization: Intercepts all arbitrary `Exception` types and re-raises 
+    them normalized as `BridgeLeakage` (a `Fatal` subtype) using `from ex` 
+    cause-chaining (`raise BridgeLeakage() from ex`).
+  - System Signals: Catches standard `Exception` only, ensuring process 
+    interrupts (`KeyboardInterrupt`, `SystemExit`) pass through unhindered.
+
+
+3. PILLAR II: APPLICATION GUARD (APPENGINE SWEEPER)
+--------------------------------------------------------------------------------
+Within the core application boundaries (`AppEngine`), domain operations are 
+guarded to manage anticipated business failure modes.
+
+Key Behaviors:
+  - Domain Normalization: Converts system or environment state invalidities into 
+    explicit, domain-specific `Fatal` subclasses (e.g., `InvalidConfiguration`).
+  - Containment: Unhandled internal operational failures are swept and 
+    re-raised inside the internal failure hierarchy, ensuring no raw Python 
+    runtime exceptions escape the engine boundary.
+  - Guarantee: By mathematical construction of Pillar I and Pillar II, any 
+    exception escaping the main engine context is guaranteed to inherit from 
+    the base `Fatal` exception class.
+
+
+4. PILLAR III: DYNAMIC FORMATTING & INVERTED PRESENTATION
+--------------------------------------------------------------------------------
+Standard Python tracebacks render bottom-up (oldest error first, newest error 
+last), which leads to trailing empty exception labels and buried root causes. 
+This architecture replaces default printing with a top-down, scannable format 
+managed directly by `ExceptionPolicy.print_traceback_and_exit`.
+
+A. Self-Formatting Exception Types (`__str__`)
+  - `Fatal` Base Class: Conditionally formats string representations to include 
+    a leading colon (`: <message>`) only if a message string exists. If empty, 
+    it returns `""` to prevent trailing punctuation artifacts.
+  - `BridgeLeakage`: Dynamically inspects its `__cause__` attribute when raised 
+    without explicit arguments, deriving a clean, descriptive header string in 
+    the format `: [<CauseType>] <CauseMessage>`.
+
+B. Inverted Terminal Presentation
+  The terminal printer splits execution into two clear phases:
+    1. Failure Header: Immediately prints the top-level failure category and its 
+       derived summary string (`[FATAL] <ExceptionClass>: <Details>`).
+    2. Cause Traceback Dump: Inspects `ex.__cause__` and renders the exact 
+       underlying stack trace directly beneath the failure header, pinpointing 
+       the originating line in the adapter layer without noise.
+
+
+5. DATA FLOW SUMMARY
+--------------------------------------------------------------------------------
+[ Native OS / Third-Party Error ]
+               │
+               ▼  (Interception by Boundary Guard)
+[ BridgeLeakage() from ex ]
+               │
+               ▼  (Bubbles through AppEngine Sweeper)
+[ ExceptionPolicy.print_traceback_and_exit(ex) ]
+               │
+               ├──► 1. Render Header: [FATAL] BridgeLeakage: [ErrnoType] Message
+               └──► 2. Render Body:   --- Underlying Stack Trace ---
+                                      (Exact line numbers & cause stack)

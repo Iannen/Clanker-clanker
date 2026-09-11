@@ -410,3 +410,9 @@ LXXIII: EXCEPTION SYSTEM REVISION AND EXCEPTION POLICY CONSOLIDATION
     - Refactored core exception hierarchy in models.py: renamed Failure to Fatal, ControlNotice to Notice, and pruned obsolete exception types (UserNotice, BaseExInstantiation, BadFile, NotImplemented, MissedAdoptedNotice, ConfigViolations)
     - Enhanced NoticeArgs(Fatal) to accept class name, positional arguments, and keyword arguments for improved diagnostics when Notice classes are instantiated with parameters
     - Updated ExceptionPolicy.reraise_as_failure in clanker.py to handle Notice instances and ADOPTED_NOTICES uniformly, re-raising them as MissedNotice failures
+
+LXXIV: THREE-PILLAR EXCEPTION POLICY FRAMING AND DYNAMIC EXCEPTION FORMATTING
+    - Implemented `ExceptionPolicy.protect_adapter` (Gate 1) to wrap public adapter methods and transform untrusted third-party errors into `BridgeLeakage` fatal exceptions while allowing `Notice` instances to pass through
+    - Retained `ExceptionPolicy.reraise_as_failure` (Gate 2) to trap uncaught internal domain exceptions into `MissedNotice` or `UnexpectedEx` fatal failures
+    - Updated `Fatal` base exception string representation to prepend dynamic separators and added custom `BridgeLeakage.__str__` formatting to dynamically extract and report underlying `__cause__` details
+    - Implemented `ExceptionPolicy.print_traceback_and_exit` (Pillar 3) to print a high-level `[FATAL]` failure summary header before dumping the underlying cause traceback to stderr and exiting

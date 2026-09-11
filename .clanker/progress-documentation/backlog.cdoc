@@ -25,6 +25,7 @@ II. Items to refine & QC:
 4. revise new dir structure, so we dont have simple 'code.py' files, they should ref their system
 
 5. Improve config_assembly_system complaint production
+    - consideration : BaseException inheritors bypass things? must be found out
     [ ] 'config_assembly_system/code.py'
         - add 'class DomainOverflow'
             - members to hold info for below
@@ -47,13 +48,15 @@ II. Items to refine & QC:
     [ ] 'clanker.py': Refine complaint consumption for capacity and missing fileset cases
         - SessionService.get_runtime_config:
             - return report & rtc to appengine
-        - AppEngine.bootstrap: determinees if we can proceed based on the report
+        - AppEngine.bootstrap: determines if we can proceed based on the report
             - dof_report = report.get_domain_overflow_report
             - if dof is not None
                 - craft a msg, embed in ex
 
-6. EX system revision round 2
-    - the thinker. what do we want 
+6. Revert to ABC for the python interface construct of choice
+    - consider this, for the benefit of runtime 'no sir'
+    - and also forces import discipline 
+    - cuz current Protocols are papertigers
 
 III. Slated for implementation:
 

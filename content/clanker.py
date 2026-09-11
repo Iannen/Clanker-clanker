@@ -19,27 +19,26 @@ class ExceptionPolicy:
     )
 
     @classmethod
-    def wrap_bridge_call(cls, fn, *args, **kwargs):
-        try:
-            return fn(*args, **kwargs)
-        except cls.ADOPTED_NOTICES:
-            raise
-        except Notice:
-            raise
-        except Exception as ex:
-            raise BridgeLeakage() from ex
-
-    @classmethod
     def protect_adapter(cls, adapter: Any) -> Any:
-        for attr_name in dir(adapter):
-            if not attr_name.startswith("_"):
-                attr_value = getattr(adapter, attr_name)
-                if callable(attr_value):
-                    def _make_wrapped(fn):
-                        def wrapper(*args, **kwargs):
-                            return cls.wrap_bridge_call(fn, *args, **kwargs)
-                        return wrapper
-                    setattr(adapter, attr_name, _make_wrapped(attr_value))
+        def _wrap(fn):
+            def wrapper(*args, **kwargs):
+                try:
+                    return fn(*args, **kwargs)
+                except (Notice, *cls.ADOPTED_NOTICES):
+                    raise
+                except Exception as ex:
+                    raise BridgeLeakage() from ex
+            return wrapper
+
+        wrapped = {
+            name: _wrap(getattr(adapter, name))
+            for name in dir(adapter)
+            if not name.startswith("_") and callable(getattr(adapter, name))
+        }
+
+        for name, fn in wrapped.items():
+            setattr(adapter, name, fn)
+
         return adapter
 
     @classmethod
@@ -51,14 +50,17 @@ class ExceptionPolicy:
         else:
             raise UnexpectedEx(f"[{type(ex).__name__}] {ex}") from ex
 
-    @classmethod
-    def print_traceback_and_exit(cls, ex: Exception) -> None:
+    @staticmethod
+    def print_traceback_and_exit(ex: Fatal) -> None:
+        sys.stderr.write(f"\n[FATAL] {type(ex).__name__}{ex}\n")
+
         cause = getattr(ex, "__cause__", None)
-        err_detail = str(ex) if str(ex) else ex.__class__.__name__
-        sys.stderr.write(f"\n[FAILURE] {err_detail}\n")
-        if cause:
+        if cause is not None:
             sys.stderr.write("\n--- Underlying Stack Trace ---\n")
-            traceback.print_exception(type(cause), cause, cause.__traceback__)
+            traceback.print_exception(type(cause), cause, cause.__traceback__, file=sys.stderr)
+        elif ex.__traceback__ is not None:
+            traceback.print_exception(type(ex), ex, ex.__traceback__, file=sys.stderr)
+
         sys.exit(1)
 
 class AppEngine:
