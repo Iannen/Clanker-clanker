@@ -59,6 +59,28 @@ class RuntimeConfigBuilder:
 
         return btn_map
 
+    def assert_no_quotes(self, raw_text: str, filepath: str = "") -> None:
+        """ i just stuck this here to not lose sight of it, its refugee from old 'ConfigValidator' which has been decomissioned"""
+        violations = []
+        for idx, line in enumerate(raw_text.splitlines(), start=1):
+            if "'" in line:
+                parts = line.split("'")
+                if len(parts) == 3:
+                    content = parts[1]
+                    is_digits = content.isdigit()
+                    has_double_quote = '"' in content
+                    if not (is_digits or has_double_quote):
+                        violations.append(f"    line {idx} has quotes: {line}")
+                else:
+                    violations.append(f"    line {idx} has quotes: {line}")
+            elif '"' in line:
+                violations.append(f"    line {idx} has quotes: {line}")
+                
+        if violations:
+            msg_parts = [filepath] if filepath else []
+            msg_parts.extend(violations)
+            raise ConfigViolations("\n".join(msg_parts))
+
 @dataclass
 class Ctx:
     sys_cfg: dict

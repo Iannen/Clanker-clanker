@@ -195,3 +195,9 @@ class FileBridge:
 
     def getFileContent(self, full_path: Path | str) -> str:
         return Path(full_path).read_text(encoding="utf-8")
+
+class ConfigIngestor:
+    def __init__(self) -> None:
+        self.yaml = YAML()
+    def get_as_dict(self, raw_text: str) -> dict:
+        return self.yaml.load(raw_text)

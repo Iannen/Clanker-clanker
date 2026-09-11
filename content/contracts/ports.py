@@ -24,3 +24,6 @@ class FileBridgePort(Protocol):
     def get_contents_with_pud_fallback(
         self, file_names: list[str]
     ) -> dict[str, str | None]: ...
+
+class ConfigIngestorPort(Protocol):
+    def get_as_dict(self, raw_text: str) -> dict: ...

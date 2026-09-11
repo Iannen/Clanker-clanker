@@ -9,9 +9,7 @@ import sys
 import traceback
 from typing import Callable, ClassVar, Any
 from models import *
-from subsystem_contracts import *
-
-from config_assembly_system.translation_system.utilities import ConfigValidator, DefaultContentShaper
+from contracts import *
 
 class ExceptionPolicy:
     ADOPTED_NOTICES: tuple[type[Exception], ...] = (  
@@ -157,18 +155,17 @@ class SessionService:
     def __init__(
         self,
         files: FileBridgePort,
-        validator: ConfigValidatorProtocol,
+        cfg_ingestor: ConfigIngestorPort,
         assembler: RtcAssembler,
     ) -> None:
         self.files = files
-        self.validator = validator
+        self.cfg_ingestor = cfg_ingestor
         self.assembler = assembler
 
     def _get_validated_cfg_fragment(self, fragment_token_path: str) -> dict:
         try:
             raw_content = self.files.get_file_contents(fragment_token_path)
-            self.validator.assert_no_quotes(raw_content, fragment_token_path)
-            cfg_dict = self.validator.get_as_dict(raw_content)
+            cfg_dict = self.cfg_ingestor.get_as_dict(raw_content)
             return cfg_dict
         except ConfigViolations as ex:
             raise UserTask(str(ex)) from ex
@@ -375,19 +372,21 @@ class IOService:
 
 def main():
     try:
-        from adapters.adapters import FileBridge, IOBridge
+        # Adapters
+        from adapters.adapters import FileBridge, IOBridge, ConfigIngestor
         files_adapter = ExceptionPolicy.protect_adapter(FileBridge())
         io_adapter = ExceptionPolicy.protect_adapter(IOBridge())
+        cfg_ingestor = ExceptionPolicy.protect_adapter(ConfigIngestor())
         
         #file 'utilities.py'
-        validator = ConfigValidator()
+        from render_pipeline.code import DefaultContentShaper
         shaper = DefaultContentShaper()
 
         # i now think of this as a subsystem
         from config_assembly_system.code import RuntimeConfigBuilder
         assembler = RuntimeConfigBuilder()
 
-        session = SessionService(files=files_adapter, validator=validator, assembler=assembler)
+        session = SessionService(files=files_adapter, cfg_ingestor=cfg_ingestor, assembler=assembler)
         renderer = AssemblyService(files=files_adapter, shaper=shaper)
         io = IOService(io_bridge=io_adapter)
 

@@ -2,7 +2,7 @@ filesets:
   core: {includes: [
     content/clanker.py, 
     content/models.py, 
-    content/subsystem_contracts]}
+    content/contracts]}
   cfg_assembly: {includes: [content/models.py, content/config_assembly_system/translation_system]}
   cfg_validation: {includes: [content/models.py, content/config_assembly_system/translation_system/config_dtos.py, .clanker/shared-assets/config-fragments, .clanker/config.yaml]}
 
