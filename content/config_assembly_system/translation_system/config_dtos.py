@@ -15,7 +15,6 @@ from models import (
     KBStateResolver,
     TruncationSpec,
     ConfigAssemblyFailure,
-    ErrorCollector,
 )
 
 

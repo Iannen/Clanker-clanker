@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
-# LLM question: import section 1. are these not used at all?
 from __future__ import annotations 
 from enum import Enum
 import os
 from pathlib import Path
 import copy
 
-# LLM question: these appear to be used in the file. how appropriate is it.
 import sys
 import traceback
 from typing import Callable, ClassVar, Any #ClassVar not used?
 from models import *
-from utilities import RuntimeConfigBuilder
+from content.config_assembly_system.code import RuntimeConfigBuilder
+from content.config_assembly_system.translation_system.utilities import ConfigValidator, DefaultContentShaper
 
 class ExceptionPolicy:
     ADOPTED_NOTICES: tuple[type[Exception], ...] = (  
@@ -183,8 +182,7 @@ class SessionService:
         except FileNotFoundError as ex:
             raise ConfigAssemblyFailure(f"Missing configuration fragment: {ex}") from ex
 
-        collector = ErrorCollector()
-        return collector, RuntimeConfigBuilder(pud_cfg, sys_cfg, shared_cfg, collector).build()
+        return RuntimeConfigBuilder(pud_cfg, sys_cfg, shared_cfg).build()
 
     def initialize_workspace(self) -> None:
         if self.files.is_cwd_script_dir():
@@ -380,7 +378,7 @@ def main():
         io_adapter = ExceptionPolicy.protect_adapter(IOBridge())
         
         #file 'utilities.py'
-        from utilities import ConfigValidator, DefaultContentShaper
+        #from utilities import ConfigValidator, DefaultContentShaper
         validator = ConfigValidator()
         shaper = DefaultContentShaper()
 
