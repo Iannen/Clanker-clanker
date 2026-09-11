@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S python3 -B
 from __future__ import annotations 
 from enum import Enum
 import os
