@@ -144,8 +144,6 @@ class RuntimeConfigBuilder:
         base_resolvers = self.translator.get_resolvers(self.shared_cfg)
         self._handle_domains()
         ui_render, button_map = self._handle_buttons()
-        
-        #self.collector.raise_if_any()
 
         return RuntimeConfig(
             keyboard=Keyboard(button_map=button_map, selected_key=None),

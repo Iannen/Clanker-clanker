@@ -14,7 +14,23 @@ II. Items to refine & QC:
 4. i should be able to add more than just filesets as named bottom level sets.
     - MD resolver prime target, I can put it in shared cfg -> reuse it in domains of pud cfgs
 
-5. more ingestion work, to prettify and buff. 
+5. Config assembly work: Declare boundary, member responsibility
+    [ ] Phase 1. Boundary work
+        - new files, for organizational purposes
+            - 'config_assembler.py', for impls
+            - 'config_assembler_proto.py', for system curtilage protocols
+        - RuntimeConfigBuilder
+            - relocate to 'config_assembler.py'
+            - transition to stateless singleton (low prio)
+            - public contract, protocol in 'config_assembler_proto.py'
+                - assemble / build (pud_cfg, sys_cfg, shared_cfg) -> (collector, RuntimeConfig)
+            - implementation -> ingestion_tier_one
+        - RuntimeConfig 
+            - model.py member, as now
+        - ErrorCollector
+            - relocated to 'config_assembler.py'
+            - protocol representation -> config_assembler_proto.py
+                - for now a simple 'raise_if_any' will do
 
 III. Slated for implementation:
 
