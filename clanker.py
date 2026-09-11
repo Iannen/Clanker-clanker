@@ -7,9 +7,9 @@ import copy
 
 import sys
 import traceback
-from typing import Callable, ClassVar, Any #ClassVar not used?
+from typing import Callable, ClassVar, Any
 from models import *
-from content.config_assembly_system.code import RuntimeConfigBuilder
+from content.config_assembly_system.contract import RtcAssembler, Report
 from content.config_assembly_system.translation_system.utilities import ConfigValidator, DefaultContentShaper
 
 class ExceptionPolicy:
@@ -157,9 +157,11 @@ class SessionService:
         self,
         files: FileBridgePort,
         validator: ConfigValidatorProtocol,
+        assembler: RtcAssembler,
     ) -> None:
         self.files = files
         self.validator = validator
+        self.assembler = assembler
 
     def _get_validated_cfg_fragment(self, fragment_token_path: str) -> dict:
         try:
@@ -182,7 +184,7 @@ class SessionService:
         except FileNotFoundError as ex:
             raise ConfigAssemblyFailure(f"Missing configuration fragment: {ex}") from ex
 
-        return RuntimeConfigBuilder(pud_cfg, sys_cfg, shared_cfg).build()
+        return self.assembler.build(pud_cfg, sys_cfg, shared_cfg)
 
     def initialize_workspace(self) -> None:
         if self.files.is_cwd_script_dir():
@@ -382,7 +384,11 @@ def main():
         validator = ConfigValidator()
         shaper = DefaultContentShaper()
 
-        session = SessionService(files=files_adapter, validator=validator)
+        # i now think of this as a subsystem
+        from content.config_assembly_system.code import RuntimeConfigBuilder
+        assembler = RuntimeConfigBuilder()
+
+        session = SessionService(files=files_adapter, validator=validator, assembler=assembler)
         renderer = AssemblyService(files=files_adapter, shaper=shaper)
         io = IOService(io_bridge=io_adapter)
 
