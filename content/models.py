@@ -10,31 +10,28 @@ class BaseEx(ABC, Exception):
     @abstractmethod
     def leaf_ex(self) -> bool:pass
 
-class Failure(BaseEx): pass
-class ControlNotice(BaseEx): pass
-class UserNotice(BaseEx): pass
+class Fatal(BaseEx): pass
+class Notice(BaseEx): pass
 
-class MissedNotice(Failure): leaf_ex = True
-class BaseExInstantiation(Failure): leaf_ex = True
-class NoticeArgs(Failure): leaf_ex = True
-class BridgeLeakage(Failure): leaf_ex = True
-class BadFile(Failure): leaf_ex = True
-class NotImplemented(Failure): leaf_ex = True
-class MissedAdoptedNotice(Failure): leaf_ex = True
-class UnexpectedEx(Failure): leaf_ex = True
-class CorruptClanker(Failure): leaf_ex = True
-class ConfigAssemblyFailure(Failure): leaf_ex = True
-class IllegalDuplicateFile(Failure): leaf_ex = True
-class UserTask(Failure): leaf_ex = True
+class MissedNotice(Fatal): leaf_ex = True
+class NoticeArgs(Fatal):
+    leaf_ex = True
+    def __init__(self, cls_name: str, args: tuple, kwargs: dict):
+        super().__init__(f"Notice '{cls_name}' illegal args: args={args!r}, kwargs={kwargs!r}")
+class BridgeLeakage(Fatal): leaf_ex = True
+class UnexpectedEx(Fatal): leaf_ex = True
+class CorruptClanker(Fatal): leaf_ex = True
+class ConfigAssemblyFailure(Fatal): leaf_ex = True
+class IllegalDuplicateFile(Fatal): leaf_ex = True
+class UserTask(Fatal): leaf_ex = True
 
-class UserDecline(ControlNotice): leaf_ex = True
-class ProgramExit(ControlNotice): 
+class UserDecline(Notice): leaf_ex = True
+class ProgramExit(Notice): 
     leaf_ex = True
     def get_compliance_msg(self) -> str:
         return "Program exited"
 
-class NoConfig(ControlNotice): leaf_ex = True
-class ConfigViolations(UserNotice): leaf_ex = True
+class NoConfig(Notice): leaf_ex = True
 
 class SystemKeys:
     DELIM = "§"

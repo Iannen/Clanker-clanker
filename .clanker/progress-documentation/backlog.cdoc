@@ -46,14 +46,15 @@ II. Items to refine & QC:
 
     [ ] 'clanker.py': Refine complaint consumption for capacity and missing fileset cases
         - SessionService.get_runtime_config:
-            - return type is now only RuntimeConfig
-            - at end, call self.assembler.build to get report and rtc
-            - then call of_rep = report.get_domain_overflow_report
-                - if of_rep is None, then return rtc
-            - else raise notice, embedding report into notice
-        - AppEngine
-            - listen for notice, reraise as failure for display to user
-   
+            - return report & rtc to appengine
+        - AppEngine.bootstrap: determinees if we can proceed based on the report
+            - dof_report = report.get_domain_overflow_report
+            - if dof is not None
+                - craft a msg, embed in ex
+
+6. EX system revision round 2
+    - the thinker. what do we want 
+
 III. Slated for implementation:
 
 IV. Recently implemented:

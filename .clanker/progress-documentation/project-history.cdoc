@@ -405,3 +405,8 @@ LXXII: RESTRUCTURE APPLICATION INTO SUBSYSTEM-BASED ARCHITECTURE
     - Introduced subsystem-level contract system via adjacent `contracts` directory (`assembly_system_contract.py`, `ports.py`, `render_system_contract.py`), decoupling consumer dependencies using Python `Protocol` definitions
     - Partitioned internal architecture into modular subsystem components under `content`, including `config_assembly_system`, `render_pipeline`, `adapters`, `contracts`, `models.py`, and main entry point `clanker.py`
     - Refactored `clanker.py` imports and module dependencies to align with the new nested subsystem topology
+
+LXXIII: EXCEPTION SYSTEM REVISION AND EXCEPTION POLICY CONSOLIDATION
+    - Refactored core exception hierarchy in models.py: renamed Failure to Fatal, ControlNotice to Notice, and pruned obsolete exception types (UserNotice, BaseExInstantiation, BadFile, NotImplemented, MissedAdoptedNotice, ConfigViolations)
+    - Enhanced NoticeArgs(Fatal) to accept class name, positional arguments, and keyword arguments for improved diagnostics when Notice classes are instantiated with parameters
+    - Updated ExceptionPolicy.reraise_as_failure in clanker.py to handle Notice instances and ADOPTED_NOTICES uniformly, re-raising them as MissedNotice failures

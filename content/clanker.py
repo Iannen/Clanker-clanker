@@ -24,7 +24,7 @@ class ExceptionPolicy:
             return fn(*args, **kwargs)
         except cls.ADOPTED_NOTICES:
             raise
-        except ControlNotice:
+        except Notice:
             raise
         except Exception as ex:
             raise BridgeLeakage() from ex
@@ -44,12 +44,10 @@ class ExceptionPolicy:
 
     @classmethod
     def reraise_as_failure(cls, ex: Exception) -> None:
-        if isinstance(ex, Failure):
+        if isinstance(ex, Fatal):
             raise
-        if isinstance(ex, ControlNotice):
-            raise MissedNotice(f"Missed notice: {ex}") from ex
-        if isinstance(ex, cls.ADOPTED_NOTICES):
-            raise MissedAdoptedNotice(f"Adopted notice failure: [{type(ex).__name__}] {ex}") from ex
+        if isinstance(ex, (Notice, *cls.ADOPTED_NOTICES)):
+            raise MissedNotice(f"Missed notice: {ex.__class__.__name__}") from ex
         else:
             raise UnexpectedEx(f"[{type(ex).__name__}] {ex}") from ex
 
@@ -398,7 +396,7 @@ def main():
 
         exit_msg = engine.run()
         print(exit_msg)
-    except Failure as ex:
+    except Fatal as ex:
         ExceptionPolicy.print_traceback_and_exit(ex)
 
 if __name__ == "__main__":
