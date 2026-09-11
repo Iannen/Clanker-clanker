@@ -5,6 +5,13 @@ I. Ideas, complaints and non-critical bugs:
     - ez fix is to adjust template.
     - rabbithole solution is to have app write template to rowspec
 
+- MUST find a way to make the system bitch out whenever a type hint is not in scope
+    - this to enforce that protocol are not just some paper layer
+    - dev-time is IDE rabbithole
+    - perhaps some test for this? this is what linters and shit do.
+        - cons: heavy NIH
+        - pros: project self-containment, IDE independence
+
 II. Items to refine & QC:
 
 2. qol imp: 

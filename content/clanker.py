@@ -9,8 +9,9 @@ import sys
 import traceback
 from typing import Callable, ClassVar, Any
 from models import *
-from content.config_assembly_system.contract import RtcAssembler, Report
-from content.config_assembly_system.translation_system.utilities import ConfigValidator, DefaultContentShaper
+from contracts import *
+
+from config_assembly_system.translation_system.utilities import ConfigValidator, DefaultContentShaper
 
 class ExceptionPolicy:
     ADOPTED_NOTICES: tuple[type[Exception], ...] = (  
@@ -374,18 +375,16 @@ class IOService:
 
 def main():
     try:
-        #file 'adapters.py'
-        from adapters import FileBridge, IOBridge
+        from adapters.adapters import FileBridge, IOBridge
         files_adapter = ExceptionPolicy.protect_adapter(FileBridge())
         io_adapter = ExceptionPolicy.protect_adapter(IOBridge())
         
         #file 'utilities.py'
-        #from utilities import ConfigValidator, DefaultContentShaper
         validator = ConfigValidator()
         shaper = DefaultContentShaper()
 
         # i now think of this as a subsystem
-        from content.config_assembly_system.code import RuntimeConfigBuilder
+        from config_assembly_system.code import RuntimeConfigBuilder
         assembler = RuntimeConfigBuilder()
 
         session = SessionService(files=files_adapter, validator=validator, assembler=assembler)

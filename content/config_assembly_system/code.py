@@ -1,4 +1,4 @@
-from content.config_assembly_system.translation_system.config_dtos import ConfigTranslator
+from config_assembly_system.translation_system.config_dtos import ConfigTranslator
 from models import Button, RuntimeConfig, Keyboard
 from dataclasses import dataclass
 
