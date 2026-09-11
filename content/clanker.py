@@ -9,7 +9,7 @@ import sys
 import traceback
 from typing import Callable, ClassVar, Any
 from models import *
-from contracts import *
+from subsystem_contracts import *
 
 from config_assembly_system.translation_system.utilities import ConfigValidator, DefaultContentShaper
 
