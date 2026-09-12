@@ -46,8 +46,6 @@ II. Items to refine & QC:
             - if dof is not None
                 - craft a msg, embed in ex
 
-III. Slated for implementation:
-
 2. Transition interface layer from static Protocols to runtime-enforced ABCs @consultant do not alter preamble or purpose!
     preamble: Shift structural duck-typing to explicit nominal contracts to enforce runtime guarantees without relying on external static analysis tools.
         - Protocols outsource contract verification to external tools (IDEs, linters, mypy) and remain invisible to the Python interpreter at runtime.
@@ -56,14 +54,18 @@ III. Slated for implementation:
     backlog item purpose: we revert to ABC as interface mechanism
         - now that the codebase separates out the 'interfaces' in files separate to their consumers and separate to their providers
             - no issues of circular dependency is incurred (an issue at the time of switch from abc to protocol, if memory serves) 
-    [ ] 'content/contracts/ports.py': Convert Port Protocols to Abstract Base Classes
+    [x] 'content/contracts/ports.py': Convert Port Protocols to Abstract Base Classes
         - import ABC and abstractmethod from abc module
         - update IOBridgePort, FileBridgePort, and ConfigIngestorPort to inherit from ABC
         - decorate every method signature across all three ports with @abstractmethod
-    [ ] 'content/adapters/adapters.py': Align concrete implementations with ABC contracts
+    [x] 'content/adapters/adapters.py': Align concrete implementations with ABC contracts
         - import IOBridgePort, FileBridgePort, and ConfigIngestorPort from contracts.ports
         - update FileBridge, IOBridge, and ConfigIngestor classes to explicitly inherit from their respective port ABCs
         - do not otherwise alter contents 
+
+    [ ] next target is 'content/contracts/assembly_system_contract.py' and its impls, wherever they may be. we will flesh out the particulars
+
+III. Slated for implementation:
 
 IV. Recently implemented:
 

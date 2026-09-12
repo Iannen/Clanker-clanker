@@ -401,7 +401,7 @@ def main():
 
         exit_msg = engine.run()
         print(exit_msg)
-        
+
     except Exception as ex:
         sys.stderr.write("\n[CRITICAL FAILURE] The ex architecture has failed: \n\n")
         traceback.print_exception(type(ex), ex, ex.__traceback__, file=sys.stderr)

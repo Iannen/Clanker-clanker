@@ -20,7 +20,7 @@ filesets:
 domains:
 - name: script-dev
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: ports_adapters }
+    - { id: repo_content, type: repo_content, fileset: core }
     
   prompts:
     - name: plan

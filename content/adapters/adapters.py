@@ -8,8 +8,9 @@ import tty
 from pathlib import Path
 from ruamel.yaml import YAML
 from models import *
+from contracts.ports import IOBridgePort, FileBridgePort, ConfigIngestorPort
 
-class IOBridge:
+class IOBridge(IOBridgePort):
     def to_clipboard(self, text_content: str) -> int:
         payload = base64.b64encode(text_content.encode("utf-8")).decode("utf-8")
         sys.stdout.write(f"\033]52;c;{payload}\007")
@@ -60,7 +61,7 @@ class IOBridge:
                 sys.stdout.write(ch)
                 sys.stdout.flush()
 
-class FileBridge:
+class FileBridge(FileBridgePort):
     def __init__(self) -> None:
         self.clanker_path = Path(os.path.realpath(__file__)).parent.parent.parent
         self.pud_path = Path.cwd()
@@ -196,7 +197,7 @@ class FileBridge:
     def getFileContent(self, full_path: Path | str) -> str:
         return Path(full_path).read_text(encoding="utf-8")
 
-class ConfigIngestor:
+class ConfigIngestor(ConfigIngestorPort):
     def __init__(self) -> None:
         self.yaml = YAML()
     def get_as_dict(self, raw_text: str) -> dict:

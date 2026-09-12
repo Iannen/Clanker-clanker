@@ -112,7 +112,8 @@ nodte: "Policy must also deal with non-Exception subclasses (KeyboardInterrupt, 
 
 ---
 
-Dynamic Contract Binding Pattern
+Dynamic Contract Binding Pattern for python interfaces
+(note: current OOP does not mandate the import of interface, only the implementation adherence to it. )
 
 Purpose:
 Validates that a concrete adapter satisfies an interface at runtime without forcing the adapter to explicitly inherit from it. 
@@ -165,3 +166,25 @@ Key Benefits:
 - DI Transparency: Makes contract verification explicit at the wiring layer via `Interface.bind(adapter)`.
 - Complete Decoupling: Keeps low-level adapters completely independent—they require no imports from high-level contract modules.
 - Runtime Safety: Retains fail-fast protection, breaking application startup immediately if an adapter drifts from its expected interface.
+
+---
+
+ARCHITECTURAL PRINCIPLES: PORTS & ADAPTERS
+
+1. NAMING PERSPECTIVES (INSIDE-OUT VS. OUTSIDE-IN)
+
+- Ports (Inside-Out): Named after the application domain's intent and functional needs. They define the contract of WHAT the system requires without any knowledge of underlying technologies or operating systems.
+  Examples: IOBridgePort, FileBridgePort, ConfigIngestorPort
+
+- Adapters (Outside-In): Named after the specific technology, third-party library, protocol, or operating environment they wrap. They express HOW the port contract is satisfied by bridging the gap to the external world.
+  Examples: PosixTTYAdapter, LocalFilesystemAdapter, RuamelYamlAdapter
+
+
+2. RESPONSIBILITY & SELECTION BOUNDARIES
+
+- Single Point of Decision: Adapter selection occurs strictly at startup within the Composition Root (the main execution entry point or factory layer). Domain services receive their dependencies exclusively through Port interfaces and remain entirely unaware of concrete adapter selection.
+
+- Runtime Environment Discovery: 
+  * OS & Platform Layer: Detecting operating systems and terminal types relies on standard runtime inspection tools.
+  * Dependency Layer: Detecting external system tools or library availability relies on binary checks or import validation.
+  * Resilience: Automated detection should be paired with configuration or CLI overrides to allow fallback or headless execution modes.
