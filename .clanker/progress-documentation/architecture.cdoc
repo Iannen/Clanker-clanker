@@ -95,7 +95,7 @@ B. Inverted Terminal Presentation
        underlying stack trace directly beneath the failure header, pinpointing 
        the originating line in the adapter layer without noise.
 
-
+nodte: "Policy must also deal with non-Exception subclasses (KeyboardInterrupt, SystemExit) that inherit directly from BaseException."
 5. DATA FLOW SUMMARY
 --------------------------------------------------------------------------------
 [ Native OS / Third-Party Error ]

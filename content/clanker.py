@@ -42,26 +42,26 @@ class ExceptionPolicy:
         return adapter
 
     @classmethod
-    def reraise_as_failure(cls, ex: Exception) -> None:
+    def interpret_as_fatal(cls, ex: Exception) -> str:
         if isinstance(ex, Fatal):
-            raise
-        if isinstance(ex, (Notice, *cls.ADOPTED_NOTICES)):
-            raise MissedNotice(f"Missed notice: {ex.__class__.__name__}") from ex
+            fatal_ex = ex
+        elif isinstance(ex, (Notice, *cls.ADOPTED_NOTICES)):
+            fatal_ex = MissedNotice(f"Missed notice: {ex.__class__.__name__}")
+            fatal_ex.__cause__ = ex
         else:
-            raise UnexpectedEx(f"[{type(ex).__name__}] {ex}") from ex
+            fatal_ex = UnexpectedEx(f"[{type(ex).__name__}] {ex}")
+            fatal_ex.__cause__ = ex
 
-    @staticmethod
-    def print_traceback_and_exit(ex: Fatal) -> None:
-        sys.stderr.write(f"\n[FATAL] {type(ex).__name__}{ex}\n")
+        msg_parts = [f"\n[FATAL] {type(fatal_ex).__name__}{fatal_ex}\n"]
 
-        cause = getattr(ex, "__cause__", None)
+        cause = getattr(fatal_ex, "__cause__", None)
         if cause is not None:
-            sys.stderr.write("\n--- Underlying Stack Trace ---\n")
-            traceback.print_exception(type(cause), cause, cause.__traceback__, file=sys.stderr)
-        elif ex.__traceback__ is not None:
-            traceback.print_exception(type(ex), ex, ex.__traceback__, file=sys.stderr)
+            msg_parts.append("\n--- Underlying Stack Trace ---\n")
+            msg_parts.append("".join(traceback.format_exception(type(cause), cause, cause.__traceback__)))
+        elif fatal_ex.__traceback__ is not None:
+            msg_parts.append("".join(traceback.format_exception(type(fatal_ex), fatal_ex, fatal_ex.__traceback__)))
 
-        sys.exit(1)
+        return "".join(msg_parts)
 
 class AppEngine:
     def __init__(
@@ -86,7 +86,7 @@ class AppEngine:
             except UserDecline:
                 return ProgramExit.MSG_DECLINED_INIT
         except Exception as other_ex:
-            ExceptionPolicy.reraise_as_failure(other_ex)
+            return ExceptionPolicy.interpret_as_fatal(other_ex)
 
         try:
             while True:
@@ -95,7 +95,7 @@ class AppEngine:
         except ProgramExit:
             return ProgramExit.MSG_DEFAULT
         except Exception as other_ex:
-            ExceptionPolicy.reraise_as_failure(other_ex)
+            return ExceptionPolicy.interpret_as_fatal(other_ex)
 
     def _bootstrap(self) -> ActionResult:
         collector, rtc = self.session.get_runtime_config()
@@ -401,8 +401,10 @@ def main():
 
         exit_msg = engine.run()
         print(exit_msg)
-    except Fatal as ex:
-        ExceptionPolicy.print_traceback_and_exit(ex)
+        
+    except Exception as ex:
+        sys.stderr.write("\n[CRITICAL FAILURE] The ex architecture has failed: \n\n")
+        traceback.print_exception(type(ex), ex, ex.__traceback__, file=sys.stderr)
 
 if __name__ == "__main__":
     main()
