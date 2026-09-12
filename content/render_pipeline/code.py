@@ -1,8 +1,9 @@
 from __future__ import annotations
 import re
+from contracts.render_system_contract import ContentShaper
 from models import ConfigAssemblyFailure, TruncationSpec
 
-class DefaultContentShaper:
+class DefaultContentShaper(ContentShaper):
     def normalize_file_spec(self, item: str | dict) -> tuple[str, int | None]:
         if isinstance(item, dict):
             return item.get("file", ""), item.get("tail_lines")

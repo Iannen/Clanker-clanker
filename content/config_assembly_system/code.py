@@ -1,9 +1,10 @@
 from config_assembly_system.translation_system.config_dtos import ConfigTranslator
+from contracts.assembly_system_contract import RtcAssembler, Report
 from models import Button, RuntimeConfig, Keyboard, ConfigAssemblyFailure
 from dataclasses import dataclass
 
-class RuntimeConfigBuilder:
-    def build(self, pud_cfg: dict, sys_cfg: dict, shared_cfg: dict) -> tuple[ErrorCollector, RuntimeConfig]:
+class RuntimeConfigAssembler(RtcAssembler):
+    def assemble(self, sys_cfg: dict, pud_cfg: dict, shared_cfg: dict) -> tuple[Report, RuntimeConfig]:
         collector = ErrorCollector()
         ctx = Ctx(sys_cfg, pud_cfg, shared_cfg, collector, ConfigTranslator(collector))
 
@@ -92,7 +93,7 @@ class Ctx:
     pud_doms: list[Domain] | None = None
     kb_spec: KbSpec | None = None
 
-class ErrorCollector:
+class ErrorCollector(Report):
     def __init__(self) -> None:
         self._path_stack: list[str] = []
         self._complaints: list[str] = []

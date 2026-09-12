@@ -63,10 +63,26 @@ II. Items to refine & QC:
         - update FileBridge, IOBridge, and ConfigIngestor classes to explicitly inherit from their respective port ABCs
         - do not otherwise alter contents 
 
-    [ ] next target is 'content/contracts/assembly_system_contract.py' and its impls, wherever they may be. we will flesh out the particulars
+    [x] 'content/contracts/assembly_system_contract.py': Convert RtcAssembler and Report Protocols to Abstract Base Classes
+        - import ABC and abstractmethod from abc module
+        - update RtcAssembler and Report to inherit from ABC
+        - decorate method signatures with @abstractmethod
+    [x] 'content/config_assembly_system/code.py': Align concrete assembly components with ABC contracts
+        - rename RuntimeConfigBuilder to RuntimeConfigAssembler and inherit from RtcAssembler
+        - update RuntimeConfigAssembler.build to assemble, matching contract parameter order (sys_cfg, pud_cfg, shared_cfg)
+            - update Ctx instantiation inside assemble to align with the new parameter order (sys_cfg, pud_cfg, shared_cfg)
+        - update ErrorCollector to explicitly inherit from Report
+
+    [x] 'content/contracts/render_system_contract.py': Convert ContentShaper Protocol to Abstract Base Class
+		- import ABC and abstractmethod from abc module
+		- update ContentShaper to inherit from ABC
+		- decorate method signatures (normalize_file_spec, apply_truncation, hydrate) with @abstractmethod
+	[x] 'content/render_pipeline/code.py': Align DefaultContentShaper with ABC contract
+		- import ContentShaper from contracts.render_system_contract
+		- update DefaultContentShaper to explicitly inherit from ContentShaper ABC
+		- do not otherwise alter implementation behavior
 
 III. Slated for implementation:
-
 IV. Recently implemented:
 
 V. Critical bugs

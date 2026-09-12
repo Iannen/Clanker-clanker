@@ -16,11 +16,14 @@ filesets:
     content/adapters/adapters.py,
     content/contracts/ports.py,
     content/clanker.py]}
+  render_system: {includes: [
+    content/render_pipeline,
+    content/contracts/render_system_contract.py]}
 
 domains:
 - name: script-dev
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: core }
+    - { id: repo_content, type: repo_content, fileset: render_system }
     
   prompts:
     - name: plan

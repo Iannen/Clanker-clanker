@@ -166,12 +166,9 @@ class SessionService:
         self.assembler = assembler
 
     def _get_validated_cfg_fragment(self, fragment_token_path: str) -> dict:
-#        try:
         raw_content = self.files.get_file_contents(fragment_token_path)
         cfg_dict = self.cfg_ingestor.get_as_dict(raw_content)
         return cfg_dict
- #       except ConfigViolations as ex:
-  #          raise UserTask(str(ex)) from ex
 
     def get_runtime_config(self) -> (ErrorCollector, RuntimeConfig):
         try:
@@ -185,7 +182,7 @@ class SessionService:
         except FileNotFoundError as ex:
             raise ConfigAssemblyFailure(f"Missing configuration fragment: {ex}") from ex
 
-        return self.assembler.build(pud_cfg, sys_cfg, shared_cfg)
+        return self.assembler.assemble(sys_cfg, pud_cfg, shared_cfg)
 
     def initialize_workspace(self) -> None:
         if self.files.is_cwd_script_dir():
@@ -386,8 +383,8 @@ def main():
         shaper = DefaultContentShaper()
 
         # i now think of this as a subsystem
-        from config_assembly_system.code import RuntimeConfigBuilder
-        assembler = RuntimeConfigBuilder()
+        from config_assembly_system.code import RuntimeConfigAssembler
+        assembler = RuntimeConfigAssembler()
 
         session = SessionService(files=files_adapter, cfg_ingestor=cfg_ingestor, assembler=assembler)
         renderer = AssemblyService(files=files_adapter, shaper=shaper)
