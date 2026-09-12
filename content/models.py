@@ -39,6 +39,7 @@ class ProgramExit(Notice):
     leaf_ex = True
     MSG_DEFAULT: ClassVar[str] = "Program exited"
     MSG_DECLINED_INIT: ClassVar[str] = "Initialization declined by user"
+    MSG_DECLINED_BOOTSTRAP: ClassVar[str] = "Bootstrap declined by user"
 
 class NoConfig(Notice): leaf_ex = True
 
@@ -175,9 +176,9 @@ class IOControl:
     BACKSPACE_KEYS = ("\x7f", "\x08")
 
 class CfgFragments:
-    PUD_CFG = "/.clanker/config.yaml" #domains, prompts, filesets , filelists & such
-    SYSTEM_CFG = "/.clanker/shared-assets/config-fragments/system_cfg.yaml" #ui render & rows for button instantiation
-    SHARED_CFG = "/.clanker/shared-assets/config-fragments/shared_cfg.yaml" #domains, prompts, filesets , filelists & such
+    PUD_CFG = "/.clanker/config.yaml"
+    SYSTEM_CFG = "/.clanker/shared-assets/config-fragments/system_cfg.yaml" 
+    SHARED_CFG = "/.clanker/shared-assets/config-fragments/shared_cfg.yaml" 
     TEMPLATE_CFG = "/.clanker/templates/config.template"
     
 class DocPaths:

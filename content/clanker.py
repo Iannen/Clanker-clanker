@@ -78,6 +78,8 @@ class AppEngine:
     def run(self) -> str:
         try:
             self.msg = self._bootstrap()
+        except UserDecline:
+            return ProgramExit.MSG_DECLINED_BOOTSTRAP        
         except NoConfig:
             try:
                 self.io.get_confirmation("Directory not initialized as clank repo - clankerize?", "yes")
@@ -98,8 +100,13 @@ class AppEngine:
             return ExceptionPolicy.interpret_as_fatal(other_ex)
 
     def _bootstrap(self) -> ActionResult:
-        collector, rtc = self.session.get_runtime_config()
-        collector.raise_if_any()
+        report, rtc = self.session.get_runtime_config()
+        dof_report = report.get_domain_overflow_report()
+        if dof_report is not None:
+            self.io.get_confirmation(
+                f"{dof_report}\nDo you wish to proceed with overflowed domains trimmed?",
+                required_phrase="yes"
+            )
         self.runtime_config = rtc
         self.kb = self.runtime_config.keyboard
         self._wire_num_row()
@@ -170,7 +177,7 @@ class SessionService:
         cfg_dict = self.cfg_ingestor.get_as_dict(raw_content)
         return cfg_dict
 
-    def get_runtime_config(self) -> (ErrorCollector, RuntimeConfig):
+    def get_runtime_config(self) -> tuple[Report, RuntimeConfig]:
         try:
             pud_cfg = self._get_validated_cfg_fragment(BasePathTokens.PUD + CfgFragments.PUD_CFG)
         except FileNotFoundError:

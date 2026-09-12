@@ -31,28 +31,28 @@ II. Items to refine & QC:
 
 III. Slated for implementation:
 
+IV. Recently implemented:
+
 4. Improve config_assembly_system complaint production
-    [ ] 'content/config_assembly_system/code.py': Model DomainOverflow and record overflow during button mapping
+    [x] 'content/config_assembly_system/code.py': Model DomainOverflow and record overflow during button mapping
         - add 'class DomainOverflow' containing sys_cfg_name, row_keys, domain_names, cfg_filename, and overflow_count
         - add get_msg() -> str to DomainOverflow producing formatted complaint string
         - update RuntimeConfigAssembler._create_btn_map to instantiate DomainOverflow complaints and register them with ErrorCollector when domains exceed button slot capacities
         - safely trim/omit overflowing domains during key assignment
-    [ ] 'content/config_assembly_system/translation_system/config_dtos.py': Integrate DomainOverflow handling into ErrorCollector
+    [x] 'content/config_assembly_system/translation_system/config_dtos.py': Integrate DomainOverflow handling into ErrorCollector
         - add internal storage for DomainOverflow complaint instances in ErrorCollector
         - add method to record DomainOverflow instances
         - implement get_domain_overflow_report() -> str | None returning concatenated report or None if empty
-    [ ] 'content/contracts/assembly_system_contract.py': Update Report abstract interface
+    [x] 'content/contracts/assembly_system_contract.py': Update Report abstract interface
         - add @abstractmethod get_domain_overflow_report(self) -> str | None to Report class
 
-    [ ] 'clanker.py': Refine complaint consumption for capacity and missing fileset cases [deferred ] 
-        - this step is deferred. it is thought that above steps are additive to existing border contract
+    [x] 'clanker.py': Refine complaint consumption for capacity and missing fileset cases  
         - SessionService.get_runtime_config:
             - return report & rtc to appengine
         - AppEngine.bootstrap: determines if we can proceed based on the report
             - dof_report = report.get_domain_overflow_report
             - if dof is not None
             - ask user acceptance to bootstrap, offer to exit
-
-IV. Recently implemented:
+    conclusion: this was successful, but I must transition into a worker pipeline to maintain sanity
 
 V. Critical bugs

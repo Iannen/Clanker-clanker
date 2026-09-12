@@ -195,3 +195,31 @@ ARCHITECTURAL PRINCIPLES: PORTS & ADAPTERS
   -->The EX architecture violates P&A<--
   all adapters MUST translate their ex vocabulary into ex vocabulary belonging to app.
   If they do not, then they are not swappable! 
+
+---
+
+ARCHITECTURE BLUEPRINT: ASSEMBLY PIPELINE & COMPLAINT COLLECTION
+
+1. OVERVIEW & CORE MODEL (Option B: Stack-Scoped Pipeline)
+
+SessionService acts as the pure orchestrator. Its local execution stack serves as the implicit processing context, eliminating the need for a mutable context class.
+
+Flow:
+AppEngine (UI / Decision Boundary) invokes SessionService.get_runtime_config()
+  - SessionService instantiates a single shared ErrorCollector (Pukebucket)
+    - Step 1: FileSetWorker processes shared and PUD configurations, logs file errors to ErrorCollector, and outputs FileSetMap
+    - Step 2: DomainWorker receives configurations and FileSetMap, logs schema/domain errors to ErrorCollector, and outputs Domain list
+    - Step 3: ButtonMapWorker receives system config and Domain list, logs DomainOverflow complaints to ErrorCollector, and outputs ButtonMap plus UI Render
+  - SessionService yields the final Report and RuntimeConfig to AppEngine, which checks the report and prompts the user as needed
+
+--------------------------------------------------------------------------------
+2. KEY ARCHITECTURAL TAKEAWAYS
+1. Stack as Context
+   Local variables (fileset_map, domains, button_map) pass outputs directly from one worker's parameter list to the next. Dependency order is enforced natively by the Python interpreter at execution time.
+2. Explicit Worker Signatures
+   Workers receive only their explicit data dependencies plus the shared ErrorCollector. There is zero hidden state leakage or cross-stage side effects.
+3. Single Complaint Bucket
+   All workers log both structural errors and soft warnings (such as DomainOverflow) into a single ErrorCollector instance created at the start of orchestration.
+4. Strict Decision Boundary
+   Services and workers never prompt or raise exceptions on recoverable complaints. They record findings and return results. AppEngine inspects the report at the very end to decide whether to prompt the user, proceed, or abort.
+
