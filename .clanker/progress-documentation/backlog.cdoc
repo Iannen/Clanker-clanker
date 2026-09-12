@@ -60,6 +60,7 @@ II. Items to refine & QC:
 
 III. Slated for implementation:
 
+IV. Recently implemented:
 
 5. Transition interface layer from static Protocols to runtime-enforced ABCs @consultant do not alter preamble or purpose!
     preamble: Shift structural duck-typing to explicit nominal contracts to enforce runtime guarantees without relying on external static analysis tools.
@@ -70,14 +71,12 @@ III. Slated for implementation:
         - now that the codebase separates out the 'interfaces' in files separate to their consumers and separate to their providers
             - no issues of circular dependency is incurred (an issue at the time of switch from abc to protocol, if memory serves) 
     status: only below remains. I decided to step back and chew on it, cuz the collector/report spans several layers of the system.
-    [ ] 'content/config_assembly_system/contracts/translation_contract.py': Convert protocols to Abstract Base Classes
+    [x] 'content/config_assembly_system/contracts/translation_contract.py': Convert protocols to Abstract Base Classes
         - FilesetMapProtocol -> FilesetMapABC subclass ABC, use @abstractmethod)
         - ConfigTranslatorProtocol -> ConfigTranslatorABC subclass ABC, use @abstractmethod)
-    [ ] 'content/config_assembly_system/translation_system/config_dtos.py': Align concrete translation components with ABC contracts
+    [x] 'content/config_assembly_system/translation_system/config_dtos.py': Align concrete translation components with ABC contracts
         - Inherit FilesetMap from FilesetMapABC
         - Inherit ConfigTranslator from ConfigTranslatorABC
-
-
-IV. Recently implemented:
+    conclusion: This ends the 'Interfaces in python' covfefe for this time. Next round? custom .bind approach to mimic golang.
 
 V. Critical bugs

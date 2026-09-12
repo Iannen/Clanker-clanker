@@ -1,6 +1,8 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
+from config_assembly_system.contracts.translation_contract import FilesetMapABC, ConfigTranslatorABC
+
 from models import (
     Domain,
     Prompt,
@@ -49,7 +51,7 @@ class KbSpec:
     pud_domain_keys: str
     prompt_keys: str
 
-class FilesetMap:
+class FilesetMap(FilesetMapABC):
     def __init__(self, data: dict[str, FileSet], collector: ErrorCollector) -> None:
         self._data = data
         self._collector = collector
@@ -60,16 +62,17 @@ class FilesetMap:
             return None
         return self._data[key]
 
-    def merge(self, other: FilesetMap) -> FilesetMap:
+    def merge(self, other: FilesetMapABC) -> FilesetMapABC:
         merged_data = dict(self._data)
-        merged_data.update(other._data)
+        if isinstance(other, FilesetMap):
+            merged_data.update(other._data)
         return FilesetMap(data=merged_data, collector=self._collector)
 
-class ConfigTranslator:
+class ConfigTranslator(ConfigTranslatorABC):
     def __init__(self, collector: ErrorCollector) -> None:
         self.extractor = ValueExtractor()
         self.collector = collector
-        self._filesetmap: FilesetMapProtocol | None = None
+        self._filesetmap: FilesetMapABC | None = None
 
     def set_collector(self, collector: ErrorCollector) -> None:
         self.collector = collector
@@ -77,12 +80,12 @@ class ConfigTranslator:
     def get_collector(self) -> ErrorCollector:
         return self.collector
 
-    def set_filesetmap(self, filesetmap: FilesetMapProtocol) -> None:
+    def set_filesetmap(self, filesetmap: FilesetMapABC) -> None:
         self._filesetmap = filesetmap
 
     def extract_filesets(
         self, doms_cfg_dict: dict[str, Any]
-    ) -> FilesetMap:
+    ) -> FilesetMapABC:
         raw_filesets = self.extractor.req_dict(doms_cfg_dict, ["filesets"], default={})
         result = {}
         for k, v in raw_filesets.items():

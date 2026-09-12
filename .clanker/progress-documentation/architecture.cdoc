@@ -114,6 +114,9 @@ nodte: "Policy must also deal with non-Exception subclasses (KeyboardInterrupt, 
 
 Dynamic Contract Binding Pattern for python interfaces
 (note: current OOP does not mandate the import of interface, only the implementation adherence to it. )
+(note: the approach here is not quite sufficient. we also need an 'isequals' to compare the methods, name is not enough)
+(note: bind() must verify 'classinstance' is an instantiated object, not an uninstantiated class reference; passing a raw class allows unbound methods to pass callable checks but fails at invocation.)
+(note: checking interface methods via direct instance getattr() will prematurely trigger property getters during setup; inspection must target class-level attributes rather than instance evaluations.)
 
 Purpose:
 Validates that a concrete adapter satisfies an interface at runtime without forcing the adapter to explicitly inherit from it. 

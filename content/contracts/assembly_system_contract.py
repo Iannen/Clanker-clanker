@@ -1,4 +1,3 @@
-from typing import Protocol
 from models import RuntimeConfig
 
 from abc import ABC, abstractmethod
