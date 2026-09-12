@@ -1,4 +1,4 @@
-from config_assembly_system.translation_system.config_dtos import ConfigTranslator
+from config_assembly_system.translation_system.config_dtos import ConfigTranslator, ErrorCollector
 from contracts.assembly_system_contract import RtcAssembler, Report
 from models import Button, RuntimeConfig, Keyboard, ConfigAssemblyFailure
 from dataclasses import dataclass
@@ -92,27 +92,3 @@ class Ctx:
     shared_doms: list[Domain] | None = None
     pud_doms: list[Domain] | None = None
     kb_spec: KbSpec | None = None
-
-class ErrorCollector(Report):
-    def __init__(self) -> None:
-        self._path_stack: list[str] = []
-        self._complaints: list[str] = []
-
-    def push_path(self, segment: str) -> None:
-        self._path_stack.append(segment)
-
-    def pop_path(self) -> None:
-        if self._path_stack:
-            self._path_stack.pop()
-
-    def add_complaint(self, message: str) -> None:
-        active_path = " -> ".join(self._path_stack)
-        if active_path:
-            self._complaints.append(f"[{active_path}] {message}")
-        else:
-            self._complaints.append(message)
-
-    def raise_if_any(self) -> None:
-        if self._complaints:
-            formatted = "\n".join(f"  - {c}" for c in self._complaints)
-            raise ConfigAssemblyFailure(f"Configuration errors encounterd:\n{formatted}")

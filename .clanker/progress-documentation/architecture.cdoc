@@ -188,3 +188,7 @@ ARCHITECTURAL PRINCIPLES: PORTS & ADAPTERS
   * OS & Platform Layer: Detecting operating systems and terminal types relies on standard runtime inspection tools.
   * Dependency Layer: Detecting external system tools or library availability relies on binary checks or import validation.
   * Resilience: Automated detection should be paired with configuration or CLI overrides to allow fallback or headless execution modes.
+  
+  -->The EX architecture violates P&A<--
+  all adapters MUST translate their ex vocabulary into ex vocabulary belonging to app.
+  If they do not, then they are not swappable! 

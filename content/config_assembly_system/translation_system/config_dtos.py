@@ -17,6 +17,31 @@ from models import (
     ConfigAssemblyFailure,
 )
 
+from contracts.assembly_system_contract import Report
+
+class ErrorCollector(Report):
+    def __init__(self) -> None:
+        self._path_stack: list[str] = []
+        self._complaints: list[str] = []
+
+    def push_path(self, segment: str) -> None:
+        self._path_stack.append(segment)
+
+    def pop_path(self) -> None:
+        if self._path_stack:
+            self._path_stack.pop()
+
+    def add_complaint(self, message: str) -> None:
+        active_path = " -> ".join(self._path_stack)
+        if active_path:
+            self._complaints.append(f"[{active_path}] {message}")
+        else:
+            self._complaints.append(message)
+
+    def raise_if_any(self) -> None:
+        if self._complaints:
+            formatted = "\n".join(f"  - {c}" for c in self._complaints)
+            raise ConfigAssemblyFailure(f"Configuration errors encounterd:\n{formatted}")
 
 @dataclass
 class KbSpec:

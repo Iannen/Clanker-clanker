@@ -8,16 +8,28 @@ I. Ideas, complaints and non-critical bugs:
 
 II. Items to refine & QC:
 
-1. qol imp: 
+0. Config & Asset validation
+    - yaml configs
+        - must parse properly & unambiguously into a combined RTC, in a transparent manner in the system which does it
+            - yielding complaints to a collector for any violation encountered
+            - then attempting to bypass it, keeping process going, so as many complaints can be collected in the pass
+    - layout assets
+        - must be able to contain that which the app wants to assign to them, else cause of complaint
+    - content bearing assets
+        - must exist, else cause of complaint 
+
+1. UI / Feedback imp [DX/UX]: 
     - make prompt compilation msg say which domain, prompt was used in addition to just line/char
     - turns into a pipeline refactor. oh well
+    - we have the righthand side of the screen to put info on. will be baller, only green (black) grass
 
-3. i should be able to add more than just filesets as named bottom level sets.
+2. i should be able to add more than just filesets as named bottom level sets.
     - MD resolver prime target, I can put it in shared cfg -> reuse it in domains of pud cfgs
+    - lets not rush it tho
 
-4. revise new dir structure, so we dont have simple 'code.py' files, they should ref their system
+3. revise new dir structure, so we dont have simple 'code.py' files, they should ref their system
 
-5. Improve config_assembly_system complaint production
+4. Improve config_assembly_system complaint production
     - consideration : BaseException inheritors bypass things? must be found out
     [ ] 'config_assembly_system/code.py'
         - add 'class DomainOverflow'
@@ -46,7 +58,10 @@ II. Items to refine & QC:
             - if dof is not None
                 - craft a msg, embed in ex
 
-2. Transition interface layer from static Protocols to runtime-enforced ABCs @consultant do not alter preamble or purpose!
+III. Slated for implementation:
+
+
+5. Transition interface layer from static Protocols to runtime-enforced ABCs @consultant do not alter preamble or purpose!
     preamble: Shift structural duck-typing to explicit nominal contracts to enforce runtime guarantees without relying on external static analysis tools.
         - Protocols outsource contract verification to external tools (IDEs, linters, mypy) and remain invisible to the Python interpreter at runtime.
         - ABCs leverage Python's native runtime to fail fast at instantiation time whenever concrete classes deviate from their defined contracts.
@@ -54,11 +69,14 @@ II. Items to refine & QC:
     backlog item purpose: we revert to ABC as interface mechanism
         - now that the codebase separates out the 'interfaces' in files separate to their consumers and separate to their providers
             - no issues of circular dependency is incurred (an issue at the time of switch from abc to protocol, if memory serves) 
-    status: only below remains. I decided to step back and chew on it, cuz the collector spans several layers of the system.
-    [ ] 'content/config_assembly_system/contracts/translation_contract.py': Convert translation protocols to Abstract Base Classes
+    status: only below remains. I decided to step back and chew on it, cuz the collector/report spans several layers of the system.
+    [ ] 'content/config_assembly_system/contracts/translation_contract.py': Convert protocols to Abstract Base Classes
+        - FilesetMapProtocol -> FilesetMapABC subclass ABC, use @abstractmethod)
+        - ConfigTranslatorProtocol -> ConfigTranslatorABC subclass ABC, use @abstractmethod)
     [ ] 'content/config_assembly_system/translation_system/config_dtos.py': Align concrete translation components with ABC contracts
+        - Inherit FilesetMap from FilesetMapABC
+        - Inherit ConfigTranslator from ConfigTranslatorABC
 
-III. Slated for implementation:
 
 IV. Recently implemented:
 
