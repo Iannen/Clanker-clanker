@@ -421,3 +421,8 @@ LXXV: APPENGINE EXECUTION AND EXCEPTION CONTROL FLOW REFINEMENT
     - Updated ProgramExit exception model in models.py by deprecating get_compliance_msg() in favor of direct ClassVar strings (MSG_DEFAULT and MSG_DECLINED_INIT)
     - Refined AppEngine._bootstrap in clanker.py to allow exceptions to bubble up directly to caller
     - Restructured AppEngine.run into two sequential phase try blocks (Phase 1: Bootstrap & Init, Phase 2: UI Loop) with explicit exception handling for initialization confirmation, declines, and standard UI exits
+
+LXXVI: REFACTOR EXCEPTION POLICY FOR APPENGINE INTERPRETATION AND MAIN FALLBACK
+    - Replaced `ExceptionPolicy.reraise_as_failure` and `print_traceback_and_exit` with `interpret_as_fatal` to standardize incoming exceptions to fatal types and return formatted string representations with underlying stack traces
+    - Refactored `AppEngine.run` to catch unhandled execution exceptions internally, process them via `ExceptionPolicy.interpret_as_fatal`, and return formatted fatal strings
+    - Simplified `main()` execution flow to print `engine.run()` directly within a generic fallback catch block for critical exception architecture failures
