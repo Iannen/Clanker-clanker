@@ -1,5 +1,6 @@
 I. Ideas, complaints and non-critical bugs:
 - arrow keys interpreted as esc
+    - this has grown on me though - keep? but formalize if so
 - the rendered UI does not properly display empty buttons for 'qwerty' and 'asdfgh' rows
     - this is due to the ui template being constrained to 4 buttons for the two keyrows.
     - ez fix is to adjust template.
@@ -57,6 +58,11 @@ II. Items to refine & QC:
     - consider this, for the benefit of runtime 'no sir'
     - and also forces import discipline 
     - cuz current Protocols are papertigers
+
+7. main() - reaches back in for EXPolicy for purpose of print helper??
+    - with the purported mathematical soundness of the policy, the appengine should be able to produce the msg in the Fatal cases, i think
+        - so main just becomes a msg printer
+        - it can have a standard fare catch ex -> print whatever, which should never occur cuz of EXPolicy system
 
 III. Slated for implementation:
 

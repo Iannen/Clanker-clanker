@@ -53,3 +53,10 @@ VI. Expand project horizon:
             - better than github actions, cuz no github dependency
     - Clanker for non-code repositories
         - sheet music
+
+VII. Testing
+  - only for benefit of dev confidence ->  dev speed
+    - clankerized project 
+       - should test that the prompt gen works for all leaves (prompts)
+    - clankerization of a project
+      - test the branches of the process

@@ -78,30 +78,33 @@ class AppEngine:
     def run(self) -> str:
         try:
             self.msg = self._bootstrap()
-            while True:
-                cmd_key = self._display_ui()
-                self.msg = self.kb.handle_key(cmd_key)
-        except ProgramExit as exit_request:
-            return exit_request.get_compliance_msg()
-        except Exception as other_ex:
-            ExceptionPolicy.reraise_as_failure(other_ex)
-
-    def _bootstrap(self) -> ActionResult:
-        try:
-            collector, rtc = self.session.get_runtime_config()
-            collector.raise_if_any()
-            self.runtime_config = rtc
-            self.kb = self.runtime_config.keyboard
-            self._wire_num_row()
-            self._set_selected_num_btn(None)
-            return ActionResult("Bootstrap completed successfully")
         except NoConfig:
             try:
                 self.io.get_confirmation("Directory not initialized as clank repo - clankerize?", "yes")
                 self.session.initialize_workspace()
-                return self._bootstrap()
+                self.msg = self._bootstrap()
             except UserDecline:
-                raise ProgramExit
+                return ProgramExit.MSG_DECLINED_INIT
+        except Exception as other_ex:
+            ExceptionPolicy.reraise_as_failure(other_ex)
+
+        try:
+            while True:
+                cmd_key = self._display_ui()
+                self.msg = self.kb.handle_key(cmd_key)
+        except ProgramExit:
+            return ProgramExit.MSG_DEFAULT
+        except Exception as other_ex:
+            ExceptionPolicy.reraise_as_failure(other_ex)
+
+    def _bootstrap(self) -> ActionResult:
+        collector, rtc = self.session.get_runtime_config()
+        collector.raise_if_any()
+        self.runtime_config = rtc
+        self.kb = self.runtime_config.keyboard
+        self._wire_num_row()
+        self._set_selected_num_btn(None)
+        return ActionResult("Bootstrap completed successfully")
 
     def _wire_num_row(self) -> None:
         for btn in self.kb.get_unique_buttons(Button.TYPE_DOMAIN):
@@ -163,12 +166,12 @@ class SessionService:
         self.assembler = assembler
 
     def _get_validated_cfg_fragment(self, fragment_token_path: str) -> dict:
-        try:
-            raw_content = self.files.get_file_contents(fragment_token_path)
-            cfg_dict = self.cfg_ingestor.get_as_dict(raw_content)
-            return cfg_dict
-        except ConfigViolations as ex:
-            raise UserTask(str(ex)) from ex
+#        try:
+        raw_content = self.files.get_file_contents(fragment_token_path)
+        cfg_dict = self.cfg_ingestor.get_as_dict(raw_content)
+        return cfg_dict
+ #       except ConfigViolations as ex:
+  #          raise UserTask(str(ex)) from ex
 
     def get_runtime_config(self) -> (ErrorCollector, RuntimeConfig):
         try:

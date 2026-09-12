@@ -416,3 +416,8 @@ LXXIV: THREE-PILLAR EXCEPTION POLICY FRAMING AND DYNAMIC EXCEPTION FORMATTING
     - Retained `ExceptionPolicy.reraise_as_failure` (Gate 2) to trap uncaught internal domain exceptions into `MissedNotice` or `UnexpectedEx` fatal failures
     - Updated `Fatal` base exception string representation to prepend dynamic separators and added custom `BridgeLeakage.__str__` formatting to dynamically extract and report underlying `__cause__` details
     - Implemented `ExceptionPolicy.print_traceback_and_exit` (Pillar 3) to print a high-level `[FATAL]` failure summary header before dumping the underlying cause traceback to stderr and exiting
+
+LXXV: APPENGINE EXECUTION AND EXCEPTION CONTROL FLOW REFINEMENT
+    - Updated ProgramExit exception model in models.py by deprecating get_compliance_msg() in favor of direct ClassVar strings (MSG_DEFAULT and MSG_DECLINED_INIT)
+    - Refined AppEngine._bootstrap in clanker.py to allow exceptions to bubble up directly to caller
+    - Restructured AppEngine.run into two sequential phase try blocks (Phase 1: Bootstrap & Init, Phase 2: UI Loop) with explicit exception handling for initialization confirmation, declines, and standard UI exits

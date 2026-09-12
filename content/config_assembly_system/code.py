@@ -1,5 +1,5 @@
 from config_assembly_system.translation_system.config_dtos import ConfigTranslator
-from models import Button, RuntimeConfig, Keyboard
+from models import Button, RuntimeConfig, Keyboard, ConfigAssemblyFailure
 from dataclasses import dataclass
 
 class RuntimeConfigBuilder:

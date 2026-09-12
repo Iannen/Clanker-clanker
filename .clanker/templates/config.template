@@ -1,5 +1,5 @@
 filesets:
-  default_repo_content: { includes: [.], excludes: [.git, .clanker] }
+  core: { includes: [.], excludes: [.git, .clanker] }
 
 domains:
   - name: analysis

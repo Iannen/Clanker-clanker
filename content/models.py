@@ -37,8 +37,8 @@ class UserTask(Fatal): leaf_ex = True
 class UserDecline(Notice): leaf_ex = True
 class ProgramExit(Notice): 
     leaf_ex = True
-    def get_compliance_msg(self) -> str:
-        return "Program exited"
+    MSG_DEFAULT: ClassVar[str] = "Program exited"
+    MSG_DECLINED_INIT: ClassVar[str] = "Initialization declined by user"
 
 class NoConfig(Notice): leaf_ex = True
 
