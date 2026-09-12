@@ -82,6 +82,8 @@ II. Items to refine & QC:
 		- update DefaultContentShaper to explicitly inherit from ContentShaper ABC
 		- do not otherwise alter implementation behavior
 
+    [ ] and the nextone
+    
 III. Slated for implementation:
 IV. Recently implemented:
 
