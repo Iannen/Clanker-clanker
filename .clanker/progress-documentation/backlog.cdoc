@@ -29,54 +29,30 @@ II. Items to refine & QC:
 
 3. revise new dir structure, so we dont have simple 'code.py' files, they should ref their system
 
+III. Slated for implementation:
+
 4. Improve config_assembly_system complaint production
-    - consideration : BaseException inheritors bypass things? must be found out
-    [ ] 'config_assembly_system/code.py'
-        - add 'class DomainOverflow'
-            - members to hold info for below
-            - get_msg()->str:
-                - DomainOverflow: <sys_cfg_name> declares <row_keys> for domains <domain_names> of <cfg_filename>, n overflowing
-        - 'ErrorCollector'
-            - add method to accept DomainOverflow  complaints or args required to fashion one., adding it to internal collection of DomainOverflow complaints
-            - add method 'get_domain_overflow_report -> str | None'
-                - if none, then no issue. if yes, then its part of a msg
+    [ ] 'content/config_assembly_system/code.py': Model DomainOverflow and record overflow during button mapping
+        - add 'class DomainOverflow' containing sys_cfg_name, row_keys, domain_names, cfg_filename, and overflow_count
+        - add get_msg() -> str to DomainOverflow producing formatted complaint string
+        - update RuntimeConfigAssembler._create_btn_map to instantiate DomainOverflow complaints and register them with ErrorCollector when domains exceed button slot capacities
+        - safely trim/omit overflowing domains during key assignment
+    [ ] 'content/config_assembly_system/translation_system/config_dtos.py': Integrate DomainOverflow handling into ErrorCollector
+        - add internal storage for DomainOverflow complaint instances in ErrorCollector
+        - add method to record DomainOverflow instances
+        - implement get_domain_overflow_report() -> str | None returning concatenated report or None if empty
+    [ ] 'content/contracts/assembly_system_contract.py': Update Report abstract interface
+        - add @abstractmethod get_domain_overflow_report(self) -> str | None to Report class
 
-    [ ] 'config_assembly_system/code.py': 
-        - RuntimeConfigBuilder: 
-            - when zipping buttons, if overflow, then complain to ErrorCollector, using above.
-            - simply omit the overflow - the 'do the best we can but complain' approach (?)
-
-    [ ] 'assembly_system_contract.py'
-        - 'Report'
-            - add get_domain_overflow_report -> str | None
-
-    [ ] 'clanker.py': Refine complaint consumption for capacity and missing fileset cases
+    [ ] 'clanker.py': Refine complaint consumption for capacity and missing fileset cases [deferred ] 
+        - this step is deferred. it is thought that above steps are additive to existing border contract
         - SessionService.get_runtime_config:
             - return report & rtc to appengine
         - AppEngine.bootstrap: determines if we can proceed based on the report
             - dof_report = report.get_domain_overflow_report
             - if dof is not None
-                - craft a msg, embed in ex
-
-III. Slated for implementation:
+            - ask user acceptance to bootstrap, offer to exit
 
 IV. Recently implemented:
-
-5. Transition interface layer from static Protocols to runtime-enforced ABCs @consultant do not alter preamble or purpose!
-    preamble: Shift structural duck-typing to explicit nominal contracts to enforce runtime guarantees without relying on external static analysis tools.
-        - Protocols outsource contract verification to external tools (IDEs, linters, mypy) and remain invisible to the Python interpreter at runtime.
-        - ABCs leverage Python's native runtime to fail fast at instantiation time whenever concrete classes deviate from their defined contracts.
-        - Moving contracts into an isolated module breaks circular dependency cycles, allowing consumers and suppliers to depend downward on shared ABCs safely.
-    backlog item purpose: we revert to ABC as interface mechanism
-        - now that the codebase separates out the 'interfaces' in files separate to their consumers and separate to their providers
-            - no issues of circular dependency is incurred (an issue at the time of switch from abc to protocol, if memory serves) 
-    status: only below remains. I decided to step back and chew on it, cuz the collector/report spans several layers of the system.
-    [x] 'content/config_assembly_system/contracts/translation_contract.py': Convert protocols to Abstract Base Classes
-        - FilesetMapProtocol -> FilesetMapABC subclass ABC, use @abstractmethod)
-        - ConfigTranslatorProtocol -> ConfigTranslatorABC subclass ABC, use @abstractmethod)
-    [x] 'content/config_assembly_system/translation_system/config_dtos.py': Align concrete translation components with ABC contracts
-        - Inherit FilesetMap from FilesetMapABC
-        - Inherit ConfigTranslator from ConfigTranslatorABC
-    conclusion: This ends the 'Interfaces in python' covfefe for this time. Next round? custom .bind approach to mimic golang.
 
 V. Critical bugs

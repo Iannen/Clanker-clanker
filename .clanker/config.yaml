@@ -22,7 +22,7 @@ filesets:
     content/contracts/render_system_contract.py]}
 
 domains:
-- name: script-dev
+- name: core
   resolvers:
     - { id: repo_content, type: repo_content, fileset: core } 
 
