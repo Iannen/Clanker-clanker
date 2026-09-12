@@ -1,3 +1,4 @@
+#this appears to gravitate towards the filesets of nodes in system being the important bits to declare
 filesets:
   core: {includes: [
     content/clanker.py, 
@@ -23,8 +24,8 @@ filesets:
 domains:
 - name: script-dev
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: render_system }
-    
+    - { id: repo_content, type: repo_content, fileset: core } 
+
   prompts:
     - name: plan
       render:

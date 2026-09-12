@@ -54,37 +54,12 @@ II. Items to refine & QC:
     backlog item purpose: we revert to ABC as interface mechanism
         - now that the codebase separates out the 'interfaces' in files separate to their consumers and separate to their providers
             - no issues of circular dependency is incurred (an issue at the time of switch from abc to protocol, if memory serves) 
-    [x] 'content/contracts/ports.py': Convert Port Protocols to Abstract Base Classes
-        - import ABC and abstractmethod from abc module
-        - update IOBridgePort, FileBridgePort, and ConfigIngestorPort to inherit from ABC
-        - decorate every method signature across all three ports with @abstractmethod
-    [x] 'content/adapters/adapters.py': Align concrete implementations with ABC contracts
-        - import IOBridgePort, FileBridgePort, and ConfigIngestorPort from contracts.ports
-        - update FileBridge, IOBridge, and ConfigIngestor classes to explicitly inherit from their respective port ABCs
-        - do not otherwise alter contents 
+    status: only below remains. I decided to step back and chew on it, cuz the collector spans several layers of the system.
+    [ ] 'content/config_assembly_system/contracts/translation_contract.py': Convert translation protocols to Abstract Base Classes
+    [ ] 'content/config_assembly_system/translation_system/config_dtos.py': Align concrete translation components with ABC contracts
 
-    [x] 'content/contracts/assembly_system_contract.py': Convert RtcAssembler and Report Protocols to Abstract Base Classes
-        - import ABC and abstractmethod from abc module
-        - update RtcAssembler and Report to inherit from ABC
-        - decorate method signatures with @abstractmethod
-    [x] 'content/config_assembly_system/code.py': Align concrete assembly components with ABC contracts
-        - rename RuntimeConfigBuilder to RuntimeConfigAssembler and inherit from RtcAssembler
-        - update RuntimeConfigAssembler.build to assemble, matching contract parameter order (sys_cfg, pud_cfg, shared_cfg)
-            - update Ctx instantiation inside assemble to align with the new parameter order (sys_cfg, pud_cfg, shared_cfg)
-        - update ErrorCollector to explicitly inherit from Report
-
-    [x] 'content/contracts/render_system_contract.py': Convert ContentShaper Protocol to Abstract Base Class
-		- import ABC and abstractmethod from abc module
-		- update ContentShaper to inherit from ABC
-		- decorate method signatures (normalize_file_spec, apply_truncation, hydrate) with @abstractmethod
-	[x] 'content/render_pipeline/code.py': Align DefaultContentShaper with ABC contract
-		- import ContentShaper from contracts.render_system_contract
-		- update DefaultContentShaper to explicitly inherit from ContentShaper ABC
-		- do not otherwise alter implementation behavior
-
-    [ ] and the nextone
-    
 III. Slated for implementation:
+
 IV. Recently implemented:
 
 V. Critical bugs
