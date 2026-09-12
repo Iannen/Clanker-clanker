@@ -12,14 +12,6 @@ II. Items to refine & QC:
     - make prompt compilation msg say which domain, prompt was used in addition to just line/char
     - turns into a pipeline refactor. oh well
 
-2. MUST find a way to make the system bitch out whenever a type hint is not in scope
-    - this to enforce that protocol are not just some paper layer
-    - dev-time is IDE rabbithole
-    - perhaps some test for this? this is what linters and shit do.
-        - cons: heavy NIH
-        - pros: project self-containment -> IDE independence
-    - also import hygiene!
-
 3. i should be able to add more than just filesets as named bottom level sets.
     - MD resolver prime target, I can put it in shared cfg -> reuse it in domains of pud cfgs
 
@@ -54,12 +46,24 @@ II. Items to refine & QC:
             - if dof is not None
                 - craft a msg, embed in ex
 
-6. Revert to ABC for the python interface construct of choice
-    - consider this, for the benefit of runtime 'no sir'
-    - and also forces import discipline 
-    - cuz current Protocols are papertigers
-
 III. Slated for implementation:
+
+2. Transition interface layer from static Protocols to runtime-enforced ABCs @consultant do not alter preamble or purpose!
+    preamble: Shift structural duck-typing to explicit nominal contracts to enforce runtime guarantees without relying on external static analysis tools.
+        - Protocols outsource contract verification to external tools (IDEs, linters, mypy) and remain invisible to the Python interpreter at runtime.
+        - ABCs leverage Python's native runtime to fail fast at instantiation time whenever concrete classes deviate from their defined contracts.
+        - Moving contracts into an isolated module breaks circular dependency cycles, allowing consumers and suppliers to depend downward on shared ABCs safely.
+    backlog item purpose: we revert to ABC as interface mechanism
+        - now that the codebase separates out the 'interfaces' in files separate to their consumers and separate to their providers
+            - no issues of circular dependency is incurred (an issue at the time of switch from abc to protocol, if memory serves) 
+    [ ] 'content/contracts/ports.py': Convert Port Protocols to Abstract Base Classes
+        - import ABC and abstractmethod from abc module
+        - update IOBridgePort, FileBridgePort, and ConfigIngestorPort to inherit from ABC
+        - decorate every method signature across all three ports with @abstractmethod
+    [ ] 'content/adapters/adapters.py': Align concrete implementations with ABC contracts
+        - import IOBridgePort, FileBridgePort, and ConfigIngestorPort from contracts.ports
+        - update FileBridge, IOBridge, and ConfigIngestor classes to explicitly inherit from their respective port ABCs
+        - do not otherwise alter contents 
 
 IV. Recently implemented:
 

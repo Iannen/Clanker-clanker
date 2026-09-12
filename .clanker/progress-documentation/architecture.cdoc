@@ -109,3 +109,59 @@ nodte: "Policy must also deal with non-Exception subclasses (KeyboardInterrupt, 
                ├──► 1. Render Header: [FATAL] BridgeLeakage: [ErrnoType] Message
                └──► 2. Render Body:   --- Underlying Stack Trace ---
                                       (Exact line numbers & cause stack)
+
+---
+
+Dynamic Contract Binding Pattern
+
+Purpose:
+Validates that a concrete adapter satisfies an interface at runtime without forcing the adapter to explicitly inherit from it. 
+
+Mechanism:
+Instead of relying on class inheritance, the contract interface provides a `bind()` class method (via superclass) that inspects an un-inherited object during setup. If the object lacks any required methods defined by the interface, `bind()` immediately raises a runtime error to halt initialization.
+
+'''
+from abc import ABC, abstractmethod
+
+class Itf(ABC):
+    @classmethod
+    def bind(cls, classinstance):
+        # Verify that classinstance implements all abstract methods defined on the subclass
+        missing = [
+            method for method in cls.__abstractmethods__
+            if not callable(getattr(classinstance, method, None))
+        ]
+        if missing:
+            raise TypeError(
+                f"Adapter '{type(classinstance).__name__}' fails contract '{cls.__name__}'. "
+                f"Missing methods: {', '.join(missing)}"
+            )
+        return classinstance
+
+class MyPort(Itf):
+    @abstractmethod
+    def MyMethod(self): pass
+
+class MyAdapter:
+    def MyMethod(self):
+        print("Adapter implementation running!")
+
+# --- The DI Layer ---
+
+# 1. Instantiate the un-inherited adapter
+raw_adapter = MyAdapter()
+
+# 2. Bind through the port interface:
+# - Inspects raw_adapter against MyPort's abstract methods
+# - Succeeds and returns raw_adapter, or fails immediately with TypeError
+my_port = MyPort.bind(raw_adapter)
+
+# 3. Use the verified port downstream
+my_port.MyMethod()
+'''
+
+
+Key Benefits:
+- DI Transparency: Makes contract verification explicit at the wiring layer via `Interface.bind(adapter)`.
+- Complete Decoupling: Keeps low-level adapters completely independent—they require no imports from high-level contract modules.
+- Runtime Safety: Retains fail-fast protection, breaking application startup immediately if an adapter drifts from its expected interface.
