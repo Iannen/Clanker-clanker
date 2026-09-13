@@ -29,30 +29,27 @@ II. Items to refine & QC:
 
 3. revise new dir structure, so we dont have simple 'code.py' files, they should ref their system
 
+4. Implenet pipelines with workers for the config assembly system
+    - service orchestrates: the method scope becomes the context, so no typed ctx. workers are functional
+        - filesetextractor
+        - domainextractor
+        - rtcassembler
+
+5. move services out of clanker.py, leave behind abc interface representations
+    [x] Move 'ports.py' from 'contracts -> adapters.
+        - colocate with ports, at least for now.
+    - SessionService: rename IngestionService (ugh)
+        - Moves inside the 'asset_ingestion'
+        - an interface becomes part of upstream contract
+    - AssemblyService: Rename to RenderService
+        - move inside 'render'
+        - an interface becomes part of upstream contract
+    - IOService: rename TUIService
+        - move inside 'tui'
+        - an interface becomes part of upstream contract
+
 III. Slated for implementation:
 
 IV. Recently implemented:
-
-4. Improve config_assembly_system complaint production
-    [x] 'content/config_assembly_system/code.py': Model DomainOverflow and record overflow during button mapping
-        - add 'class DomainOverflow' containing sys_cfg_name, row_keys, domain_names, cfg_filename, and overflow_count
-        - add get_msg() -> str to DomainOverflow producing formatted complaint string
-        - update RuntimeConfigAssembler._create_btn_map to instantiate DomainOverflow complaints and register them with ErrorCollector when domains exceed button slot capacities
-        - safely trim/omit overflowing domains during key assignment
-    [x] 'content/config_assembly_system/translation_system/config_dtos.py': Integrate DomainOverflow handling into ErrorCollector
-        - add internal storage for DomainOverflow complaint instances in ErrorCollector
-        - add method to record DomainOverflow instances
-        - implement get_domain_overflow_report() -> str | None returning concatenated report or None if empty
-    [x] 'content/contracts/assembly_system_contract.py': Update Report abstract interface
-        - add @abstractmethod get_domain_overflow_report(self) -> str | None to Report class
-
-    [x] 'clanker.py': Refine complaint consumption for capacity and missing fileset cases  
-        - SessionService.get_runtime_config:
-            - return report & rtc to appengine
-        - AppEngine.bootstrap: determines if we can proceed based on the report
-            - dof_report = report.get_domain_overflow_report
-            - if dof is not None
-            - ask user acceptance to bootstrap, offer to exit
-    conclusion: this was successful, but I must transition into a worker pipeline to maintain sanity
 
 V. Critical bugs

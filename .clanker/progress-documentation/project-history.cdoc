@@ -437,3 +437,10 @@ LXXVIII: TRANSITION INTERFACE LAYER FROM STATIC PROTOCOLS TO RUNTIME-ENFORCED AB
     - Converted translation interface contracts in `content/config_assembly_system/contracts/translation_contract.py` (`FilesetMapABC`, `ConfigTranslatorABC`) from Protocols to Abstract Base Classes using native `ABC` and `@abstractmethod`
     - Aligned concrete implementations (`FilesetMap`, `ConfigTranslator`) in `content/config_assembly_system/translation_system/config_dtos.py` to inherit from their respective ABC contracts
     - Concluded current interface iteration pending future exploration of a custom `.bind` approach to mimic Go-style dependency binding
+
+LXXIX: IMPLEMENT COMPREHENSIVE DOMAIN OVERFLOW HANDLING AND CAPACITY COMPLAINT CONSUMPTION
+    - Modeled `DomainOverflow` in `content/config_assembly_system/code.py` to capture overflow details and generate formatted complaint strings
+    - Integrated `DomainOverflow` storage, registration, and report generation into `ErrorCollector` within `content/config_assembly_system/translation_system/config_dtos.py`
+    - Added `@abstractmethod get_domain_overflow_report(self) -> str | None` to the `Report` ABC in `content/contracts/assembly_system_contract.py`
+    - Refined runtime config assembly to detect capacity exceedances during button mapping, record overflow complaints, and safely omit overflowing domains
+    - Updated session services and application bootstrapping in `clanker.py` to check for domain overflow reports and prompt the user for bootstrap acceptance or exit
