@@ -37,23 +37,23 @@ II. Items to refine & QC:
     [x] 'config_dtos' -> Delete
         - FilesetMap & ConfigTranslator, no longer depend upon ABC interface class
         - ABC itf classes were deleted with config_dtos file
-    [ ] Implement below file structure, allowing for nich llm contexts
+    [ ] Implement below file structure, allowing for nich llm contexts throughout the app layers
 '''
 content/asset_ingestion/
-├── ingestion_service.py
-│   └── IngestionServiceImpl
 ├── commons/
 │   ├── error_collector.py
-│   ├── value_extractor.py
 │   ├── fileset_map.py
-│   └── kb_spec.py
-└── workers/
-    ├── domain_extractor.py
-    │   └── DomainExtractor
-    ├── fileset_extractor.py
-    │   └── FilesetExtractor
-    └── rtc_assembler.py
-        └── RtcAssembler
+│   ├── kb_spec.py
+│   └── value_extractor.py
+├── workers/
+│   ├── domain_extractor.py
+│   ├   └── DomainExtractor
+│   ├── fileset_extractor.py
+│   ├   └── FilesetExtractor
+│   └── rtc_assembler.py
+│       └── RtcAssembler
+└── ingestion_service.py
+    └── IngestionServiceImpl
 '''
     [ ] 'asset_ingestion/code.py': 
         - Refactor RuntimeConfigAssembler to orchestrate via ephemeral worker classes and a shared ErrorCollector bucket

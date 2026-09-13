@@ -1,4 +1,5 @@
-from asset_ingestion.translation_system.config_dtos import ConfigTranslator, ErrorCollector
+from asset_ingestion.translation_system.config_dtos import ConfigTranslator
+from asset_ingestion.commons.error_collector import ErrorCollector
 from app.deps.ingestion import Report
 from app.models import Button, RuntimeConfig, Keyboard, ConfigAssembly, CfgFragments
 from dataclasses import dataclass
