@@ -1,7 +1,8 @@
 from asset_ingestion.translation_system.config_dtos import ConfigTranslator, ErrorCollector
-from app.deps.ingestion import RtcAssembler, Report
+from app.deps.ingestion import Report
 from app.models import Button, RuntimeConfig, Keyboard, ConfigAssembly, CfgFragments
 from dataclasses import dataclass
+from abc import ABC, abstractmethod
 
 @dataclass
 class DomainOverflow:
@@ -18,6 +19,15 @@ class DomainOverflow:
             f"{self.overflow_count} domain(s) overflowed key slots '{self.row_keys}'. "
             f"Excess domains: [{overflowing}]"
         )
+
+class RtcAssembler(ABC):
+    @abstractmethod
+    def assemble(
+        self,
+        sys_cfg: dict,
+        pud_cfg: dict,
+        shared_cfg: dict
+    ) -> tuple[Report, RuntimeConfig]: ...
 
 class RuntimeConfigAssembler(RtcAssembler):
     def assemble(self, sys_cfg: dict, pud_cfg: dict, shared_cfg: dict) -> tuple[Report, RuntimeConfig]:
@@ -106,3 +116,4 @@ class Ctx:
     shared_doms: list[Domain] | None = None
     pud_doms: list[Domain] | None = None
     kb_spec: KbSpec | None = None
+
