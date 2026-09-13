@@ -4,12 +4,11 @@ from enum import Enum
 import os
 from pathlib import Path
 import copy
-
 import sys
 import traceback
 from typing import Callable, ClassVar, Any
 from app.models import *
-from dep_visibility import *
+from app.deps import *
 
 class ExceptionPolicy:
     ADOPTED_NOTICES: tuple[type[Exception], ...] = (  

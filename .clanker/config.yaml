@@ -1,9 +1,11 @@
 #this appears to gravitate towards the filesets of nodes in system being the important bits to declare
 filesets:
-  core: {includes: [content/app]}
+  core: {includes: [
+    content/app,
+    content/clanker.py]}
   cfg_assembly: {includes: [
     content/app/models.py, 
-    content/dep_visibility/ingestion.py,
+    content/app/deps/ingestion.py,
     content/asset_ingestion]}
   cfg_validation: {includes: [
     content/app/models.py, 
@@ -16,7 +18,7 @@ filesets:
     content/clanker.py]}
   render_system: {includes: [
     content/render_pipeline,
-    content/dep_visibility/render_system_contract.py]}
+    content/app/deps/render_system_contract.py]}
 
 domains:
 - name: core

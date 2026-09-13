@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 from asset_ingestion.contracts.translation_contract import FilesetMapABC, ConfigTranslatorABC
-from dep_visibility.ingestion import Report
+from app.deps.ingestion import Report
 from app.models import (
     Domain,
     Prompt,

@@ -1,5 +1,5 @@
 from app.models import BasePathTokens, CfgFragments, DocPaths, NoConfig, ConfigAssembly, CorruptClanker, Config
-from dep_visibility.ingestion import IngestionService
+from app.deps.ingestion import IngestionService
 #TODO: make app crash cuz typeannotations not reffd
 
 class IngestionServiceImpl(IngestionService):

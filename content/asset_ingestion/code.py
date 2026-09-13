@@ -1,5 +1,5 @@
 from asset_ingestion.translation_system.config_dtos import ConfigTranslator, ErrorCollector
-from dep_visibility.ingestion import RtcAssembler, Report
+from app.deps.ingestion import RtcAssembler, Report
 from app.models import Button, RuntimeConfig, Keyboard, ConfigAssembly, CfgFragments
 from dataclasses import dataclass
 
