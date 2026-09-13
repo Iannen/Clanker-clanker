@@ -25,7 +25,7 @@ class ConfigTranslator:
     def __init__(self, collector: ErrorCollector) -> None:
         self.extractor = ValueExtractor()
         self.collector = collector
-        self._filesetmap: FilesetMapABC | None = None
+        self._filesetmap: FilesetMap | None = None
 
     def set_collector(self, collector: ErrorCollector) -> None:
         self.collector = collector
@@ -33,12 +33,12 @@ class ConfigTranslator:
     def get_collector(self) -> ErrorCollector:
         return self.collector
 
-    def set_filesetmap(self, filesetmap: FilesetMapABC) -> None:
+    def set_filesetmap(self, filesetmap: FilesetMap) -> None:
         self._filesetmap = filesetmap
 
     def extract_filesets(
         self, doms_cfg_dict: dict[str, Any]
-    ) -> FilesetMapABC:
+    ) -> FilesetMap:
         raw_filesets = self.extractor.req_dict(doms_cfg_dict, ["filesets"], default={})
         result = {}
         for k, v in raw_filesets.items():

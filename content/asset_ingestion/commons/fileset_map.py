@@ -9,7 +9,7 @@ class FilesetMap:
             return None
         return self._data[key]
 
-    def merge(self, other: FilesetMapABC) -> FilesetMapABC:
+    def merge(self, other: FilesetMap) -> FilesetMap:
         merged_data = dict(self._data)
         if isinstance(other, FilesetMap):
             merged_data.update(other._data)
