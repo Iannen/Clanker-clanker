@@ -20,7 +20,7 @@ from app.models import (
     TruncationSpec,
     ConfigAssembly,
 )
-
+# becomes workers
 class ConfigTranslator:
     def __init__(self, collector: ErrorCollector) -> None:
         self.extractor = ValueExtractor()
