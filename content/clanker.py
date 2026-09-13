@@ -8,7 +8,7 @@ import copy
 import sys
 import traceback
 from typing import Callable, ClassVar, Any
-from models import *
+from app.models import *
 from dep_visibility import *
 
 class ExceptionPolicy:

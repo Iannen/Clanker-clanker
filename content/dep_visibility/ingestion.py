@@ -1,7 +1,7 @@
-from models import RuntimeConfig
+from app.models import RuntimeConfig
 
 from abc import ABC, abstractmethod
-from models import RuntimeConfig
+from app.models import RuntimeConfig
 
 class RtcAssembler(ABC):
     @abstractmethod

@@ -1,7 +1,7 @@
 from __future__ import annotations
 import re
 from dep_visibility.render_system_contract import ContentShaper
-from models import ConfigAssembly, TruncationSpec
+from app.models import ConfigAssembly, TruncationSpec
 
 class DefaultContentShaper(ContentShaper):
     def normalize_file_spec(self, item: str | dict) -> tuple[str, int | None]:

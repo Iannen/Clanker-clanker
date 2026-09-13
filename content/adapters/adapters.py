@@ -7,7 +7,7 @@ import termios
 import tty
 from pathlib import Path
 from ruamel.yaml import YAML
-from models import *
+from app.models import *
 from adapters.ports import IOBridgePort, FileBridgePort, ConfigIngestorPort
 
 class IOBridge(IOBridgePort):

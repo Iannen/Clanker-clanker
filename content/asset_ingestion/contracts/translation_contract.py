@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import copy
 import re
 from typing import Any
-from models import *
+from app.models import *
 
 
 class FilesetMapABC(ABC):

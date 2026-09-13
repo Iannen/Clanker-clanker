@@ -2,14 +2,14 @@
 filesets:
   core: {includes: [
     content/clanker.py, 
-    content/models.py, 
+    content/app/models.py, 
     content/dep_visibility]}
   cfg_assembly: {includes: [
-    content/models.py, 
+    content/app/models.py, 
     content/dep_visibility/ingestion.py,
     content/asset_ingestion]}
   cfg_validation: {includes: [
-    content/models.py, 
+    content/app/models.py, 
     content/asset_ingestion/translation_system/config_dtos.py, 
     .clanker/shared-assets/config-fragments, 
     .clanker/config.yaml]}

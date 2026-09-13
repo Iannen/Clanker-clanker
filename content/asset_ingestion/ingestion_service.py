@@ -1,4 +1,4 @@
-from models import BasePathTokens, CfgFragments, DocPaths, NoConfig, ConfigAssembly, CorruptClanker, Config
+from app.models import BasePathTokens, CfgFragments, DocPaths, NoConfig, ConfigAssembly, CorruptClanker, Config
 from dep_visibility.ingestion import IngestionService
 #TODO: make app crash cuz typeannotations not reffd
 

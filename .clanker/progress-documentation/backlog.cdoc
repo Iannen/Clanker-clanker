@@ -38,6 +38,9 @@ II. Items to refine & QC:
 5. move services out of clanker.py, leave behind abc interface representations
     [x] Move 'ports.py' from 'contracts -> adapters.
         - colocate with ports, at least for now.
+    [ ] Create app dir to house engine and models
+        - move models.py to app dir
+        - create app.py, move all non-main content from clanker.py to it
     [ ] Separate DI out of clanker.py, move to main.py
     [x] SessionService: rename IngestionService (ugh)
         - Move inside the 'asset_ingestion'
