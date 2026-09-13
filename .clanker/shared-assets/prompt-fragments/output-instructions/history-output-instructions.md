@@ -1,13 +1,13 @@
-Convert completed items from backlog section IV to formatted project-history.cdoc entries
-.Continue the Roman numeral sequence from the latest entry.
-
-*optional brief commentary*
-
+<commentary>
+Your brief high-level summary/observations of migration
+</commentary>
 ```plaintext
-<hist idx>: <UPPERCASE TITLE OF ITEM 1>
-    - Bullet 1
-    - Bullet 2
-
-<hist idx>: <UPPERCASE TITLE OF ITEM 2>
-    - Bullet 1
+<NEXT_ROMAN_NUMERAL>: <CAPS_LOCK_TITLE>
+    Purpose: <High-level objective or problem statement>
+    - <Core requirement, context, or architectural motivation>
+    Actions: <Summary of execution>
+    - <Concrete implementation detail or code change 1>
+    - <Concrete implementation detail or code change n>
+    Reflection: <Key outcome or post-mortem takeaway>
+    - <Architectural outcome, technical debt introduced, or trade-off>
 ```

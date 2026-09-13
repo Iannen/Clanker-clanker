@@ -452,3 +452,16 @@ LXXX: REFACTOR APPLICATION ARCHITECTURE BY DECOUPLING SERVICES, RESTRUCTURING AD
     - Renamed SessionService to IngestionService and relocated it inside the 'asset_ingestion' module directory alongside its supporting files
     - Renamed AssemblyService to RenderService and relocated it inside the 'render_pipeline' module directory to align with hydration responsibilities
     - Renamed IOService to TUIService and relocated it inside the 'tui' module directory to accurately reflect terminal user interface operations
+
+LXXXI: IMPLEMENT SEQUENTIAL CONFIGURATION ASSEMBLY PIPELINE WITH EPHEMERAL WORKERS
+    Purpose: Refactor runtime configuration assembly into modular, single-responsibility workers to decouple extraction logic and enforce robust error tracking.
+    Actions:
+    - Implemented FilesetExtractor worker with ValueExtractor composition to extract shared and PUD filesets into a unified FilesetMap.
+    - Implemented DomainExtractor worker to encapsulate domain, prompt, render, and resolver parsing logic.
+    - Implemented RtcAssembler worker to parse keyboard layout specifications, map button actions, and report domain overflow issues via ErrorCollector.
+    - Extracted UIRenderExtractor to independently pull UI render templates from system configuration.
+    - Extracted BaseResolverExtractor to parse multi-document retrieval base resolvers from non-system configurations.
+    - Re-wired IngestionServiceImpl.get_runtime_config to orchestrate worker execution in a structured pipeline.
+    Reflection:
+    - Ephemeral worker delegation isolated config extraction responsibilities, eliminated monolithic DTO parsing debt, and simplified error collection across pipeline stages.
+    - Need to determine an optimal strategy for deduplicating shared worker logic without introducing pipeline nesting or tight coupling.
