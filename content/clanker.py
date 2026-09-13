@@ -3,7 +3,8 @@ from adapters.adapters import FileBridge, IOBridge, ConfigIngestor
 from render_pipeline.code import DefaultContentShaper
 from asset_ingestion.ingestion_service import IngestionServiceImpl
 from asset_ingestion.code import RuntimeConfigAssembler
-from app.engine import AppEngine, ExceptionPolicy, AssemblyService, IOService
+from app.engine import AppEngine, ExceptionPolicy, IOService
+from render_pipeline.render_service import RenderServiceImpl
 import sys
 import traceback
 
@@ -17,7 +18,7 @@ def main():
         assembler = RuntimeConfigAssembler()
 
         ingestion = IngestionServiceImpl(files=files_adapter, cfg_ingestor=cfg_ingestor, assembler=assembler)
-        renderer = AssemblyService(files=files_adapter, shaper=shaper)
+        renderer = RenderServiceImpl(files=files_adapter, shaper=shaper)
         io = IOService(io_bridge=io_adapter)
 
         engine = AppEngine(
