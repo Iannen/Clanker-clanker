@@ -2,6 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 from app.deps.ingestion import Report
+from asset_ingestion.commons.kb_spec import KbSpec
 from app.models import (
     Domain,
     Prompt,
@@ -18,12 +19,6 @@ from app.models import (
     ConfigAssembly,
 )
 
-
-@dataclass
-class KbSpec:
-    shared_domain_keys: str
-    pud_domain_keys: str
-    prompt_keys: str
 
 class FilesetMap:
     def __init__(self, data: dict[str, FileSet], collector: ErrorCollector) -> None:
