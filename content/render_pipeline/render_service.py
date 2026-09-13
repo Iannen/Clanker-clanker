@@ -1,6 +1,7 @@
 from app.models import *
+from app.deps.render import RenderService
 
-class RenderServiceImpl:
+class RenderServiceImpl(RenderService):
     def __init__(self, files: FileBridgePort, shaper: ContentShaper) -> None:
         self.files = files
         self.shaper = shaper

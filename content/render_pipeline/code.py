@@ -1,6 +1,6 @@
 from __future__ import annotations
 import re
-from app.deps.render_system_contract import ContentShaper
+from app.deps.render import ContentShaper
 from app.models import ConfigAssembly, TruncationSpec
 
 class DefaultContentShaper(ContentShaper):
