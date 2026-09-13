@@ -1,7 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
-from asset_ingestion.contracts.translation_contract import FilesetMapABC, ConfigTranslatorABC
 from app.deps.ingestion import Report
 from app.models import (
     Domain,
@@ -62,7 +61,7 @@ class KbSpec:
     pud_domain_keys: str
     prompt_keys: str
 
-class FilesetMap(FilesetMapABC):
+class FilesetMap:
     def __init__(self, data: dict[str, FileSet], collector: ErrorCollector) -> None:
         self._data = data
         self._collector = collector
@@ -79,7 +78,7 @@ class FilesetMap(FilesetMapABC):
             merged_data.update(other._data)
         return FilesetMap(data=merged_data, collector=self._collector)
 
-class ConfigTranslator(ConfigTranslatorABC):
+class ConfigTranslator:
     def __init__(self, collector: ErrorCollector) -> None:
         self.extractor = ValueExtractor()
         self.collector = collector

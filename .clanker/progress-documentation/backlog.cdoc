@@ -33,6 +33,10 @@ II. Items to refine & QC:
 3. revise new dir structure, so we dont have simple 'code.py' files, they should ref their system
 
 4. Implement sequential pipeline with ephemeral workers for configuration assembly
+
+    [x] 'config_dtos' -> Delete
+        - FilesetMap & ConfigTranslator, no longer depend upon ABC interface class
+        - ABC itf classes were deleted with config_dtos file
     [ ] Implement below file structure, allowing for nich llm contexts
 '''
 content/asset_ingestion/
