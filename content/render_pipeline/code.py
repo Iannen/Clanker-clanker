@@ -1,7 +1,17 @@
 from __future__ import annotations
 import re
-from app.deps.render import ContentShaper
 from app.models import ConfigAssembly, TruncationSpec
+from abc import ABC, abstractmethod
+
+class ContentShaper(ABC):
+    @abstractmethod
+    def normalize_file_spec(self, item: str | dict) -> tuple[str, int | None]: ...
+    @abstractmethod
+    def apply_truncation(self, content: str, spec: TruncationSpec | None) -> str: ...
+    @abstractmethod
+    def hydrate(
+        self, delim: str, template: str, replacements: dict[str, str]
+    ) -> str: ...
 
 class DefaultContentShaper(ContentShaper):
     def normalize_file_spec(self, item: str | dict) -> tuple[str, int | None]:
