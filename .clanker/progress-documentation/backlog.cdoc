@@ -88,7 +88,7 @@ III. Slated for implementation:
 
     Phase 7: Clean up base resolver extraction
 
-    [ ] Create BaseResolverExtractor
+    [x] Create BaseResolverExtractor
         - Standalone worker to extract base resolvers from a non-sys_cfg.
         - Expects:
             - only multi-document-retrieval resolvers; 
@@ -98,11 +98,11 @@ III. Slated for implementation:
         - does not rely on any other worker. instead duplicate logic
         - returns an md resolver, or None
 
-    [ ] Clean up RtcAssembler
+    [x] Clean up RtcAssembler
         - Remove base_resolvers extraction logic and DomainExtractor instantiation.
         - RtcAssembler does not need to concern himself with resolver extraction any longer.
 
-    [ ] Update get_runtime_config
+    [x] Update get_runtime_config
         - after 'unified_fsm' is aquired
         - Instantiate a BaseResolverExtractor , use on shared_cfg
         - Instantiate another BaseResolverExtractor , use on pud

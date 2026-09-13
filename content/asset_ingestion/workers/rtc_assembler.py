@@ -31,7 +31,6 @@ class DomainOverflow:
             f"Excess domains: [{overflowing}]"
         )
 
-
 class RtcAssembler:
     def __init__(
         self,
@@ -50,25 +49,15 @@ class RtcAssembler:
         self.fileset_map = fileset_map
         self.extractor = ValueExtractor()
 
-    def assemble(self) -> tuple[list[Resolver], Keyboard]:
+    def assemble(self) -> Keyboard:
         kb_spec = KbSpec(
             shared_domain_keys=self.extractor.req_str(self.sys_cfg, ["button_rows", "shared_domains_row"]),
             pud_domain_keys=self.extractor.req_str(self.sys_cfg, ["button_rows", "pud_domains_row"]),
             prompt_keys=self.extractor.req_str(self.sys_cfg, ["button_rows", "prompts_row"]),
         )
 
-        domain_extractor = DomainExtractor(
-            doms_cfg_dict={},
-            collector=self.collector,
-            fileset_map=self.fileset_map,
-        )
-        raw_resolvers = self.extractor.req_list(self.shared_cfg, ["base_resolvers"], default=[])
-        base_resolvers = [domain_extractor._build_resolver(r) for r in raw_resolvers]
-
         button_map = self._create_btn_map(kb_spec)
-        keyboard = Keyboard(button_map=button_map, selected_key=None)
-
-        return base_resolvers, keyboard
+        return Keyboard(button_map=button_map, selected_key=None)
 
     def _create_btn_map(self, kb_spec: KbSpec) -> dict[str, Button]:
         btn_map: dict[str, Button] = {}

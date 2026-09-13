@@ -6,6 +6,7 @@ from asset_ingestion.workers.domain_extractor import DomainExtractor
 from asset_ingestion.workers.fileset_extractor import FilesetExtractor
 from asset_ingestion.workers.rtc_assembler import RtcAssembler
 from asset_ingestion.workers.ui_render_extractor import UIRenderExtractor
+from asset_ingestion.workers.base_resolver_extractor import BaseResolverExtractor
 
 class IngestionServiceImpl(IngestionService):
     def __init__(
@@ -32,6 +33,17 @@ class IngestionServiceImpl(IngestionService):
         pud_fsm = FilesetExtractor(pud_cfg, collector).extract()
         unified_fsm = shared_fsm.merge(pud_fsm)
 
+        shared_base_res = BaseResolverExtractor(shared_cfg, collector).extract()
+        pud_base_res = BaseResolverExtractor(pud_cfg, collector).extract()
+
+        if pud_base_res is not None:
+            base_resolvers = [pud_base_res]
+        elif shared_base_res is not None:
+            base_resolvers = [shared_base_res]
+        else:
+            collector.add_complaint("Missing required base resolver configuration")
+            base_resolvers = []
+
         ui_render = UIRenderExtractor(sys_cfg, collector).extract()
 
         shared_doms = DomainExtractor(shared_cfg, collector, unified_fsm).extract()
@@ -45,7 +57,7 @@ class IngestionServiceImpl(IngestionService):
             collector=collector,
             fileset_map=unified_fsm,
         )
-        base_resolvers, keyboard = assembler.assemble()
+        keyboard = assembler.assemble()
 
         return collector, RuntimeConfig(
             keyboard=keyboard,
