@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any
 from app.deps.ingestion import Report
 from asset_ingestion.commons.kb_spec import KbSpec
+from asset_ingestion.commons.fileset_map import FilesetMap
 from app.models import (
     Domain,
     Prompt,
@@ -18,24 +19,6 @@ from app.models import (
     TruncationSpec,
     ConfigAssembly,
 )
-
-
-class FilesetMap:
-    def __init__(self, data: dict[str, FileSet], collector: ErrorCollector) -> None:
-        self._data = data
-        self._collector = collector
-
-    def get(self, key: str) -> FileSet | None:
-        if key not in self._data:
-            self._collector.add_complaint(f"Referenced fileset '{key}' does not exist")
-            return None
-        return self._data[key]
-
-    def merge(self, other: FilesetMapABC) -> FilesetMapABC:
-        merged_data = dict(self._data)
-        if isinstance(other, FilesetMap):
-            merged_data.update(other._data)
-        return FilesetMap(data=merged_data, collector=self._collector)
 
 class ConfigTranslator:
     def __init__(self, collector: ErrorCollector) -> None:
