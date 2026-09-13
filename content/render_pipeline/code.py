@@ -1,7 +1,7 @@
 from __future__ import annotations
 import re
-from contracts.render_system_contract import ContentShaper
-from models import ConfigAssemblyFailure, TruncationSpec
+from dep_visibility.render_system_contract import ContentShaper
+from models import ConfigAssembly, TruncationSpec
 
 class DefaultContentShaper(ContentShaper):
     def normalize_file_spec(self, item: str | dict) -> tuple[str, int | None]:
@@ -27,7 +27,7 @@ class DefaultContentShaper(ContentShaper):
                 try:
                     pattern = re.compile(spec.from_line)
                 except re.error as e:
-                    raise ConfigAssemblyFailure(f"Invalid regex for 'from_line': '{spec.from_line}' ({e})")
+                    raise ConfigAssembly(f"Invalid regex for 'from_line': '{spec.from_line}' ({e})")
                 
                 match_idx = None
                 for idx, line in enumerate(lines):
@@ -36,7 +36,7 @@ class DefaultContentShaper(ContentShaper):
                         break
 
                 if match_idx is None:
-                    raise ConfigAssemblyFailure(
+                    raise ConfigAssembly(
                         f"Truncation pattern 'from_line' ({spec.from_line}) matched no lines in content"
                     )
                 lines = lines[match_idx:]
@@ -45,7 +45,7 @@ class DefaultContentShaper(ContentShaper):
                 try:
                     pattern = re.compile(spec.up_to)
                 except re.error as e:
-                    raise ConfigAssemblyFailure(f"Invalid regex for 'up_to': '{spec.up_to}' ({e})")
+                    raise ConfigAssembly(f"Invalid regex for 'up_to': '{spec.up_to}' ({e})")
 
                 match_idx = None
                 for idx, line in enumerate(lines):
@@ -54,7 +54,7 @@ class DefaultContentShaper(ContentShaper):
                         break
 
                 if match_idx is None:
-                    raise ConfigAssemblyFailure(
+                    raise ConfigAssembly(
                         f"Truncation pattern 'up_to' ({spec.up_to}) matched no lines in content"
                     )
                 lines = lines[:match_idx]

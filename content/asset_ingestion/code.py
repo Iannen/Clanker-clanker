@@ -1,6 +1,6 @@
-from config_assembly_system.translation_system.config_dtos import ConfigTranslator, ErrorCollector
-from contracts.assembly_system_contract import RtcAssembler, Report
-from models import Button, RuntimeConfig, Keyboard, ConfigAssemblyFailure, CfgFragments
+from asset_ingestion.translation_system.config_dtos import ConfigTranslator, ErrorCollector
+from dep_visibility.ingestion import RtcAssembler, Report
+from models import Button, RuntimeConfig, Keyboard, ConfigAssembly, CfgFragments
 from dataclasses import dataclass
 
 @dataclass

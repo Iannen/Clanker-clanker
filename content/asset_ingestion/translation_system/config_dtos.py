@@ -1,8 +1,8 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
-from config_assembly_system.contracts.translation_contract import FilesetMapABC, ConfigTranslatorABC
-
+from asset_ingestion.contracts.translation_contract import FilesetMapABC, ConfigTranslatorABC
+from dep_visibility.ingestion import Report
 from models import (
     Domain,
     Prompt,
@@ -16,10 +16,8 @@ from models import (
     ManifestResolver,
     KBStateResolver,
     TruncationSpec,
-    ConfigAssemblyFailure,
+    ConfigAssembly,
 )
-
-from contracts.assembly_system_contract import Report
 
 class ErrorCollector(Report):
     def __init__(self) -> None:
@@ -56,7 +54,7 @@ class ErrorCollector(Report):
 
         if all_errors:
             formatted = "\n".join(f"  - {c}" for c in all_errors)
-            raise ConfigAssemblyFailure(f"Configuration errors encounterd:\n{formatted}")
+            raise ConfigAssembly(f"Configuration errors encounterd:\n{formatted}")
 
 @dataclass
 class KbSpec:
@@ -246,7 +244,7 @@ class ConfigTranslator(ConfigTranslatorABC):
 
         if res_type == "repo-manifest":
             if "pud_fileset" not in data and "shared_fileset" not in data:
-                raise ConfigAssemblyFailure(
+                raise ConfigAssembly(
                     f"Manifest resolver '{anchor}' must specify at least 'pud_fileset' or 'shared_fileset'"
                 )
 
@@ -274,7 +272,7 @@ class ConfigTranslator(ConfigTranslatorABC):
         if res_type in ("kb_info", "kb_state"):
             return KBStateResolver(anchor=anchor)
 
-        raise ConfigAssemblyFailure(f"Unsupported resolver type: '{res_type}'")
+        raise ConfigAssembly(f"Unsupported resolver type: '{res_type}'")
 
 class ValueExtractor:
     def _req(
@@ -288,7 +286,7 @@ class ValueExtractor:
         except (KeyError, TypeError, IndexError):
             if default is not None:
                 return default
-            raise ConfigAssemblyFailure(f"Missing required config path: '{path_str}'")
+            raise ConfigAssembly(f"Missing required config path: '{path_str}'")
 
         if not isinstance(curr, target_type) or (
             str in (target_type if isinstance(target_type, tuple) else (target_type,))
@@ -299,7 +297,7 @@ class ValueExtractor:
                 if isinstance(target_type, tuple)
                 else target_type.__name__
             )
-            raise ConfigAssemblyFailure(
+            raise ConfigAssembly(
                 f"Type mismatch at path '{path_str}': expected {expected_name}, got {type(curr).__name__}"
             )
         return curr

@@ -3,23 +3,23 @@ filesets:
   core: {includes: [
     content/clanker.py, 
     content/models.py, 
-    content/contracts]}
+    content/dep_visibility]}
   cfg_assembly: {includes: [
     content/models.py, 
-    content/contracts/assembly_system_contract.py,
-    content/config_assembly_system]}
+    content/dep_visibility/ingestion.py,
+    content/asset_ingestion]}
   cfg_validation: {includes: [
     content/models.py, 
-    content/config_assembly_system/translation_system/config_dtos.py, 
+    content/asset_ingestion/translation_system/config_dtos.py, 
     .clanker/shared-assets/config-fragments, 
     .clanker/config.yaml]}
   ports_adapters: {includes: [
     content/adapters/adapters.py,
-    content/contracts/ports.py,
+    content/adapters/ports.py,
     content/clanker.py]}
   render_system: {includes: [
     content/render_pipeline,
-    content/contracts/render_system_contract.py]}
+    content/dep_visibility/render_system_contract.py]}
 
 domains:
 - name: core

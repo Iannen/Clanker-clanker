@@ -30,7 +30,7 @@ class BridgeLeakage(Fatal):
         return super().__str__()
 class UnexpectedEx(Fatal): leaf_ex = True
 class CorruptClanker(Fatal): leaf_ex = True
-class ConfigAssemblyFailure(Fatal): leaf_ex = True
+class ConfigAssembly(Fatal): leaf_ex = True
 class IllegalDuplicateFile(Fatal): leaf_ex = True
 class UserTask(Fatal): leaf_ex = True
 
