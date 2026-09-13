@@ -1,10 +1,11 @@
 from app.models import *
 from app.deps.render import RenderService
+from render_pipeline.code import DefaultContentShaper
 
 class RenderServiceImpl(RenderService):
-    def __init__(self, files: FileBridgePort, shaper: ContentShaper) -> None:
+    def __init__(self, files: FileBridgePort) -> None:
         self.files = files
-        self.shaper = shaper
+        self.shaper = DefaultContentShaper()
 
     def hydrate(self, template: str, replacements: dict[str, str]) -> str:
         return self.shaper.hydrate(SystemKeys.DELIM, template, replacements)

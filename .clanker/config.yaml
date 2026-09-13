@@ -19,6 +19,9 @@ filesets:
   render_system: {includes: [
     content/render_pipeline,
     content/app/deps/render_system_contract.py]}
+  presentation: {includes: [
+    content/app,
+    content/clanker.py]}
 
 domains:
 - name: core

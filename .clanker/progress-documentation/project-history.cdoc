@@ -444,3 +444,11 @@ LXXIX: IMPLEMENT COMPREHENSIVE DOMAIN OVERFLOW HANDLING AND CAPACITY COMPLAINT C
     - Added `@abstractmethod get_domain_overflow_report(self) -> str | None` to the `Report` ABC in `content/contracts/assembly_system_contract.py`
     - Refined runtime config assembly to detect capacity exceedances during button mapping, record overflow complaints, and safely omit overflowing domains
     - Updated session services and application bootstrapping in `clanker.py` to check for domain overflow reports and prompt the user for bootstrap acceptance or exit
+
+LXXX: REFACTOR APPLICATION ARCHITECTURE BY DECOUPLING SERVICES, RESTRUCTURING ADAPTERS, AND ORGANIZING APP LAYERS
+    - Relocated low-level infrastructure typing and bridge interfaces to 'adapters/ports.py', keeping them separate from application logic
+    - Moved core domain models, system exceptions, and base data structures into 'app/models.py' to isolate fundamental types alongside the core engine
+    - Refactored 'clanker.py' strictly into a composition root managing adapter instantiation, exception policy wrapping, dependency injection, and engine execution
+    - Renamed SessionService to IngestionService and relocated it inside the 'asset_ingestion' module directory alongside its supporting files
+    - Renamed AssemblyService to RenderService and relocated it inside the 'render_pipeline' module directory to align with hydration responsibilities
+    - Renamed IOService to TUIService and relocated it inside the 'tui' module directory to accurately reflect terminal user interface operations

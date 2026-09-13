@@ -1,5 +1,6 @@
 from app.models import BasePathTokens, CfgFragments, DocPaths, NoConfig, ConfigAssembly, CorruptClanker, Config
 from app.deps.ingestion import IngestionService
+from asset_ingestion.code import RuntimeConfigAssembler
 #TODO: make app crash cuz typeannotations not reffd
 
 class IngestionServiceImpl(IngestionService):
@@ -7,11 +8,10 @@ class IngestionServiceImpl(IngestionService):
         self,
         files: FileBridgePort,
         cfg_ingestor: ConfigIngestorPort,
-        assembler: RtcAssembler,
     ) -> None:
         self.files = files
         self.cfg_ingestor = cfg_ingestor
-        self.assembler = assembler
+        self.assembler = RuntimeConfigAssembler()
 
     def _get_validated_cfg_fragment(self, fragment_token_path: str) -> dict:
         raw_content = self.files.get_file_contents(fragment_token_path)

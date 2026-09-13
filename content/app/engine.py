@@ -65,9 +65,9 @@ class ExceptionPolicy:
 class AppEngine:
     def __init__(
         self, 
-        io: IOService, 
+        io: TUIService, 
         session: IngestionService, 
-        renderer: AssemblyService
+        renderer: RenderService
     ) -> None:
         self.io = io
         self.session = session

@@ -14,6 +14,8 @@ II. Items to refine & QC:
         - must parse properly & unambiguously into a combined RTC, in a transparent manner in the system which does it
             - yielding complaints to a collector for any violation encountered
             - then attempting to bypass it, keeping process going, so as many complaints can be collected in the pass
+            - shared configs must declare filesets they reference
+            - pud configs must declare referenced filesets, not already declared by shared cfg
     - layout assets
         - must be able to contain that which the app wants to assign to them, else cause of complaint
     - content bearing assets

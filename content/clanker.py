@@ -1,25 +1,21 @@
 #!/usr/bin/env -S python3 -B
 from adapters.adapters import FileBridge, IOBridge, ConfigIngestor
 from app.engine import AppEngine, ExceptionPolicy
-from render_pipeline.code import DefaultContentShaper
 from render_pipeline.render_service import RenderServiceImpl
 from asset_ingestion.ingestion_service import IngestionServiceImpl
-from asset_ingestion.code import RuntimeConfigAssembler
 from tui.tui_service import TUIServiceImpl
 import sys
 import traceback
 
 def main():
     try:
+        #adapter instantiaon - later pick 'em based on os environment
         files_adapter = ExceptionPolicy.protect_adapter(FileBridge())
         io_adapter = ExceptionPolicy.protect_adapter(IOBridge())
         cfg_ingestor = ExceptionPolicy.protect_adapter(ConfigIngestor())
-        shaper = DefaultContentShaper()
 
-        assembler = RuntimeConfigAssembler()
-
-        ingestion = IngestionServiceImpl(files=files_adapter, cfg_ingestor=cfg_ingestor, assembler=assembler)
-        renderer = RenderServiceImpl(files=files_adapter, shaper=shaper)
+        ingestion = IngestionServiceImpl(files=files_adapter, cfg_ingestor=cfg_ingestor)
+        renderer = RenderServiceImpl(files=files_adapter)
         io = TUIServiceImpl(io_bridge=io_adapter)
 
         engine = AppEngine(

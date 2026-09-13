@@ -1,7 +1,5 @@
 from app.models import RuntimeConfig
-
 from abc import ABC, abstractmethod
-from app.models import RuntimeConfig
 
 class Report(ABC):
     @abstractmethod
