@@ -9,7 +9,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build eval copy
         run: |
@@ -17,13 +17,13 @@ jobs:
 
           mkdir clanker-evalcopy
 
-          # Whitelist: only these repository members are included.
-          cp -a .clanker clanker-evalcopy/
-          cp -a content clanker-evalcopy/
+          # Copy folders explicitly using tar to preserve hidden contents
+          tar cf - .clanker content | (cd clanker-evalcopy && tar xf -)
 
       - name: Upload eval copy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: clanker-evalcopy
           path: clanker-evalcopy/
+          include-hidden-files: true
           if-no-files-found: error
