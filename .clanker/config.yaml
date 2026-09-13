@@ -1,9 +1,6 @@
 #this appears to gravitate towards the filesets of nodes in system being the important bits to declare
 filesets:
-  core: {includes: [
-    content/clanker.py, 
-    content/app/models.py, 
-    content/dep_visibility]}
+  core: {includes: [content/app]}
   cfg_assembly: {includes: [
     content/app/models.py, 
     content/dep_visibility/ingestion.py,
