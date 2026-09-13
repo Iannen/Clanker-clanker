@@ -3,9 +3,8 @@ filesets:
   core: {includes: [
     content/app,
     content/clanker.py]}
-  cfg_assembly: {includes: [
+  ingestion_service: {includes: [
     content/app/models.py, 
-    content/app/deps/ingestion.py,
     content/asset_ingestion]}
   cfg_validation: {includes: [
     content/app/models.py, 
@@ -46,9 +45,9 @@ domains:
           - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 8}, history-output-instructions.md]}
           - {id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: IV. Recently implemented, up_to: V. Critical bugs}]}
 
-- name: cfg_assembly
+- name: ingestion
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: cfg_assembly }
+    - { id: repo_content, type: repo_content, fileset: ingestion_service }
   prompts:
     - name: plan
       render:

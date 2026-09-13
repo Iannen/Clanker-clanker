@@ -32,30 +32,30 @@ II. Items to refine & QC:
 
 3. revise new dir structure, so we dont have simple 'code.py' files, they should ref their system
 
-4. Implenet pipelines with workers for the config assembly system
-    - service orchestrates: the method scope becomes the context, so no typed ctx. workers are functional
-        - filesetextractor
-        - domainextractor
-        - rtcassembler
-
-5. move services out of clanker.py, leave behind abc interface representations
-    [x] Move 'ports.py' from 'contracts -> adapters.
-        - colocate with ports, at least for now.
-    [x] Create app dir to house engine and models
-        - move models.py to app dir
-        - create app.py, move all non-main content from clanker.py to it
-    [x] Separate DI out of clanker.py, move to main.py
-        - kept clanker.py name for now, to not get fkd by symlink
-    [x] SessionService: rename IngestionService (ugh)
-        - Move inside the 'asset_ingestion'
-        - an interface becomes part of upstream contract
-    [x] AssemblyService: Rename to RenderService
-        - move inside 'render'
-        - an interface becomes part of upstream contract
-    [x] IOService: rename TUIService
-        - move inside 'tui'
-        - an interface becomes part of upstream contract
-    - keep clanker.py and models.py at bottom level for now
+4. Implement sequential pipeline with ephemeral workers for configuration assembly
+    [ ] Implement below file structure, allowing for nich llm contexts
+'''
+content/asset_ingestion/
+├── ingestion_service.py
+│   └── IngestionServiceImpl
+├── commons/
+│   ├── error_collector.py
+│   ├── value_extractor.py
+│   ├── fileset_map.py
+│   └── kb_spec.py
+└── workers/
+    ├── domain_extractor.py
+    │   └── DomainExtractor
+    ├── fileset_extractor.py
+    │   └── FilesetExtractor
+    └── rtc_assembler.py
+        └── RtcAssembler
+'''
+    [ ] 'asset_ingestion/code.py': 
+        - Refactor RuntimeConfigAssembler to orchestrate via ephemeral worker classes and a shared ErrorCollector bucket
+    [ ] 'asset_ingestion/workers/fileset_extractor.py': Implement FilesetExtractor worker utilizing ValueExtractor composition and shared ErrorCollector
+    [ ] 'asset_ingestion/workers/domain_extractor.py': Implement DomainExtractor worker leveraging extracted filesets and shared ErrorCollector
+    [ ] 'asset_ingestion/workers/rtc_assembler.py': Implement RtcAssembler worker to synthesize button maps, ui render configurations, and return final RTC and Report
 
 III. Slated for implementation:
 
