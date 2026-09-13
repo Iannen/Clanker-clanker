@@ -1,6 +1,6 @@
 from app.models import BasePathTokens, CfgFragments, DocPaths, NoConfig, ConfigAssembly, CorruptClanker, Config
 from app.deps.ingestion import IngestionService
-from asset_ingestion.code import RuntimeConfigAssembler
+from asset_ingestion.workers.rtc_assembler import RuntimeConfigAssembler
 #TODO: make app crash cuz typeannotations not reffd
 
 class IngestionServiceImpl(IngestionService):
