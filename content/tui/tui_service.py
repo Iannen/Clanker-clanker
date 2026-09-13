@@ -1,0 +1,34 @@
+from app.models import *
+from app.deps.tui import TUIService
+
+class TUIServiceImpl(TUIService):
+    def __init__(self, io_bridge: IOBridgePort) -> None:
+        self.io_bridge = io_bridge
+
+    def display(self, ui_string: str) -> None:
+        self.io_bridge.write(f"{ui_string}\n")
+
+    def to_clipboard(self, text_content: str) -> int:
+        return self.io_bridge.to_clipboard(text_content)
+
+    def get_key(self) -> str:
+        ch = self.io_bridge.read_char()
+        if ch in IOControl.ABORT_KEYS:
+            raise ProgramExit
+        return ch.lower()
+
+    def get_confirmation(self, prompt_msg: str, required_phrase: str | None = None) -> None:
+        instructions = f"Type '{required_phrase}' and press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n> "
+        if required_phrase is None:
+            instructions = "Press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n"            
+        base_msg = f"\n{prompt_msg}\n{instructions}"
+        self.io_bridge.write(base_msg)
+        while True:
+            status, value = self.io_bridge.get_acceptance(required_phrase)
+            if status == IOControl.ACCEPTED:
+                return
+            if status == IOControl.DECLINED:
+                raise UserDecline
+            if status == IOControl.INVALID:
+                err = f"Invalid confirmation. Expected '{required_phrase}', got '{value}'. Try again.\n"
+                self.io_bridge.write(base_msg + err + "> ")

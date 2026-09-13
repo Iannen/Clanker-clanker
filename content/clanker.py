@@ -1,10 +1,11 @@
 #!/usr/bin/env -S python3 -B
 from adapters.adapters import FileBridge, IOBridge, ConfigIngestor
+from app.engine import AppEngine, ExceptionPolicy
 from render_pipeline.code import DefaultContentShaper
+from render_pipeline.render_service import RenderServiceImpl
 from asset_ingestion.ingestion_service import IngestionServiceImpl
 from asset_ingestion.code import RuntimeConfigAssembler
-from app.engine import AppEngine, ExceptionPolicy, IOService
-from render_pipeline.render_service import RenderServiceImpl
+from tui.tui_service import TUIServiceImpl
 import sys
 import traceback
 
@@ -19,7 +20,7 @@ def main():
 
         ingestion = IngestionServiceImpl(files=files_adapter, cfg_ingestor=cfg_ingestor, assembler=assembler)
         renderer = RenderServiceImpl(files=files_adapter, shaper=shaper)
-        io = IOService(io_bridge=io_adapter)
+        io = TUIServiceImpl(io_bridge=io_adapter)
 
         engine = AppEngine(
             io=io,

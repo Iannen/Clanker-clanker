@@ -46,10 +46,10 @@ II. Items to refine & QC:
     [x] SessionService: rename IngestionService (ugh)
         - Move inside the 'asset_ingestion'
         - an interface becomes part of upstream contract
-    - AssemblyService: Rename to RenderService
+    [x] AssemblyService: Rename to RenderService
         - move inside 'render'
         - an interface becomes part of upstream contract
-    - IOService: rename TUIService
+    [x] IOService: rename TUIService
         - move inside 'tui'
         - an interface becomes part of upstream contract
     - keep clanker.py and models.py at bottom level for now
