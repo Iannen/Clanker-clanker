@@ -32,49 +32,85 @@ II. Items to refine & QC:
 
 3. revise new dir structure, so we dont have simple 'code.py' files, they should ref their system
 
-4. Implement sequential pipeline with ephemeral workers for configuration assembly
-
-    [x] 'config_dtos' -> Delete
-        - FilesetMap & ConfigTranslator, no longer depend upon ABC interface class
-        - ABC itf classes were deleted with config_dtos file
-        - RtcAssembler(ABC) / RuntimeConfigAssembler(RtcAssembler) got similar treatment
-    [ ] Implement below file structure, allowing for nich llm contexts throughout the app layers
-        - at present we carry the code which will become the workers in file 'content/asset_ingestion/translation_system/config_dtos.py'
-'''
-content/asset_ingestion/
-├── commons/
-│   ├── error_collector.py
-│   ├── fileset_map.py
-│   ├── kb_spec.py
-│   └── value_extractor.py
-├── workers/
-│   ├── domain_extractor.py
-│   ├   └── DomainExtractor
-│   ├── fileset_extractor.py
-│   ├   └── FilesetExtractor
-│   └── rtc_assembler.py
-│       └── RtcAssembler
-└── ingestion_service.py
-    └── IngestionServiceImpl
-'''
-    [ ] 'IngestionServiceImpl'
-        - new public member 'get_runtime_config_replacement(self) -> tuple[Report, RuntimeConfig]'
-            - sequential pipeline with ephemeral workers for configuration assembly
-            - the method scope serves as the 'ctx' object
-            - functionally identical to 'get_runtime_config', which remains in-use until new pipeline is completed
-            1. Instantiates an ErrorCollector
-            2. passes a config & ec to 'fileset_extractor.init', calls 'extract', receives a FilesetMaps in return
-                - we have 'pud_cfg' and 'shared_cfg' to extract from, so two calls.
-                - at end, shared_cfg is absorbed into pud_cfg, yielding a unified fsm
-            3. passes fsm, a cfg and ec to 'domain_extractor.py' 
-                - next leg, two sets of domains.
-            4. passes domainsets, ec to rtc_assembler.py
-                - getting final product
-    [ ] 'asset_ingestion/workers/fileset_extractor.py': Implement FilesetExtractor worker utilizing ValueExtractor composition and shared ErrorCollector
-    [ ] 'asset_ingestion/workers/domain_extractor.py': Implement DomainExtractor worker leveraging extracted filesets and shared ErrorCollector
-    [ ] 'asset_ingestion/workers/rtc_assembler.py': Implement RtcAssembler worker to synthesize button maps, ui render configurations, and return final RTC and Report
 
 III. Slated for implementation:
+
+4. Implement sequential pipeline with ephemeral workers for configuration assembly
+    Phase 1: Preparatory steps 
+    [x] 'asset_ingestion': Implemented new file structure
+        - 'config_dtos' -> serves as container for code to be absorbed by workers
+        - pruned abc versions of FilesetMap, ConfigTranslator and RtcAssembler.
+
+    Phase 2: New servicemethod to orchestrate & first worker
+    [x] 'asset_ingestion/workers/fileset_extractor.py': 
+        - Implement FilesetExtractor worker utilizing ValueExtractor composition and shared ErrorCollector
+    [x] 'content/asset_ingestion/ingestion_service.py': 
+        - Add 'get_runtime_config_replacement' method performing Phase 2 (ErrorCollector init, shared & pud fileset extraction, and merging into a unified FilesetMap)
+
+    Phase 3: Implement DomainExtractor worker and integrate with IngestionServiceImpl
+    [x] 'content/asset_ingestion/workers/domain_extractor.py': Implement DomainExtractor worker
+        - Extract domain, prompt, render, and resolver parsing logic from config_dtos.py into standalone worker
+        - Accept configuration dict, ErrorCollector, and unified FilesetMap during initialization
+        - Handle resolution of named fileset references via FilesetMap
+        - Push/pop error collector path context during domain and prompt extraction
+    [x] 'content/asset_ingestion/ingestion_service.py': Wire DomainExtractor into get_runtime_config_replacement
+        - Import and instantiate DomainExtractor for shared_cfg and pud_cfg using unified_fsm
+        - Extract shared_doms and pud_doms in get_runtime_config_replacement pipeline
+
+    Phase 4: Final worker impl, wiring in service method
+    [x] 'asset_ingestion/workers/rtc_assembler.py': Implement RtcAssembler worker
+        - Move DomainOverflow dataclass to rtc_assembler.py
+        - Initialize with sys_cfg, shared_doms, pud_doms, and shared_cfg dictionaries/lists, ErrorCollector, and unified FilesetMap
+        - Parse KbSpec, ui_render, base_resolvers, and synthesize button_map for shared/pud domains and prompts
+        - Record domain overflow complaints via ErrorCollector if domain counts exceed key row lengths
+        - Return assembled ui_render, base_resolvers, and Keyboard instance
+    [x] 'content/asset_ingestion/ingestion_service.py': Wire RtcAssembler into get_runtime_config_replacement
+        - Instantiate RtcAssembler with sys_cfg, shared_doms, pud_doms, shared_cfg, collector, and unified_fsm
+        - Call assembly step to receive ui_render, base_resolvers, and keyboard
+        - Return tuple of (collector, RuntimeConfig(keyboard=..., ui_render=..., base_resolvers=...))
+
+    Phase 5: The victory lap (?)
+    [x] Use new method 'get_runtime_config', instead of old method 'get_runtime_config_old'
+        - appears to work identically to old method which uses contents of 'config_dtos.py.old' (hidden)
+
+    Phase 6: Clean up UI render extraction
+    [x] Create UIRenderExtractor
+        - Extract the finished UI render from sys_cfg.
+            - checks render type is ui render, to avoid general render processing.
+        - has private helper method to construct the resolver, and is thus standalone.
+    [x] Clean up RtcAssembler
+        - remove code related to ui_render, as becomes possible now that RtcAssembler does not need to produce ui_render for benefit of service
+        - otherwise keep the same
+    [x] Update get_runtime_config()
+        - after 'unified_fsm' is acquired, and before 'shared_doms' is acquired
+        - extract ui_render using UIRenderExtractor
+        - then ui_render to RuntimeConfig constructor at end of get_runtime_config method   
+
+    Phase 7: Clean up base resolver extraction
+
+    [ ] Create BaseResolverExtractor
+        - Standalone worker to extract base resolvers from a non-sys_cfg.
+        - Expects:
+            - only multi-document-retrieval resolvers; 
+                - passes over list of resolvers, checking type
+                - if non-md resolver encountered, discard it with complaint (and continue work, in acc with 'do what we can' principle)
+            - after that, at most 1 resolver (and only md cuz of above) is expected. discards each overflowing with a complaint, to satisfy expectance and then continues in acc with principle
+        - does not rely on any other worker. instead duplicate logic
+        - returns an md resolver, or None
+
+    [ ] Clean up RtcAssembler
+        - Remove base_resolvers extraction logic and DomainExtractor instantiation.
+        - RtcAssembler does not need to concern himself with resolver extraction any longer.
+
+    [ ] Update get_runtime_config
+        - after 'unified_fsm' is aquired
+        - Instantiate a BaseResolverExtractor , use on shared_cfg
+        - Instantiate another BaseResolverExtractor , use on pud
+        - then
+            - if no base resolvers, complain to user 
+            - if 2, use pud discared shared
+            - if 1 then use that
+        - Pass base_resolvers directly to RuntimeConfig constructor at end of 'get_runtime_config'
 
 IV. Recently implemented:
 

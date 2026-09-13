@@ -1,0 +1,58 @@
+1: Big-picture architecture
+- The new system is materially better than the old one.
+- The flow is now explicit: load config -> extract filesets -> extract domains -> assemble runtime config.
+- Responsibilities are easier to see and follow.
+- The old mutable ConfigTranslator state has been removed, which is a strong improvement.
+
+
+2: FilesetExtractor
+- This is the cleanest part of the refactor.
+- It has one clear job: extract named filesets into a FilesetMap.
+- It fits well as an independent worker.
+- I would consider this part essentially successful.
+
+
+3: DomainExtractor
+- The extraction itself is a good improvement over the old translator.
+- Domain/prompt traversal and error-path handling are clearer.
+- But it currently does more than "domain extraction."
+- It also contains generic render and resolver construction logic.
+
+
+4: RtcAssembler
+- This is the main architectural concern in the new design.
+- It is doing several different jobs: KbSpec, render setup, base resolvers, buttons, keyboard, and overflow handling.
+- The biggest smell is that it creates a DomainExtractor just to call its private _build_render() and _build_resolver().
+- That means the worker boundary is not actually clean yet.
+
+
+5: Micro-level comparison
+- Many individual methods are cleaner in the new system because dependencies are passed explicitly.
+- ErrorCollector and FilesetMap make error handling more deliberate.
+- ValueExtractor gives parsing/type validation a clearer home.
+- The main micro-level weakness is code reuse through private methods rather than through explicit shared components.
+
+
+6: What I would change next
+- Do NOT immediately start another large refactor.
+- First prove that old and new produce equivalent results.
+- Compare normal outputs: render, resolvers, keyboard, buttons, selected key, etc.
+- Compare errors: missing values, bad types, missing filesets, truncation errors, resolver errors, manifest errors, overflow.
+
+
+7: After equivalence is proven
+- The old config_dtos.py.old can become unnecessary.
+- Then clean up the remaining architectural boundaries.
+- The likely direction is small shared parsers for Render and Resolver.
+- DomainExtractor and RtcAssembler can both use those parsers without either one depending on the other.
+
+
+8: Overall verdict
+- This is a successful architectural refactor.
+- It is not quite a finished architecture.
+- FilesetExtractor: clean win.
+- IngestionService orchestration: major win.
+- DomainExtractor: good, but slightly too broad.
+- RtcAssembler: currently the main responsibility hotspot.
+- Render/resolver construction: clearest remaining boundary problem.
+- Next priority: semantic equivalence first, architectural cleanup second.
