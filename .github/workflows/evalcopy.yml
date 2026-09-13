@@ -1,0 +1,31 @@
+name: Build Eval Copy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  evalcopy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build eval copy
+        run: |
+          set -euo pipefail
+
+          mkdir evalcopy
+
+          # Whitelist: only these repository members are included.
+          cp -a .clanker evalcopy/
+          cp -a content evalcopy/
+
+          zip -r myproject_evalcopy.zip evalcopy/
+
+      - name: Upload eval copy
+        uses: actions/upload-artifact@v4
+        with:
+          name: myproject_evalcopy
+          path: myproject_evalcopy.zip
+          if-no-files-found: error
