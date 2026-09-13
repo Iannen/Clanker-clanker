@@ -1,7 +1,6 @@
 from app.models import BasePathTokens, CfgFragments, DocPaths, NoConfig, ConfigAssembly, CorruptClanker, Config
 from app.deps.ingestion import IngestionService
-from asset_ingestion.workers.fileset_extractor import RuntimeConfigAssembler
-#TODO: make app crash cuz typeannotations not reffd
+from asset_ingestion.translation_system.config_dtos import RuntimeConfigAssembler
 
 class IngestionServiceImpl(IngestionService):
     def __init__(
@@ -12,11 +11,6 @@ class IngestionServiceImpl(IngestionService):
         self.files = files
         self.cfg_ingestor = cfg_ingestor
         self.assembler = RuntimeConfigAssembler()
-
-    def _get_validated_cfg_fragment(self, fragment_token_path: str) -> dict:
-        raw_content = self.files.get_file_contents(fragment_token_path)
-        cfg_dict = self.cfg_ingestor.get_as_dict(raw_content)
-        return cfg_dict
 
     def get_runtime_config(self) -> tuple[Report, RuntimeConfig]:
         try:
@@ -49,3 +43,8 @@ class IngestionServiceImpl(IngestionService):
             templ_ext=DocPaths.TEMPL_EXT,
             doc_ext=DocPaths.DOC_EXT
         )
+
+    def _get_validated_cfg_fragment(self, fragment_token_path: str) -> dict:
+        raw_content = self.files.get_file_contents(fragment_token_path)
+        cfg_dict = self.cfg_ingestor.get_as_dict(raw_content)
+        return cfg_dict
