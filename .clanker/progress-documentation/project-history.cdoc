@@ -481,5 +481,18 @@ V: TAIL-TRUNCATE PROJECT HISTORY FOR BRAGPACK ASSEMBLY
     Actions: Updated the GitHub Action to tail-truncate the history document to ~12k characters.
     Reflection: History context is now bounded and focused on recent development.
     - but is dirty github action
-    - to be replaced by project native solution
+    - to be replaced by project native solution, as we dont want to depend upon github when we can avoid it
+
+VI: ADD ASSET EXISTS CHECK TO INGESTION PIPELINE
+    Purpose: Validate asset existence across resolvers during ingestion and flag dangling prompt assets.
+    - Resolvers must verify that referenced files/filesets exist in expected pathlists before runtime config assembly.
+    - The pipeline must also detect unused/dangling prompt assets in the local configuration folder.
+    Actions: Implemented AssetValidator and integrated it into IngestionServiceImpl.
+    - Created ephemeral class 'AssetValidator' in 'content/asset_ingestion/validators/asset_validator.py' with static 'validate' method accepting pathlists, runtime config, and complaint collector.
+    - Implemented resolver checks: MultiDocResolver checks pud/shared pathlists by file name; RepoContentResolver checks pud_pathlist for fileset paths; ManifestResolver checks pud_fileset in pud_pathlist and shared_fileset in shared_pathlist.
+    - Integrated AssetValidator into 'content/asset_ingestion/ingestion_service.py' to run after file list retrieval and report complaints via collector.
+    - Added inverse validation check to flag filepaths in '.clanker/prompt-assets' that are not referenced in the runtime config.
+    Reflection: Verification now catches missing dependency files and orphaned prompt assets early during bootstrap before rendering.
+    - but very janky 'toe in the water'
+    - i will shift attention to the concept of repo contract
 
