@@ -30,15 +30,6 @@ I. Ideas, complaints and non-critical bugs:
 3. revise new dir structure, so we dont have simple 'code.py' files, they should ref their system
 
 
-II. Items to refine & QC:
-
-0. update github action to tailtruncate the history doc
-    - to reduce token pressure & confusion for bragpack dropoffs
-    - what is good size? its at 45k chars presently
-        - perhaps 10-15k characters worth
-        - so, *truncated above*
-        - then 10k characters worth of lines
-
 1. Non IDE / linter import strats:
     - goal, make it so that 
         - all types used in a file are always imported (explicitly or via kleene)
@@ -69,24 +60,6 @@ II. Items to refine & QC:
 3. App failure modes razzia, not related to ingestion or later file not found business in Renderservice:
     - buttons not 'in scope' should produce a msg saying so (i get nonetype crash cuz no msg)
     - what else
-
-4. Make use of latest architectural work in ingestion module
-    - refine ErrorCollector 
-        - how to handle different complaint scenarios without blowing up codebase with bloat?
-        - the itf of it,  'Report', should be like
-            - get complaintreport A
-            - complaintreport B
-            - etc
-    - then use throughout the ingestion module
-        - missing files is a big one. ugh!
-        - the inverse -> unuse assets. ugh!
-    - and then downstream:
-        - then the engine uses the RenderService (is this the presentation layer of the app?) to format to msg
-        - and then 'TUIServiceImpl' to present the report & get user feedback and such
-    - DX benefits sought (dogfooding benefits):
-        - asset hygiene, user confidence
-        - interpretation rules can become first class, represented by extractor / parser helpers
-            - more visibility of validation rules
 
 5. Revise god file 'models.py' and members
     [ ] split it up into 
@@ -120,9 +93,38 @@ II. Items to refine & QC:
     - this is stylepoints chase mostly
         - but later good for when we have windows / mac adapters / no OSC52 alternative adapters
         - which entrypoint loads as appropriate for environment
+II. Items to refine & QC:
 
+4. Make use of latest architectural work in ingestion module
+    - refine ErrorCollector 
+        - how to handle different complaint scenarios without blowing up codebase with bloat?
+        - the itf of it,  'Report', should be like
+            - get complaintreport A
+            - complaintreport B
+            - etc
+    - then use throughout the ingestion module
+        - missing files is a big one. ugh!
+        - the inverse -> unused assets. ugh!
+    - and then downstream:
+        - then the engine uses the RenderService (is this the presentation layer of the app?) to format to msg
+        - and then 'TUIServiceImpl' to present the report & get user feedback and such
+    - DX benefits sought (dogfooding benefits):
+        - asset hygiene, user confidence
+        - interpretation rules can become first class, represented by extractor / parser helpers
+            - more visibility of validation rules
+
+5. Add asset exists check to ingestion pipeline
+    - the service uses the file adapter to get assetlist
+        - one for pud, other for shared
+    - the service then passes filelist, rtc and ec to a worker, who
+        - looks at md resolvers, their filelists and files
+            - if files by name exist in either of pud or shared filelist, then ok, else complain
+        - looks at repo resolvers
+            - all paths must exist in pud filelist
+        - looks at manifest resolver
+            - pud_fileset, same as repo resolver
+            - shared_fileset, from shared filelist
 
 III. Slated for implementation:
 IV. Recently implemented:
-
 V. Critical bugs

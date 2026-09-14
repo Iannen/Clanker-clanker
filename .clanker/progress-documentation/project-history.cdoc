@@ -475,3 +475,11 @@ LXXXII: CONSOLIDATE CONFIGURATION ASSEMBLY AROUND EPHEMERAL WORKERS AND PARSERS
     - Align extractors and assemblers with the service so each performs a focused, one-call delivery into the sequential configuration assembly pipeline.
     - Establish a clearer division whereby parsers perform local configuration validation and complaint production, while extractors and assemblers determine which configuration issues become meaningful complaints at the pipeline level.
     Reflection: The ingestion architecture now has substantially clearer responsibility boundaries and a more compositional configuration assembly flow, reducing monolithic parsing and cognitive load. The new structure should now be allowed to settle and prove itself through continued use and validation before introducing another major architectural restructuring.
+
+V: TAIL-TRUNCATE PROJECT HISTORY FOR BRAGPACK ASSEMBLY
+    Purpose: Reduce token pressure and confusion by keeping only recent history.
+    Actions: Updated the GitHub Action to tail-truncate the history document to ~12k characters.
+    Reflection: History context is now bounded and focused on recent development.
+    - but is dirty github action
+    - to be replaced by project native solution
+

@@ -6,8 +6,9 @@ filesets:
   ingestion_service: {includes: [
     content/app/models.py, 
     content/asset_ingestion/ingestion_service.py,
-    content/asset_ingestion/extractors,
-    content/asset_ingestion/assemblers]}
+    content/asset_ingestion/commons/error_collector.py,
+    content/asset_ingestion/commons/value_extractor.py,
+    content/ports_adapters]}
   cfg_validation: {includes: [
     content/app/models.py,  
     .clanker/shared-assets/config-fragments, 

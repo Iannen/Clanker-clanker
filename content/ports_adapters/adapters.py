@@ -7,8 +7,8 @@ import termios
 import tty
 from pathlib import Path
 from ruamel.yaml import YAML
+from ports_adapters.ports import IOBridgePort, FileBridgePort, ConfigIngestorPort
 from app.models import *
-from adapters.ports import IOBridgePort, FileBridgePort, ConfigIngestorPort
 
 class IOBridge(IOBridgePort):
     def to_clipboard(self, text_content: str) -> int:

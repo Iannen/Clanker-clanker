@@ -1,5 +1,5 @@
 #!/usr/bin/env -S python3 -B
-from adapters.adapters import FileBridge, IOBridge, ConfigIngestor
+from ports_adapters.adapters import FileBridge, IOBridge, ConfigIngestor
 from app.engine import AppEngine, ExceptionPolicy
 from render_pipeline.render_service import RenderServiceImpl
 from asset_ingestion.ingestion_service import IngestionServiceImpl
