@@ -20,15 +20,6 @@ jobs:
           # Copy folders explicitly using tar to preserve hidden contents
           tar cf - .clanker content | (cd clanker-evalcopy && tar xf -)
 
-      - name: Build eval copy
-        run: |
-          set -euo pipefail
-
-          mkdir clanker-evalcopy
-
-          # Copy folders explicitly using tar to preserve hidden contents
-          tar cf - .clanker content | (cd clanker-evalcopy && tar xf -)
-
           # --- tail-truncate history doc to reduce token pressure ---
           HISTORY="clanker-evalcopy/.clanker/progress-documentation/project-history.cdoc"
           KEEP_CHARS=12000
