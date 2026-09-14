@@ -36,8 +36,7 @@ class IngestionServiceImpl(IngestionService):
 
         ui_render = UIRenderExtractor().extract(sys_cfg, collector, unified_fsm)
 
-        shared_doms = DomainsExtractor(shared_cfg, collector, unified_fsm).extract()
-        pud_doms = DomainsExtractor(pud_cfg, collector, unified_fsm).extract()
+        pud_doms, shared_doms = DomainsExtractor().extract(pud_cfg, shared_cfg, collector, unified_fsm)
 
         assembler = RtcAssembler(
             sys_cfg=sys_cfg,

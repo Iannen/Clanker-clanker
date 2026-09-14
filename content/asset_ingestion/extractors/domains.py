@@ -10,37 +10,44 @@ from asset_ingestion.parsers.resolver import ResolverParser
 from asset_ingestion.parsers.render import RenderParser
 
 class DomainsExtractor:
-    def __init__(
+    def extract(
         self,
-        doms_cfg_dict: dict[str, Any],
+        pud_cfg: dict[str, Any],
+        shared_cfg: dict[str, Any],
         collector: ErrorCollector,
         fileset_map: FilesetMap,
-    ) -> None:
-        self.doms_cfg_dict = doms_cfg_dict
-        self.collector = collector
-        self.fileset_map = fileset_map
-        self.extractor = ValueExtractor()
+    ) -> tuple[list[Domain], list[Domain]]:
+        extractor = ValueExtractor()
+        results = []
 
-    def extract(self) -> list[Domain]:
-        raw_domains = self.extractor.req_list(self.doms_cfg_dict, ["domains"])
-        domains = []
-        for d in raw_domains:
-            name = self.extractor.req_str(d, ["name"])
-            with self.collector.path(name):
-                raw_resolvers = self.extractor.req_list(d, ["resolvers"])
-                raw_prompts = self.extractor.req_list(d, ["prompts"])
+        for cfg_dict in (pud_cfg, shared_cfg):
+            raw_domains = extractor.req_list(cfg_dict, ["domains"])
+            domains = []
+            for d in raw_domains:
+                name = extractor.req_str(d, ["name"])
+                with collector.path(name):
+                    raw_resolvers = extractor.req_list(d, ["resolvers"])
+                    raw_prompts = extractor.req_list(d, ["prompts"])
 
-                resolvers = [ResolverParser(r, self.collector, self.fileset_map).parse() for r in raw_resolvers]
-                prompts = self._build_prompts(raw_prompts)
-                domains.append(Domain(name=name, prompts=prompts, resolvers=resolvers))
-        return domains
+                    resolvers = [ResolverParser(r, collector, fileset_map).parse() for r in raw_resolvers]
+                    prompts = self._build_prompts(raw_prompts, collector, fileset_map, extractor)
+                    domains.append(Domain(name=name, prompts=prompts, resolvers=resolvers))
+            results.append(domains)
 
-    def _build_prompts(self, dicts: list[dict[str, Any]]) -> list[Prompt]:
+        return results[0], results[1]
+
+    def _build_prompts(
+        self,
+        dicts: list[dict[str, Any]],
+        collector: ErrorCollector,
+        fileset_map: FilesetMap,
+        extractor: ValueExtractor,
+    ) -> list[Prompt]:
         prompts = []
         for d in dicts:
-            name = self.extractor.req_str(d, ["name"])
-            with self.collector.path(name):
-                render_dict = self.extractor.req_dict(d, ["render"], default={})
-                render = RenderParser(render_dict, self.collector, self.fileset_map).extract()
+            name = extractor.req_str(d, ["name"])
+            with collector.path(name):
+                render_dict = extractor.req_dict(d, ["render"], default={})
+                render = RenderParser(render_dict, collector, fileset_map).extract()
                 prompts.append(Prompt(name=name, render=render))
         return prompts
