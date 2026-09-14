@@ -32,16 +32,7 @@ class IngestionServiceImpl(IngestionService):
 
         unified_fsm = FilesetExtractor().extract(pud_cfg, shared_cfg, collector)
 
-        shared_base_res = BaseResolversExtractor(shared_cfg, collector).extract()
-        pud_base_res = BaseResolversExtractor(pud_cfg, collector).extract()
-
-        if pud_base_res is not None:
-            base_resolvers = [pud_base_res]
-        elif shared_base_res is not None:
-            base_resolvers = [shared_base_res]
-        else:
-            collector.add_complaint("Missing required base resolver configuration")
-            base_resolvers = []
+        base_resolvers = BaseResolversExtractor().extract(pud_cfg, shared_cfg, collector)
 
         ui_render = UIRenderExtractor().extract(sys_cfg, collector, unified_fsm)
 

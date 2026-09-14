@@ -6,34 +6,47 @@ from asset_ingestion.parsers.resolver import ResolverParser
 
 
 class BaseResolversExtractor:
-    def __init__(self, cfg_dict: dict[str, Any], collector: ErrorCollector) -> None:
-        self.cfg_dict = cfg_dict
-        self.collector = collector
-        self.extractor = ValueExtractor()
+    def extract(
+        self,
+        pud_cfg: dict[str, Any],
+        shared_cfg: dict[str, Any],
+        collector: ErrorCollector,
+    ) -> list[Resolver]:
+        extractor = ValueExtractor()
+        res_map: dict[str, MultiDocResolver] = {}
 
-    def extract(self) -> MultiDocResolver | None:
-        with self.collector.path("base_resolvers"):
-            raw_resolvers = self.extractor.req_list(self.cfg_dict, ["base_resolvers"], default=[])
-            extracted: list[MultiDocResolver] = []
+        for source_name, cfg in (("shared", shared_cfg), ("pud", pud_cfg)):
+            with collector.path("base_resolvers"):
+                raw_resolvers = extractor.req_list(cfg, ["base_resolvers"], default=[])
+                extracted: list[MultiDocResolver] = []
 
-            for r in raw_resolvers:
-                res_type = self.extractor.req_str(r, ["type"])
-                anchor = self.extractor.req_str(r, ["id"])
+                for r in raw_resolvers:
+                    res_type = extractor.req_str(r, ["type"])
+                    anchor = extractor.req_str(r, ["id"])
 
-                if res_type != "multi-document-retrieval":
-                    self.collector.add_complaint(
-                        f"Expected 'multi-document-retrieval' resolver type in base_resolvers, got '{res_type}'"
-                    )
-                    continue
+                    if res_type != "multi-document-retrieval":
+                        collector.add_complaint(
+                            f"Expected 'multi-document-retrieval' resolver type in base_resolvers, got '{res_type}'"
+                        )
+                        continue
 
-                if len(extracted) >= 1:
-                    self.collector.add_complaint(
-                        f"Extraneous base resolver '{anchor}' encountered; at most 1 base resolver expected"
-                    )
-                    continue
+                    if len(extracted) >= 1:
+                        collector.add_complaint(
+                            f"Extraneous base resolver '{anchor}' encountered; at most 1 base resolver expected"
+                        )
+                        continue
 
-                resolver_obj = ResolverParser(r, self.collector).parse()
-                if isinstance(resolver_obj, MultiDocResolver):
-                    extracted.append(resolver_obj)
+                    resolver_obj = ResolverParser(r, collector).parse()
+                    if isinstance(resolver_obj, MultiDocResolver):
+                        extracted.append(resolver_obj)
 
-            return extracted[0] if extracted else None
+                if extracted:
+                    res_map[source_name] = extracted[0]
+
+        if "pud" in res_map:
+            return [res_map["pud"]]
+        if "shared" in res_map:
+            return [res_map["shared"]]
+
+        collector.add_complaint("Missing required base resolver configuration")
+        return []
