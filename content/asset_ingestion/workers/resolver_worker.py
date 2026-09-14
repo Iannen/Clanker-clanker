@@ -14,6 +14,7 @@ from app.models import (
 from asset_ingestion.commons.error_collector import ErrorCollector
 from asset_ingestion.commons.fileset_map import FilesetMap
 from asset_ingestion.commons.value_extractor import ValueExtractor
+from asset_ingestion.workers.fileset_worker import FilesetWorker
 
 
 class ResolverWorker:
@@ -46,11 +47,8 @@ class ResolverWorker:
                     "excludes": self.extractor.req_list(self.resolver_cfg, ["excludes"], default=[]),
                 }
 
-            if isinstance(fileset_val, str):
-                fileset_obj = self.fileset_map.get(fileset_val) if self.fileset_map else None
-            else:
-                fileset_obj = self._build_fileset(fileset_val)
-            return RepoContentResolver(anchor=anchor, fileset=fileset_obj or FileSet(includes=[], excludes=[]))
+            fileset_obj = FilesetWorker(fileset_val, self.collector, self.fileset_map).parse()
+            return RepoContentResolver(anchor=anchor, fileset=fileset_obj)
 
         if res_type == "repo-manifest":
             if "pud_fileset" not in self.resolver_cfg and "shared_fileset" not in self.resolver_cfg:
@@ -61,21 +59,12 @@ class ResolverWorker:
             pud_val = self.extractor.req_str_or_dict(self.resolver_cfg, ["pud_fileset"], default={})
             shared_val = self.extractor.req_str_or_dict(self.resolver_cfg, ["shared_fileset"], default={})
 
-            if isinstance(pud_val, str):
-                pud_fileset_obj = self.fileset_map.get(pud_val) if self.fileset_map else None
-            else:
-                pud_fileset_obj = self._build_fileset(pud_val) if pud_val else None
-
-            if isinstance(shared_val, str):
-                shared_fileset_obj = self.fileset_map.get(shared_val) if self.fileset_map else None
-            elif isinstance(shared_val, dict) and shared_val:
-                shared_fileset_obj = self._build_fileset(shared_val)
-            else:
-                shared_fileset_obj = None
+            pud_fileset_obj = FilesetWorker(pud_val, self.collector, self.fileset_map).parse() if pud_val else FileSet(includes=[], excludes=[])
+            shared_fileset_obj = FilesetWorker(shared_val, self.collector, self.fileset_map).parse() if shared_val else None
 
             return ManifestResolver(
                 anchor=anchor,
-                pud_fileset=pud_fileset_obj or FileSet(includes=[], excludes=[]),
+                pud_fileset=pud_fileset_obj,
                 shared_fileset=shared_fileset_obj,
             )
 
@@ -83,11 +72,6 @@ class ResolverWorker:
             return KBStateResolver(anchor=anchor)
 
         raise ConfigAssembly(f"Unsupported resolver type: '{res_type}'")
-
-    def _build_fileset(self, raw_data: Any) -> FileSet:
-        includes = self.extractor.req_list(raw_data, ["includes"])
-        excludes = self.extractor.req_list(raw_data, ["excludes"], default=[])
-        return FileSet(includes=includes, excludes=excludes)
 
     def _build_file(self, data: Any) -> File:
         if isinstance(data, dict):
