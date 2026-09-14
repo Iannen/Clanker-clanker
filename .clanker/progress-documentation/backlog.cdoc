@@ -5,7 +5,6 @@ I. Ideas, complaints and non-critical bugs:
     - this is due to the ui template being constrained to 4 buttons for the two keyrows.
     - ez fix is to adjust template.
     - rabbithole solution is to have app write template to rowspec
-- buttons not 'in scope' should produce a msg saying so (i get nonetype crash cuz no msg)
 
 0. Config & Asset validation
     - yaml configs
@@ -32,6 +31,30 @@ I. Ideas, complaints and non-critical bugs:
 
 
 II. Items to refine & QC:
+
+2. Simple 'end to end' test system, for improved dev confidence when iterating
+   Modeled on my manual 'test flow':
+    - For a clankerized repo
+        - the app should start, display UI
+        - all domain buttons should
+            - if inhabitet, display proper msg
+            - if unhabited, display proper msg
+        - then, for each domain button, every prompt button should
+            - if prompt button inhabitet, produce a prompt of expected size
+            - if no inhabitant, display appropriate msg
+        - for any and all buttons outside the keys specified by system_cfg
+            - be silently ignored, and not cause crash as they do now
+            - exception for things like esc, ctrl+c, ctrl+d and other 'system keys'
+    - When clankerizing a repo:
+        - it should produce a repo on the expected format, containing all members of a yet to be declared 'repo contract'
+        - then it should pass the 'clankerized repo' test
+        - perhaps also a 'unruly repo' scenario, where the repo already contains things contract mandates
+            - > than complain to user, do no harm
+        - so clankerization must be safe. Perhaps the confirm msg can first check and see that it is so? else complain to user 
+
+3. App failure modes razzia, not related to ingestion or later file not found business in Renderservice:
+    - buttons not 'in scope' should produce a msg saying so (i get nonetype crash cuz no msg)
+    - what else
 
 4. Make use of latest architectural work in ingestion module
     - refine ErrorCollector 
@@ -72,7 +95,17 @@ II. Items to refine & QC:
             - reduce llm confusion
     - prettiness of organisation?
     - limits the fallout of kleene imports
-        - which is beneficial for the token savings
+        - which are beneficial for the token savings
+    - but not huge feature boost. mainly shuffles things around
+
+6. Ports & Adapters revision
+    - do away with 'adopted notices' in ExceptionPolicy, which was a misstep
+    - make adapters translate ex vocabulary into app vocabulary
+    - keep bridgeleakage, for good error formatting screaming at dev what issue is at top of msg
+    - so keep protect adapter functionality, but remove adoption in favour of translation
+    - this is stylepoints chase mostly
+        - but later good for when we have windows / mac adapters / no OSC52 alternative adapters
+        - which entrypoint loads as appropriate for environment
 
 
 III. Slated for implementation:

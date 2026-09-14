@@ -26,7 +26,7 @@ class ExceptionPolicy:
                 except (Notice, *cls.ADOPTED_NOTICES):
                     raise
                 except Exception as ex:
-                    raise BridgeLeakage() from ex
+                    raise AdapterLeakage() from ex
             return wrapper
 
         wrapped = {
