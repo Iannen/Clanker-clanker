@@ -32,71 +32,56 @@ class DomainOverflow: # create general complain based on 'enum' ?
         )
 
 class RtcAssembler:
-    def __init__(
+    def assemble(
         self,
         sys_cfg: dict[str, Any],
         shared_doms: list[Domain],
         pud_doms: list[Domain],
-        shared_cfg: dict[str, Any],
         collector: ErrorCollector,
-        fileset_map: FilesetMap,
-    ) -> None:
-        self.sys_cfg = sys_cfg
-        self.shared_doms = shared_doms
-        self.pud_doms = pud_doms
-        self.shared_cfg = shared_cfg
+    ) -> Keyboard:
+        extractor = ValueExtractor()
         self.collector = collector
-        self.fileset_map = fileset_map
-        self.extractor = ValueExtractor()
+        self.btn_map: dict[str, Button] = {}
 
-    def assemble(self) -> Keyboard:
-        kb_spec = KbSpec(
-            shared_domain_keys=self.extractor.req_str(self.sys_cfg, ["button_rows", "shared_domains_row"]),
-            pud_domain_keys=self.extractor.req_str(self.sys_cfg, ["button_rows", "pud_domains_row"]),
-            prompt_keys=self.extractor.req_str(self.sys_cfg, ["button_rows", "prompts_row"]),
+        self._populate_domain_buttons(
+            row_keys=extractor.req_str(sys_cfg, ["button_rows", "shared_domains_row"]),
+            domains=shared_doms,
+            sys_cfg_name="shared_domains_row",
+            cfg_filename=CfgFragments.SHARED_CFG,
         )
 
-        button_map = self._create_btn_map(kb_spec)
-        return Keyboard(button_map=button_map, selected_key=None)
+        self._populate_domain_buttons(
+            row_keys=extractor.req_str(sys_cfg, ["button_rows", "pud_domains_row"]),
+            domains=pud_doms,
+            sys_cfg_name="pud_domains_row",
+            cfg_filename=CfgFragments.PUD_CFG,
+        )
 
-    def _create_btn_map(self, kb_spec: KbSpec) -> dict[str, Button]:
-        btn_map: dict[str, Button] = {}
+        for key_char in extractor.req_str(sys_cfg, ["button_rows", "prompts_row"]):
+            self.btn_map[key_char] = Button(type=Button.TYPE_PROMPT, key=key_char, inhabitant=None)
 
-        shr_dom_btns = list(kb_spec.shared_domain_keys)
-        if len(self.shared_doms) > len(shr_dom_btns):
-            overflow_cnt = len(self.shared_doms) - len(shr_dom_btns)
+        return Keyboard(button_map=self.btn_map, selected_key=None)
+
+    def _populate_domain_buttons(
+        self,
+        row_keys: str,
+        domains: list[Domain],
+        sys_cfg_name: str,
+        cfg_filename: str,
+    ) -> None:
+        dom_btns = list(row_keys)
+        if len(domains) > len(dom_btns):
+            overflow_cnt = len(domains) - len(dom_btns)
             dof = DomainOverflow(
-                sys_cfg_name="shared_domains_row",
-                row_keys=kb_spec.shared_domain_keys,
-                domain_names=[d.name for d in self.shared_doms],
-                cfg_filename=CfgFragments.SHARED_CFG,
+                sys_cfg_name=sys_cfg_name,
+                row_keys=row_keys,
+                domain_names=[d.name for d in domains],
+                cfg_filename=cfg_filename,
                 overflow_count=overflow_cnt,
             )
             self.collector.record_domain_overflow(dof)
 
-        for key_char, dom in zip(shr_dom_btns, self.shared_doms):
-            btn_map[key_char] = Button(type=Button.TYPE_DOMAIN, key=key_char, inhabitant=dom)
-        for key_char in shr_dom_btns[len(self.shared_doms):]:
-            btn_map[key_char] = Button(type=Button.TYPE_DOMAIN, key=key_char, inhabitant=None)
-
-        pud_dom_btns = list(kb_spec.pud_domain_keys)
-        if len(self.pud_doms) > len(pud_dom_btns):
-            overflow_cnt = len(self.pud_doms) - len(pud_dom_btns)
-            dof = DomainOverflow(
-                sys_cfg_name="pud_domains_row",
-                row_keys=kb_spec.pud_domain_keys,
-                domain_names=[d.name for d in self.pud_doms],
-                cfg_filename=CfgFragments.PUD_CFG,
-                overflow_count=overflow_cnt,
-            )
-            self.collector.record_domain_overflow(dof)
-
-        for key_char, dom in zip(pud_dom_btns, self.pud_doms):
-            btn_map[key_char] = Button(type=Button.TYPE_DOMAIN, key=key_char, inhabitant=dom)
-        for key_char in pud_dom_btns[len(self.pud_doms):]:
-            btn_map[key_char] = Button(type=Button.TYPE_DOMAIN, key=key_char, inhabitant=None)
-
-        for key_char in kb_spec.prompt_keys:
-            btn_map[key_char] = Button(type=Button.TYPE_PROMPT, key=key_char, inhabitant=None)
-
-        return btn_map
+        for key_char, dom in zip(dom_btns, domains):
+            self.btn_map[key_char] = Button(type=Button.TYPE_DOMAIN, key=key_char, inhabitant=dom)
+        for key_char in dom_btns[len(domains):]:
+            self.btn_map[key_char] = Button(type=Button.TYPE_DOMAIN, key=key_char, inhabitant=None)

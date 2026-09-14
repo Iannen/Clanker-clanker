@@ -38,15 +38,12 @@ class IngestionServiceImpl(IngestionService):
 
         pud_doms, shared_doms = DomainsExtractor().extract(pud_cfg, shared_cfg, collector, unified_fsm)
 
-        assembler = RtcAssembler(
+        keyboard = RtcAssembler().assemble(
             sys_cfg=sys_cfg,
             shared_doms=shared_doms,
             pud_doms=pud_doms,
-            shared_cfg=shared_cfg,
             collector=collector,
-            fileset_map=unified_fsm,
         )
-        keyboard = assembler.assemble()
 
         return collector, RuntimeConfig(
             keyboard=keyboard,

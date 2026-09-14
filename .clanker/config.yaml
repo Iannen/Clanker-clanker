@@ -6,10 +6,11 @@ filesets:
   ingestion_service: {includes: [
     content/app/models.py, 
     content/asset_ingestion/ingestion_service.py,
-    content/asset_ingestion/extractors/fileset.py,
-    content/asset_ingestion/extractors/ui_render.py,
-    content/asset_ingestion/extractors/base_resolver.py,
-    content/asset_ingestion/extractors/domains.py]}
+    content/asset_ingestion/extractors,
+    content/asset_ingestion/assemblers]}
+  ingestion_service2: {includes: [
+    content/app/models.py, 
+    content/asset_ingestion]}
   cfg_validation: {includes: [
     content/app/models.py,  
     .clanker/shared-assets/config-fragments, 
@@ -50,7 +51,7 @@ domains:
 
 - name: ingestion
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: ingestion_service }
+    - { id: repo_content, type: repo_content, fileset: ingestion_service2 }
   prompts:
     - name: plan
       render:
