@@ -7,9 +7,7 @@ filesets:
     content/app/models.py, 
     content/asset_ingestion],
     excludes: [
-      content/asset_ingestion/workers/rtc_assembler.py,
       content/asset_ingestion/workers/fileset_extractor.py,
-      content/asset_ingestion/workers/base_resolver_extractor.py,
     ]}
   cfg_validation: {includes: [
     content/app/models.py,  

@@ -70,21 +70,36 @@ I. Ideas, complaints and non-critical bugs:
         - validate extracted render carries exactly one resolver of type KBStateResolver ('kb_info'), adding a complaint otherwise
         - assign result to method-scope variable ui_render for RuntimeConfig construction
 
-II. Items to refine & QC:
-
-5. Extract ResolverWorker to unify resolver parsing across RenderWorker and DomainExtractor
-    [ ] 'content/asset_ingestion/workers/resolver_worker.py': Implement ResolverWorker
-        - create ResolverWorker accepting a resolver config dictionary, ErrorCollector, and FilesetMap
+    Phase 2: ResolverWorker to unify resolver parsing across RenderWorker, DomainExtractor, and BaseResolverExtractor
+    [x] 'content/asset_ingestion/workers/resolver_worker.py': Implement ResolverWorker
+        - create ResolverWorker accepting a resolver config dictionary, ErrorCollector, and optional FilesetMap
         - encapsulate resolution for all resolver types (multi-document-retrieval, repo_content, repo-manifest, kb_info/kb_state)
         - move file, filelist, fileset, and TruncationSpec construction into ResolverWorker
-    [ ] 'content/asset_ingestion/workers/ui_render_extractor.py': Delegate resolver parsing in RenderWorker
+    [x] 'content/asset_ingestion/workers/ui_render_extractor.py': Delegate resolver parsing in RenderWorker
         - update RenderWorker to delegate individual resolver parsing to ResolverWorker via oneline instantiation & call
         - remove internal _build_resolver, _build_fileset, _build_truncation_spec, and _build_file methods
-    [ ] 'content/asset_ingestion/workers/domain_extractor.py': Delegate resolver parsing in DomainExtractor via oneline instantiation & call
+    [x] 'content/asset_ingestion/workers/domain_extractor.py': Delegate resolver parsing in DomainExtractor via oneline instantiation & call
         - update DomainExtractor to use ResolverWorker for top-level domain resolver parsing
-        - remove internal _build_resolver, _build_file, and '_build_fileset' methods
+        - remove internal _build_resolver, _build_file, and _build_fileset methods
+    [x] 'content/asset_ingestion/workers/base_resolver_extractor.py': Delegate resolver parsing in BaseResolverExtractor
+        - update BaseResolverExtractor to use ResolverWorker for base resolver parsing
+        - remove internal _build_file and _build_truncation_spec methods
+
+II. Items to refine & QC:
 
 III. Slated for implementation:
+
+6. Extract FilesetWorker to unify fileset parsing across FilesetExtractor and ResolverWorker
+    [ ] 'content/asset_ingestion/workers/fileset_worker.py': Implement FilesetWorker
+        - create FilesetWorker accepting a fileset config object/dict, ErrorCollector, and optional FilesetMap
+        - encapsulate fileset extraction for both inline dicts ({includes: [...], excludes: [...]}) and string key references (resolving via FilesetMap)
+        - move FileSet construction logic into FilesetWorker
+    [ ] 'content/asset_ingestion/workers/fileset_extractor.py': Delegate fileset construction in FilesetExtractor
+        - update FilesetExtractor to delegate individual fileset parsing to FilesetWorker
+        - remove duplicate internal FileSet instantiation logic
+    [ ] 'content/asset_ingestion/workers/resolver_worker.py': Delegate fileset construction in ResolverWorker
+        - update ResolverWorker to delegate inline fileset and fileset reference resolution to FilesetWorker
+        - remove internal _build_fileset method
 
 IV. Recently implemented:
 
