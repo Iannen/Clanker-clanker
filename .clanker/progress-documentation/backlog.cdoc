@@ -18,7 +18,7 @@ I. Ideas, complaints and non-critical bugs:
 
 3. revise new dir structure, so we dont have simple 'code.py' files, they should ref their system
 
-4. Non IDE / linter import strats:
+4. Non IDE / linter import strats: BUFF importance of this, as LLMs typically run lower than 3.14 version of python, and cannot compensate.
     - goal, make it so that 
         - all types used in a file are always imported (explicitly or via kleene)
             - this goes for typehints too
