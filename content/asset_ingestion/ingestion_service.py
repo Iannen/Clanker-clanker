@@ -7,6 +7,7 @@ from asset_ingestion.extractors.fileset import FilesetExtractor
 from asset_ingestion.assemblers.rtc import RtcAssembler
 from asset_ingestion.parsers.render import RenderParser
 from asset_ingestion.extractors.base_resolver import BaseResolversExtractor
+from asset_ingestion.extractors.ui_render import UIRenderExtractor
 
 class IngestionServiceImpl(IngestionService):
     def __init__(
@@ -42,14 +43,7 @@ class IngestionServiceImpl(IngestionService):
             collector.add_complaint("Missing required base resolver configuration")
             base_resolvers = []
 
-        with collector.path("ui_render"):
-            ui_render_dict = ValueExtractor().req_dict(sys_cfg, ["ui_render"])
-            ui_render = RenderParser(ui_render_dict, collector, unified_fsm).extract()
-            kb_resolvers = [r for r in ui_render.resolvers if isinstance(r, KBStateResolver)]
-            if len(kb_resolvers) != 1:
-                collector.add_complaint(
-                    f"ui_render must carry exactly one KBStateResolver ('kb_info'), found {len(kb_resolvers)}"
-                )
+        ui_render = UIRenderExtractor().extract(sys_cfg, collector, unified_fsm)
 
         shared_doms = DomainsExtractor(shared_cfg, collector, unified_fsm).extract()
         pud_doms = DomainsExtractor(pud_cfg, collector, unified_fsm).extract()

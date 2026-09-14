@@ -126,8 +126,12 @@ III. Slated for implementation:
     [x] ingestion_service.get_runtime_config    
         - 'unified_fsm' is now acquired with 1 call to ephemeral extractor
 
-    [ ] 'ui_render.py'
+    [x] 'ui_render.py'
         add UIRenderExtractor, to absorb doings of service and return 'ui_render' following pattern
+        - accepts sys_cfg, collector, unified_fsm in the 'extract' method
+            - no init method required
+
+    [ ] now BaseResolverExtractor & service callsite, same pattern as above
       
     The full target sequence, provided for visibility purposes (not target for impl):
         - Service acquires cfg dicts via fileport 'files'

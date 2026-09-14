@@ -7,7 +7,8 @@ filesets:
     content/app/models.py, 
     content/asset_ingestion/ingestion_service.py,
     content/asset_ingestion/extractors/fileset.py,
-    content/asset_ingestion/extractors/ui_render.py]}
+    content/asset_ingestion/extractors/ui_render.py,
+    content/asset_ingestion/extractors/base_resolver.py]}
   cfg_validation: {includes: [
     content/app/models.py,  
     .clanker/shared-assets/config-fragments, 
