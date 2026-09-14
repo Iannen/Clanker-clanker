@@ -125,6 +125,19 @@ II. Items to refine & QC:
             - pud_fileset, same as repo resolver
             - shared_fileset, from shared filelist
 
+5. Add asset exists check to ingestion pipeline
+    [ ] 'content/asset_ingestion/validators/asset_validator.py': Create asset existence validator 'AssetValidator'
+        - ephemeral class with no __init__ method
+        - implement 'validate' accepting pud_pathlist, shared_pathlist, rtc, and collector
+        - traverse rtc resolvers to verify asset existence:
+            - for MultiDocResolver: verify files by name exist in pud_pathlist or shared_pathlist, else complain
+            - for RepoContentResolver: verify fileset paths exist in pud_pathlist, else complain
+            - for ManifestResolver: verify pud_fileset in pud_pathlist and shared_fileset in shared_pathlist, else complain
+    [ ] 'content/asset_ingestion/ingestion_service.py': Integrate asset validation in runtime config pipeline
+        - use file adapter get_files to retrieve pud_filelist and shared_filelist
+        - invoke AssetValidator with rtc, filelists, and collector before returning
+        - return collector and runtime config
+
 III. Slated for implementation:
 IV. Recently implemented:
 V. Critical bugs
