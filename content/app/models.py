@@ -193,6 +193,7 @@ class Config:
 class BasePathTokens:
     PUD = "<PUD>"
     SHARED = "<SHARED>"
+    CONTENT = "content"
 
 class IOControl:
     ACCEPTED = "accepted"

@@ -8,6 +8,7 @@ from asset_ingestion.assemblers.rtc import RtcAssembler
 from asset_ingestion.parsers.render import RenderParser
 from asset_ingestion.extractors.base_resolver import BaseResolversExtractor
 from asset_ingestion.extractors.ui_render import UIRenderExtractor
+from asset_ingestion.validators.assets import AssetValidator
 
 class IngestionServiceImpl(IngestionService):
     def __init__(
@@ -45,11 +46,23 @@ class IngestionServiceImpl(IngestionService):
             collector=collector,
         )
 
-        return collector, RuntimeConfig(
+        rtc = RuntimeConfig(
             keyboard=keyboard,
             ui_render=ui_render,
             base_resolvers=base_resolvers,
         )
+
+        pud_filelist = self.files.get_files(BasePathTokens.PUD, ["."], missing_ok=True)
+        shared_filelist = self.files.get_files(BasePathTokens.SHARED, ["."], missing_ok=True)
+
+        AssetValidator().validate(
+            pud_pathlist=pud_filelist,
+            shared_pathlist=shared_filelist,
+            rtc=rtc,
+            collector=collector,
+        )
+
+        return collector, rtc
 
     def initialize_workspace(self) -> None:
         if self.files.is_cwd_script_dir():

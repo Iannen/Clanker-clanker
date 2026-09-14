@@ -106,6 +106,12 @@ class AppEngine:
                 f"{dof_report}\nDo you wish to proceed with overflowed domains trimmed?",
                 required_phrase="yes"
             )
+        complaints = report.get_complaints()
+        if complaints:
+            self.io.get_confirmation(
+                f"{"\n".join(complaints)}\nProceed anyway?",
+                required_phrase="yes"
+            )
         self.runtime_config = rtc
         self.kb = self.runtime_config.keyboard
         self._wire_num_row()

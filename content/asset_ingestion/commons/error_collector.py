@@ -29,6 +29,9 @@ class ErrorCollector(Report):
             self._complaints.append(f"[{active_path}] {message}")
         else:
             self._complaints.append(message)
+    
+    def get_complaints(self) -> list[str]:
+        return self._complaints
 
     def record_domain_overflow(self, overflow: Any) -> None:
         self._domain_overflows.append(overflow)

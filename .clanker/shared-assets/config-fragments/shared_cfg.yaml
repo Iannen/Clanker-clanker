@@ -12,7 +12,7 @@ filesets:
 domains:
   - name: manifest-analysis
     resolvers:
-      - { id: prompt_fragments, type: multi-document-retrieval, files: [config.yaml, kb_def.yaml, shared_domains.yaml] }
+      - { id: prompt_fragments, type: multi-document-retrieval, files: [config.yaml, system_cfg.yaml, shared_cfg.yaml] }
     prompts:
       - name: only m
         render:
@@ -56,7 +56,7 @@ domains:
       - name: config-dev
         render:
           resolvers:
-            - { id: prompt_fragments, type: multi-document-retrieval, files: [config-development-instructions.md] }
+            - { id: prompt_fragments, type: multi-document-retrieval, files: [] }
             - { id: repo_content, type: repo_content, fileset: core }
 
   - name: debloat
