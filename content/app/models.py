@@ -195,26 +195,6 @@ class BasePathTokens:
     SHARED = "<SHARED>"
     CONTENT = "content"
 
-class IOControl:
-    ACCEPTED = "accepted"
-    DECLINED = "declined"
-    INVALID = "invalid"
-    ABORT_KEYS = ("\x1b", "\x03")
-    ACCEPT_KEY = "\x04"
-    BACKSPACE_KEYS = ("\x7f", "\x08")
-
-class CfgFragments:
-    PUD_CFG = "/.clanker/config.yaml"
-    SYSTEM_CFG = "/.clanker/shared-assets/config-fragments/system_cfg.yaml" 
-    SHARED_CFG = "/.clanker/shared-assets/config-fragments/shared_cfg.yaml" 
-    TEMPLATE_CFG = "/.clanker/templates/config.template"
-    
-class DocPaths:
-    SHARED_TEMPLATES = "/.clanker/templates/documentation"
-    PUD_DOCS = "/.clanker/progress-documentation"
-    TEMPL_EXT = ".template"
-    DOC_EXT = ".cdoc"
-
 class Layout:
     UI = "/.clanker/shared-assets/layouts/ui.layout"
     PROMPT = "/.clanker/shared-assets/layouts/prompt.layout"

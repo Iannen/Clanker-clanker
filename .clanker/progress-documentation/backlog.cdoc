@@ -96,6 +96,15 @@ II. Items to refine & QC:
         - wrap low-level 'FileBridge' operations to catch stdlib exceptions ('FileNotFoundError', 'PermissionError', etc.) and re-raise as domain exceptions
         - remove translated exceptions from 'ExceptionPolicy.ADOPTED_NOTICES'
     [ ] Extract static path specifiers and constants from 'models.py'
+        [x] Moved IOControl to tui/tui_service.py, updated imports
+        [x] Moved CfgFragments to 'content/asset_ingestion/assemblers/rtc.py'
+            - weird fucking place, doubt that will remain its home
+            - its used only by ingestion service, and its helper rtc.py
+            - weird to put it with the helper
+        [x] Moved  DocPaths into 'content/asset_ingestion/ingestion_service.py'
+            - its only usage
+            - seems weird, but must less so that 'CfgFragments' placement
+            
         - move static classes ('SystemKeys', 'Config', 'BasePathTokens', 'DocPaths', 'Layout', etc.) into a dedicated 'app/model/constants.py' file
 
 III. Slated for implementation:

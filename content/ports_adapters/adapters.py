@@ -10,6 +10,7 @@ from ruamel.yaml import YAML
 from ports_adapters.ports import IOBridgePort, FileBridgePort, ConfigIngestorPort
 from app.models import *
 
+from tui.tui_service import IOControl
 class IOBridge(IOBridgePort):
     def to_clipboard(self, text_content: str) -> int:
         payload = base64.b64encode(text_content.encode("utf-8")).decode("utf-8")

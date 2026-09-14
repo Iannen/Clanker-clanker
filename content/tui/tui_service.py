@@ -1,5 +1,14 @@
-from app.models import *
 from app.deps.tui import TUIService
+from ports_adapters.ports import IOBridgePort
+from app.models import ProgramExit, UserDecline
+
+class IOControl:
+    ACCEPTED = "accepted"
+    DECLINED = "declined"
+    INVALID = "invalid"
+    ABORT_KEYS = ("\x1b", "\x03")
+    ACCEPT_KEY = "\x04"
+    BACKSPACE_KEYS = ("\x7f", "\x08")
 
 class TUIServiceImpl(TUIService):
     def __init__(self, io_bridge: IOBridgePort) -> None:

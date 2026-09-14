@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from typing import Any
 from app.models import (
     Button,
-    CfgFragments,
     Domain,
     Keyboard,
     Render,
@@ -30,6 +29,12 @@ class DomainOverflow: # create general complain based on 'enum' ?
             f"Excess domains: [{overflowing}]"
         )
 
+class CfgFragments:
+    PUD_CFG = "/.clanker/config.yaml"
+    SYSTEM_CFG = "/.clanker/shared-assets/config-fragments/system_cfg.yaml" 
+    SHARED_CFG = "/.clanker/shared-assets/config-fragments/shared_cfg.yaml" 
+    TEMPLATE_CFG = "/.clanker/templates/config.template"
+    
 class RtcAssembler:
     def assemble(
         self,
