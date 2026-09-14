@@ -14,7 +14,7 @@ from app.models import (
 from asset_ingestion.commons.error_collector import ErrorCollector
 from asset_ingestion.commons.fileset_map import FilesetMap
 from asset_ingestion.commons.value_extractor import ValueExtractor
-from asset_ingestion.workers.fileset_worker import FilesetWorker
+from asset_ingestion.parsers.fileset_worker import FilesetWorker
 
 
 class ResolverWorker:

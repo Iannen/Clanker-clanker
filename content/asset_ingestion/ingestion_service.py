@@ -2,11 +2,11 @@ from app.deps.ingestion import IngestionService
 from app.models import BasePathTokens, CfgFragments, DocPaths, NoConfig, ConfigAssembly, CorruptClanker, Config, RuntimeConfig, KBStateResolver
 from asset_ingestion.commons.value_extractor import ValueExtractor
 from asset_ingestion.commons.error_collector import ErrorCollector
-from asset_ingestion.workers.domain_extractor import DomainExtractor
-from asset_ingestion.workers.fileset_extractor import FilesetExtractor
-from asset_ingestion.workers.rtc_assembler import RtcAssembler
-from asset_ingestion.workers.ui_render_extractor import RenderWorker
-from asset_ingestion.workers.base_resolver_extractor import BaseResolverExtractor
+from asset_ingestion.parsers.domain_extractor import DomainExtractor
+from asset_ingestion.parsers.fileset_extractor import FilesetExtractor
+from asset_ingestion.parsers.rtc_assembler import RtcAssembler
+from asset_ingestion.parsers.ui_render_extractor import RenderWorker
+from asset_ingestion.parsers.base_resolver_extractor import BaseResolverExtractor
 
 class IngestionServiceImpl(IngestionService):
     def __init__(

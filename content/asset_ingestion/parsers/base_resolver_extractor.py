@@ -2,7 +2,7 @@ from typing import Any
 from app.models import MultiDocResolver
 from asset_ingestion.commons.error_collector import ErrorCollector
 from asset_ingestion.commons.value_extractor import ValueExtractor
-from asset_ingestion.workers.resolver_worker import ResolverWorker
+from asset_ingestion.parsers.resolver_worker import ResolverWorker
 
 
 class BaseResolverExtractor:
