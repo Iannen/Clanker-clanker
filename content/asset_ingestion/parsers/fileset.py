@@ -5,7 +5,7 @@ from asset_ingestion.commons.fileset_map import FilesetMap
 from asset_ingestion.commons.value_extractor import ValueExtractor
 
 
-class FilesetWorker:
+class FilesetParser:
     def __init__(
         self,
         fileset_cfg: Any,

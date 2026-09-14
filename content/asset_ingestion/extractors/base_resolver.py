@@ -2,7 +2,7 @@ from typing import Any
 from app.models import MultiDocResolver
 from asset_ingestion.commons.error_collector import ErrorCollector
 from asset_ingestion.commons.value_extractor import ValueExtractor
-from asset_ingestion.parsers.resolver_worker import ResolverWorker
+from asset_ingestion.parsers.resolver import ResolverParser
 
 
 class BaseResolverExtractor:
@@ -32,7 +32,7 @@ class BaseResolverExtractor:
                     )
                     continue
 
-                resolver_obj = ResolverWorker(r, self.collector).parse()
+                resolver_obj = ResolverParser(r, self.collector).parse()
                 if isinstance(resolver_obj, MultiDocResolver):
                     extracted.append(resolver_obj)
 

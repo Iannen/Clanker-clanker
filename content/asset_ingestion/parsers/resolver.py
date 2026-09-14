@@ -14,10 +14,10 @@ from app.models import (
 from asset_ingestion.commons.error_collector import ErrorCollector
 from asset_ingestion.commons.fileset_map import FilesetMap
 from asset_ingestion.commons.value_extractor import ValueExtractor
-from asset_ingestion.parsers.fileset_worker import FilesetWorker
+from asset_ingestion.parsers.fileset import FilesetParser
 
 
-class ResolverWorker:
+class ResolverParser:
     def __init__(
         self,
         resolver_cfg: dict[str, Any],
@@ -47,7 +47,7 @@ class ResolverWorker:
                     "excludes": self.extractor.req_list(self.resolver_cfg, ["excludes"], default=[]),
                 }
 
-            fileset_obj = FilesetWorker(fileset_val, self.collector, self.fileset_map).parse()
+            fileset_obj = FilesetParser(fileset_val, self.collector, self.fileset_map).parse()
             return RepoContentResolver(anchor=anchor, fileset=fileset_obj)
 
         if res_type == "repo-manifest":
@@ -59,8 +59,8 @@ class ResolverWorker:
             pud_val = self.extractor.req_str_or_dict(self.resolver_cfg, ["pud_fileset"], default={})
             shared_val = self.extractor.req_str_or_dict(self.resolver_cfg, ["shared_fileset"], default={})
 
-            pud_fileset_obj = FilesetWorker(pud_val, self.collector, self.fileset_map).parse() if pud_val else FileSet(includes=[], excludes=[])
-            shared_fileset_obj = FilesetWorker(shared_val, self.collector, self.fileset_map).parse() if shared_val else None
+            pud_fileset_obj = FilesetParser(pud_val, self.collector, self.fileset_map).parse() if pud_val else FileSet(includes=[], excludes=[])
+            shared_fileset_obj = FilesetParser(shared_val, self.collector, self.fileset_map).parse() if shared_val else None
 
             return ManifestResolver(
                 anchor=anchor,

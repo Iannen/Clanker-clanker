@@ -2,11 +2,11 @@ from app.deps.ingestion import IngestionService
 from app.models import BasePathTokens, CfgFragments, DocPaths, NoConfig, ConfigAssembly, CorruptClanker, Config, RuntimeConfig, KBStateResolver
 from asset_ingestion.commons.value_extractor import ValueExtractor
 from asset_ingestion.commons.error_collector import ErrorCollector
-from asset_ingestion.parsers.domain_extractor import DomainExtractor
-from asset_ingestion.parsers.fileset_extractor import FilesetExtractor
-from asset_ingestion.parsers.rtc_assembler import RtcAssembler
-from asset_ingestion.parsers.ui_render_extractor import RenderWorker
-from asset_ingestion.parsers.base_resolver_extractor import BaseResolverExtractor
+from asset_ingestion.extractors.domains import DomainsExtractor
+from asset_ingestion.extractors.fileset import FilesetExtractor
+from asset_ingestion.assemblers.rtc import RtcAssembler
+from asset_ingestion.parsers.render import RenderParser
+from asset_ingestion.extractors.base_resolver import BaseResolverExtractor
 
 class IngestionServiceImpl(IngestionService):
     def __init__(
@@ -46,15 +46,15 @@ class IngestionServiceImpl(IngestionService):
 
         with collector.path("ui_render"):
             ui_render_dict = ValueExtractor().req_dict(sys_cfg, ["ui_render"])
-            ui_render = RenderWorker(ui_render_dict, collector, unified_fsm).extract()
+            ui_render = RenderParser(ui_render_dict, collector, unified_fsm).extract()
             kb_resolvers = [r for r in ui_render.resolvers if isinstance(r, KBStateResolver)]
             if len(kb_resolvers) != 1:
                 collector.add_complaint(
                     f"ui_render must carry exactly one KBStateResolver ('kb_info'), found {len(kb_resolvers)}"
                 )
 
-        shared_doms = DomainExtractor(shared_cfg, collector, unified_fsm).extract()
-        pud_doms = DomainExtractor(pud_cfg, collector, unified_fsm).extract()
+        shared_doms = DomainsExtractor(shared_cfg, collector, unified_fsm).extract()
+        pud_doms = DomainsExtractor(pud_cfg, collector, unified_fsm).extract()
 
         assembler = RtcAssembler(
             sys_cfg=sys_cfg,
