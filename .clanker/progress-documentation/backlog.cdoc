@@ -7,8 +7,6 @@ I. Ideas, complaints and non-critical bugs:
     - ez fix is to adjust template.
     - rabbithole solution is to have app write template to rowspec
 
-II. Items to refine & QC:
-
 1. UI / Feedback imp [DX/UX]: 
     - make prompt compilation msg say which domain, prompt was used in addition to just line/char
     - turns into a pipeline refactor. oh well
@@ -47,6 +45,8 @@ II. Items to refine & QC:
         - perhaps also a 'unruly repo' scenario, where the repo already contains things contract mandates
             - > than complain to user, do no harm
         - so clankerization must be safe. Perhaps the confirm msg can first check and see that it is so? else complain to user 
+
+II. Items to refine & QC:
 
 6. App failure modes razzia, not related to ingestion or later file not found business in Renderservice:
     - buttons not 'in scope' should produce a msg saying so (i get nonetype crash cuz no msg)
@@ -88,14 +88,23 @@ II. Items to refine & QC:
 9. Make use of latest architectural work in ingestion module
     - simplify EC and 'Report' for now, lets just have str msgs for ez
 
-10. Make use of stdlib Path in core
-    - this is not a dirty violation after all, but a boon to core 
-    - then sort the various statics in model.py into a adjacent 'statics.py' file (or constants, the best word pls)
-    - so make file port and adapter speak the language of Path whereever it makes sense
-    - while we're working the adapter
-        - we can probably look towards implementing ex translation into domain ex in adapter
-        - then we remove such ex that we translate from the ExceptionPolicy.ADOPTED_NOTICES collection. 
+10. Confine Path to adapter layer and implement exception translation
+    [ ] Restrict 'pathlib.Path' strictly to internal 'FileBridge' implementations
+        - ensure core, models, and port interfaces use 'str' for all path representations
+        - use 'Path' internally within 'FileBridge' for safe disk I/O and 'Path.parts' token resolution
+    [ ] Translate adapter filesystem exceptions into domain exceptions
+        - wrap low-level 'FileBridge' operations to catch stdlib exceptions ('FileNotFoundError', 'PermissionError', etc.) and re-raise as domain exceptions
+        - remove translated exceptions from 'ExceptionPolicy.ADOPTED_NOTICES'
+    [ ] Extract static path specifiers and constants from 'models.py'
+        - move static classes ('SystemKeys', 'Config', 'BasePathTokens', 'DocPaths', 'Layout', etc.) into a dedicated 'app/model/constants.py' file
 
 III. Slated for implementation:
 IV. Recently implemented:
+
+6. Fix AttributeError crash on out-of-scope keypress
+    [x] 'app/engine.py': Guard 'self.msg' updates during key handling
+        - update loop in 'run' to store 'handle_key' result in local variable
+        - only reassign 'self.msg' if the result is not None
+
 V. Critical bugs
+ 

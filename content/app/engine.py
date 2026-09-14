@@ -92,7 +92,9 @@ class AppEngine:
         try:
             while True:
                 cmd_key = self._display_ui()
-                self.msg = self.kb.handle_key(cmd_key)
+                res = self.kb.handle_key(cmd_key)
+                if res is not None:
+                    self.msg = res
         except ProgramExit:
             return ProgramExit.MSG_DEFAULT
         except Exception as other_ex:
