@@ -32,6 +32,20 @@ I. Ideas, complaints and non-critical bugs:
 
 II. Items to refine & QC:
 
+0. update github action to tailtruncate the history doc
+    - to reduce token pressure & confusion for bragpack dropoffs
+    - what is good size? its at 45k chars presently
+        - perhaps 10-15k characters worth
+        - so, *truncated above*
+        - then 10k characters worth of lines
+
+1. Non IDE / linter import strats:
+    - goal, make it so that 
+        - all types used in a file are always imported (explicitly or via kleene)
+            - this goes for typehints too
+        - the inverse. no dangling imports allowed
+            - but what abt kleende imports?
+
 2. Simple 'end to end' test system, for improved dev confidence when iterating
    Modeled on my manual 'test flow':
     - For a clankerized repo

@@ -10,7 +10,6 @@ from app.models import (
 )
 from asset_ingestion.commons.error_collector import ErrorCollector
 from asset_ingestion.commons.fileset_map import FilesetMap
-from asset_ingestion.commons.kb_spec import KbSpec
 from asset_ingestion.commons.value_extractor import ValueExtractor
 from asset_ingestion.extractors.domains import DomainsExtractor
 

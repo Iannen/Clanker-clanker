@@ -1,4 +1,4 @@
-class FilesetMap:
+class FilesetMap: #generalize?
     def __init__(self, data: dict[str, FileSet], collector: ErrorCollector) -> None:
         self._data = data
         self._collector = collector
