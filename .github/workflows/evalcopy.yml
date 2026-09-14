@@ -20,6 +20,28 @@ jobs:
           # Copy folders explicitly using tar to preserve hidden contents
           tar cf - .clanker content | (cd clanker-evalcopy && tar xf -)
 
+      - name: Build eval copy
+        run: |
+          set -euo pipefail
+
+          mkdir clanker-evalcopy
+
+          # Copy folders explicitly using tar to preserve hidden contents
+          tar cf - .clanker content | (cd clanker-evalcopy && tar xf -)
+
+          # --- tail-truncate history doc to reduce token pressure ---
+          HISTORY="clanker-evalcopy/.clanker/progress-documentation/project-history.cdoc"
+          KEEP_CHARS=12000
+
+          if [[ -f "$HISTORY" ]]; then
+            # Keep only the last KEEP_CHARS characters (most recent content)
+            tail -c "$KEEP_CHARS" "$HISTORY" > "${HISTORY}.tmp"
+            mv "${HISTORY}.tmp" "$HISTORY"
+            echo "Truncated $HISTORY to last ${KEEP_CHARS} characters"
+          else
+            echo "No history doc found at $HISTORY – skipping truncation"
+          fi
+
       - name: Upload eval copy
         uses: actions/upload-artifact@v5
         with:
