@@ -6,7 +6,7 @@ from asset_ingestion.extractors.domains import DomainsExtractor
 from asset_ingestion.extractors.fileset import FilesetExtractor
 from asset_ingestion.assemblers.rtc import RtcAssembler
 from asset_ingestion.parsers.render import RenderParser
-from asset_ingestion.extractors.base_resolver import BaseResolverExtractor
+from asset_ingestion.extractors.base_resolver import BaseResolversExtractor
 
 class IngestionServiceImpl(IngestionService):
     def __init__(
@@ -33,8 +33,8 @@ class IngestionServiceImpl(IngestionService):
         pud_fsm = FilesetExtractor(pud_cfg, collector).extract()
         unified_fsm = shared_fsm.merge(pud_fsm)
 
-        shared_base_res = BaseResolverExtractor(shared_cfg, collector).extract()
-        pud_base_res = BaseResolverExtractor(pud_cfg, collector).extract()
+        shared_base_res = BaseResolversExtractor(shared_cfg, collector).extract()
+        pud_base_res = BaseResolversExtractor(pud_cfg, collector).extract()
 
         if pud_base_res is not None:
             base_resolvers = [pud_base_res]

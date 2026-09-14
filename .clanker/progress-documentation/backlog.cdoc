@@ -107,12 +107,38 @@ I. Ideas, complaints and non-critical bugs:
         - replace manual push_path / try / finally / pop_path blocks with ErrorCollector.path context manager
     [x] 'content/asset_ingestion/workers/base_resolver_extractor.py': Refactor path stack pushes
         - replace manual push_path / try / finally / pop_path blocks with ErrorCollector.path context manager
-
+    Phase 5: clean up directories, filenames & classnames to new taxonomy
+    [x] directories aligned, files renamed etc
+        - extractors and assemblers are called by service to produce a sequential pipeline
+            - and to add complaints as required
+        - parsers are called by extractors to deal with dict -> entity conversion & complaint collection related to it
+           
 II. Items to refine & QC:
 
-lets look for ways to organize the ingestion. what is your perspective? note that 'rtc_assembler.py' is not provided for context size reasons
-
 III. Slated for implementation:
+
+1. 'FilesetExtractor' becomes responsible for returning unified fileset to service in one call
+    [ ] 'FilesetExtractor' -> 
+        - accepts pud_cfg, shared_cfg
+        - uses parser to filesets
+        - unifies such that pud filesets take presedence over shared ones, where naming collisions exist
+    [ ] ingestion_service.get_runtime_config    
+        - 'unified_fsm' is now acquired with 1 call to ephemeral extractor
+      
+    The full target sequence, provided for visibility purposes (not target for impl):
+        - Service acquires cfg dicts via fileport 'files'
+        - Service uses extractors in correct order
+            1. unified_fsm for the benefit of later extractors
+                - via FilesetExtractor
+            2. ui_render for the benefit of RuntimeConfig constructor
+                - via UIRenderExtractor
+            3. base_resolvers for the benefit of RuntimeConfig constructor
+                - via BaseResolverExtractor
+            4. (pud_doms, shared_doms) for the benefit of RtcAssembler
+                - via DomainsExtractor
+        6. keyboard for the benefit of RuntimeConfig constructor
+            - via RtcAssembler
+        7.  then finally construct RuntimeConfig and return collector, RuntimeConfig
 
 IV. Recently implemented:
 

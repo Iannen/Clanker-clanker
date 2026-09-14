@@ -5,7 +5,7 @@ from asset_ingestion.commons.value_extractor import ValueExtractor
 from asset_ingestion.parsers.resolver import ResolverParser
 
 
-class BaseResolverExtractor:
+class BaseResolversExtractor:
     def __init__(self, cfg_dict: dict[str, Any], collector: ErrorCollector) -> None:
         self.cfg_dict = cfg_dict
         self.collector = collector

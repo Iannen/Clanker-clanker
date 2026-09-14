@@ -5,10 +5,10 @@ filesets:
     content/clanker.py]}
   ingestion_service: {includes: [
     content/app/models.py, 
-    content/asset_ingestion],
-    excludes: [
-      content/asset_ingestion/workers/rtc_assembler.py,
-    ]}
+    content/asset_ingestion/ingestion_service.py,
+    content/asset_ingestion/commons/fileset_map.py,
+    content/asset_ingestion/parsers/fileset.py,
+    content/asset_ingestion/extractors/fileset.py]}
   cfg_validation: {includes: [
     content/app/models.py,  
     .clanker/shared-assets/config-fragments, 
