@@ -29,9 +29,7 @@ class IngestionServiceImpl(IngestionService):
         except FileNotFoundError as ex:
             raise ConfigAssembly(f"Missing configuration fragment: {ex}") from ex
 
-        shared_fsm = FilesetExtractor(shared_cfg, collector).extract()
-        pud_fsm = FilesetExtractor(pud_cfg, collector).extract()
-        unified_fsm = shared_fsm.merge(pud_fsm)
+        unified_fsm = FilesetExtractor().extract(pud_cfg, shared_cfg, collector)
 
         shared_base_res = BaseResolversExtractor(shared_cfg, collector).extract()
         pud_base_res = BaseResolversExtractor(pud_cfg, collector).extract()

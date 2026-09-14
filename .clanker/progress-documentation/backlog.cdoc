@@ -118,12 +118,16 @@ II. Items to refine & QC:
 III. Slated for implementation:
 
 1. 'FilesetExtractor' becomes responsible for returning unified fileset to service in one call
-    [ ] 'FilesetExtractor' -> 
-        - accepts pud_cfg, shared_cfg
+    [x] 'FilesetExtractor' -> 
+        - accepts pud_cfg, shared_cfg in the 'extract' method
+            - remove init method, no need for that any longer.
         - uses parser to filesets
         - unifies such that pud filesets take presedence over shared ones, where naming collisions exist
-    [ ] ingestion_service.get_runtime_config    
+    [x] ingestion_service.get_runtime_config    
         - 'unified_fsm' is now acquired with 1 call to ephemeral extractor
+
+    [ ] 'ui_render.py'
+        add UIRenderExtractor, to absorb doings of service and return 'ui_render' following pattern
       
     The full target sequence, provided for visibility purposes (not target for impl):
         - Service acquires cfg dicts via fileport 'files'
