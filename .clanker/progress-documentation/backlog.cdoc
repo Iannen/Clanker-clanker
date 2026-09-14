@@ -96,21 +96,24 @@ I. Ideas, complaints and non-critical bugs:
     [x] 'content/asset_ingestion/workers/resolver_worker.py': Delegate fileset construction in ResolverWorker
         - update ResolverWorker to delegate inline fileset and fileset reference resolution to FilesetWorker
         - remove internal _build_fileset method
-
+        
+    Phase 4.. Add path context manager to ErrorCollector to simplify path stack management
+    [x] 'content/asset_ingestion/commons/error_collector.py': Add path context manager
+        - implement a path context manager (e.g., path(segment)) using contextlib.contextmanager
+        - encapsulate push_path and pop_path in a try/finally block within the manager
+    [x] 'content/asset_ingestion/ingestion_service.py': Refactor path stack pushes
+        - replace manual push_path / try / finally / pop_path blocks with ErrorCollector.path context manager
+    [x] 'content/asset_ingestion/workers/domain_extractor.py': Refactor path stack pushes
+        - replace manual push_path / try / finally / pop_path blocks with ErrorCollector.path context manager
+    [x] 'content/asset_ingestion/workers/base_resolver_extractor.py': Refactor path stack pushes
+        - replace manual push_path / try / finally / pop_path blocks with ErrorCollector.path context manager
 
 II. Items to refine & QC:
 
+lets look for ways to organize the ingestion. what is your perspective? note that 'rtc_assembler.py' is not provided for context size reasons
+
 III. Slated for implementation:
-7. Add path context manager to ErrorCollector to simplify path stack management
-    [ ] 'content/asset_ingestion/commons/error_collector.py': Add path context manager
-        - implement a path context manager (e.g., path(segment)) using contextlib.contextmanager
-        - encapsulate push_path and pop_path in a try/finally block within the manager
-    [ ] 'content/asset_ingestion/ingestion_service.py': Refactor path stack pushes
-        - replace manual push_path / try / finally / pop_path blocks with ErrorCollector.path context manager
-    [ ] 'content/asset_ingestion/workers/domain_extractor.py': Refactor path stack pushes
-        - replace manual push_path / try / finally / pop_path blocks with ErrorCollector.path context manager
-    [ ] 'content/asset_ingestion/workers/base_resolver_extractor.py': Refactor path stack pushes
-        - replace manual push_path / try / finally / pop_path blocks with ErrorCollector.path context manager
+
 IV. Recently implemented:
 
 V. Critical bugs

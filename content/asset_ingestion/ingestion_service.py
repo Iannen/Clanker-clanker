@@ -44,8 +44,7 @@ class IngestionServiceImpl(IngestionService):
             collector.add_complaint("Missing required base resolver configuration")
             base_resolvers = []
 
-        collector.push_path("ui_render")
-        try:
+        with collector.path("ui_render"):
             ui_render_dict = ValueExtractor().req_dict(sys_cfg, ["ui_render"])
             ui_render = RenderWorker(ui_render_dict, collector, unified_fsm).extract()
             kb_resolvers = [r for r in ui_render.resolvers if isinstance(r, KBStateResolver)]
@@ -53,8 +52,6 @@ class IngestionServiceImpl(IngestionService):
                 collector.add_complaint(
                     f"ui_render must carry exactly one KBStateResolver ('kb_info'), found {len(kb_resolvers)}"
                 )
-        finally:
-            collector.pop_path()
 
         shared_doms = DomainExtractor(shared_cfg, collector, unified_fsm).extract()
         pud_doms = DomainExtractor(pud_cfg, collector, unified_fsm).extract()

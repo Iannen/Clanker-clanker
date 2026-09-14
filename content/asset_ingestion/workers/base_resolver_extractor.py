@@ -12,8 +12,7 @@ class BaseResolverExtractor:
         self.extractor = ValueExtractor()
 
     def extract(self) -> MultiDocResolver | None:
-        self.collector.push_path("base_resolvers")
-        try:
+        with self.collector.path("base_resolvers"):
             raw_resolvers = self.extractor.req_list(self.cfg_dict, ["base_resolvers"], default=[])
             extracted: list[MultiDocResolver] = []
 
@@ -38,5 +37,3 @@ class BaseResolverExtractor:
                     extracted.append(resolver_obj)
 
             return extracted[0] if extracted else None
-        finally:
-            self.collector.pop_path()

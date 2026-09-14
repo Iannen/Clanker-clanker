@@ -26,27 +26,21 @@ class DomainExtractor:
         domains = []
         for d in raw_domains:
             name = self.extractor.req_str(d, ["name"])
-            self.collector.push_path(name)
-            try:
+            with self.collector.path(name):
                 raw_resolvers = self.extractor.req_list(d, ["resolvers"])
                 raw_prompts = self.extractor.req_list(d, ["prompts"])
 
                 resolvers = [ResolverWorker(r, self.collector, self.fileset_map).parse() for r in raw_resolvers]
                 prompts = self._build_prompts(raw_prompts)
                 domains.append(Domain(name=name, prompts=prompts, resolvers=resolvers))
-            finally:
-                self.collector.pop_path()
         return domains
 
     def _build_prompts(self, dicts: list[dict[str, Any]]) -> list[Prompt]:
         prompts = []
         for d in dicts:
             name = self.extractor.req_str(d, ["name"])
-            self.collector.push_path(name)
-            try:
+            with self.collector.path(name):
                 render_dict = self.extractor.req_dict(d, ["render"], default={})
                 render = RenderWorker(render_dict, self.collector, self.fileset_map).extract()
                 prompts.append(Prompt(name=name, render=render))
-            finally:
-                self.collector.pop_path()
         return prompts
