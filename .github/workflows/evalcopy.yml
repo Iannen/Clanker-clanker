@@ -1,4 +1,4 @@
-name: Build Eval Copy
+name: Bragpack
 
 on:
   workflow_dispatch:
