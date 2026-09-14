@@ -465,3 +465,13 @@ LXXXI: IMPLEMENT SEQUENTIAL CONFIGURATION ASSEMBLY PIPELINE WITH EPHEMERAL WORKE
     Reflection:
     - Ephemeral worker delegation isolated config extraction responsibilities, eliminated monolithic DTO parsing debt, and simplified error collection across pipeline stages.
     - Need to determine an optimal strategy for deduplicating shared worker logic without introducing pipeline nesting or tight coupling.
+
+LXXXII: CONSOLIDATE CONFIGURATION ASSEMBLY AROUND EPHEMERAL WORKERS AND PARSERS
+    Purpose: Complete the restructuring of runtime configuration assembly into a sequential pipeline of focused extractors and assemblers, while separating entity parsing from validation policy and complaint handling.
+    - Consolidate resolver construction behind ResolverWorker and fileset construction behind FilesetWorker, removing duplicated parsing and construction logic from higher-level extractors.
+    - Refactor RenderWorker, DomainExtractor, BaseResolverExtractor, and FilesetExtractor to delegate entity construction to the appropriate lower-level workers/parsers.
+    - Add ErrorCollector.path context management to simplify path-stack handling and ensure complaint context is correctly restored.
+    - Enforce ui_render validation at the extractor boundary, requiring exactly one KBStateResolver ('kb_info').
+    - Align extractors and assemblers with the service so each performs a focused, one-call delivery into the sequential configuration assembly pipeline.
+    - Establish a clearer division whereby parsers perform local configuration validation and complaint production, while extractors and assemblers determine which configuration issues become meaningful complaints at the pipeline level.
+    Reflection: The ingestion architecture now has substantially clearer responsibility boundaries and a more compositional configuration assembly flow, reducing monolithic parsing and cognitive load. The new structure should now be allowed to settle and prove itself through continued use and validation before introducing another major architectural restructuring.

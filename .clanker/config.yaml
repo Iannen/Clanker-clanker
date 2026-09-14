@@ -8,9 +8,6 @@ filesets:
     content/asset_ingestion/ingestion_service.py,
     content/asset_ingestion/extractors,
     content/asset_ingestion/assemblers]}
-  ingestion_service2: {includes: [
-    content/app/models.py, 
-    content/asset_ingestion]}
   cfg_validation: {includes: [
     content/app/models.py,  
     .clanker/shared-assets/config-fragments, 
@@ -51,7 +48,7 @@ domains:
 
 - name: ingestion
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: ingestion_service2 }
+    - { id: repo_content, type: repo_content, fileset: ingestion_service }
   prompts:
     - name: plan
       render:
@@ -67,7 +64,7 @@ domains:
     - name: bl-drain
       render:
         resolvers:
-          - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 8}, history-output-instructions.md]}
+          - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 15}, history-output-instructions.md]}
           - {id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: IV. Recently implemented, up_to: V. Critical bugs}]}
 
 - name: cfg_validation
