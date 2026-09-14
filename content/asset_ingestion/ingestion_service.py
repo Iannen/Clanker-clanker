@@ -1,11 +1,11 @@
-from app.models import BasePathTokens, CfgFragments, DocPaths, NoConfig, ConfigAssembly, CorruptClanker, Config, RuntimeConfig
 from app.deps.ingestion import IngestionService
+from app.models import BasePathTokens, CfgFragments, DocPaths, NoConfig, ConfigAssembly, CorruptClanker, Config, RuntimeConfig, KBStateResolver
+from asset_ingestion.commons.value_extractor import ValueExtractor
 from asset_ingestion.commons.error_collector import ErrorCollector
-
 from asset_ingestion.workers.domain_extractor import DomainExtractor
 from asset_ingestion.workers.fileset_extractor import FilesetExtractor
 from asset_ingestion.workers.rtc_assembler import RtcAssembler
-from asset_ingestion.workers.ui_render_extractor import UIRenderExtractor
+from asset_ingestion.workers.ui_render_extractor import RenderWorker
 from asset_ingestion.workers.base_resolver_extractor import BaseResolverExtractor
 
 class IngestionServiceImpl(IngestionService):
@@ -44,7 +44,17 @@ class IngestionServiceImpl(IngestionService):
             collector.add_complaint("Missing required base resolver configuration")
             base_resolvers = []
 
-        ui_render = UIRenderExtractor(sys_cfg, collector).extract()
+        collector.push_path("ui_render")
+        try:
+            ui_render_dict = ValueExtractor().req_dict(sys_cfg, ["ui_render"])
+            ui_render = RenderWorker(ui_render_dict, collector, unified_fsm).extract()
+            kb_resolvers = [r for r in ui_render.resolvers if isinstance(r, KBStateResolver)]
+            if len(kb_resolvers) != 1:
+                collector.add_complaint(
+                    f"ui_render must carry exactly one KBStateResolver ('kb_info'), found {len(kb_resolvers)}"
+                )
+        finally:
+            collector.pop_path()
 
         shared_doms = DomainExtractor(shared_cfg, collector, unified_fsm).extract()
         pud_doms = DomainExtractor(pud_cfg, collector, unified_fsm).extract()
@@ -64,20 +74,6 @@ class IngestionServiceImpl(IngestionService):
             ui_render=ui_render,
             base_resolvers=base_resolvers,
         )
-
-    def get_runtime_config_old(self) -> tuple[Report, RuntimeConfig]:
-        try:
-            pud_cfg = self._get_validated_cfg_fragment(BasePathTokens.PUD + CfgFragments.PUD_CFG)
-        except FileNotFoundError:
-            raise NoConfig
-
-        try:
-            sys_cfg = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.SYSTEM_CFG)
-            shared_cfg = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.SHARED_CFG)
-        except FileNotFoundError as ex:
-            raise ConfigAssembly(f"Missing configuration fragment: {ex}") from ex
-
-        return self.assembler.assemble(sys_cfg, pud_cfg, shared_cfg)
 
     def initialize_workspace(self) -> None:
         if self.files.is_cwd_script_dir():

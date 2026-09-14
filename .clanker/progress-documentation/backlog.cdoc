@@ -7,8 +7,6 @@ I. Ideas, complaints and non-critical bugs:
     - rabbithole solution is to have app write template to rowspec
 - buttons not 'in scope' should produce a msg saying so (i get nonetype crash cuz no msg)
 
-II. Items to refine & QC:
-
 0. Config & Asset validation
     - yaml configs
         - must parse properly & unambiguously into a combined RTC, in a transparent manner in the system which does it
@@ -32,6 +30,59 @@ II. Items to refine & QC:
 
 3. revise new dir structure, so we dont have simple 'code.py' files, they should ref their system
 
+4. implement recursive worker calls in ingestion, which is a blocker. its the thing to tackle, so i will tackle it
+    - domainworker
+        - promptworker
+            -renderworker (needs refactor to b general)
+                - md resolver
+                    - filelist (make top level compatible)
+                        - file
+                            - truncspec
+                - repo resolver
+                    - fileset
+                - manifest
+                     - fileset
+                - kbstate (rename ui or similar)
+    - then make ctx object. it holds pukebucket and maps for each top level entity which is prereq of other entities.
+    - then pwn errorcollection 
+        - add complainttype for missing configs when attempting to fetch
+        - add complaints for filelist or fileset members that dont exist on disk
+        - add complaints for assets not used
+        - and other complaints too!
+    - then pwn errorconsumption
+        - first goal, just be able to puke them at user
+        - second goal, perhaps autofix
+        - etc
+    - then add stylevalidation (no quotes to make the pretty yaml ugly, it is forbidden)
+    - this is intented to trample the blocker of ingestion into the dust, once and for all
+
+4. Aggregator 
+    Phase 1: Refactor render extraction into a reusable RenderWorker and enforce ui_render validation
+    [x] 'content/asset_ingestion/workers/ui_render_extractor.py': Replace UIRenderExtractor with reusable RenderWorker
+        - delete UIRenderExtractor class
+        - implement RenderWorker accepting a single render config dictionary, ErrorCollector, and FilesetMap
+        - parse full downstream resolver tree (multi-document-retrieval, repo_content, repo-manifest, kb_info/kb_state) alongside associated files, filelists, and filesets
+    [x] 'content/asset_ingestion/workers/domain_extractor.py': Integrate RenderWorker for prompt render parsing
+        - instantiate RenderWorker inline within _build_prompts
+        - remove now-redundant _build_render, _build_fileset, _build_truncation_spec, and _build_file
+    [x] 'content/asset_ingestion/ingestion_service.py': Update service to use RenderWorker and validate ui_render
+        - replace UIRenderExtractor call with RenderWorker on sys_cfg's ui_render block
+        - validate extracted render carries exactly one resolver of type KBStateResolver ('kb_info'), adding a complaint otherwise
+        - assign result to method-scope variable ui_render for RuntimeConfig construction
+
+II. Items to refine & QC:
+
+5. Extract ResolverWorker to unify resolver parsing across RenderWorker and DomainExtractor
+    [ ] 'content/asset_ingestion/workers/resolver_worker.py': Implement ResolverWorker
+        - create ResolverWorker accepting a resolver config dictionary, ErrorCollector, and FilesetMap
+        - encapsulate resolution for all resolver types (multi-document-retrieval, repo_content, repo-manifest, kb_info/kb_state)
+        - move file, filelist, fileset, and TruncationSpec construction into ResolverWorker
+    [ ] 'content/asset_ingestion/workers/ui_render_extractor.py': Delegate resolver parsing in RenderWorker
+        - update RenderWorker to delegate individual resolver parsing to ResolverWorker via oneline instantiation & call
+        - remove internal _build_resolver, _build_fileset, _build_truncation_spec, and _build_file methods
+    [ ] 'content/asset_ingestion/workers/domain_extractor.py': Delegate resolver parsing in DomainExtractor via oneline instantiation & call
+        - update DomainExtractor to use ResolverWorker for top-level domain resolver parsing
+        - remove internal _build_resolver, _build_file, and '_build_fileset' methods
 
 III. Slated for implementation:
 

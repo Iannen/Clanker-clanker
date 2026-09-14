@@ -17,6 +17,7 @@ from app.models import (
 from asset_ingestion.commons.error_collector import ErrorCollector
 from asset_ingestion.commons.fileset_map import FilesetMap
 from asset_ingestion.commons.value_extractor import ValueExtractor
+from asset_ingestion.workers.ui_render_extractor import RenderWorker
 
 class DomainExtractor:
     def __init__(
@@ -29,6 +30,11 @@ class DomainExtractor:
         self.collector = collector
         self.fileset_map = fileset_map
         self.extractor = ValueExtractor()
+
+    def _build_fileset(self, raw_data: Any) -> FileSet:
+        includes = self.extractor.req_list(raw_data, ["includes"])
+        excludes = self.extractor.req_list(raw_data, ["excludes"], default=[])
+        return FileSet(includes=includes, excludes=excludes)
 
     def extract(self) -> list[Domain]:
         raw_domains = self.extractor.req_list(self.doms_cfg_dict, ["domains"])
@@ -54,63 +60,11 @@ class DomainExtractor:
             self.collector.push_path(name)
             try:
                 render_dict = self.extractor.req_dict(d, ["render"], default={})
-                render = self._build_render(render_dict)
+                render = RenderWorker(render_dict, self.collector, self.fileset_map).extract()
                 prompts.append(Prompt(name=name, render=render))
             finally:
                 self.collector.pop_path()
         return prompts
-
-    def _build_render(self, render_dict: dict[str, Any]) -> Render:
-        template = self.extractor.req_str(render_dict, ["template"], Render.template)
-        inherit_base = self.extractor.req_bool(render_dict, ["inherit_base"], Render.inherit_base)
-        inherit_domain = self.extractor.req_bool(render_dict, ["inherit_domain"], Render.inherit_domain)
-        raw_resolvers = self.extractor.req_list(render_dict, ["resolvers"])
-        resolvers = [self._build_resolver(r) for r in raw_resolvers]
-        return Render(
-            template=template,
-            resolvers=resolvers,
-            inherit_base=inherit_base,
-            inherit_domain=inherit_domain,
-        )
-
-    def _build_fileset(self, raw_data: Any) -> FileSet:
-        includes = self.extractor.req_list(raw_data, ["includes"])
-        excludes = self.extractor.req_list(raw_data, ["excludes"], default=[])
-        return FileSet(includes=includes, excludes=excludes)
-
-    def _build_truncation_spec(self, data: dict[str, Any]) -> TruncationSpec | None:
-        has_tail = "tail_lines" in data
-        has_from = "from_line" in data
-        has_upto = "up_to" in data
-
-        if has_tail and (has_from or has_upto):
-            self.collector.add_complaint(
-                "TruncationSpec conflict: tail_lines cannot be combined with from_line or up_to"
-            )
-            return None
-
-        if has_tail:
-            tail_lines = self.extractor.req_int(data, ["tail_lines"], default=None)
-            if tail_lines is None:
-                self.collector.add_complaint("TruncationSpec error: tail_lines must be an integer")
-                return None
-            return TruncationSpec(type=TruncationSpec.TYPE_TAIL, tail_lines=tail_lines)
-
-        if has_from or has_upto:
-            from_line = self.extractor.req_str(data, ["from_line"], default=None) if has_from else None
-            up_to = self.extractor.req_str(data, ["up_to"], default=None) if has_upto else None
-            return TruncationSpec(
-                type=TruncationSpec.TYPE_REGEX_RANGE,
-                from_line=from_line,
-                up_to=up_to,
-            )
-
-        trunc_keys = {"tail_lines", "from_line", "up_to"}
-        if any(k in data for k in trunc_keys):
-            self.collector.add_complaint("TruncationSpec error: invalid truncation specification")
-            return None
-
-        return None
 
     def _build_file(self, data: Any) -> File:
         if isinstance(data, dict):
