@@ -30,33 +30,51 @@ I. Ideas, complaints and non-critical bugs:
 
 3. revise new dir structure, so we dont have simple 'code.py' files, they should ref their system
 
-4. implement recursive worker calls in ingestion, which is a blocker. its the thing to tackle, so i will tackle it
-    - domainworker
-        - promptworker
-            -renderworker (needs refactor to b general)
-                - md resolver
-                    - filelist (make top level compatible)
-                        - file
-                            - truncspec
-                - repo resolver
-                    - fileset
-                - manifest
-                     - fileset
-                - kbstate (rename ui or similar)
-    - then make ctx object. it holds pukebucket and maps for each top level entity which is prereq of other entities.
-    - then pwn errorcollection 
-        - add complainttype for missing configs when attempting to fetch
-        - add complaints for filelist or fileset members that dont exist on disk
-        - add complaints for assets not used
-        - and other complaints too!
-    - then pwn errorconsumption
-        - first goal, just be able to puke them at user
-        - second goal, perhaps autofix
-        - etc
-    - then add stylevalidation (no quotes to make the pretty yaml ugly, it is forbidden)
-    - this is intented to trample the blocker of ingestion into the dust, once and for all
 
 II. Items to refine & QC:
+
+4. Make use of latest architectural work in ingestion module
+    - refine ErrorCollector 
+        - how to handle different complaint scenarios without blowing up codebase with bloat?
+        - the itf of it,  'Report', should be like
+            - get complaintreport A
+            - complaintreport B
+            - etc
+    - then use throughout the ingestion module
+        - missing files is a big one. ugh!
+        - the inverse -> unuse assets. ugh!
+    - and then downstream:
+        - then the engine uses the RenderService (is this the presentation layer of the app?) to format to msg
+        - and then 'TUIServiceImpl' to present the report & get user feedback and such
+    - DX benefits sought (dogfooding benefits):
+        - asset hygiene, user confidence
+        - interpretation rules can become first class, represented by extractor / parser helpers
+            - more visibility of validation rules
+
+5. Revise god file 'models.py' and members
+    [ ] split it up into 
+        - entities
+        - exceptions
+        - statics
+        - presentation
+    [ ] Button.get_repl_map -> migrate to Contentshaper
+    [ ] ActionResult.get_msg -> migrate to Contentshaper
+
+    - 4 laters: Perhaps the so called runtimeconfig can be split up on reception by engine, and passed into the module services that use them?
+        - ui_render -> RenderService on self
+        - Keyboard members -> into a service which deals with state & execution? KeyboardService returns oO?
+            - absorbing some engine functionality too
+        - RuntimeConfig becomes a 'product' returner to engine, unwrapped and distributed to other services?
+            - 'base_resolvers' managed by RenderService on self?
+    - benefits sought:
+        - I dont have to pass the 'whole motherload' to llms, but I can tailor it more
+            - reduce token use
+            - reduce llm confusion
+    - prettiness of organisation?
+    - limits the fallout of kleene imports
+        - which is beneficial for the token savings
+
+
 III. Slated for implementation:
 IV. Recently implemented:
 
