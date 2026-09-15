@@ -96,12 +96,28 @@ class FileBridge(FileBridgePort):
         self, doc_templ_dir: str, pud_doc_dir: str, templ_ext: str, doc_ext: str
     ) -> None:
         try:
-            prog_doc_dir = self.pud_path / pud_doc_dir.lstrip("/")
+            if pud_doc_dir.startswith(PathTokens.PUD):
+                rel_pud_dir = pud_doc_dir[len(PathTokens.PUD):].lstrip("/")
+                prog_doc_dir = self.pud_path / rel_pud_dir
+            elif pud_doc_dir.startswith(PathTokens.SHARED):
+                rel_pud_dir = pud_doc_dir[len(PathTokens.SHARED):].lstrip("/")
+                prog_doc_dir = self.clanker_path / rel_pud_dir
+            else:
+                prog_doc_dir = self.pud_path / pud_doc_dir.lstrip("/")
+
             prompt_frag_dir = self.pud_path / ".clanker" / "prompt-fragments"
             prog_doc_dir.mkdir(parents=True, exist_ok=True)
             prompt_frag_dir.mkdir(parents=True, exist_ok=True)
 
-            doc_templates_dir = self.clanker_path / doc_templ_dir.lstrip("/")
+            if doc_templ_dir.startswith(PathTokens.SHARED):
+                rel_templ_dir = doc_templ_dir[len(PathTokens.SHARED):].lstrip("/")
+                doc_templates_dir = self.clanker_path / rel_templ_dir
+            elif doc_templ_dir.startswith(PathTokens.PUD):
+                rel_templ_dir = doc_templ_dir[len(PathTokens.PUD):].lstrip("/")
+                doc_templates_dir = self.pud_path / rel_templ_dir
+            else:
+                doc_templates_dir = self.clanker_path / doc_templ_dir.lstrip("/")
+
             if not doc_templates_dir.exists():
                 raise CorruptClanker(f"Template directory missing: '{doc_templates_dir}'")
 

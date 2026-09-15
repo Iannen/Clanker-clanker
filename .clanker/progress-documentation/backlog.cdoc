@@ -94,14 +94,16 @@ I. Ideas, complaints and non-critical bugs:
             - but what abt kleene imports?
     - something about python v 3.14 vs older versions?
 
+II. Items to refine & QC:
 9. Reorganize shared assets out of Clanker's .clanker directory
-    [ ] 
     [ ] Move '.clanker/shared-assets' to 'content/shared-assets'
         [x] copied content over
         [ ] deleted from old location
     [ ] Move '.clanker/templates' to to 'content/templates'
         [x] copied content over
         [ ] deleted from old location
+    [ ] Investigate. Can I now simply update the path constants?
+
 '''the list of members
 <shared-manifest>
 .clanker/shared-assets/config-fragments/shared_cfg.yaml : 80 lines
@@ -134,36 +136,8 @@ I. Ideas, complaints and non-critical bugs:
 .clanker/templates/documentation/project-history.template
 </templates>
 '''
-II. Items to refine & QC:
-
-10. Centralize and refactor path constants in constants.py
-    [x] 'content/app/constants.py': Reorganize path structures and naming
-        - rename class Layout to Layouts
-        - rename class BasePathTokens to PathTokens
-        - build complete tokenized path strings directly inside CfgFragments and Layouts using PathTokens
-        - standarize all members as plain strings directly on class
-    [x] Usages
-        CfgFragments
-            - all benefit from pre-concatinated tokens -> do it
-        DocPaths
-            - these cannot see pre-concatination yet, due to adapter entanglement -> do not touch
-        Layout
-            - these all benefit too -> do it
-            - there is a section of code inside RenderServiceImpl._res_ui which must now use members of Layouts instead of in-lining it with str.. -> fix it
-        BasePathTokens: remaining usages will be
-            - constants.py internal
-            - adapter internal
-                - thought that is not a concern at the moment
-    next leg:
-    [ ] DocPaths, concatinate path token onto it same as rest of file
-    [ ] IngestionServiceImpl.initialize_workspace
-        'self.files.write_default_documents' callsite is passthrough, should be ok
-    [ ] FileBridge.write_default_documents
-        - align to expect paths with pathtoken pre-concatenated 
-
 III. Slated for implementation:
 IV. Recently implemented:
-
 V. Critical bugs
 
 manifest resolver:

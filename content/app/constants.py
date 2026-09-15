@@ -11,9 +11,9 @@ class CfgFragments:
     SHARED_CFG = PathTokens.SHARED + "/.clanker/shared-assets/config-fragments/shared_cfg.yaml" 
     TEMPLATE_CFG = PathTokens.SHARED + "/.clanker/templates/config.template"
 
-class DocPaths: # this one needs special attention, cuz adapter hardcodes stuff as str. no concat Pathtokens here yet. this turns into adapterrazzia later
-    SHARED_TEMPLATES = "/.clanker/templates/documentation"
-    PUD_DOCS = "/.clanker/progress-documentation"
+class DocPaths:
+    SHARED_TEMPLATES = PathTokens.SHARED + "/.clanker/templates/documentation"
+    PUD_DOCS = PathTokens.PUD + "/.clanker/progress-documentation"
     TEMPL_EXT = ".template"
     DOC_EXT = ".cdoc"
 

@@ -527,3 +527,13 @@ LXXXVII: PRUNE DANGLING ASSETS
     Actions: Removed unused asset files identified during pipeline validation.
     - Deleted 5 unused assets referenced by configurations.
     Reflection: Demonstrated the practical value and efficacy of the recently updated ingestion and validation pipeline in identifying unreferenced workspace artifacts.
+
+LXXXVIII: CENTRALIZE AND REFACTOR PATH CONSTANTS
+    Purpose: Centralize path string construction and standardize path constant structures across the app to reduce string duplication and improve token handling.
+    - Path definitions were previously fragmented or manually concatenated in multiple downstream consumers, creating risk of path string divergence.
+    Actions:
+    - Renamed constants classes `Layout` to `Layouts` and `BasePathTokens` to `PathTokens` in `constants.py`.
+    - Standardized path members as plain pre-concatenated tokenized strings directly in `CfgFragments`, `Layouts`, and `DocPaths`.
+    - Updated `RenderServiceImpl._res_ui` to leverage `Layouts` class members instead of inline string manipulation.
+    - Updated `IngestionServiceImpl.initialize_workspace` and `FileBridge.write_default_documents` to pass and handle token-prefixed path constants natively.
+    Reflection: Cleanly isolated token resolution logic to the adapter layer while establishing a predictable, pre-tokenized path schema across domain services without breaking file resolution logic.
