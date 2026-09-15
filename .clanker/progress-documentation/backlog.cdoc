@@ -71,46 +71,57 @@ I. Ideas, complaints and non-critical bugs:
     - something about python v 3.14 vs older versions - a clue!
 
 II. Items to refine & QC:
-
-6. Eliminate god file 'models.py',  Bring presentation concerns under control of render_pipeline module (instead of entity classes)
-    Phase 1, the move: Strat is to just move them and deal with imports after.
-    [x] 'content/app/presentation.py': extract ActionResult here
-        - limited blast radius, a good first target. 
-        - the functionality on it goes to ContentShaper class of render_pipeline module
-    [x] 'content/app/exceptions.py': extract all ex classes from models.py here
-        - for core, i want the ex it mentiones to be in its 'deps' dir. it becomes a common site, where the raiser and consumer both import from
-    [x] 'content/app/entities.py': extract all pure data dataclasses from models.py here
-        - the last one
-    [x] 'content/app/models.py': Remove file after migrating members to new app/ modules
-        - then byebye to this
     
-    Phase 2: Remove presentation concerns from entities.
-        - They belong on ContentShaper, under the wing of RenderService
-    [x] 'content/render_pipeline/content_shaper.py': Add button layout mapping method
-        - Add shape_button_replacements(key, label, template, delim) to encapsulate line splitting, padding, and delimiter replacement
-    [x] 'content/render_pipeline/render_service.py': Delegate button layout rendering to ContentShaper
-        - Update _res_ui to pass button, label, and template to ContentShaper instead of calling btn.get_repl_map()
-    [x] 'content/app/entities.py': Clean presentation methods and imports from domain dataclasses
-        - Remove Button.get_repl_map() method and inline render_pipeline import
 
-    Phase 3: after phase 2 is completed, consider below for development into subtasks:
-    - new vision for this phase. we declare KBService, to hold the button map and offer the engine a public contract to effectuate its business
-    - below kept as an 'old thought' section
-    - Delete Runtimeconfig and Keyboard class 
-        - distribute their content to the services that use them
-        - new service do deal with buttons and keyboard and that (KBService returns? oO)
-    - benefits sought:
-        - I dont have to pass the 'whole motherload' to llms, but I can tailor it more
-            - reduce token use
-            - reduce llm confusion
-        - prettiness of organisation?
-    - thought: engine becomes superthin. I guess that is a-ok ?
+7. Refactor keyboard management into dedicated KBService
+    Phase 1: Dissolve RuntimeConfig container into explicit components
+    [ ] 'content/app/entities.py': Remove RuntimeConfig dataclass
+        - Delete RuntimeConfig definition to eliminate monolithic config passing
+    [ ] 'content/app/deps/ingestion.py': Update IngestionService interface return type
+        - Update get_runtime_config to return tuple[Report, Keyboard, Render, list[Resolver]]
+    [ ] 'content/asset_ingestion/ingestion_service.py': Unpack RtcAssembler components in return tuple
+        - Return keyboard, ui_render, and base_resolvers directly instead of instantiating RuntimeConfig
+    [ ] 'content/app/deps/render.py': Update RenderService interface signature
+        - Replace RuntimeConfig parameter in get_repl_map with explicit keyboard and base_resolvers dependencies
+    [ ] 'content/render_pipeline/render_service.py': Adapt render service callsites
+        - Update get_repl_map signature and internal calls to accept keyboard and base_resolvers directly
+    [ ] 'content/app/engine.py': Store unpacked config components on self
+        - Unpack tuple from session in _bootstrap and assign self.keyboard, self.ui_render, and self.base_resolvers
+        - Update internal _render callsites to pass self.keyboard and self.base_resolvers
+
+    Phase 2: Shift UI rendering ownership and lifecycle to RenderService
+    [ ] 'content/app/deps/render.py': Expand RenderService interface
+        - Add set_ui_render(ui_render: Render) -> None
+        - Add render_ui(keyboard: Keyboard, msg: ActionResult | None) -> str
+    [ ] 'content/render_pipeline/render_service.py': Implement render_ui
+        - Store ui_render internally via set_ui_render during bootstrap
+        - Implement render_ui(keyboard, msg): handle template loading, _res_ui replacement mapping, msg string extraction/injection, and hydration
+    [ ] 'content/app/engine.py': Delegate UI string generation to RenderService
+        - Pass ui_render to self.renderer.set_ui_render during bootstrap
+        - Simplify _display_ui to pass self.keyboard and self.msg directly into self.renderer.render_ui(self.keyboard, self.msg)
+
+    Phase 3: Introduce KBService & streamline AppEngine (lookahead item)
+    [ ] Establish KBService contract and delegate keyboard state mechanics
+        - Create KBService interface and implementation to own button_map, selected_key, and base_resolvers
+        - Extract domain selection logic, prompt button population, and key dispatch out of AppEngine
+        - Delete Keyboard dataclass from entities.py
+    [ ] Refactor AppEngine run loop into a pure state dispatcher
+        - Inject KBService into AppEngine via DI
+        - Update run loop to dispatch keys to kb_service.handle_key(cmd_key) -> (res, prompt_ctx)
+        - If prompt_ctx returned: route through self.renderer.render_prompt(prompt_ctx) -> TUI clipboard -> update msg
+        - If res returned: update msg
+        - Remove internal button mutation methods (_wire_num_row, _set_selected_num_btn, _compile_to_clipboard)
+    [ ] Wire KBService dependencies across ingestion, rendering, and main entrypoint
+        - Update IngestionServiceImpl to pass button_map to return tuple instead of Keyboard object
+        - Update RenderServiceImpl to pull UI button layouts from KBService contract
+        - Inject KBServiceImpl into AppEngine instantiation in clanker.py
 
 III. Slated for implementation:
 IV. Recently implemented:
 
 V. Critical bugs
 
+well, not that critical for a WIP imo
 on test repo, manifest domain for 'a' only (keys 1 -> a):
 '''
 [FATAL] FileAccessError: File access error for presentation/image_lib/clanker_boot.png: 'utf-8' codec can't decode byte 0x89 in position 0: invalid start byte

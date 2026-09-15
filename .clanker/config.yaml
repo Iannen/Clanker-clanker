@@ -32,6 +32,7 @@ filesets:
     content/app/entities.py,
     content/app/services/keyboard_service.py,
     content/asset_ingestion/assemblers/rtc.py,
+    content/asset_ingestion/ingestion_service.py,
     content/clanker.py]}
 
 domains:

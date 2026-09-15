@@ -556,3 +556,22 @@ XC: SHARED ASSET RESOLUTION BUGFIX AND FILE BRIDGE CLEANUP
     - Implemented `_resolve_tokenized_path` private helper in `content/ports_adapters/adapters.py` to centralize `PathTokens.PUD` and `PathTokens.SHARED` prefix processing and map paths to corresponding `Path` objects.
     - Refactored `get_file_contents`, `write_yaml`, and `read_asset` methods to utilize `_resolve_tokenized_path`.
     Reflection: Cleaned up path-resolution code and guaranteed robust fallback asset retrieval; mechanics may undergo further refinement as the asset architecture evolves.
+
+XCI: MODELS MODULE DECOMPOSITION AND ELIMINATION
+    Purpose: Dismantle the 'models.py' god file by extracting domain entities, presentation models, and exceptions into dedicated application submodules.
+    - 'models.py' accumulated mixed concerns ranging from domain dataclasses and UI layout/presentation state to application-wide exception hierarchies.
+    Actions:
+    - Extracted ActionResult presentation entity to 'content/app/presentation.py' and moved button replacement layout formatting logic to ContentShaper in the render pipeline.
+    - Extracted the domain exception hierarchy (Fatal, Notice, BaseEx derivatives) to 'content/app/exceptions.py'.
+    - Extracted pure data dataclasses (resolvers, specs, prompts, domain, buttons, runtime config) to 'content/app/entities.py'.
+    - Deleted 'content/app/models.py' after migrating all members and refactored dependent imports across 'engine.py', 'render_service.py', and adapters.
+    Reflection: Eliminates a central monolithic dependency, establishing clear boundaries between domain entities, exception handling, and presentation logic.
+
+XCII: DECOUPLING PRESENTATION CONCERNS FROM DOMAIN ENTITIES
+    Purpose: Isolate domain entity classes from rendering mechanics and UI formatting logic.
+    - Domain entity classes (specifically 'Button') previously contained UI layout formatting logic and inline imports targeting the render pipeline.
+    Actions:
+    - Added 'shape_button_replacements' to 'content/render_pipeline/content_shaper.py' to handle line splitting, label padding, and delimiter replacement.
+    - Refactored '_res_ui' in 'content/render_pipeline/render_service.py' to delegate button layout formatting directly to ContentShaper rather than invoking entity methods.
+    - Stripped 'get_repl_map()' and associated render pipeline imports from 'Button' in 'content/app/entities.py'.
+    Reflection: Re-established strict domain isolation by ensuring domain entities remain pure data containers stripped of presentation responsibilities.
