@@ -77,3 +77,4 @@ domains:
         render:
           resolvers:
             - { id: repo_content, type: repo_content, fileset: presentation }
+

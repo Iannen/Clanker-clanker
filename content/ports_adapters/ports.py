@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from pathlib import Path
 
 class IOBridgePort(ABC):
     @abstractmethod
@@ -31,20 +30,23 @@ class FileBridgePort(ABC):
     def write_yaml(self, tokenized_path: str, data: dict) -> None: ...
 
     @abstractmethod
-    def read_asset(self, tokenized_path: str | Path) -> str: ...
+    def read_asset(self, tokenized_path: str) -> str: ...
 
     @abstractmethod
     def get_files(
         self,
         basepath_token: str,
-        rel_roots: list[str | Path],
+        rel_roots: list[str],
         missing_ok: bool = False
-    ) -> set[Path]: ...
+    ) -> set[str]: ...
 
     @abstractmethod
     def get_contents_with_pud_fallback(
         self, file_names: list[str]
     ) -> dict[str, str | None]: ...
+
+    @abstractmethod
+    def getFileContent(self, full_path: str) -> str: ...
 
 
 class ConfigIngestorPort(ABC):

@@ -1,4 +1,3 @@
-from pathlib import Path
 from app.models import (
     RuntimeConfig,
     MultiDocResolver,
@@ -7,12 +6,12 @@ from app.models import (
     Resolver,
 )
 from asset_ingestion.commons.error_collector import ErrorCollector
-
+# big 'ol slopburger - but free
 class AssetValidator:
     def validate(
         self,
-        pud_pathlist: set[Path],
-        shared_pathlist: set[Path],
+        pud_pathlist: set[str],
+        shared_pathlist: set[str],
         rtc: RuntimeConfig,
         collector: ErrorCollector,
     ) -> None:
@@ -32,14 +31,26 @@ class AssetValidator:
                     if hasattr(prompt, "render") and hasattr(prompt.render, "resolvers"):
                         resolvers.extend(prompt.render.resolvers)
 
-        referenced_pud_files: set[Path] = set()
+        referenced_pud_files: set[str] = set()
+
+        def _is_parent_or_equal(path_str: str, prefix_str: str) -> bool:
+            norm_p = path_str.strip("/")
+            norm_pref = prefix_str.strip("/")
+
+            if norm_pref in ("", "."):
+                return not norm_p.startswith(".clanker/prompt-assets")
+
+            return norm_p == norm_pref or norm_p.startswith(norm_pref + "/")
+
+        def _get_basename(path_str: str) -> str:
+            return path_str.rsplit("/", 1)[-1]
 
         for resolver in resolvers:
             if isinstance(resolver, MultiDocResolver):
                 for file_item in resolver.files.files:
                     file_name = file_item.name
-                    pud_matches = {p for p in pud_pathlist if p.name == file_name}
-                    shared_matches = {p for p in shared_pathlist if p.name == file_name}
+                    pud_matches = {p for p in pud_pathlist if _get_basename(p) == file_name}
+                    shared_matches = {p for p in shared_pathlist if _get_basename(p) == file_name}
 
                     if not (pud_matches or shared_matches):
                         collector.add_complaint(
@@ -50,9 +61,8 @@ class AssetValidator:
 
             elif isinstance(resolver, RepoContentResolver):
                 for inc in resolver.fileset.includes:
-                    inc_path = Path(inc)
                     matches = {
-                        p for p in pud_pathlist if p == inc_path or inc_path in p.parents
+                        p for p in pud_pathlist if _is_parent_or_equal(p, inc)
                     }
                     if not matches:
                         collector.add_complaint(
@@ -63,9 +73,8 @@ class AssetValidator:
 
             elif isinstance(resolver, ManifestResolver):
                 for pud_inc in resolver.pud_fileset.includes:
-                    pud_path = Path(pud_inc)
                     matches = {
-                        p for p in pud_pathlist if p == pud_path or pud_path in p.parents
+                        p for p in pud_pathlist if _is_parent_or_equal(p, pud_inc)
                     }
                     if not matches:
                         collector.add_complaint(
@@ -76,19 +85,17 @@ class AssetValidator:
 
                 if resolver.shared_fileset is not None:
                     for shared_inc in resolver.shared_fileset.includes:
-                        shared_path = Path(shared_inc)
                         shared_has_match = any(
-                            p == shared_path or shared_path in p.parents for p in shared_pathlist
+                            _is_parent_or_equal(p, shared_inc) for p in shared_pathlist
                         )
                         if not shared_has_match:
                             collector.add_complaint(
                                 f"ManifestResolver shared asset '{shared_inc}' not found in SHARED filelist."
                             )
 
-        # Reverse check: Complain about unreferenced files in .clanker/prompt-assets
-        prompt_assets_prefix = Path(".clanker/prompt-assets")
+        prompt_assets_prefix = ".clanker/prompt-assets"
         pud_prompt_assets = {
-            p for p in pud_pathlist if prompt_assets_prefix in p.parents or p == prompt_assets_prefix
+            p for p in pud_pathlist if _is_parent_or_equal(p, prompt_assets_prefix)
         }
 
         dangling_assets = pud_prompt_assets - referenced_pud_files

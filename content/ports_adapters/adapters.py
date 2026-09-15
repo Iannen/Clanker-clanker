@@ -122,7 +122,7 @@ class FileBridge(FileBridgePort):
         with open(target_path, "w", encoding="utf-8") as f:
             self.yaml.dump(data, f)
 
-    def read_asset(self, tokenized_path: str | Path) -> str:
+    def read_asset(self, tokenized_path: str) -> str:
         str_path = str(tokenized_path)
         if str_path.startswith(BasePathTokens.PUD):
             rel_path = str_path[len(BasePathTokens.PUD):].lstrip("/")
@@ -135,9 +135,9 @@ class FileBridge(FileBridgePort):
     def get_files(
         self,
         basepath_token: str,
-        rel_roots: list[str | Path],
+        rel_roots: list[str],
         missing_ok: bool = False
-    ) -> set[Path]:
+    ) -> set[str]:
         if basepath_token == BasePathTokens.PUD:
             base_dir = self.pud_path
         elif basepath_token == BasePathTokens.SHARED:
@@ -145,7 +145,7 @@ class FileBridge(FileBridgePort):
         else:
             raise ValueError(f"Unrecognized basepath token: {basepath_token}")
 
-        resolved_files: set[Path] = set()
+        resolved_files: set[str] = set()
         for root_str in rel_roots:
             rel_path = Path(root_str)
             full_path = base_dir / rel_path
@@ -156,11 +156,11 @@ class FileBridge(FileBridgePort):
                 raise FileNotFoundError(rel_path)
 
             if full_path.is_file():
-                resolved_files.add(rel_path)
+                resolved_files.add(str(rel_path))
             elif full_path.is_dir():
                 for file_path in full_path.rglob("*"):
                     if file_path.is_file():
-                        resolved_files.add(file_path.relative_to(base_dir))
+                        resolved_files.add(str(file_path.relative_to(base_dir)))
         return resolved_files
 
     def get_contents_with_pud_fallback(self, file_names: list[str]) -> dict[str, str | None]:
@@ -194,7 +194,7 @@ class FileBridge(FileBridgePort):
 
         return ret_map
 
-    def getFileContent(self, full_path: Path | str) -> str:
+    def getFileContent(self, full_path: str) -> str:
         return Path(full_path).read_text(encoding="utf-8")
 
 class ConfigIngestor(ConfigIngestorPort):

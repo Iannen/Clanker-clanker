@@ -2,7 +2,6 @@ from app.models import *
 from app.deps.render import RenderService
 from render_pipeline.code import DefaultContentShaper
 from app.constants import Layout, BasePathTokens
-from pathlib import Path
 
 class SystemKeys:
     DELIM = "§"
@@ -55,7 +54,7 @@ class RenderServiceImpl(RenderService):
         for file_obj in resolver.files.files:
             filename = file_obj.name
 
-            basename = Path(filename).name
+            basename = filename.rsplit('/', 1)[-1]
             raw_content = contents_map.get(filename)
             if raw_content is not None:
                 content = self.shaper.apply_truncation(raw_content, file_obj.truncation_spec)
