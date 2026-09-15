@@ -1,4 +1,5 @@
 #this appears to gravitate towards the filesets of nodes in system being the important bits to declare
+# filesets should have a little 'this is such a collection of repo content', which become part of ctx
 filesets:
   core: {includes: [
     content/app,
@@ -27,7 +28,7 @@ filesets:
 domains:
 - name: core
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: move_assets } 
+    - { id: repo_content, type: repo_content, fileset: core } 
 
   prompts:
     - name: plan

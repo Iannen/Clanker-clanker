@@ -87,12 +87,13 @@ I. Ideas, complaints and non-critical bugs:
     - we have the righthand side of the screen to put info on. will be baller, only green (black) grass
 
 4. Non IDE / linter import strats: BUFF importance of this, as LLMs typically run lower than 3.14 version of python, and cannot compensate.
-    - goal, make it so that 
+    - goals:
+        - We dont have huge import blocks in all the numerous files, eating up precious llm context
         - all types used in a file are always imported (explicitly or via kleene)
             - this goes for typehints too
         - the inverse. no dangling imports allowed
-            - but what abt kleene imports?
-    - something about python v 3.14 vs older versions?
+            - but what abt * imports?
+    - something about python v 3.14 vs older versions - a clue!
 
 II. Items to refine & QC:
 III. Slated for implementation:
