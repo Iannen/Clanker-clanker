@@ -95,6 +95,7 @@ I. Ideas, complaints and non-critical bugs:
     - something about python v 3.14 vs older versions?
 
 II. Items to refine & QC:
+III. Slated for implementation:
 9. Reorganize shared assets out of Clanker's .clanker directory
     [ ] Move '.clanker/shared-assets' to 'content/shared-assets'
         [x] copied content over
@@ -102,7 +103,9 @@ II. Items to refine & QC:
     [ ] Move '.clanker/templates' to to 'content/templates'
         [x] copied content over
         [ ] deleted from old location
-    [ ] Investigate. Can I now simply update the path constants?
+    [ ] Update path constants for relocated shared assets and templates
+        - 'content/app/constants.py': Any path that is a concatenation of 'PathTokens.SHARED + <a_path>'
+            - update 'a_path' to source from new location
 
 '''the list of members
 <shared-manifest>
@@ -135,8 +138,54 @@ II. Items to refine & QC:
 .clanker/templates/documentation/north-star.template
 .clanker/templates/documentation/project-history.template
 </templates>
+##
+new dirs:
+/Projects/Clanker-clanker main* 1m 14s
+❯ tree content/a_lib/
+content/a_lib/
+├── shared-assets
+│   ├── config-fragments
+│   │   ├── shared_cfg.yaml
+│   │   └── system_cfg.yaml
+│   ├── layouts
+│   │   ├── btn_active.layout
+│   │   ├── btn_hl.layout
+│   │   ├── btn_inactive.layout
+│   │   ├── prompt.layout
+│   │   └── ui.layout
+│   └── prompt-fragments
+│       ├── behavioural_instructions
+│       │   ├── config-development-mode.md
+│       │   ├── doc-management-mode.md
+│       │   ├── do-mode.md
+│       │   ├── north-star-mode.md
+│       │   ├── plan-mode.md
+│       │   ├── readme_content.analysis_instruction
+│       │   └── readme_structure.analysis_instruction
+│       ├── doctrines
+│       │   ├── readme.docspec2
+│       │   └── readme.structure_spec
+│       ├── general-rules.md
+│       └── output-instructions
+│           ├── backlog-output-instructions.md
+│           ├── code-output-instruction.md
+│           ├── config-dev-output.instruction
+│           └── history-output-instructions.md
+└── templates
+    ├── config.template
+    └── documentation
+        ├── architecture.template
+        ├── backlog.template
+        ├── north-star.template
+        └── project-history.template
+
+10 directories, 26 files
+
+~/Projects/Clanker-clanker main*
+❯ 
+
 '''
-III. Slated for implementation:
+
 IV. Recently implemented:
 V. Critical bugs
 

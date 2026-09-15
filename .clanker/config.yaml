@@ -21,7 +21,8 @@ filesets:
   move_assets: {includes: [
     content/app/constants.py, 
     content/asset_ingestion/ingestion_service.py, 
-    content/ports_adapters/adapters.py]}
+    content/asset_ingestion/assemblers/rtc.py,
+    content/render_pipeline/render_service.py]}
 
 domains:
 - name: core
