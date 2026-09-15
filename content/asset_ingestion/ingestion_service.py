@@ -10,13 +10,7 @@ from asset_ingestion.parsers.render import RenderParser
 from asset_ingestion.extractors.base_resolver import BaseResolversExtractor
 from asset_ingestion.extractors.ui_render import UIRenderExtractor
 from asset_ingestion.validators.assets import AssetValidator
-from app.constants import CfgFragments, Config, BasePathTokens
-
-class DocPaths:
-    SHARED_TEMPLATES = "/.clanker/templates/documentation"
-    PUD_DOCS = "/.clanker/progress-documentation"
-    TEMPL_EXT = ".template"
-    DOC_EXT = ".cdoc"
+from app.constants import CfgFragments, BasePathTokens, DocPaths
 
 class IngestionServiceImpl(IngestionService):
     def __init__(
@@ -32,11 +26,12 @@ class IngestionServiceImpl(IngestionService):
             pud_cfg = self._get_validated_cfg_fragment(BasePathTokens.PUD + CfgFragments.PUD_CFG)
         except NoSuchFile:
             raise NoConfig
-        collector = ErrorCollector() #Futurenote: if FNFE -> complain critically to user
+        collector = ErrorCollector() 
         try:
             sys_cfg = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.SYSTEM_CFG)
             shared_cfg = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.SHARED_CFG)
         except NoSuchFile as ex:
+            #if NoSuchFile -> complain critically to user not raise
             raise ConfigAssembly(f"Missing configuration fragment: {ex}") from ex
 
         unified_fsm = FilesetExtractor().extract(pud_cfg, shared_cfg, collector)
@@ -81,7 +76,7 @@ class IngestionServiceImpl(IngestionService):
         except NoSuchFile as ex:
             raise ConfigAssembly(f"Missing configuration template: {ex}") from ex
 
-        self.files.write_yaml(BasePathTokens.PUD + Config.DEFAULT_REL_PATH, default_config_data)
+        self.files.write_yaml(BasePathTokens.PUD + CfgFragments.PUD_CFG, default_config_data)
 
         self.files.write_default_documents(
             doc_templ_dir=DocPaths.SHARED_TEMPLATES,

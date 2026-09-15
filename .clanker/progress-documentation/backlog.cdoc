@@ -97,6 +97,7 @@ I. Ideas, complaints and non-critical bugs:
 II. Items to refine & QC:
 
 9. Reorganize shared assets out of Clanker's .clanker directory
+    [ ] 
     [ ] Move '.clanker/shared-assets' to 'content/shared-assets'
         [x] copied content over
         [ ] deleted from old location
@@ -135,8 +136,27 @@ II. Items to refine & QC:
 .clanker/templates/documentation/project-history.template
 </templates>
 '''
-
 III. Slated for implementation:
+
+10. Centralize and refactor path constants in constants.py
+    [ ] 'content/app/constants.py': Reorganize path structures and naming
+        - rename class Layout to Layouts
+        - rename class BasePathTokens to PathTokens
+        - build complete tokenized path strings directly inside CfgFragments and Layouts using PathTokens
+        - standarize all members as plain strings directly on class
+    [ ] Usages
+        CfgFragments
+            - all benefit from pre-concatinated tokens -> do it
+        DocPaths
+            - these cannot see pre-concatination yet, due to adapter entanglement -> do not touch
+        Layout
+            - these all benefit too -> do it
+            - there is a section of code inside RenderServiceImpl._res_ui which must now use members of Layouts instead of in-lining it with str.. -> fix it
+        BasePathTokens: remaining usages will be
+            - constants.py internal
+            - adapter internal
+                - thought that is not a concern at the moment
+
 IV. Recently implemented:
 
 3. revise new dir structure, so we dont have simple 'code.py' files, they should ref their system

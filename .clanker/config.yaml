@@ -3,12 +3,6 @@ filesets:
   core: {includes: [
     content/app,
     content/clanker.py]}
-  adapter_transl: {includes: [
-    content/ports_adapters/adapters.py,
-    content/app/models.py,
-    content/app/engine.py,
-    content/asset_ingestion/ingestion_service.py,
-    content/render_pipeline/render_service.py]}
   ingestion_service: {includes: [
     content/app/models.py, 
     content/asset_ingestion/ingestion_service.py,
@@ -20,21 +14,16 @@ filesets:
     content/app/models.py,  
     .clanker/shared-assets/config-fragments, 
     .clanker/config.yaml]}
-  ports_adapters: {includes: [
-    content/adapters/adapters.py,
-    content/adapters/ports.py,
-    content/clanker.py]}
-  render_system: {includes: [
-    content/render_pipeline,
-    content/app/deps/render_system_contract.py]}
   presentation: {includes: [
     content/app,
     content/clanker.py]}
 
+  move_assets: {includes: [content/app, content/asset_ingestion/ingestion_service.py, content/render_pipeline/render_service.py], excludes: [content/app/models.py]}
+
 domains:
 - name: core
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: core } 
+    - { id: repo_content, type: repo_content, fileset: move_assets } 
 
   prompts:
     - name: plan
