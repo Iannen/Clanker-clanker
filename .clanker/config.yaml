@@ -34,7 +34,7 @@ domains:
     - name: plan
       render:
         resolvers:
-          - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.md, backlog-output-instructions.md, domain-debloat.md] }
+          - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.md, backlog-output-instructions.md] }
           - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: II. Items to refine & QC, up_to: III. Slated for implementation}]}
     - name: bl-impl
       render:
