@@ -94,8 +94,6 @@ I. Ideas, complaints and non-critical bugs:
             - but what abt kleene imports?
     - something about python v 3.14 vs older versions?
 
-II. Items to refine & QC:
-
 9. Reorganize shared assets out of Clanker's .clanker directory
     [ ] 
     [ ] Move '.clanker/shared-assets' to 'content/shared-assets'
@@ -136,15 +134,15 @@ II. Items to refine & QC:
 .clanker/templates/documentation/project-history.template
 </templates>
 '''
-III. Slated for implementation:
+II. Items to refine & QC:
 
 10. Centralize and refactor path constants in constants.py
-    [ ] 'content/app/constants.py': Reorganize path structures and naming
+    [x] 'content/app/constants.py': Reorganize path structures and naming
         - rename class Layout to Layouts
         - rename class BasePathTokens to PathTokens
         - build complete tokenized path strings directly inside CfgFragments and Layouts using PathTokens
         - standarize all members as plain strings directly on class
-    [ ] Usages
+    [x] Usages
         CfgFragments
             - all benefit from pre-concatinated tokens -> do it
         DocPaths
@@ -156,10 +154,15 @@ III. Slated for implementation:
             - constants.py internal
             - adapter internal
                 - thought that is not a concern at the moment
+    next leg:
+    [ ] DocPaths, concatinate path token onto it same as rest of file
+    [ ] IngestionServiceImpl.initialize_workspace
+        'self.files.write_default_documents' callsite is passthrough, should be ok
+    [ ] FileBridge.write_default_documents
+        - align to expect paths with pathtoken pre-concatenated 
 
+III. Slated for implementation:
 IV. Recently implemented:
-
-3. revise new dir structure, so we dont have simple 'code.py' files, they should ref their system
 
 V. Critical bugs
 

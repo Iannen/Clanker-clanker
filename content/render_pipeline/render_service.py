@@ -1,7 +1,7 @@
 from app.models import *
 from app.deps.render import RenderService
 from render_pipeline.content_shaper import ContentShaper
-from app.constants import Layout, BasePathTokens
+from app.constants import Layouts, PathTokens
 from ports_adapters.ports import NoSuchFile
 
 class SystemKeys:
@@ -19,9 +19,9 @@ class RenderServiceImpl(RenderService):
         try:
             match render.template:
                 case "prompt_template":
-                    return self.files.read_asset(BasePathTokens.SHARED + Layout.PROMPT)
+                    return self.files.read_asset(Layouts.PROMPT)
                 case "ui_template":
-                    return self.files.read_asset(BasePathTokens.SHARED + Layout.UI)
+                    return self.files.read_asset(Layouts.UI)
         except NoSuchFile as ex:
             raise CorruptClanker(f"Error loading template for '{render.template}': {ex}") from ex
 
@@ -69,8 +69,8 @@ class RenderServiceImpl(RenderService):
 
     def _res_repo_content(self, resolver: RepoContentResolver) -> dict[str, str]:
         paths = sorted(
-            self.files.get_files(BasePathTokens.PUD, resolver.fileset.includes, missing_ok=False) -
-            self.files.get_files(BasePathTokens.PUD, resolver.fileset.excludes, missing_ok=True)
+            self.files.get_files(PathTokens.PUD, resolver.fileset.includes, missing_ok=False) -
+            self.files.get_files(PathTokens.PUD, resolver.fileset.excludes, missing_ok=True)
         )
 
         tree_header = f"<tree>\n" + "\n".join(f"├── {p}" for p in paths) + "\n</tree>"
@@ -78,7 +78,7 @@ class RenderServiceImpl(RenderService):
         file_blocks = []
         for p in paths:
             try:
-                content = self.files.read_asset(f"<PUD>/{p}").rstrip()
+                content = self.files.read_asset(f"{PathTokens.PUD}/{p}").rstrip()
                 file_blocks.append(f"<{p}>\n{content}\n</{p}>")
             except UnicodeDecodeError:
                 pass
@@ -88,12 +88,12 @@ class RenderServiceImpl(RenderService):
 
     def _res_manifest(self, resolver: ManifestResolver) -> dict[str, str]:
         manifest_blocks = [
-            self._build_manifest("pud-manifest", "<PUD>", resolver.pud_fileset)
+            self._build_manifest("pud-manifest", PathTokens.PUD, resolver.pud_fileset)
         ]
 
         if resolver.shared_fileset is not None:
             manifest_blocks.append(
-                self._build_manifest("shared-manifest", "<SHARED>", resolver.shared_fileset)
+                self._build_manifest("shared-manifest", PathTokens.SHARED, resolver.shared_fileset)
             )
 
         return {resolver.anchor: "\n".join(manifest_blocks)}
@@ -119,9 +119,9 @@ class RenderServiceImpl(RenderService):
         if keyboard is None:
             return {}
 
-        btn_hl = self.files.read_asset("<SHARED>/.clanker/shared-assets/layouts/btn_hl.layout")
-        btn_active = self.files.read_asset("<SHARED>/.clanker/shared-assets/layouts/btn_active.layout")
-        btn_inactive = self.files.read_asset("<SHARED>/.clanker/shared-assets/layouts/btn_inactive.layout")
+        btn_hl = self.files.read_asset(Layouts.BTN_HL)
+        btn_active = self.files.read_asset(Layouts.BTN_ACTIVE)
+        btn_inactive = self.files.read_asset(Layouts.BTN_INACTIVE)
 
         repl_map = {}
         for btn in keyboard.get_unique_buttons():

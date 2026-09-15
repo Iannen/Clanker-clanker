@@ -18,7 +18,10 @@ filesets:
     content/app,
     content/clanker.py]}
 
-  move_assets: {includes: [content/app, content/asset_ingestion/ingestion_service.py, content/render_pipeline/render_service.py], excludes: [content/app/models.py]}
+  move_assets: {includes: [
+    content/app/constants.py, 
+    content/asset_ingestion/ingestion_service.py, 
+    content/ports_adapters/adapters.py]}
 
 domains:
 - name: core

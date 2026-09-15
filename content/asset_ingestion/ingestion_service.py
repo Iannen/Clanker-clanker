@@ -10,7 +10,7 @@ from asset_ingestion.parsers.render import RenderParser
 from asset_ingestion.extractors.base_resolver import BaseResolversExtractor
 from asset_ingestion.extractors.ui_render import UIRenderExtractor
 from asset_ingestion.validators.assets import AssetValidator
-from app.constants import CfgFragments, BasePathTokens, DocPaths
+from app.constants import CfgFragments, PathTokens, DocPaths
 
 class IngestionServiceImpl(IngestionService):
     def __init__(
@@ -23,13 +23,13 @@ class IngestionServiceImpl(IngestionService):
 
     def get_runtime_config(self) -> tuple[Report, RuntimeConfig]:
         try:
-            pud_cfg = self._get_validated_cfg_fragment(BasePathTokens.PUD + CfgFragments.PUD_CFG)
+            pud_cfg = self._get_validated_cfg_fragment(CfgFragments.PUD_CFG)
         except NoSuchFile:
             raise NoConfig
         collector = ErrorCollector() 
         try:
-            sys_cfg = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.SYSTEM_CFG)
-            shared_cfg = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.SHARED_CFG)
+            sys_cfg = self._get_validated_cfg_fragment(CfgFragments.SYSTEM_CFG)
+            shared_cfg = self._get_validated_cfg_fragment(CfgFragments.SHARED_CFG)
         except NoSuchFile as ex:
             #if NoSuchFile -> complain critically to user not raise
             raise ConfigAssembly(f"Missing configuration fragment: {ex}") from ex
@@ -55,8 +55,8 @@ class IngestionServiceImpl(IngestionService):
             base_resolvers=base_resolvers,
         )
 
-        pud_filelist = self.files.get_files(BasePathTokens.PUD, ["."], missing_ok=True)
-        shared_filelist = self.files.get_files(BasePathTokens.SHARED, ["."], missing_ok=True)
+        pud_filelist = self.files.get_files(PathTokens.PUD, ["."], missing_ok=True)
+        shared_filelist = self.files.get_files(PathTokens.SHARED, ["."], missing_ok=True)
 
         AssetValidator().validate(
             pud_pathlist=pud_filelist,
@@ -72,11 +72,11 @@ class IngestionServiceImpl(IngestionService):
             raise CorruptClanker("Clanker repository initialized is beyond scope of app.")
 
         try:
-            default_config_data = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.TEMPLATE_CFG)
+            default_config_data = self._get_validated_cfg_fragment(CfgFragments.TEMPLATE_CFG)
         except NoSuchFile as ex:
             raise ConfigAssembly(f"Missing configuration template: {ex}") from ex
 
-        self.files.write_yaml(BasePathTokens.PUD + CfgFragments.PUD_CFG, default_config_data)
+        self.files.write_yaml(CfgFragments.PUD_CFG, default_config_data)
 
         self.files.write_default_documents(
             doc_templ_dir=DocPaths.SHARED_TEMPLATES,

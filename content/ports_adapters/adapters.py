@@ -7,7 +7,7 @@ from pathlib import Path
 from ruamel.yaml import YAML
 from ports_adapters.ports import IOBridgePort, FileBridgePort, ConfigIngestorPort, NoSuchFile, FileAccessError
 from app.models import *
-from app.constants import BasePathTokens
+from app.constants import PathTokens
 
 from tui.tui_service import IOControl
 class IOBridge(IOBridgePort):
@@ -84,11 +84,11 @@ class FileBridge(FileBridgePort):
             raise FileAccessError(f"File access error for {rel_path}: {ex}") from ex
 
     def get_file_contents(self, tokenized_path: str) -> str:
-        if tokenized_path.startswith(BasePathTokens.PUD):
-            rel_path = tokenized_path[len(BasePathTokens.PUD):].lstrip("/")
+        if tokenized_path.startswith(PathTokens.PUD):
+            rel_path = tokenized_path[len(PathTokens.PUD):].lstrip("/")
             return self._pud_file_as_string(rel_path)
-        elif tokenized_path.startswith(BasePathTokens.SHARED):
-            rel_path = tokenized_path[len(BasePathTokens.SHARED):].lstrip("/")
+        elif tokenized_path.startswith(PathTokens.SHARED):
+            rel_path = tokenized_path[len(PathTokens.SHARED):].lstrip("/")
             return self._shared_file_as_string(rel_path)
         raise ValueError(f"Path does not start with a recognized BasePathToken: {tokenized_path}")
 
@@ -124,11 +124,11 @@ class FileBridge(FileBridgePort):
         return self.pud_path.resolve() == self.clanker_path.resolve()
 
     def write_yaml(self, tokenized_path: str, data: dict) -> None:
-        if tokenized_path.startswith(BasePathTokens.PUD):
-            rel_path = tokenized_path[len(BasePathTokens.PUD):].lstrip("/")
+        if tokenized_path.startswith(PathTokens.PUD):
+            rel_path = tokenized_path[len(PathTokens.PUD):].lstrip("/")
             target_path = self.pud_path / rel_path
-        elif tokenized_path.startswith(BasePathTokens.SHARED):
-            rel_path = tokenized_path[len(BasePathTokens.SHARED):].lstrip("/")
+        elif tokenized_path.startswith(PathTokens.SHARED):
+            rel_path = tokenized_path[len(PathTokens.SHARED):].lstrip("/")
             target_path = self.clanker_path / rel_path
         else:
             raise ValueError(f"Path does not start with a recognized BasePathToken: {tokenized_path}")
@@ -144,11 +144,11 @@ class FileBridge(FileBridgePort):
 
     def read_asset(self, tokenized_path: str) -> str:
         str_path = str(tokenized_path)
-        if str_path.startswith(BasePathTokens.PUD):
-            rel_path = str_path[len(BasePathTokens.PUD):].lstrip("/")
+        if str_path.startswith(PathTokens.PUD):
+            rel_path = str_path[len(PathTokens.PUD):].lstrip("/")
             return self._pud_file_as_string(rel_path)
-        elif str_path.startswith(BasePathTokens.SHARED):
-            rel_path = str_path[len(BasePathTokens.SHARED):].lstrip("/")
+        elif str_path.startswith(PathTokens.SHARED):
+            rel_path = str_path[len(PathTokens.SHARED):].lstrip("/")
             return self._shared_file_as_string(rel_path)
         raise ValueError(f"Path does not start with a recognized BasePathToken: {str_path}")
 
@@ -158,9 +158,9 @@ class FileBridge(FileBridgePort):
         rel_roots: list[str],
         missing_ok: bool = False
     ) -> set[str]:
-        if basepath_token == BasePathTokens.PUD:
+        if basepath_token == PathTokens.PUD:
             base_dir = self.pud_path
-        elif basepath_token == BasePathTokens.SHARED:
+        elif basepath_token == PathTokens.SHARED:
             base_dir = self.clanker_path
         else:
             raise ValueError(f"Unrecognized basepath token: {basepath_token}")
