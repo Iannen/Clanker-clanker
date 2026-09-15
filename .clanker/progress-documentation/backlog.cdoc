@@ -95,101 +95,70 @@ I. Ideas, complaints and non-critical bugs:
     - something about python v 3.14 vs older versions?
 
 II. Items to refine & QC:
-III. Slated for implementation:
-9. Reorganize shared assets out of Clanker's .clanker directory
-    [ ] Move '.clanker/shared-assets' to 'content/shared-assets'
-        [x] copied content over
-        [ ] deleted from old location
-    [ ] Move '.clanker/templates' to to 'content/templates'
-        [x] copied content over
-        [ ] deleted from old location
-    [x] Update path constants for relocated shared assets and templates
-        - 'content/app/constants.py': Any path that is a concatenation of 'PathTokens.SHARED + <a_path>'
-            - update 'a_path' to source from new location
+[BUG] -> fixed:
 
-'''the list of members
-<shared-manifest>
-.clanker/shared-assets/config-fragments/shared_cfg.yaml : 80 lines
-.clanker/shared-assets/config-fragments/system_cfg.yaml : 10 lines
-.clanker/shared-assets/layouts/btn_active.layout : 6 lines
-.clanker/shared-assets/layouts/btn_hl.layout : 6 lines
-.clanker/shared-assets/layouts/btn_inactive.layout : 6 lines
-.clanker/shared-assets/layouts/prompt.layout : 4 lines
-.clanker/shared-assets/layouts/ui.layout : 22 lines
-.clanker/shared-assets/prompt-fragments/behavioural_instructions/config-development-mode.md : 3 lines
-.clanker/shared-assets/prompt-fragments/behavioural_instructions/do-mode.md : 5 lines
-.clanker/shared-assets/prompt-fragments/behavioural_instructions/doc-management-mode.md : 3 lines
-.clanker/shared-assets/prompt-fragments/behavioural_instructions/north-star-mode.md : 4 lines
-.clanker/shared-assets/prompt-fragments/behavioural_instructions/plan-mode.md : 6 lines
-.clanker/shared-assets/prompt-fragments/behavioural_instructions/readme_content.analysis_instruction : 1 lines
-.clanker/shared-assets/prompt-fragments/behavioural_instructions/readme_structure.analysis_instruction : 3 lines
-.clanker/shared-assets/prompt-fragments/doctrines/readme.docspec2 : 17 lines
-.clanker/shared-assets/prompt-fragments/doctrines/readme.structure_spec : 48 lines
-.clanker/shared-assets/prompt-fragments/general-rules.md : 2 lines
-.clanker/shared-assets/prompt-fragments/output-instructions/backlog-output-instructions.md : 11 lines
-.clanker/shared-assets/prompt-fragments/output-instructions/code-output-instruction.md : 21 lines
-.clanker/shared-assets/prompt-fragments/output-instructions/config-dev-output.instruction : 1 lines
-.clanker/shared-assets/prompt-fragments/output-instructions/history-output-instructions.md : 13 lines
-</shared-manifest>
-<templates>
-.clanker/templates/config.template
-.clanker/templates/documentation/architecture.template
-.clanker/templates/documentation/backlog.template
-.clanker/templates/documentation/north-star.template
-.clanker/templates/documentation/project-history.template
-</templates>
-##
-new dirs:
-/Projects/Clanker-clanker main* 1m 14s
-❯ tree content/a_lib/
-content/a_lib/
-├── shared-assets
-│   ├── config-fragments
-│   │   ├── shared_cfg.yaml
-│   │   └── system_cfg.yaml
-│   ├── layouts
-│   │   ├── btn_active.layout
-│   │   ├── btn_hl.layout
-│   │   ├── btn_inactive.layout
-│   │   ├── prompt.layout
-│   │   └── ui.layout
-│   └── prompt-fragments
-│       ├── behavioural_instructions
-│       │   ├── config-development-mode.md
-│       │   ├── doc-management-mode.md
-│       │   ├── do-mode.md
-│       │   ├── north-star-mode.md
-│       │   ├── plan-mode.md
-│       │   ├── readme_content.analysis_instruction
-│       │   └── readme_structure.analysis_instruction
-│       ├── doctrines
-│       │   ├── readme.docspec2
-│       │   └── readme.structure_spec
-│       ├── general-rules.md
-│       └── output-instructions
-│           ├── backlog-output-instructions.md
-│           ├── code-output-instruction.md
-│           ├── config-dev-output.instruction
-│           └── history-output-instructions.md
-└── templates
-    ├── config.template
-    └── documentation
-        ├── architecture.template
-        ├── backlog.template
-        ├── north-star.template
-        └── project-history.template
+md resolver asset resolution dont work from shared location, but does for pud contained assets.
 
-10 directories, 26 files
-
-~/Projects/Clanker-clanker main*
-❯ 
-
+I offer the segment of yaml which produced this very prompt, displaying intended inclusions of files header
 '''
+...
+domains:
+- name: core
+  resolvers:
+    - { id: repo_content, type: repo_content, fileset: move_assets } 
 
+  prompts:
+    - name: plan
+      render:
+        resolvers:
+          - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.md, backlog-output-instructions.md, domain-debloat.md] }
+          - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: II. Items to refine & QC, up_to: III. Slated for implementation}]}
+...
+'''
+fix info:
+'
+Bug:
+The multi-document resolver failed to locate shared prompt fragments (e.g., plan-mode.md, backlog-output-instructions.md) and defaulted to [No content found...]. The lookup mechanism in FileBridge.get_contents_with_pud_fallback restricted its search in the shared repository strictly to the .clanker directory (self.clanker_path / ".clanker"). Shared assets actually reside under content/a_lib/shared-assets/, causing the lookup to return empty results.
+
+Fix:
+Expanded the fallback search root in FileBridge so it scans the shared project root (self.clanker_path) rather than scoping exclusively to .clanker. Added an explicit filter to ignore hidden directories (such as .git or virtual environments) during traversal, allowing shared prompt fragments across any repository subdirectory to resolve properly.
+'
+
+
+
+other tips received:
+'Centralize Path Resolution Helper (_resolve_tokenized_path)
+Extract the repeated if startswith(PathTokens.PUD) / elif startswith(PathTokens.SHARED) string-slicing logic into a single private method:'
+
+'Add PathTokens.CLANKER_DIR Constant
+Add CLANKER_DIR = ".clanker" to PathTokens in constants.py. Replaces hardcoded string literals like ".clanker" inside write_default_documents and fallback search functions.'
+
+'Add Workspace Directory Constants in DocPaths
+Add PUD_PROMPT_FRAGMENTS = PathTokens.PUD + "/.clanker/prompt-fragments" to DocPaths. Inside write_default_documents, the creation of prompt_frag_dir can resolve this token directly instead of manual string concatenation:'
+
+'Define Scoped Asset Search Roots for Fallback Resolution
+Instead of searching self.clanker_path.rglob("*") across the entire repo (which risk false hits in virtual environments, build outputs, or .git), add explicit search roots to DocPaths or CfgFragments in constants.py:
+
+DocPaths.SHARED_PROMPT_FRAGMENTS = PathTokens.SHARED + "/content/a_lib/shared-assets/prompt-fragments"
+
+DocPaths.PUD_PROMPT_FRAGMENTS = PathTokens.PUD + "/.clanker/prompt-fragments"
+This keeps fallback search bounded to valid prompt fragment subdirectories.'
+
+'Consolidate Redundant File Reading Methods
+read_asset and get_file_contents perform identical path token resolution and file reading. read_asset can simply delegate to get_file_contents (or use the new _resolve_tokenized_path helper directly).'
+
+'Deprecate camelCase Method (getFileContent)
+Rename getFileContent(self, full_path: str) to snake_case (get_file_content or merge into get_file_contents) to align with Python PEP 8 conventions used across the rest of the codebase.
+check to see if its used at all'
+
+'investigate the usage of port methods in core, to see if there are unused members on port and thus adapter. see if there are adapter members not on the port (thus not used)'
+
+III. Slated for implementation:
 IV. Recently implemented:
 V. Critical bugs
 
-manifest resolver:
+on test repo, manifest domain for 'a' only (keys 1 -> a):
+'''
 [FATAL] FileAccessError: File access error for presentation/image_lib/clanker_boot.png: 'utf-8' codec can't decode byte 0x89 in position 0: invalid start byte
 
 --- Underlying Stack Trace ---
@@ -203,8 +172,9 @@ Traceback (most recent call last):
   File "<frozen codecs>", line 325, in decode
 UnicodeDecodeError: 'utf-8' codec can't decode byte 0x89 in position 0: invalid start byte
 
-
 ~/Projects/Clanker-clanker main*
-❯ 
+'''
+on test repo, manifest domain for 's' only (keys 1 -> s):
+works fine, but dont use a manifest resolver..
 
 

@@ -537,3 +537,13 @@ LXXXVIII: CENTRALIZE AND REFACTOR PATH CONSTANTS
     - Updated `RenderServiceImpl._res_ui` to leverage `Layouts` class members instead of inline string manipulation.
     - Updated `IngestionServiceImpl.initialize_workspace` and `FileBridge.write_default_documents` to pass and handle token-prefixed path constants natively.
     Reflection: Cleanly isolated token resolution logic to the adapter layer while establishing a predictable, pre-tokenized path schema across domain services without breaking file resolution logic.
+
+LXXXIX: REORGANIZE SHARED ASSETS OUT OF CLANKER LOCAL DIRECTORY
+    Purpose: Align Clanker's local workspace layout with standard PUD architecture and advance the repo contract vision by relocating shared assets out of .clanker into a unified library path.
+    - Path references were tightly coupled to .clanker directory layouts, preventing Clanker itself from adhering to standard PUD structural expectations.
+    Actions:
+    - Relocated shared assets from '.clanker/shared-assets' to 'content/a_lib/shared-assets'.
+    - Relocated shared templates from '.clanker/templates' to 'content/a_lib/templates'.
+    - Cleaned up obsolete directories from the old location in '.clanker'.
+    - Updated path constants across `CfgFragments`, `DocPaths`, and `Layouts` in `content/app/constants.py` to route through 'content/a_lib/'.
+    Reflection: Cleanly decoupled shared application assets from local execution context; however, relocating prompt fragments broke existing `.md` resolver paths that relied on the former `.clanker` layout.

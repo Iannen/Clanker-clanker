@@ -206,21 +206,24 @@ class FileBridge(FileBridgePort):
         ret_map: dict[str, str | None] = {fn: None for fn in file_names}
 
         try:
+            # Search SHARED across the whole repo root instead of restricting to .clanker
             shr_map: dict[str, Path] = {}
-            shr_dir = self.clanker_path / ".clanker"
-            if shr_dir.exists():
+            if self.clanker_path.exists():
                 for fn in file_names:
-                    matches = [p for p in shr_dir.rglob("*") if p.is_file() and p.name == fn]
+                    matches = [
+                        p for p in self.clanker_path.rglob("*") 
+                        if p.is_file() and p.name == fn and not any(part.startswith('.') for part in p.parts)
+                    ]
                     if len(matches) > 1:
                         raise IllegalDuplicateFile(f"Collision in SHARED for '{fn}': {matches}")
                     elif len(matches) == 1:
                         shr_map[fn] = matches[0]
 
+            # PUD lookup remains scoped to PUD path
             pud_map: dict[str, Path] = {}
-            pud_dir = self.pud_path / ".clanker"
-            if pud_dir.exists():
+            if self.pud_path.exists():
                 for fn in file_names:
-                    matches = [p for p in pud_dir.rglob("*") if p.is_file() and p.name == fn]
+                    matches = [p for p in self.pud_path.rglob("*") if p.is_file() and p.name == fn]
                     if len(matches) > 1:
                         raise IllegalDuplicateFile(f"Collision in PUD for '{fn}': {matches}")
                     elif len(matches) == 1:
