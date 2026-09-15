@@ -15,10 +15,14 @@ II. Items to refine & QC:
     - we have the righthand side of the screen to put info on. will be baller, only green (black) grass
 
 2. i should be able to add more than just filesets as named bottom level sets.
-    - MD resolver prime target, I can put it in shared cfg -> reuse it in domains of pud cfgs
-    - lets not rush it tho
-
-3. revise new dir structure, so we dont have simple 'code.py' files, they should ref their system
+    - we have 3 resolvers that deal with files
+        - md resolver has fallback to shared logic, uses Filelist which contain File 
+            - this should become a bottom level thing
+        - repo and manifest resolvers both use Filesets
+            - this is already a bottom level thing. do Fileset class need an attr to say source? 
+                - It can default to pud
+                - and optionally by some flag var work off of shared instead
+            - then improves semantics of yaml?
 
 4. Non IDE / linter import strats: BUFF importance of this, as LLMs typically run lower than 3.14 version of python, and cannot compensate.
     - goal, make it so that 
@@ -48,11 +52,7 @@ II. Items to refine & QC:
             - > than complain to user, do no harm
         - so clankerization must be safe. Perhaps the confirm msg can first check and see that it is so? else complain to user 
 
-6. App failure modes razzia, not related to ingestion or later file not found business in Renderservice:
-    - buttons not 'in scope' should produce a msg saying so (i get nonetype crash cuz no msg)
-    - what else
-
-7. Revise god file 'models.py' and members
+6. Revise god file 'models.py' and members
     [ ] split it up into 
         - entities
         - exceptions
@@ -76,12 +76,50 @@ II. Items to refine & QC:
         - which are beneficial for the token savings
     - but not huge feature boost. mainly shuffles things around
 
-9. Make use of latest architectural work in ingestion module
+7. Make use of latest architectural work in ingestion module
     - simplify EC and 'Report' for now, lets just have str msgs for ez
+
+8. Validation / complaints
+    - manifest resolver must check if fileset is declared in pud_cfg with fallback to shared_cfg
+        - so shared_cfg can declare defaults for it, which the pud_cfg can override
+        - if not present, then complain
+
+9. I need to move shared assets of all kinds out of Clankers .clanker dir
+    - uniformity of repo structure
+    - expose hidden errors currently present
+
+10. clankerization of a project can represent the much talked about repo contract by the content it creates
+    - it should check 'does any of the content exist'?
+        - if so dont do anything, complain to user
+    - only if coast clear should it create the stuff in repo root
+        - '.clanker' dir and its internal stuff
+        - 'README.md' -> #empty
+        - 'content' -> no members
 
 III. Slated for implementation:
 
 IV. Recently implemented:
 
+3. revise new dir structure, so we dont have simple 'code.py' files, they should ref their system
+
 V. Critical bugs
- 
+
+manifest resolver:
+[FATAL] FileAccessError: File access error for presentation/image_lib/clanker_boot.png: 'utf-8' codec can't decode byte 0x89 in position 0: invalid start byte
+
+--- Underlying Stack Trace ---
+Traceback (most recent call last):
+  File "/home/user/Projects/Clanker-clanker/content/ports_adapters/adapters.py", line 72, in _pud_file_as_string
+    return (self.pud_path / rel_path).read_text(encoding="utf-8")
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/pathlib/__init__.py", line 788, in read_text
+    return f.read()
+           ~~~~~~^^
+  File "<frozen codecs>", line 325, in decode
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0x89 in position 0: invalid start byte
+
+
+~/Projects/Clanker-clanker main*
+❯ 
+
+

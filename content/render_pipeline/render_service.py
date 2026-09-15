@@ -1,6 +1,6 @@
 from app.models import *
 from app.deps.render import RenderService
-from render_pipeline.code import DefaultContentShaper
+from render_pipeline.content_shaper import ContentShaper
 from app.constants import Layout, BasePathTokens
 from ports_adapters.ports import NoSuchFile
 
@@ -10,7 +10,7 @@ class SystemKeys:
 class RenderServiceImpl(RenderService):
     def __init__(self, files: FileBridgePort) -> None:
         self.files = files
-        self.shaper = DefaultContentShaper()
+        self.shaper = ContentShaper()
 
     def hydrate(self, template: str, replacements: dict[str, str]) -> str:
         return self.shaper.hydrate(SystemKeys.DELIM, template, replacements)

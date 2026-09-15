@@ -4,9 +4,9 @@ base_resolvers:
     files: [general-rules.md]
 
 filesets:
-  all: {includes: [.], excludes: [.git]}
+  content-dir: {includes: [content]}
   empty: {includes: [], excludes: [.git]}
-  clanker-shared-assets: {includes: [.clanker/shared-assets], excludes: []}
+  clanker-shared-assets: {includes: [.clanker/shared-assets]}
   presentation: {includes: []}
 
 domains:
@@ -17,7 +17,7 @@ domains:
       - name: only m
         render:
           resolvers:
-            - { id: domain_fragments, type: repo-manifest, pud_fileset: all, shared_fileset: clanker-shared-assets }
+            - { id: domain_fragments, type: repo-manifest, pud_fileset: content-dir, shared_fileset: clanker-shared-assets }
       - name: core
         render:
           resolvers:

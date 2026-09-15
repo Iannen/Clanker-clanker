@@ -4,7 +4,7 @@ filesets:
 domains:
   - name: analysis
     resolvers:
-      - { id: domain_fragments, type: repo-manifest, pud_fileset: all, shared_fileset: clanker-shared-assets }
+      - { id: domain_fragments, type: repo-manifest, pud_fileset: content, shared_fileset: clanker-shared-assets }
     prompts:
       - name: init
         render:
