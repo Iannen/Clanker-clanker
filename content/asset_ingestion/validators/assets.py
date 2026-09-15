@@ -32,7 +32,6 @@ class AssetValidator:
                     if hasattr(prompt, "render") and hasattr(prompt.render, "resolvers"):
                         resolvers.extend(prompt.render.resolvers)
 
-        # Track all resolved file paths across both PUD and SHARED
         referenced_pud_files: set[Path] = set()
 
         for resolver in resolvers:

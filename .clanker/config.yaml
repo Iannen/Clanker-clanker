@@ -3,7 +3,15 @@ filesets:
   core: {includes: [
     content/app,
     content/clanker.py,
-    content/ports_adapters]}
+    content/ports_adapters,
+    content/asset_ingestion/validators/assets.py]}
+  pathscrub: {includes: [
+    content/ports_adapters/adapters.py,
+    content/ports_adapters/ports.py,
+    content/asset_ingestion/validators/assets.py,
+    content/render_pipeline/render_service.py,
+    content/app/models.py,
+    content/app/constants.py]}
   ingestion_service: {includes: [
     content/app/models.py, 
     content/asset_ingestion/ingestion_service.py,
@@ -29,7 +37,7 @@ filesets:
 domains:
 - name: core
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: core } 
+    - { id: repo_content, type: repo_content, fileset: pathscrub } 
 
   prompts:
     - name: plan

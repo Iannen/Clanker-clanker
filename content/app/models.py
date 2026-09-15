@@ -3,7 +3,6 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, ClassVar
 
-
 """ 
 Author understands below to be entities. 
 He thinks they are suitable for a submodule of 'models' - 'entities'

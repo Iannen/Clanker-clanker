@@ -46,8 +46,6 @@ I. Ideas, complaints and non-critical bugs:
             - > than complain to user, do no harm
         - so clankerization must be safe. Perhaps the confirm msg can first check and see that it is so? else complain to user 
 
-II. Items to refine & QC:
-
 6. App failure modes razzia, not related to ingestion or later file not found business in Renderservice:
     - buttons not 'in scope' should produce a msg saying so (i get nonetype crash cuz no msg)
     - what else
@@ -88,6 +86,9 @@ II. Items to refine & QC:
 9. Make use of latest architectural work in ingestion module
     - simplify EC and 'Report' for now, lets just have str msgs for ez
 
+II. Items to refine & QC:
+
+III. Slated for implementation:
 10. Confine Path to adapter layer and implement exception translation
     [x] Extract static path specifiers and constants from 'models.py'
         [x] Moved IOControl to tui/tui_service.py, updated imports
@@ -99,15 +100,23 @@ II. Items to refine & QC:
         - this empties model.py of such classes, and centralizes path constants in one place for ez of analysis
     [x] Removed from __future__ import annotations from codebase
 
-    [ ] Restrict 'pathlib.Path' strictly to internal 'FileBridge' implementations
-        - ensure core, models, and port interfaces use 'str' for all path representations
-        - use 'Path' internally within 'FileBridge' for safe disk I/O and 'Path.parts' token resolution
+    [ ] 'content/ports_adapters/ports.py': Remove Path from FileBridgePort signatures
+        - change 'read_asset' parameter tokenized_path to 'str'
+        - change 'get_files' rel_roots to 'list[str]' and return type to 'set[str]'
+        - change 'getFileContent' parameter full_path to 'str'
+    [ ] 'content/ports_adapters/adapters.py': Update FileBridge method signatures and return types
+        - align 'read_asset', 'get_files', and 'getFileContent' parameter types to 'str'
+        - ensure 'get_files' returns 'set[str]' using string representations of relative paths
+        - retain 'Path' strictly inside 'FileBridge' method bodies for filesystem operations
+    [ ] 'content/asset_ingestion/validators/assets.py': Update AssetValidator to operate on string path sets
+        - change 'pud_pathlist' and 'shared_pathlist' annotations to 'set[str]'
+        - replace 'Path' checks and 'Path.parents' operations with pure string path manipulations
+        - remove 'pathlib.Path' import
 
-    [ ] Translate adapter filesystem exceptions into domain exceptions
+    [ ] Translate adapter filesystem exceptions into domain exceptions (POSTPONED!)
         - wrap low-level 'FileBridge' operations to catch stdlib exceptions ('FileNotFoundError', 'PermissionError', etc.) and re-raise as domain exceptions
         - remove translated exceptions from 'ExceptionPolicy.ADOPTED_NOTICES'
 
-III. Slated for implementation:
 IV. Recently implemented:
 
 6. Fix AttributeError crash on out-of-scope keypress
