@@ -71,6 +71,7 @@ I. Ideas, complaints and non-critical bugs:
     - something about python v 3.14 vs older versions - a clue!
 
 II. Items to refine & QC:
+
 6. Eliminate god file 'models.py',  Bring presentation concerns under control of render_pipeline module (instead of entity classes)
     Phase 1, the move: Strat is to just move them and deal with imports after.
     [x] 'content/app/presentation.py': extract ActionResult here
@@ -83,7 +84,18 @@ II. Items to refine & QC:
     [x] 'content/app/models.py': Remove file after migrating members to new app/ modules
         - then byebye to this
     
-    Phase 2: after phase 1 is completed, consider below for development into subtasks:
+    Phase 2: Remove presentation concerns from entities.
+        - They belong on ContentShaper, under the wing of RenderService
+    [x] 'content/render_pipeline/content_shaper.py': Add button layout mapping method
+        - Add shape_button_replacements(key, label, template, delim) to encapsulate line splitting, padding, and delimiter replacement
+    [x] 'content/render_pipeline/render_service.py': Delegate button layout rendering to ContentShaper
+        - Update _res_ui to pass button, label, and template to ContentShaper instead of calling btn.get_repl_map()
+    [x] 'content/app/entities.py': Clean presentation methods and imports from domain dataclasses
+        - Remove Button.get_repl_map() method and inline render_pipeline import
+
+    Phase 3: after phase 2 is completed, consider below for development into subtasks:
+    - new vision for this phase. we declare KBService, to hold the button map and offer the engine a public contract to effectuate its business
+    - below kept as an 'old thought' section
     - Delete Runtimeconfig and Keyboard class 
         - distribute their content to the services that use them
         - new service do deal with buttons and keyboard and that (KBService returns? oO)
@@ -96,16 +108,7 @@ II. Items to refine & QC:
 
 III. Slated for implementation:
 IV. Recently implemented:
-1. Resolve shared asset resolution bug and execute file bridge cleanup
-    Phase 1: the bugfix
-    [x] 'content/ports_adapters/adapters.py': Fix shared asset fallback lookup
-        - expand fallback search root to scan full `clanker_path` while skipping hidden directories
-        - note: we may furth improve upon the mechanics of this later, its not set in stone
-    Phase 2: helper to clean up
-    [x] 'content/ports_adapters/adapters.py': Implement `_resolve_tokenized_path` helper method
-        - extract repeated `startswith(PathTokens.PUD)` / `startswith(PathTokens.SHARED)` string-slicing logic into a single private helper
-        - accept a tokenized path string and return the resolved `Path` object mapped to `pud_path` or `clanker_path`
-        - refactor methods with path-resolution logic (`get_file_contents`, `write_yaml`, `read_asset`) to use the new helper
+
 V. Critical bugs
 
 on test repo, manifest domain for 'a' only (keys 1 -> a):

@@ -547,3 +547,12 @@ LXXXIX: REORGANIZE SHARED ASSETS OUT OF CLANKER LOCAL DIRECTORY
     - Cleaned up obsolete directories from the old location in '.clanker'.
     - Updated path constants across `CfgFragments`, `DocPaths`, and `Layouts` in `content/app/constants.py` to route through 'content/a_lib/'.
     Reflection: Cleanly decoupled shared application assets from local execution context; however, relocating prompt fragments broke existing `.md` resolver paths that relied on the former `.clanker` layout.
+
+XC: SHARED ASSET RESOLUTION BUGFIX AND FILE BRIDGE CLEANUP
+    Purpose: Ensure reliable fallbacks for shared asset lookups across the complete library path and eliminate redundant tokenized path slicing in the file adapter.
+    - Tokenized path resolution logic was duplicated across multiple file adapter methods (`get_file_contents`, `write_yaml`, `read_asset`), while shared asset lookup failed on nested subdirectories in `clanker_path`.
+    Actions:
+    - Updated shared asset fallback lookup in `content/ports_adapters/adapters.py` to scan the full `clanker_path` while skipping hidden directories.
+    - Implemented `_resolve_tokenized_path` private helper in `content/ports_adapters/adapters.py` to centralize `PathTokens.PUD` and `PathTokens.SHARED` prefix processing and map paths to corresponding `Path` objects.
+    - Refactored `get_file_contents`, `write_yaml`, and `read_asset` methods to utilize `_resolve_tokenized_path`.
+    Reflection: Cleaned up path-resolution code and guaranteed robust fallback asset retrieval; mechanics may undergo further refinement as the asset architecture evolves.

@@ -74,19 +74,6 @@ class Button:
     inhabitant: Domain | Prompt | None = None
     action: Callable | None = None
 
-    def get_repl_map(self, label: str, template: str) -> dict[str, str]:
-        from render_pipeline.render_service import SystemKeys
-        lines = template.strip("\n").splitlines()
-        norm_label = label[:6].ljust(6)
-        mapped_lines = [
-            lines[0],
-            lines[1],
-            lines[2].replace(SystemKeys.DELIM, self.key, 1),
-            lines[3],
-            lines[4].replace(SystemKeys.DELIM * 6, norm_label, 1),
-        ]
-        return {f"{self.key}{idx}": line for idx, line in enumerate(mapped_lines)}
-
 @dataclass
 class RuntimeConfig:
     keyboard: Keyboard

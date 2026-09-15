@@ -2,6 +2,9 @@ import re
 from app.entities import TruncationSpec
 from app.exceptions import ConfigAssembly
 from abc import ABC, abstractmethod
+from app.entities import Button
+class SystemKeys:
+    DELIM = "§"
 
 class ContentShaper:
     def normalize_file_spec(self, item: str | dict) -> tuple[str, int | None]:
@@ -63,8 +66,20 @@ class ContentShaper:
 
         return content
 
-    def hydrate(self, delim: str, template: str, replacements: dict[str, str]) -> str:
-        pattern = re.compile(rf"{delim}([^{delim}]+){delim}")
+    def shape_button_replacements(self, btn: "Button", label: str, template: str) -> dict[str, str]:
+        lines = template.strip("\n").splitlines()
+        norm_label = label[:6].ljust(6)
+        mapped_lines = [
+            lines[0],
+            lines[1],
+            lines[2].replace(SystemKeys.DELIM, btn.key, 1),
+            lines[3],
+            lines[4].replace(SystemKeys.DELIM * 6, norm_label, 1),
+        ]
+        return {f"{btn.key}{idx}": line for idx, line in enumerate(mapped_lines)}
+
+    def hydrate(self, template: str, replacements: dict[str, str]) -> str:
+        pattern = re.compile(rf"{SystemKeys.DELIM}([^{SystemKeys.DELIM}]+){SystemKeys.DELIM}")
         return pattern.sub(
             lambda m: replacements.get(m.group(1).strip(), m.group(0)),
             template

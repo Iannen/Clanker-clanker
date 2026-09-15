@@ -3,17 +3,14 @@ from app.deps.render import RenderService
 from render_pipeline.content_shaper import ContentShaper
 from app.constants import Layouts, PathTokens
 from ports_adapters.ports import NoSuchFile
-
-class SystemKeys:
-    DELIM = "§"
-    
+   
 class RenderServiceImpl(RenderService):
     def __init__(self, files: FileBridgePort) -> None:
         self.files = files
         self.shaper = ContentShaper()
 
     def hydrate(self, template: str, replacements: dict[str, str]) -> str:
-        return self.shaper.hydrate(SystemKeys.DELIM, template, replacements)
+        return self.shaper.hydrate(template, replacements)
 
     def get_template(self, render: Render) -> str:
         try:
@@ -140,5 +137,5 @@ class RenderServiceImpl(RenderService):
                     template = btn_active
                     label = btn.inhabitant.name
 
-            repl_map |= btn.get_repl_map(label, template)
+            repl_map |= self.shaper.shape_button_replacements(btn, label, template)
         return repl_map

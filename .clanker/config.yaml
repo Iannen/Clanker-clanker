@@ -3,7 +3,8 @@
 filesets:
   core: {includes: [
     content/app,
-    content/clanker.py]}
+    content/clanker.py,
+    content/render_pipeline]}
   ingestion_service: {includes: [
     content/app/entities.py, 
     content/asset_ingestion/ingestion_service.py,
@@ -25,6 +26,14 @@ filesets:
     content/render_pipeline/render_service.py, 
     content/ports_adapters]}
 
+  add_kb_service: {includes: [
+    content/app/deps/keyboard.py,
+    content/app/engine.py,
+    content/app/entities.py,
+    content/app/services/keyboard_service.py,
+    content/asset_ingestion/assemblers/rtc.py,
+    content/clanker.py]}
+
 domains:
 - name: core
   resolvers:
@@ -40,7 +49,7 @@ domains:
       render:
         resolvers:
           - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.md, code-output-instruction.md]}
-          - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: III. Slated for implementation:, up_to: IV. Recently implemented:}]}
+          - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: III. Slated for implementation:, up_to: IV. Recently implemented}]}
 
     - name: bl-drain
       render:
