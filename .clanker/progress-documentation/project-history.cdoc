@@ -476,14 +476,14 @@ LXXXII: CONSOLIDATE CONFIGURATION ASSEMBLY AROUND EPHEMERAL WORKERS AND PARSERS
     - Establish a clearer division whereby parsers perform local configuration validation and complaint production, while extractors and assemblers determine which configuration issues become meaningful complaints at the pipeline level.
     Reflection: The ingestion architecture now has substantially clearer responsibility boundaries and a more compositional configuration assembly flow, reducing monolithic parsing and cognitive load. The new structure should now be allowed to settle and prove itself through continued use and validation before introducing another major architectural restructuring.
 
-V: TAIL-TRUNCATE PROJECT HISTORY FOR BRAGPACK ASSEMBLY
+LXXXIII: TAIL-TRUNCATE PROJECT HISTORY FOR BRAGPACK ASSEMBLY
     Purpose: Reduce token pressure and confusion by keeping only recent history.
     Actions: Updated the GitHub Action to tail-truncate the history document to ~12k characters.
     Reflection: History context is now bounded and focused on recent development.
     - but is dirty github action
     - to be replaced by project native solution, as we dont want to depend upon github when we can avoid it
 
-VI: ADD ASSET EXISTS CHECK TO INGESTION PIPELINE
+LXXXIV: ADD ASSET EXISTS CHECK TO INGESTION PIPELINE
     Purpose: Validate asset existence across resolvers during ingestion and flag dangling prompt assets.
     - Resolvers must verify that referenced files/filesets exist in expected pathlists before runtime config assembly.
     - The pipeline must also detect unused/dangling prompt assets in the local configuration folder.
@@ -496,3 +496,34 @@ VI: ADD ASSET EXISTS CHECK TO INGESTION PIPELINE
     - but very janky 'toe in the water'
     - i will shift attention to the concept of repo contract
 
+LXXXV: FIX ATTRIBUTEERROR CRASH ON OUT-OF-SCOPE KEYPRESS
+    Purpose: Prevent application crashes when an unhandled or out-of-scope key is pressed during runtime.
+    Actions: Guard 'self.msg' updates during key handling within the application engine.
+    - Updated the event loop in 'app/engine.py' ('run') to store the result of 'handle_key' in a local variable.
+    - Restricted reassignment of 'self.msg' to occur only when the key handling result is not None.
+    Reflection: Key interaction loop is now more resilient against unmapped or ignored key inputs.
+
+LXXXVI: CONFINE PATH TO ADAPTER LAYER AND IMPLEMENT EXCEPTION TRANSLATION
+    Purpose: 
+    - Move constant type classes out of models.py and into constants.py or adjacent to their primary callers.
+    - Isolate `Path` imports exclusively to the adapter layer.
+    - Make adapters responsible for translating their exception vocabulary into domain exception vocabulary.
+    Actions: Refactored port boundaries, path constants, and filesystem error handling across layers.
+    - Extracted application path constants (`CfgFragments`, `Layout`, `Config`, `BasePathTokens`) to `content/app/constants.py` and relocated TUI `IOControl`.
+    - Removed `from __future__ import annotations` across the codebase.
+    - Replaced `pathlib.Path` with string types in `FileBridgePort` signatures and `FileBridge` adapter methods.
+    - Refactored `AssetValidator` to perform path validation exclusively using string path sets.
+    - Defined `NoSuchFile` (Notice) and `FileAccessError` (Fatal) domain exceptions in `ports.py`.
+    - Translated `FileNotFoundError`, `PermissionError`, and `UnicodeDecodeError` in `FileBridge` methods to domain exceptions.
+    - Updated error handling in `IngestionServiceImpl` and `RenderServiceImpl` to consume `NoSuchFile`.
+    - Simplified `ExceptionPolicy` in `app/engine.py` by removing `ADOPTED_NOTICES` and wrapping non-domain adapter errors in `AdapterLeakage`.
+    Reflection: 
+    - Achieved a partial breakup of godfile 'models.py' and grouped path-related constants in one file, making analysis and prompt context management easier.
+    - Isolated `Path` to the adapter layer, forcing LLM discipline across core domain logic.
+    - Aligned exception translation with Ports & Adapters architecture, allowing adapters to be cleanly swapped out without core dependencies on legacy 'ADOPTED_NOTICES'.
+
+LXXXVII: PRUNE DANGLING ASSETS
+    Purpose: Prune dangling asset files across the project workspace.
+    Actions: Removed unused asset files identified during pipeline validation.
+    - Deleted 5 unused assets referenced by configurations.
+    Reflection: Demonstrated the practical value and efficacy of the recently updated ingestion and validation pipeline in identifying unreferenced workspace artifacts.

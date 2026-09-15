@@ -7,6 +7,8 @@ I. Ideas, complaints and non-critical bugs:
     - ez fix is to adjust template.
     - rabbithole solution is to have app write template to rowspec
 
+II. Items to refine & QC:
+
 1. UI / Feedback imp [DX/UX]: 
     - make prompt compilation msg say which domain, prompt was used in addition to just line/char
     - turns into a pipeline refactor. oh well
@@ -74,56 +76,12 @@ I. Ideas, complaints and non-critical bugs:
         - which are beneficial for the token savings
     - but not huge feature boost. mainly shuffles things around
 
-8. Ports & Adapters revision
-    - do away with 'adopted notices' in ExceptionPolicy, which was a misstep
-    - make adapters translate ex vocabulary into app vocabulary
-    - keep bridgeleakage, for good error formatting screaming at dev what issue is at top of msg
-    - so keep protect adapter functionality, but remove adoption in favour of translation
-    - this is stylepoints chase mostly
-        - but later good for when we have windows / mac adapters / no OSC52 alternative adapters
-        - which entrypoint loads as appropriate for environment
-
 9. Make use of latest architectural work in ingestion module
     - simplify EC and 'Report' for now, lets just have str msgs for ez
 
-II. Items to refine & QC:
-
-
-10. Confine Path to adapter layer and implement exception translation
-    [x] Extract static path specifiers and constants from 'models.py'
-        [x] Moved IOControl to tui/tui_service.py, updated imports
-        [x] Moved CfgFragments, Layout, Config and BasePathTokens to 'content/app/constants.py'
-            - They all deal with paths, so it makes sense to keep them in a single location
-        [x] Moved SystemKeys containing delim to renderservice.
-            - its then passed on down to contentshaper, to avoid circular import. ugh            
-            - button imports it in contentshaper bount get repl method
-        - this empties model.py of such classes, and centralizes path constants in one place for ez of analysis
-    [x] Removed from __future__ import annotations from codebase
-
-    reflection: the str ops need to be looked at, they are kinda messy af
-    [x] 'content/ports_adapters/ports.py': Remove Path from FileBridgePort signatures
-        - change 'read_asset' parameter tokenized_path to 'str'
-        - change 'get_files' rel_roots to 'list[str]' and return type to 'set[str]'
-        - change 'getFileContent' parameter full_path to 'str'
-    [x] 'content/ports_adapters/adapters.py': Update FileBridge method signatures and return types
-        - align 'read_asset', 'get_files', and 'getFileContent' parameter types to 'str'
-        - ensure 'get_files' returns 'set[str]' using string representations of relative paths
-        - retain 'Path' strictly inside 'FileBridge' method bodies for filesystem operations
-    [x] 'content/asset_ingestion/validators/assets.py': Update AssetValidator to operate on string path sets
-        - change 'pud_pathlist' and 'shared_pathlist' annotations to 'set[str]'
-        - replace 'Path' checks and 'Path.parents' operations with pure string path manipulations
-        - remove 'pathlib.Path' import
 III. Slated for implementation:
-    [ ] Translate adapter filesystem exceptions into domain exceptions (POSTPONED!)
-        - wrap low-level 'FileBridge' operations to catch stdlib exceptions ('FileNotFoundError', 'PermissionError', etc.) and re-raise as domain exceptions
-        - remove translated exceptions from 'ExceptionPolicy.ADOPTED_NOTICES' as we go
 
 IV. Recently implemented:
-
-6. Fix AttributeError crash on out-of-scope keypress
-    [x] 'app/engine.py': Guard 'self.msg' updates during key handling
-        - update loop in 'run' to store 'handle_key' result in local variable
-        - only reassign 'self.msg' if the result is not None
 
 V. Critical bugs
  

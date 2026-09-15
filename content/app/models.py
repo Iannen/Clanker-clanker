@@ -177,6 +177,7 @@ class ProgramExit(Notice):
 class NoConfig(Notice): leaf_ex = True
 
 
+
 """ 
 Author is not certain what to make of this one. right now its simple str, but soon it may become more complex:
     - yield some content to a header

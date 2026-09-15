@@ -5,19 +5,13 @@ from app.models import *
 from app.deps import *
 
 class ExceptionPolicy:
-    ADOPTED_NOTICES: tuple[type[Exception], ...] = (  
-        FileNotFoundError,
-        PermissionError,
-        UnicodeDecodeError
-    )
-
     @classmethod
     def protect_adapter(cls, adapter: Any) -> Any:
         def _wrap(fn):
             def wrapper(*args, **kwargs):
                 try:
                     return fn(*args, **kwargs)
-                except (Notice, *cls.ADOPTED_NOTICES):
+                except BaseEx:
                     raise
                 except Exception as ex:
                     raise AdapterLeakage() from ex
@@ -38,7 +32,7 @@ class ExceptionPolicy:
     def interpret_as_fatal(cls, ex: Exception) -> str:
         if isinstance(ex, Fatal):
             fatal_ex = ex
-        elif isinstance(ex, (Notice, *cls.ADOPTED_NOTICES)):
+        elif isinstance(ex, Notice):
             fatal_ex = MissedNotice(f"Missed notice: {ex.__class__.__name__}")
             fatal_ex.__cause__ = ex
         else:

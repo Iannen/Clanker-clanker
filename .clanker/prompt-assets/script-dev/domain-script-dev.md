@@ -1,1 +1,0 @@
-- Domain purpose -> develop clanker project codebase

@@ -2,6 +2,7 @@ from app.models import *
 from app.deps.render import RenderService
 from render_pipeline.code import DefaultContentShaper
 from app.constants import Layout, BasePathTokens
+from ports_adapters.ports import NoSuchFile
 
 class SystemKeys:
     DELIM = "§"
@@ -21,7 +22,7 @@ class RenderServiceImpl(RenderService):
                     return self.files.read_asset(BasePathTokens.SHARED + Layout.PROMPT)
                 case "ui_template":
                     return self.files.read_asset(BasePathTokens.SHARED + Layout.UI)
-        except FileNotFoundError as ex:
+        except NoSuchFile as ex:
             raise CorruptClanker(f"Error loading template for '{render.template}': {ex}") from ex
 
     def get_repl_map(self, cfg: RuntimeConfig, render: Render) -> dict[str, str]:

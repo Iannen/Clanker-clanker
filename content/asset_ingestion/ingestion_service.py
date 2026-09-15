@@ -1,5 +1,6 @@
 from app.deps.ingestion import IngestionService
 from app.models import NoConfig, ConfigAssembly, CorruptClanker, RuntimeConfig, KBStateResolver
+from ports_adapters.ports import NoSuchFile
 from asset_ingestion.commons.value_extractor import ValueExtractor
 from asset_ingestion.commons.error_collector import ErrorCollector
 from asset_ingestion.extractors.domains import DomainsExtractor
@@ -29,13 +30,13 @@ class IngestionServiceImpl(IngestionService):
     def get_runtime_config(self) -> tuple[Report, RuntimeConfig]:
         try:
             pud_cfg = self._get_validated_cfg_fragment(BasePathTokens.PUD + CfgFragments.PUD_CFG)
-        except FileNotFoundError:
+        except NoSuchFile:
             raise NoConfig
         collector = ErrorCollector() #Futurenote: if FNFE -> complain critically to user
         try:
             sys_cfg = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.SYSTEM_CFG)
             shared_cfg = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.SHARED_CFG)
-        except FileNotFoundError as ex:
+        except NoSuchFile as ex:
             raise ConfigAssembly(f"Missing configuration fragment: {ex}") from ex
 
         unified_fsm = FilesetExtractor().extract(pud_cfg, shared_cfg, collector)
@@ -77,7 +78,7 @@ class IngestionServiceImpl(IngestionService):
 
         try:
             default_config_data = self._get_validated_cfg_fragment(BasePathTokens.SHARED + CfgFragments.TEMPLATE_CFG)
-        except FileNotFoundError as ex:
+        except NoSuchFile as ex:
             raise ConfigAssembly(f"Missing configuration template: {ex}") from ex
 
         self.files.write_yaml(BasePathTokens.PUD + Config.DEFAULT_REL_PATH, default_config_data)

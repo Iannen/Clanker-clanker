@@ -1,5 +1,0 @@
-- conversation purpose -> discuss codebase with intent to plan new backlog items
-- output instruction
-    - only by request
-    - always inside copybox
-    - structured language, no MD syntax. no internal backticks 

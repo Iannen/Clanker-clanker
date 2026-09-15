@@ -5,7 +5,7 @@ import termios
 import tty
 from pathlib import Path
 from ruamel.yaml import YAML
-from ports_adapters.ports import IOBridgePort, FileBridgePort, ConfigIngestorPort
+from ports_adapters.ports import IOBridgePort, FileBridgePort, ConfigIngestorPort, NoSuchFile, FileAccessError
 from app.models import *
 from app.constants import BasePathTokens
 
@@ -68,10 +68,20 @@ class FileBridge(FileBridgePort):
         self.yaml = YAML()
 
     def _pud_file_as_string(self, rel_path: str) -> str:
-        return (self.pud_path / rel_path).read_text(encoding="utf-8")
+        try:
+            return (self.pud_path / rel_path).read_text(encoding="utf-8")
+        except FileNotFoundError as ex:
+            raise NoSuchFile(f"File not found: {rel_path}") from ex
+        except (PermissionError, UnicodeDecodeError) as ex:
+            raise FileAccessError(f"File access error for {rel_path}: {ex}") from ex
 
     def _shared_file_as_string(self, rel_path: str) -> str:
-        return (self.clanker_path / rel_path).read_text(encoding="utf-8")
+        try:
+            return (self.clanker_path / rel_path).read_text(encoding="utf-8")
+        except FileNotFoundError as ex:
+            raise NoSuchFile(f"File not found: {rel_path}") from ex
+        except (PermissionError, UnicodeDecodeError) as ex:
+            raise FileAccessError(f"File access error for {rel_path}: {ex}") from ex
 
     def get_file_contents(self, tokenized_path: str) -> str:
         if tokenized_path.startswith(BasePathTokens.PUD):
@@ -85,25 +95,30 @@ class FileBridge(FileBridgePort):
     def write_default_documents(
         self, doc_templ_dir: str, pud_doc_dir: str, templ_ext: str, doc_ext: str
     ) -> None:
-        prog_doc_dir = self.pud_path / pud_doc_dir.lstrip("/")
-        prompt_frag_dir = self.pud_path / ".clanker" / "prompt-fragments"
-        prog_doc_dir.mkdir(parents=True, exist_ok=True)
-        prompt_frag_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            prog_doc_dir = self.pud_path / pud_doc_dir.lstrip("/")
+            prompt_frag_dir = self.pud_path / ".clanker" / "prompt-fragments"
+            prog_doc_dir.mkdir(parents=True, exist_ok=True)
+            prompt_frag_dir.mkdir(parents=True, exist_ok=True)
 
-        doc_templates_dir = self.clanker_path / doc_templ_dir.lstrip("/")
-        if not doc_templates_dir.exists():
-            raise CorruptClanker(f"Template directory missing: '{doc_templates_dir}'")
+            doc_templates_dir = self.clanker_path / doc_templ_dir.lstrip("/")
+            if not doc_templates_dir.exists():
+                raise CorruptClanker(f"Template directory missing: '{doc_templates_dir}'")
 
-        templates = list(doc_templates_dir.glob(f"*{templ_ext}"))
-        if not templates:
-            raise CorruptClanker(f"No '{templ_ext}' template files found in '{doc_templates_dir}'")
+            templates = list(doc_templates_dir.glob(f"*{templ_ext}"))
+            if not templates:
+                raise CorruptClanker(f"No '{templ_ext}' template files found in '{doc_templates_dir}'")
 
-        for template_path in templates:
-            target_filename = template_path.stem + doc_ext
-            target_path = prog_doc_dir / target_filename
-            if not target_path.exists():
-                content = template_path.read_text(encoding="utf-8")
-                target_path.write_text(content, encoding="utf-8")
+            for template_path in templates:
+                target_filename = template_path.stem + doc_ext
+                target_path = prog_doc_dir / target_filename
+                if not target_path.exists():
+                    content = template_path.read_text(encoding="utf-8")
+                    target_path.write_text(content, encoding="utf-8")
+        except FileNotFoundError as ex:
+            raise NoSuchFile(f"Document operation failed: {ex}") from ex
+        except (PermissionError, UnicodeDecodeError) as ex:
+            raise FileAccessError(f"Document access error: {ex}") from ex
 
     def is_cwd_script_dir(self) -> bool:
         return self.pud_path.resolve() == self.clanker_path.resolve()
@@ -118,9 +133,14 @@ class FileBridge(FileBridgePort):
         else:
             raise ValueError(f"Path does not start with a recognized BasePathToken: {tokenized_path}")
 
-        target_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(target_path, "w", encoding="utf-8") as f:
-            self.yaml.dump(data, f)
+        try:
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(target_path, "w", encoding="utf-8") as f:
+                self.yaml.dump(data, f)
+        except FileNotFoundError as ex:
+            raise NoSuchFile(f"Cannot write YAML to non-existent location: {target_path}") from ex
+        except (PermissionError, UnicodeDecodeError) as ex:
+            raise FileAccessError(f"Error writing YAML to {target_path}: {ex}") from ex
 
     def read_asset(self, tokenized_path: str) -> str:
         str_path = str(tokenized_path)
@@ -146,56 +166,69 @@ class FileBridge(FileBridgePort):
             raise ValueError(f"Unrecognized basepath token: {basepath_token}")
 
         resolved_files: set[str] = set()
-        for root_str in rel_roots:
-            rel_path = Path(root_str)
-            full_path = base_dir / rel_path
+        try:
+            for root_str in rel_roots:
+                rel_path = Path(root_str)
+                full_path = base_dir / rel_path
 
-            if not full_path.exists():
-                if missing_ok:
-                    continue
-                raise FileNotFoundError(rel_path)
+                if not full_path.exists():
+                    if missing_ok:
+                        continue
+                    raise NoSuchFile(rel_path)
 
-            if full_path.is_file():
-                resolved_files.add(str(rel_path))
-            elif full_path.is_dir():
-                for file_path in full_path.rglob("*"):
-                    if file_path.is_file():
-                        resolved_files.add(str(file_path.relative_to(base_dir)))
+                if full_path.is_file():
+                    resolved_files.add(str(rel_path))
+                elif full_path.is_dir():
+                    for file_path in full_path.rglob("*"):
+                        if file_path.is_file():
+                            resolved_files.add(str(file_path.relative_to(base_dir)))
+        except (PermissionError, UnicodeDecodeError) as ex:
+            raise FileAccessError(f"Error traversing directory under {basepath_token}: {ex}") from ex
         return resolved_files
 
     def get_contents_with_pud_fallback(self, file_names: list[str]) -> dict[str, str | None]:
         ret_map: dict[str, str | None] = {fn: None for fn in file_names}
 
-        shr_map: dict[str, Path] = {}
-        shr_dir = self.clanker_path / ".clanker"
-        if shr_dir.exists():
-            for fn in file_names:
-                matches = [p for p in shr_dir.rglob("*") if p.is_file() and p.name == fn]
-                if len(matches) > 1:
-                    raise IllegalDuplicateFile(f"Collision in SHARED for '{fn}': {matches}")
-                elif len(matches) == 1:
-                    shr_map[fn] = matches[0]
+        try:
+            shr_map: dict[str, Path] = {}
+            shr_dir = self.clanker_path / ".clanker"
+            if shr_dir.exists():
+                for fn in file_names:
+                    matches = [p for p in shr_dir.rglob("*") if p.is_file() and p.name == fn]
+                    if len(matches) > 1:
+                        raise IllegalDuplicateFile(f"Collision in SHARED for '{fn}': {matches}")
+                    elif len(matches) == 1:
+                        shr_map[fn] = matches[0]
 
-        pud_map: dict[str, Path] = {}
-        pud_dir = self.pud_path / ".clanker"
-        if pud_dir.exists():
-            for fn in file_names:
-                matches = [p for p in pud_dir.rglob("*") if p.is_file() and p.name == fn]
-                if len(matches) > 1:
-                    raise IllegalDuplicateFile(f"Collision in PUD for '{fn}': {matches}")
-                elif len(matches) == 1:
-                    pud_map[fn] = matches[0]
+            pud_map: dict[str, Path] = {}
+            pud_dir = self.pud_path / ".clanker"
+            if pud_dir.exists():
+                for fn in file_names:
+                    matches = [p for p in pud_dir.rglob("*") if p.is_file() and p.name == fn]
+                    if len(matches) > 1:
+                        raise IllegalDuplicateFile(f"Collision in PUD for '{fn}': {matches}")
+                    elif len(matches) == 1:
+                        pud_map[fn] = matches[0]
 
-        resolved_paths: dict[str, Path] = {**shr_map, **pud_map}
+            resolved_paths: dict[str, Path] = {**shr_map, **pud_map}
 
-        for fn, path in resolved_paths.items():
-            if fn in ret_map:
-                ret_map[fn] = path.read_text(encoding="utf-8")
+            for fn, path in resolved_paths.items():
+                if fn in ret_map:
+                    ret_map[fn] = path.read_text(encoding="utf-8")
+        except FileNotFoundError as ex:
+            raise NoSuchFile(f"Missing file during fallback lookup: {ex}") from ex
+        except (PermissionError, UnicodeDecodeError) as ex:
+            raise FileAccessError(f"Access error during fallback lookup: {ex}") from ex
 
         return ret_map
 
     def getFileContent(self, full_path: str) -> str:
-        return Path(full_path).read_text(encoding="utf-8")
+        try:
+            return Path(full_path).read_text(encoding="utf-8")
+        except FileNotFoundError as ex:
+            raise NoSuchFile(f"File not found: {full_path}") from ex
+        except (PermissionError, UnicodeDecodeError) as ex:
+            raise FileAccessError(f"File access error for {full_path}: {ex}") from ex
 
 class ConfigIngestor(ConfigIngestorPort):
     def __init__(self) -> None:

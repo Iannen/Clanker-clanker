@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from app.models import Notice, Fatal
 
 class IOBridgePort(ABC):
     @abstractmethod
@@ -13,6 +14,9 @@ class IOBridgePort(ABC):
     @abstractmethod
     def get_acceptance(self, required_phrase: str | None) -> tuple[str, str]: ...
 
+
+class NoSuchFile(Notice): leaf_ex = True
+class FileAccessError(Fatal): leaf_ex = True
 
 class FileBridgePort(ABC):
     @abstractmethod
