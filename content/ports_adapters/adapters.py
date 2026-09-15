@@ -67,41 +67,40 @@ class FileBridge(FileBridgePort):
         self.pud_path = Path.cwd()
         self.yaml = YAML()
 
-    def _pud_file_as_string(self, rel_path: str) -> str:
+    def _resolve_tokenized_path(self, tokenized_path: str) -> Path:
+        str_path = str(tokenized_path)
+        if str_path.startswith(PathTokens.PUD):
+            rel_path = str_path[len(PathTokens.PUD):].lstrip("/")
+            return self.pud_path / rel_path
+        elif str_path.startswith(PathTokens.SHARED):
+            rel_path = str_path[len(PathTokens.SHARED):].lstrip("/")
+            return self.clanker_path / rel_path
+        raise ValueError(f"Path does not start with a recognized BasePathToken: {tokenized_path}")
+
+    def _read_path_as_string(self, target_path: Path) -> str:
         try:
-            return (self.pud_path / rel_path).read_text(encoding="utf-8")
+            return target_path.read_text(encoding="utf-8")
         except FileNotFoundError as ex:
-            raise NoSuchFile(f"File not found: {rel_path}") from ex
+            raise NoSuchFile(f"File not found: {target_path}") from ex
         except (PermissionError, UnicodeDecodeError) as ex:
-            raise FileAccessError(f"File access error for {rel_path}: {ex}") from ex
+            raise FileAccessError(f"File access error for {target_path}: {ex}") from ex
+
+    def _pud_file_as_string(self, rel_path: str) -> str:
+        return self._read_path_as_string(self.pud_path / rel_path)
 
     def _shared_file_as_string(self, rel_path: str) -> str:
-        try:
-            return (self.clanker_path / rel_path).read_text(encoding="utf-8")
-        except FileNotFoundError as ex:
-            raise NoSuchFile(f"File not found: {rel_path}") from ex
-        except (PermissionError, UnicodeDecodeError) as ex:
-            raise FileAccessError(f"File access error for {rel_path}: {ex}") from ex
+        return self._read_path_as_string(self.clanker_path / rel_path)
 
     def get_file_contents(self, tokenized_path: str) -> str:
-        if tokenized_path.startswith(PathTokens.PUD):
-            rel_path = tokenized_path[len(PathTokens.PUD):].lstrip("/")
-            return self._pud_file_as_string(rel_path)
-        elif tokenized_path.startswith(PathTokens.SHARED):
-            rel_path = tokenized_path[len(PathTokens.SHARED):].lstrip("/")
-            return self._shared_file_as_string(rel_path)
-        raise ValueError(f"Path does not start with a recognized BasePathToken: {tokenized_path}")
+        target_path = self._resolve_tokenized_path(tokenized_path)
+        return self._read_path_as_string(target_path)
 
     def write_default_documents(
         self, doc_templ_dir: str, pud_doc_dir: str, templ_ext: str, doc_ext: str
     ) -> None:
         try:
-            if pud_doc_dir.startswith(PathTokens.PUD):
-                rel_pud_dir = pud_doc_dir[len(PathTokens.PUD):].lstrip("/")
-                prog_doc_dir = self.pud_path / rel_pud_dir
-            elif pud_doc_dir.startswith(PathTokens.SHARED):
-                rel_pud_dir = pud_doc_dir[len(PathTokens.SHARED):].lstrip("/")
-                prog_doc_dir = self.clanker_path / rel_pud_dir
+            if pud_doc_dir.startswith((PathTokens.PUD, PathTokens.SHARED)):
+                prog_doc_dir = self._resolve_tokenized_path(pud_doc_dir)
             else:
                 prog_doc_dir = self.pud_path / pud_doc_dir.lstrip("/")
 
@@ -109,12 +108,8 @@ class FileBridge(FileBridgePort):
             prog_doc_dir.mkdir(parents=True, exist_ok=True)
             prompt_frag_dir.mkdir(parents=True, exist_ok=True)
 
-            if doc_templ_dir.startswith(PathTokens.SHARED):
-                rel_templ_dir = doc_templ_dir[len(PathTokens.SHARED):].lstrip("/")
-                doc_templates_dir = self.clanker_path / rel_templ_dir
-            elif doc_templ_dir.startswith(PathTokens.PUD):
-                rel_templ_dir = doc_templ_dir[len(PathTokens.PUD):].lstrip("/")
-                doc_templates_dir = self.pud_path / rel_templ_dir
+            if doc_templ_dir.startswith((PathTokens.PUD, PathTokens.SHARED)):
+                doc_templates_dir = self._resolve_tokenized_path(doc_templ_dir)
             else:
                 doc_templates_dir = self.clanker_path / doc_templ_dir.lstrip("/")
 
@@ -140,14 +135,7 @@ class FileBridge(FileBridgePort):
         return self.pud_path.resolve() == self.clanker_path.resolve()
 
     def write_yaml(self, tokenized_path: str, data: dict) -> None:
-        if tokenized_path.startswith(PathTokens.PUD):
-            rel_path = tokenized_path[len(PathTokens.PUD):].lstrip("/")
-            target_path = self.pud_path / rel_path
-        elif tokenized_path.startswith(PathTokens.SHARED):
-            rel_path = tokenized_path[len(PathTokens.SHARED):].lstrip("/")
-            target_path = self.clanker_path / rel_path
-        else:
-            raise ValueError(f"Path does not start with a recognized BasePathToken: {tokenized_path}")
+        target_path = self._resolve_tokenized_path(tokenized_path)
 
         try:
             target_path.parent.mkdir(parents=True, exist_ok=True)
@@ -159,14 +147,7 @@ class FileBridge(FileBridgePort):
             raise FileAccessError(f"Error writing YAML to {target_path}: {ex}") from ex
 
     def read_asset(self, tokenized_path: str) -> str:
-        str_path = str(tokenized_path)
-        if str_path.startswith(PathTokens.PUD):
-            rel_path = str_path[len(PathTokens.PUD):].lstrip("/")
-            return self._pud_file_as_string(rel_path)
-        elif str_path.startswith(PathTokens.SHARED):
-            rel_path = str_path[len(PathTokens.SHARED):].lstrip("/")
-            return self._shared_file_as_string(rel_path)
-        raise ValueError(f"Path does not start with a recognized BasePathToken: {str_path}")
+        return self.get_file_contents(tokenized_path)
 
     def get_files(
         self,

@@ -95,66 +95,18 @@ I. Ideas, complaints and non-critical bugs:
     - something about python v 3.14 vs older versions?
 
 II. Items to refine & QC:
-[BUG] -> fixed:
-
-md resolver asset resolution dont work from shared location, but does for pud contained assets.
-
-I offer the segment of yaml which produced this very prompt, displaying intended inclusions of files header
-'''
-...
-domains:
-- name: core
-  resolvers:
-    - { id: repo_content, type: repo_content, fileset: move_assets } 
-
-  prompts:
-    - name: plan
-      render:
-        resolvers:
-          - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.md, backlog-output-instructions.md, domain-debloat.md] }
-          - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: II. Items to refine & QC, up_to: III. Slated for implementation}]}
-...
-'''
-fix info:
-'
-Bug:
-The multi-document resolver failed to locate shared prompt fragments (e.g., plan-mode.md, backlog-output-instructions.md) and defaulted to [No content found...]. The lookup mechanism in FileBridge.get_contents_with_pud_fallback restricted its search in the shared repository strictly to the .clanker directory (self.clanker_path / ".clanker"). Shared assets actually reside under content/a_lib/shared-assets/, causing the lookup to return empty results.
-
-Fix:
-Expanded the fallback search root in FileBridge so it scans the shared project root (self.clanker_path) rather than scoping exclusively to .clanker. Added an explicit filter to ignore hidden directories (such as .git or virtual environments) during traversal, allowing shared prompt fragments across any repository subdirectory to resolve properly.
-'
-
-
-
-other tips received:
-'Centralize Path Resolution Helper (_resolve_tokenized_path)
-Extract the repeated if startswith(PathTokens.PUD) / elif startswith(PathTokens.SHARED) string-slicing logic into a single private method:'
-
-'Add PathTokens.CLANKER_DIR Constant
-Add CLANKER_DIR = ".clanker" to PathTokens in constants.py. Replaces hardcoded string literals like ".clanker" inside write_default_documents and fallback search functions.'
-
-'Add Workspace Directory Constants in DocPaths
-Add PUD_PROMPT_FRAGMENTS = PathTokens.PUD + "/.clanker/prompt-fragments" to DocPaths. Inside write_default_documents, the creation of prompt_frag_dir can resolve this token directly instead of manual string concatenation:'
-
-'Define Scoped Asset Search Roots for Fallback Resolution
-Instead of searching self.clanker_path.rglob("*") across the entire repo (which risk false hits in virtual environments, build outputs, or .git), add explicit search roots to DocPaths or CfgFragments in constants.py:
-
-DocPaths.SHARED_PROMPT_FRAGMENTS = PathTokens.SHARED + "/content/a_lib/shared-assets/prompt-fragments"
-
-DocPaths.PUD_PROMPT_FRAGMENTS = PathTokens.PUD + "/.clanker/prompt-fragments"
-This keeps fallback search bounded to valid prompt fragment subdirectories.'
-
-'Consolidate Redundant File Reading Methods
-read_asset and get_file_contents perform identical path token resolution and file reading. read_asset can simply delegate to get_file_contents (or use the new _resolve_tokenized_path helper directly).'
-
-'Deprecate camelCase Method (getFileContent)
-Rename getFileContent(self, full_path: str) to snake_case (get_file_content or merge into get_file_contents) to align with Python PEP 8 conventions used across the rest of the codebase.
-check to see if its used at all'
-
-'investigate the usage of port methods in core, to see if there are unused members on port and thus adapter. see if there are adapter members not on the port (thus not used)'
-
 III. Slated for implementation:
 IV. Recently implemented:
+1. Resolve shared asset resolution bug and execute file bridge cleanup
+    Phase 1: the bugfix
+    [x] 'content/ports_adapters/adapters.py': Fix shared asset fallback lookup
+        - expand fallback search root to scan full `clanker_path` while skipping hidden directories
+        - note: we may furth improve upon the mechanics of this later, its not set in stone
+    Phase 2: helper to clean up
+    [x] 'content/ports_adapters/adapters.py': Implement `_resolve_tokenized_path` helper method
+        - extract repeated `startswith(PathTokens.PUD)` / `startswith(PathTokens.SHARED)` string-slicing logic into a single private helper
+        - accept a tokenized path string and return the resolved `Path` object mapped to `pud_path` or `clanker_path`
+        - refactor methods with path-resolution logic (`get_file_contents`, `write_yaml`, `read_asset`) to use the new helper
 V. Critical bugs
 
 on test repo, manifest domain for 'a' only (keys 1 -> a):
