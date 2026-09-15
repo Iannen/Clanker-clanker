@@ -1,0 +1,48 @@
+Intended but non-binding readme structure.
+--------------------------------------------------------------------------
+# <project name>: <optional tagline>
+
+<high-level pitch text>
+
+### <Problem situation>  
+<a what>
+### <derived principles>
+<a 'from that'>
+### <mitigating project characteristics>
+<a 'and then we'>
+### <status and roadmap>
+<back to earth, concluding the intro section>
+## <repository showcase / deepdive>
+<repository appropriate breakdown>
+## <outro / cta section>
+<repository appropriate outro / cta content>
+--------------------------------------------------------------------------
+To promote at-a-glance readability, we use collapsible content where appropriate:
+
+<blockquote>
+<details>
+<summary>header of collapsible 1</summary>
+
+  ```language/situation appropriate, plaintext otherwise
+example content
+  ```
+
+</details>
+
+<details>
+<summary>header of collapsible 1</summary>
+
+  ```plaintext
+yet more example content
+  ```
+
+</details>
+
+<details>
+<summary>image collapsible header</summary>
+
+![obligatory alt text for llm friendlyness](path/to/asset.warn_user_if_bad_extension)
+
+</details>
+</blockquote>
+--------------------------------------------------------------------------

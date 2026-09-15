@@ -7,31 +7,6 @@ I. Ideas, complaints and non-critical bugs:
     - ez fix is to adjust template.
     - rabbithole solution is to have app write template to rowspec
 
-II. Items to refine & QC:
-
-1. UI / Feedback imp [DX/UX]: 
-    - make prompt compilation msg say which domain, prompt was used in addition to just line/char
-    - turns into a pipeline refactor. oh well
-    - we have the righthand side of the screen to put info on. will be baller, only green (black) grass
-
-2. i should be able to add more than just filesets as named bottom level sets.
-    - we have 3 resolvers that deal with files
-        - md resolver has fallback to shared logic, uses Filelist which contain File 
-            - this should become a bottom level thing
-        - repo and manifest resolvers both use Filesets
-            - this is already a bottom level thing. do Fileset class need an attr to say source? 
-                - It can default to pud
-                - and optionally by some flag var work off of shared instead
-            - then improves semantics of yaml?
-
-4. Non IDE / linter import strats: BUFF importance of this, as LLMs typically run lower than 3.14 version of python, and cannot compensate.
-    - goal, make it so that 
-        - all types used in a file are always imported (explicitly or via kleene)
-            - this goes for typehints too
-        - the inverse. no dangling imports allowed
-            - but what abt kleene imports?
-    - something about python v 3.14 vs older versions?
-
 5. Simple 'end to end' test system, for improved dev confidence when iterating
    Modeled on my manual 'test flow':
     - For a clankerized repo
@@ -51,6 +26,32 @@ II. Items to refine & QC:
         - perhaps also a 'unruly repo' scenario, where the repo already contains things contract mandates
             - > than complain to user, do no harm
         - so clankerization must be safe. Perhaps the confirm msg can first check and see that it is so? else complain to user 
+
+10. clankerization of a project can represent the much talked about repo contract by the content it creates
+    - it should check 'does any of the content exist'?
+        - if so dont do anything, complain to user
+    - only if coast clear should it create the stuff in repo root
+        - '.clanker' dir and its internal stuff
+        - 'README.md' -> #empty
+        - 'content' -> no members
+
+
+
+2. i should be able to add more than just filesets as named bottom level sets.
+    - we have 3 resolvers that deal with files
+        - md resolver has fallback to shared logic, uses Filelist which contain File 
+            - this should become a bottom level thing
+        - repo and manifest resolvers both use Filesets
+            - this is already a bottom level thing. do Fileset class need an attr to say source? 
+                - It can default to pud
+                - and optionally by some flag var work off of shared instead
+            - then improves semantics of yaml?
+
+8. Validation / complaints
+    - manifest resolver must check if fileset is declared in pud_cfg with fallback to shared_cfg
+        - so shared_cfg can declare defaults for it, which the pud_cfg can override
+        - if not present, then complain
+
 
 6. Revise god file 'models.py' and members
     [ ] split it up into 
@@ -79,25 +80,63 @@ II. Items to refine & QC:
 7. Make use of latest architectural work in ingestion module
     - simplify EC and 'Report' for now, lets just have str msgs for ez
 
-8. Validation / complaints
-    - manifest resolver must check if fileset is declared in pud_cfg with fallback to shared_cfg
-        - so shared_cfg can declare defaults for it, which the pud_cfg can override
-        - if not present, then complain
 
-9. I need to move shared assets of all kinds out of Clankers .clanker dir
-    - uniformity of repo structure
-    - expose hidden errors currently present
+1. UI / Feedback imp [DX/UX]: 
+    - make prompt compilation msg say which domain, prompt was used in addition to just line/char
+    - turns into a pipeline refactor. oh well
+    - we have the righthand side of the screen to put info on. will be baller, only green (black) grass
 
-10. clankerization of a project can represent the much talked about repo contract by the content it creates
-    - it should check 'does any of the content exist'?
-        - if so dont do anything, complain to user
-    - only if coast clear should it create the stuff in repo root
-        - '.clanker' dir and its internal stuff
-        - 'README.md' -> #empty
-        - 'content' -> no members
+4. Non IDE / linter import strats: BUFF importance of this, as LLMs typically run lower than 3.14 version of python, and cannot compensate.
+    - goal, make it so that 
+        - all types used in a file are always imported (explicitly or via kleene)
+            - this goes for typehints too
+        - the inverse. no dangling imports allowed
+            - but what abt kleene imports?
+    - something about python v 3.14 vs older versions?
+
+II. Items to refine & QC:
+
+9. Reorganize shared assets out of Clanker's .clanker directory
+    [ ] Move '.clanker/shared-assets' to 'content/shared-assets'
+        [x] copied content over
+        [ ] deleted from old location
+    [ ] Move '.clanker/templates' to to 'content/templates'
+        [x] copied content over
+        [ ] deleted from old location
+'''the list of members
+<shared-manifest>
+.clanker/shared-assets/config-fragments/shared_cfg.yaml : 80 lines
+.clanker/shared-assets/config-fragments/system_cfg.yaml : 10 lines
+.clanker/shared-assets/layouts/btn_active.layout : 6 lines
+.clanker/shared-assets/layouts/btn_hl.layout : 6 lines
+.clanker/shared-assets/layouts/btn_inactive.layout : 6 lines
+.clanker/shared-assets/layouts/prompt.layout : 4 lines
+.clanker/shared-assets/layouts/ui.layout : 22 lines
+.clanker/shared-assets/prompt-fragments/behavioural_instructions/config-development-mode.md : 3 lines
+.clanker/shared-assets/prompt-fragments/behavioural_instructions/do-mode.md : 5 lines
+.clanker/shared-assets/prompt-fragments/behavioural_instructions/doc-management-mode.md : 3 lines
+.clanker/shared-assets/prompt-fragments/behavioural_instructions/north-star-mode.md : 4 lines
+.clanker/shared-assets/prompt-fragments/behavioural_instructions/plan-mode.md : 6 lines
+.clanker/shared-assets/prompt-fragments/behavioural_instructions/readme_content.analysis_instruction : 1 lines
+.clanker/shared-assets/prompt-fragments/behavioural_instructions/readme_structure.analysis_instruction : 3 lines
+.clanker/shared-assets/prompt-fragments/doctrines/readme.docspec2 : 17 lines
+.clanker/shared-assets/prompt-fragments/doctrines/readme.structure_spec : 48 lines
+.clanker/shared-assets/prompt-fragments/general-rules.md : 2 lines
+.clanker/shared-assets/prompt-fragments/output-instructions/backlog-output-instructions.md : 11 lines
+.clanker/shared-assets/prompt-fragments/output-instructions/code-output-instruction.md : 21 lines
+.clanker/shared-assets/prompt-fragments/output-instructions/config-dev-output.instruction : 1 lines
+.clanker/shared-assets/prompt-fragments/output-instructions/history-output-instructions.md : 13 lines
+</shared-manifest>
+<templates>
+.clanker/templates/config.template
+.clanker/templates/documentation/architecture.template
+.clanker/templates/documentation/backlog.template
+.clanker/templates/documentation/north-star.template
+.clanker/templates/documentation/project-history.template
+</templates>
+'''
 
 III. Slated for implementation:
-
 IV. Recently implemented:
 
 3. revise new dir structure, so we dont have simple 'code.py' files, they should ref their system

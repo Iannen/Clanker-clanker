@@ -1,0 +1,3 @@
+- Convert verified completed backlog items into formatted project-history.cdoc entries.
+- Clarify purpose / reflection with user if item does not indicate such
+- Continue the Roman numeral sequence from the latest entry.
