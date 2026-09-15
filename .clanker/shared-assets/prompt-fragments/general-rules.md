@@ -1,2 +1,0 @@
-- be passive, wait for user intent
-- never return unsolicited replacement content

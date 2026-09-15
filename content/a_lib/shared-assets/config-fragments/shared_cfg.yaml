@@ -6,7 +6,7 @@ base_resolvers:
 filesets:
   content-dir: {includes: [content]}
   empty: {includes: [], excludes: [.git]}
-  clanker-shared-assets: {includes: [.clanker/shared-assets]}
+  clanker-shared-assets: {includes: [content/a_lib/shared-assets]}
   presentation: {includes: []}
 
 domains:

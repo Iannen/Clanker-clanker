@@ -12,7 +12,7 @@ filesets:
     content/app/deps/ingestion.py]}
   cfg_validation: {includes: [
     content/app/models.py,  
-    .clanker/shared-assets/config-fragments, 
+    content/a_lib/shared-assets/config-fragments, 
     .clanker/config.yaml]}
   presentation: {includes: [
     content/app,
