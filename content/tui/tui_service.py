@@ -1,6 +1,6 @@
 from app.deps.tui import TUIService
 from ports_adapters.ports import IOBridgePort
-from app.models import ProgramExit, UserDecline
+from app.exceptions import ProgramExit, UserDecline
 
 class IOControl:
     ACCEPTED = "accepted"

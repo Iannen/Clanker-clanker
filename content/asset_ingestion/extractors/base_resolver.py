@@ -1,5 +1,5 @@
 from typing import Any
-from app.models import MultiDocResolver
+from app.entities import MultiDocResolver
 from asset_ingestion.commons.error_collector import ErrorCollector
 from asset_ingestion.commons.value_extractor import ValueExtractor
 from asset_ingestion.parsers.resolver import ResolverParser

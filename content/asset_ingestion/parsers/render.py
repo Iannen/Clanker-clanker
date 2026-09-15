@@ -1,5 +1,5 @@
 from typing import Any
-from app.models import Render
+from app.entities import Render
 from asset_ingestion.commons.error_collector import ErrorCollector
 from asset_ingestion.commons.fileset_map import FilesetMap
 from asset_ingestion.commons.value_extractor import ValueExtractor

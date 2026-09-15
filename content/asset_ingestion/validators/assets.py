@@ -1,10 +1,4 @@
-from app.models import (
-    RuntimeConfig,
-    MultiDocResolver,
-    RepoContentResolver,
-    ManifestResolver,
-    Resolver,
-)
+from app.entities import MultiDocResolver, RepoContentResolver, ManifestResolver
 from asset_ingestion.commons.error_collector import ErrorCollector
 # big 'ol slopburger - but free
 class AssetValidator:

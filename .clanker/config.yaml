@@ -5,14 +5,14 @@ filesets:
     content/app,
     content/clanker.py]}
   ingestion_service: {includes: [
-    content/app/models.py, 
+    content/app/entities.py, 
     content/asset_ingestion/ingestion_service.py,
     content/asset_ingestion/commons/error_collector.py,
     content/asset_ingestion/commons/value_extractor.py,
     content/ports_adapters,
     content/app/deps/ingestion.py]}
   cfg_validation: {includes: [
-    content/app/models.py,  
+    content/app/entities.py,  
     content/a_lib/shared-assets/config-fragments, 
     .clanker/config.yaml]}
   presentation: {includes: [

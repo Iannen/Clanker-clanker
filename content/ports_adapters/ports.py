@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from app.models import Notice, Fatal
+from app.exceptions import Notice, Fatal
 
 class IOBridgePort(ABC):
     @abstractmethod

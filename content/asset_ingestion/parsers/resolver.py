@@ -1,16 +1,6 @@
 from typing import Any
-from app.models import (
-    ConfigAssembly,
-    File,
-    Filelist,
-    FileSet,
-    KBStateResolver,
-    ManifestResolver,
-    MultiDocResolver,
-    RepoContentResolver,
-    Resolver,
-    TruncationSpec,
-)
+from app.entities import File, MultiDocResolver, Filelist, KBStateResolver, RepoContentResolver, TruncationSpec, ManifestResolver
+from app.exceptions import ConfigAssembly
 from asset_ingestion.commons.error_collector import ErrorCollector
 from asset_ingestion.commons.fileset_map import FilesetMap
 from asset_ingestion.commons.value_extractor import ValueExtractor

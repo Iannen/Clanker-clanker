@@ -6,7 +6,6 @@ import tty
 from pathlib import Path
 from ruamel.yaml import YAML
 from ports_adapters.ports import IOBridgePort, FileBridgePort, ConfigIngestorPort, NoSuchFile, FileAccessError
-from app.models import *
 from app.constants import PathTokens
 
 from tui.tui_service import IOControl

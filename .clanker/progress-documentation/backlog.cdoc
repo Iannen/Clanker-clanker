@@ -1,5 +1,5 @@
 I. Ideas, complaints and non-critical bugs:
-II. Items to refine & QC:
+
 - arrow keys interpreted as esc
     - this has grown on me though - keep? but formalize if so
 - the rendered UI does not properly display empty buttons for 'qwerty' and 'asdfgh' rows
@@ -52,28 +52,6 @@ II. Items to refine & QC:
         - so shared_cfg can declare defaults for it, which the pud_cfg can override
         - if not present, then complain
 
-
-6. Revise god file 'models.py': Extract all members into new specialized files
-    [ ] 'content/app/entities.py': extract all pure data dataclasses from models.py here
-    [ ] 'content/app/exceptions.py': extract all ex classes from models.py here
-    [ ] 'content/app/presentation.py': extract ActionResult here
-    [ ] 'content/app/models.py': Remove file after migrating members to new app/ modules
-    after this, consider below:
-    - Perhaps the so called runtimeconfig can be split up on reception by engine, and passed into the module services that use them?
-        - ui_render -> RenderService on self
-        - Keyboard members -> into a service which deals with state & execution? KeyboardService returns oO?
-            - absorbing some engine functionality too
-        - RuntimeConfig becomes a 'product' returner to engine, unwrapped and distributed to other services?
-            - 'base_resolvers' managed by RenderService on self?
-    - benefits sought:
-        - I dont have to pass the 'whole motherload' to llms, but I can tailor it more
-            - reduce token use
-            - reduce llm confusion
-    - prettiness of organisation?
-    - limits the fallout of * imports
-        - which are beneficial for the token savings
-    - but not huge feature boost. mainly shuffles things around
-
 7. Make use of latest architectural work in ingestion module
     - simplify EC and 'Report' for now, lets just have str msgs for ez
 
@@ -91,6 +69,31 @@ II. Items to refine & QC:
         - the inverse. no dangling imports allowed
             - but what abt * imports?
     - something about python v 3.14 vs older versions - a clue!
+
+II. Items to refine & QC:
+6. Eliminate god file 'models.py',  Bring presentation concerns under control of render_pipeline module (instead of entity classes)
+    Phase 1, the move: Strat is to just move them and deal with imports after.
+    [x] 'content/app/presentation.py': extract ActionResult here
+        - limited blast radius, a good first target. 
+        - the functionality on it goes to ContentShaper class of render_pipeline module
+    [x] 'content/app/exceptions.py': extract all ex classes from models.py here
+        - for core, i want the ex it mentiones to be in its 'deps' dir. it becomes a common site, where the raiser and consumer both import from
+    [x] 'content/app/entities.py': extract all pure data dataclasses from models.py here
+        - the last one
+    [x] 'content/app/models.py': Remove file after migrating members to new app/ modules
+        - then byebye to this
+    
+    Phase 2: after phase 1 is completed, consider below for development into subtasks:
+    - Delete Runtimeconfig and Keyboard class 
+        - distribute their content to the services that use them
+        - new service do deal with buttons and keyboard and that (KBService returns? oO)
+    - benefits sought:
+        - I dont have to pass the 'whole motherload' to llms, but I can tailor it more
+            - reduce token use
+            - reduce llm confusion
+        - prettiness of organisation?
+    - thought: engine becomes superthin. I guess that is a-ok ?
+
 III. Slated for implementation:
 IV. Recently implemented:
 1. Resolve shared asset resolution bug and execute file bridge cleanup

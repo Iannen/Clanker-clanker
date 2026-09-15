@@ -1,4 +1,4 @@
-from app.models import RuntimeConfig
+from app.entities import RuntimeConfig
 from abc import ABC, abstractmethod
 
 class Report(ABC):

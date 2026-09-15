@@ -1,5 +1,6 @@
 import re
-from app.models import ConfigAssembly, TruncationSpec
+from app.entities import TruncationSpec
+from app.exceptions import ConfigAssembly
 from abc import ABC, abstractmethod
 
 class ContentShaper:

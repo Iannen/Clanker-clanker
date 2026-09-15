@@ -1,4 +1,4 @@
-from app.models import *
+from app.entities import MultiDocResolver, RepoContentResolver, ManifestResolver, KBStateResolver, Button, Domain
 from app.deps.render import RenderService
 from render_pipeline.content_shaper import ContentShaper
 from app.constants import Layouts, PathTokens

@@ -1,5 +1,6 @@
 from app.deps.ingestion import IngestionService
-from app.models import NoConfig, ConfigAssembly, CorruptClanker, RuntimeConfig, KBStateResolver
+from app.entities import RuntimeConfig, KBStateResolver
+from app.exceptions import NoConfig, ConfigAssembly, CorruptClanker
 from ports_adapters.ports import NoSuchFile
 from asset_ingestion.commons.value_extractor import ValueExtractor
 from asset_ingestion.commons.error_collector import ErrorCollector

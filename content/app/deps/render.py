@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from app.models import Render, RuntimeConfig
+from app.entities import Render, RuntimeConfig
 
 class RenderService(ABC):
     @abstractmethod
