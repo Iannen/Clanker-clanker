@@ -1,5 +1,5 @@
 from app.deps.ingestion import IngestionService
-from app.models import BasePathTokens, NoConfig, ConfigAssembly, CorruptClanker, Config, RuntimeConfig, KBStateResolver
+from app.models import NoConfig, ConfigAssembly, CorruptClanker, RuntimeConfig, KBStateResolver
 from asset_ingestion.commons.value_extractor import ValueExtractor
 from asset_ingestion.commons.error_collector import ErrorCollector
 from asset_ingestion.extractors.domains import DomainsExtractor
@@ -9,7 +9,7 @@ from asset_ingestion.parsers.render import RenderParser
 from asset_ingestion.extractors.base_resolver import BaseResolversExtractor
 from asset_ingestion.extractors.ui_render import UIRenderExtractor
 from asset_ingestion.validators.assets import AssetValidator
-from asset_ingestion.assemblers.rtc import CfgFragments
+from app.constants import CfgFragments, Config, BasePathTokens
 
 class DocPaths:
     SHARED_TEMPLATES = "/.clanker/templates/documentation"

@@ -11,7 +11,7 @@ from asset_ingestion.commons.error_collector import ErrorCollector
 from asset_ingestion.commons.fileset_map import FilesetMap
 from asset_ingestion.commons.value_extractor import ValueExtractor
 from asset_ingestion.extractors.domains import DomainsExtractor
-
+from app.constants import CfgFragments
 
 @dataclass
 class DomainOverflow: # create general complain based on 'enum' ?
@@ -29,11 +29,7 @@ class DomainOverflow: # create general complain based on 'enum' ?
             f"Excess domains: [{overflowing}]"
         )
 
-class CfgFragments:
-    PUD_CFG = "/.clanker/config.yaml"
-    SYSTEM_CFG = "/.clanker/shared-assets/config-fragments/system_cfg.yaml" 
-    SHARED_CFG = "/.clanker/shared-assets/config-fragments/shared_cfg.yaml" 
-    TEMPLATE_CFG = "/.clanker/templates/config.template"
+
     
 class RtcAssembler:
     def assemble(

@@ -1,7 +1,12 @@
 from app.models import *
 from app.deps.render import RenderService
 from render_pipeline.code import DefaultContentShaper
+from app.constants import Layout, BasePathTokens
+from pathlib import Path
 
+class SystemKeys:
+    DELIM = "§"
+    
 class RenderServiceImpl(RenderService):
     def __init__(self, files: FileBridgePort) -> None:
         self.files = files
@@ -64,8 +69,8 @@ class RenderServiceImpl(RenderService):
 
     def _res_repo_content(self, resolver: RepoContentResolver) -> dict[str, str]:
         paths = sorted(
-            self.files.get_files("<PUD>", resolver.fileset.includes, missing_ok=False) -
-            self.files.get_files("<PUD>", resolver.fileset.excludes, missing_ok=True)
+            self.files.get_files(BasePathTokens.PUD, resolver.fileset.includes, missing_ok=False) -
+            self.files.get_files(BasePathTokens.PUD, resolver.fileset.excludes, missing_ok=True)
         )
 
         tree_header = f"<tree>\n" + "\n".join(f"├── {p}" for p in paths) + "\n</tree>"

@@ -1,4 +1,3 @@
-from __future__ import annotations
 import re
 from app.models import ConfigAssembly, TruncationSpec
 from abc import ABC, abstractmethod

@@ -89,23 +89,23 @@ II. Items to refine & QC:
     - simplify EC and 'Report' for now, lets just have str msgs for ez
 
 10. Confine Path to adapter layer and implement exception translation
+    [x] Extract static path specifiers and constants from 'models.py'
+        [x] Moved IOControl to tui/tui_service.py, updated imports
+        [x] Moved CfgFragments, Layout, Config and BasePathTokens to 'content/app/constants.py'
+            - They all deal with paths, so it makes sense to keep them in a single location
+        [x] Moved SystemKeys containing delim to renderservice.
+            - its then passed on down to contentshaper, to avoid circular import. ugh            
+            - button imports it in contentshaper bount get repl method
+        - this empties model.py of such classes, and centralizes path constants in one place for ez of analysis
+    [x] Removed from __future__ import annotations from codebase
+
     [ ] Restrict 'pathlib.Path' strictly to internal 'FileBridge' implementations
         - ensure core, models, and port interfaces use 'str' for all path representations
         - use 'Path' internally within 'FileBridge' for safe disk I/O and 'Path.parts' token resolution
+
     [ ] Translate adapter filesystem exceptions into domain exceptions
         - wrap low-level 'FileBridge' operations to catch stdlib exceptions ('FileNotFoundError', 'PermissionError', etc.) and re-raise as domain exceptions
         - remove translated exceptions from 'ExceptionPolicy.ADOPTED_NOTICES'
-    [ ] Extract static path specifiers and constants from 'models.py'
-        [x] Moved IOControl to tui/tui_service.py, updated imports
-        [x] Moved CfgFragments to 'content/asset_ingestion/assemblers/rtc.py'
-            - weird fucking place, doubt that will remain its home
-            - its used only by ingestion service, and its helper rtc.py
-            - weird to put it with the helper
-        [x] Moved  DocPaths into 'content/asset_ingestion/ingestion_service.py'
-            - its only usage
-            - seems weird, but must less so that 'CfgFragments' placement
-            
-        - move static classes ('SystemKeys', 'Config', 'BasePathTokens', 'DocPaths', 'Layout', etc.) into a dedicated 'app/model/constants.py' file
 
 III. Slated for implementation:
 IV. Recently implemented:

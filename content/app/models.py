@@ -1,8 +1,6 @@
-from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from pathlib import Path
 from typing import Any, Callable, ClassVar
 
 
@@ -99,6 +97,7 @@ class Button:
     action: Callable | None = None
 
     def get_repl_map(self, label: str, template: str) -> dict[str, str]:
+        from render_pipeline.render_service import SystemKeys
         lines = template.strip("\n").splitlines()
         norm_label = label[:6].ljust(6)
         mapped_lines = [
@@ -178,29 +177,6 @@ class ProgramExit(Notice):
     
 class NoConfig(Notice): leaf_ex = True
 
-""" 
-Author think these appear to be concerned with supplying paths and other statics to the rest of the system.
-It is thought that it is good to keep this 'center stage', but perhaps in separate file?
-
-'llm says: 
-""" 
-class SystemKeys:
-    DELIM = "§"
-
-class Config:
-    DEFAULT_REL_PATH: ClassVar[str] = "/.clanker/config.yaml"
-
-class BasePathTokens:
-    PUD = "<PUD>"
-    SHARED = "<SHARED>"
-    CONTENT = "content"
-
-class Layout:
-    UI = "/.clanker/shared-assets/layouts/ui.layout"
-    PROMPT = "/.clanker/shared-assets/layouts/prompt.layout"
-    BTN_ACTIVE = "/.clanker/shared-assets/layouts/btn_active.layout"
-    BTN_HL = "/.clanker/shared-assets/layouts/btn_hl.layout"
-    BTN_INACTIVE = "/.clanker/shared-assets/layouts/btn_inactive.layout"
 
 """ 
 Author is not certain what to make of this one. right now its simple str, but soon it may become more complex:
