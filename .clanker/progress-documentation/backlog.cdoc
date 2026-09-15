@@ -103,7 +103,7 @@ III. Slated for implementation:
     [ ] Move '.clanker/templates' to to 'content/templates'
         [x] copied content over
         [ ] deleted from old location
-    [ ] Update path constants for relocated shared assets and templates
+    [x] Update path constants for relocated shared assets and templates
         - 'content/app/constants.py': Any path that is a concatenation of 'PathTokens.SHARED + <a_path>'
             - update 'a_path' to source from new location
 

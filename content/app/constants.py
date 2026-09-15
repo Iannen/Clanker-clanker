@@ -7,20 +7,20 @@ class PathTokens:
 # used in asset_ingestion only
 class CfgFragments:
     PUD_CFG = PathTokens.PUD + "/.clanker/config.yaml"
-    SYSTEM_CFG = PathTokens.SHARED + "/.clanker/shared-assets/config-fragments/system_cfg.yaml" 
-    SHARED_CFG = PathTokens.SHARED + "/.clanker/shared-assets/config-fragments/shared_cfg.yaml" 
-    TEMPLATE_CFG = PathTokens.SHARED + "/.clanker/templates/config.template"
+    SYSTEM_CFG = PathTokens.SHARED + "/content/a_lib/shared-assets/config-fragments/system_cfg.yaml" 
+    SHARED_CFG = PathTokens.SHARED + "/content/a_lib/shared-assets/config-fragments/shared_cfg.yaml" 
+    TEMPLATE_CFG = PathTokens.SHARED + "/content/a_lib/templates/config.template"
 
 class DocPaths:
-    SHARED_TEMPLATES = PathTokens.SHARED + "/.clanker/templates/documentation"
+    SHARED_TEMPLATES = PathTokens.SHARED + "/content/a_lib/templates/documentation"
     PUD_DOCS = PathTokens.PUD + "/.clanker/progress-documentation"
     TEMPL_EXT = ".template"
     DOC_EXT = ".cdoc"
 
 # used in render_pipeline only
 class Layouts:
-    UI = PathTokens.SHARED + "/.clanker/shared-assets/layouts/ui.layout"
-    PROMPT = PathTokens.SHARED + "/.clanker/shared-assets/layouts/prompt.layout"
-    BTN_ACTIVE = PathTokens.SHARED + "/.clanker/shared-assets/layouts/btn_active.layout"
-    BTN_HL = PathTokens.SHARED + "/.clanker/shared-assets/layouts/btn_hl.layout"
-    BTN_INACTIVE = PathTokens.SHARED + "/.clanker/shared-assets/layouts/btn_inactive.layout"
+    UI = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/ui.layout"
+    PROMPT = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/prompt.layout"
+    BTN_ACTIVE = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/btn_active.layout"
+    BTN_HL = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/btn_hl.layout"
+    BTN_INACTIVE = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/btn_inactive.layout"
