@@ -29,10 +29,8 @@ class TUIServiceImpl(TUIService):
             raise ProgramExit
         return ch.lower()
 
-    def get_confirmation(self, prompt_msg: str, required_phrase: str | None = None) -> None:
+    def get_confirmation(self, prompt_msg: str, required_phrase: str) -> None:
         instructions = f"Type '{required_phrase}' and press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n> "
-        if required_phrase is None:
-            instructions = "Press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n"            
         base_msg = f"\n{prompt_msg}\n{instructions}"
         self.io_bridge.write(base_msg)
         while True:

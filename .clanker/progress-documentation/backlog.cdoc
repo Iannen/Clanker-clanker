@@ -72,18 +72,26 @@ I. Ideas, complaints and non-critical bugs:
     - its purpose is essentially to classify ex that core does not deal with
     - and to format the msgs that get printed in main
 
-7. Add 'UserQuestion' or similar to presentation, in similar fashion to ActionResult
-    - the purpose is to centralize str's relating to the calls to TUIService.get_confirmation. make engine use these exclusively
-        - it can carry class attrs for the questions, and class attrs for 'required_phrase'
-    - align TUIService to not assign default = None. 'UserQuestion' will carry a 'required_phrase' so engine can always satisfy the signature.
-
 8. Follow up prompts
     - to pass the next step of workflow
         - plan into do into backlog management
     - reduce token waste
 
 II. Items to refine & QC:
-III. Slated for implementation:               
+III. Slated for implementation:
+7. Centralize user confirmation prompts into presentation tier
+    [ ] 'content/app/presentation.py': Add UserQuestions class
+        - centralized string templates and constants for TUI confirmation calls
+        - class attribute for required confirmation phrase (REQUIRED_PHRASE = "yes")
+        - static/class methods or attributes for INIT_REPO, OVERFLOW_PROCEED, and COMPLAINTS_PROCEED messages
+    [ ] 'content/app/deps/tui.py': Update TUIService interface signature
+        - remove default None assignment from required_phrase parameter in get_confirmation signature
+    [ ] 'content/tui/tui_service.py': Update TUIServiceImpl implementation
+        - remove default None assignment from required_phrase in get_confirmation signature
+        - remove redundant fallback logic for when required_phrase is None
+    [ ] 'content/app/engine.py': Refactor confirmation calls to use UserQuestions
+        - replace inline confirmation prompt strings with UserQuestions members
+        - supply UserQuestions.REQUIRED_PHRASE across all get_confirmation invocations               
 IV. Recently implemented:
 V. Critical bugs
 

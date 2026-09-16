@@ -1,10 +1,9 @@
 #!/usr/bin/env -S python3 -B
 import traceback
-from typing import Callable, Any
-from app.presentation import ActionResult
+from typing import Any
+from app.presentation import ActionResult, UserQuestions
 from app.exceptions import UserDecline, NoConfig, Fatal, Notice, UnexpectedEx, BaseEx, ProgramExit, MissedNotice
 from app.deps import *
-from app.entities import Button, Prompt
 from app.deps.keyboard import KBService
 
 class ExceptionPolicy:
@@ -73,7 +72,7 @@ class AppEngine:
             return ProgramExit.MSG_DECLINED_BOOTSTRAP        
         except NoConfig:
             try:
-                self.io.get_confirmation("Directory not initialized as clank repo - clankerize?", "yes")
+                self.io.get_confirmation(UserQuestions.INIT_REPO, UserQuestions.REQUIRED_PHRASE)
                 self.session.initialize_workspace()
                 action_res = self._bootstrap()
             except UserDecline:
@@ -105,13 +104,13 @@ class AppEngine:
         dof_report = report.get_domain_overflow_report()
         if dof_report is not None:
             self.io.get_confirmation(
-                f"{dof_report}\nDo you wish to proceed with overflowed domains trimmed?",
-                required_phrase="yes"
+                UserQuestions.overflow_proceed(dof_report),
+                UserQuestions.REQUIRED_PHRASE
             )
         complaints = report.get_complaints()
         if complaints:
             self.io.get_confirmation(
-                f"{"\n".join(complaints)}\nProceed anyway?",
-                required_phrase="yes"
+                UserQuestions.complaints_proceed(complaints),
+                UserQuestions.REQUIRED_PHRASE
             )
         return action_res
