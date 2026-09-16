@@ -1,21 +1,23 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from app.entities import Keyboard, Resolver, Render
+from app.entities import Button, Resolver, Render
 from app.presentation import ActionResult
 
 @dataclass
 class RenderContext:
+    btn_map: dict[str, Button]
+    selected_key: str | None
     render: Render
-    keyboard: Keyboard
     base_resolvers: list[Resolver]
 
 @dataclass
 class UIRenderContext:
-    keyboard: Keyboard
+    btn_map: dict[str, Button]
+    selected_key: str | None
 
 class KBService(ABC):
     @abstractmethod
-    def setup(self, keyboard: Keyboard, base_resolvers: list[Resolver]) -> None: ...
+    def setup(self, btn_map: dict[str, Button], base_resolvers: list[Resolver]) -> None: ...
     @abstractmethod
     def handle_key(self, key: str) -> tuple[ActionResult | None, RenderContext | None]: ...
     @abstractmethod

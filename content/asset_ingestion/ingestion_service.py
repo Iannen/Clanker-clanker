@@ -22,7 +22,7 @@ class IngestionServiceImpl(IngestionService):
         self.files = files
         self.cfg_ingestor = cfg_ingestor
 
-    def get_runtime_config(self) -> tuple[Report, Keyboard, Render, list[Resolver]]:
+    def get_runtime_config(self) -> tuple[Report, dict[str, Button], Render, list[Resolver]]:
         try:
             pud_cfg = self._get_validated_cfg_fragment(CfgFragments.PUD_CFG)
         except NoSuchFile:
@@ -62,7 +62,7 @@ class IngestionServiceImpl(IngestionService):
             collector=collector,
         )
 
-        return collector, keyboard, ui_render, base_resolvers
+        return collector, keyboard.button_map, ui_render, base_resolvers
 
     def initialize_workspace(self) -> None:
         if self.files.is_cwd_script_dir():

@@ -84,15 +84,15 @@ class AppEngine:
 
         try:
             while True:
-                ui_ctx = self.kb_service.get_ui_context()
-                ui_render = self.renderer.render_ui(ui_ctx.keyboard, self.msg)
+                ui_render_ctx = self.kb_service.get_ui_context()
+                ui_render = self.renderer.render_ui(ui_render_ctx, self.msg)
                 self.io.display(ui_render)
                 cmd_key = self.io.get_key()
-                action_res, render_ctx = self.kb_service.handle_key(cmd_key)
+                action_res, prompt_render_ctx = self.kb_service.handle_key(cmd_key)
                 if action_res is not None:
                     self.msg = action_res
-                elif render_ctx is not None:
-                    rendered_text = self.renderer.render_prompt(render_ctx)
+                elif prompt_render_ctx is not None:
+                    rendered_text = self.renderer.render_prompt(prompt_render_ctx)
                     self.msg = self.io.to_clipboard(rendered_text)
         except ProgramExit:
             return ProgramExit.MSG_DEFAULT
@@ -100,7 +100,9 @@ class AppEngine:
             return ExceptionPolicy.interpret_as_fatal(other_ex)
 
     def _bootstrap(self) -> ActionResult:
-        report, keyboard, ui_render, base_resolvers = self.session.get_runtime_config()
+        report, btn_map, ui_render, base_resolvers = self.session.get_runtime_config()
+        self.renderer.set_ui_render(ui_render)
+        self.kb_service.setup(btn_map, base_resolvers)
         dof_report = report.get_domain_overflow_report()
         if dof_report is not None:
             self.io.get_confirmation(
@@ -113,6 +115,4 @@ class AppEngine:
                 f"{"\n".join(complaints)}\nProceed anyway?",
                 required_phrase="yes"
             )
-        self.renderer.set_ui_render(ui_render)
-        self.kb_service.setup(keyboard, base_resolvers)
         return ActionResult("Bootstrap completed successfully")

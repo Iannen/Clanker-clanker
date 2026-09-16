@@ -15,23 +15,23 @@ class RenderServiceImpl(RenderService):
     def set_ui_render(self, ui_render: Render) -> None:
         self._ui_render = ui_render
 
-    def render_ui(self, keyboard: Keyboard, msg: ActionResult | None) -> str:
+    def render_ui(self, ctx: UIRenderContext, msg: ActionResult | None) -> str:
         if self._ui_render is None:
             raise CorruptClanker("UI render spec has not been configured.")
-        template = self.get_template(self._ui_render)
-        repl_map = self._res_ui(keyboard)
+        template = self._get_template(self._ui_render)
+        repl_map = self._res_ui(ctx.btn_map, ctx.selected_key)
         repl_map["msg"] = msg.get_msg() if msg is not None else ""
-        return self.hydrate(template, repl_map)
+        return self._hydrate(template, repl_map)
 
     def render_prompt(self, ctx: RenderContext) -> str:
-        template = self.get_template(ctx.render)
-        repl_map = self.get_repl_map(ctx.keyboard, ctx.base_resolvers, ctx.render)
-        return self.hydrate(template, repl_map)
+        template = self._get_template(ctx.render)
+        repl_map = self._get_repl_map(ctx)
+        return self._hydrate(template, repl_map)
 
-    def hydrate(self, template: str, replacements: dict[str, str]) -> str:
+    def _hydrate(self, template: str, replacements: dict[str, str]) -> str:
         return self.shaper.hydrate(template, replacements)
 
-    def get_template(self, render: Render) -> str:
+    def _get_template(self, render: Render) -> str:
         try:
             match render.template:
                 case "prompt_template":
@@ -41,15 +41,15 @@ class RenderServiceImpl(RenderService):
         except NoSuchFile as ex:
             raise CorruptClanker(f"Error loading template for '{render.template}': {ex}") from ex
 
-    def get_repl_map(self, keyboard: Keyboard, base_resolvers: list[Resolver], render: Render) -> dict[str, str]:
+    def _get_repl_map(self, ctx: RenderContext) -> dict[str, str]:
         active_resolvers: list[Resolver] = []
-        if render.inherit_base:
-            active_resolvers.extend(base_resolvers)
-        if render.inherit_domain:
-            active_btn = keyboard.button_map.get(keyboard.selected_key)
+        if ctx.render.inherit_base:
+            active_resolvers.extend(ctx.base_resolvers)
+        if ctx.render.inherit_domain and ctx.selected_key:
+            active_btn = ctx.btn_map.get(ctx.selected_key)
             if active_btn and isinstance(active_btn.inhabitant, Domain):
                 active_resolvers.extend(active_btn.inhabitant.resolvers)
-        active_resolvers.extend(render.resolvers)
+        active_resolvers.extend(ctx.render.resolvers)
         replacements: dict[str, str] = {}
         for resolver in active_resolvers:
             match resolver:
@@ -60,7 +60,7 @@ class RenderServiceImpl(RenderService):
                 case ManifestResolver():
                     replacements.update(self._res_manifest(resolver))
                 case KBStateResolver():
-                    replacements.update(self._res_ui(keyboard))
+                    replacements.update(self._res_ui(ctx.btn_map, ctx.selected_key))
         return replacements
 
     def _res_multi_doc(self, resolver: MultiDocResolver) -> dict[str, str]:
@@ -131,8 +131,8 @@ class RenderServiceImpl(RenderService):
 
         return f"<{tag}>\n" + "\n".join(lines) + "\n</" + tag + ">"
 
-    def _res_ui(self, keyboard: Keyboard) -> dict[str, str]:
-        if keyboard is None:
+    def _res_ui(self, btn_map: dict[str, Button], selected_key: str | None) -> dict[str, str]:
+        if not btn_map:
             return {}
 
         btn_hl = self.files.read_asset(Layouts.BTN_HL)
@@ -140,11 +140,12 @@ class RenderServiceImpl(RenderService):
         btn_inactive = self.files.read_asset(Layouts.BTN_INACTIVE)
 
         repl_map = {}
-        for btn in keyboard.get_unique_buttons():
+        unique_buttons = {btn.key: btn for btn in btn_map.values()}.values()
+        for btn in unique_buttons:
             label = ""
             template = btn_inactive
             if btn.type == Button.TYPE_DOMAIN:
-                if btn.key == keyboard.selected_key:
+                if btn.key == selected_key:
                     template = btn_hl
                     label = btn.inhabitant.name if btn.inhabitant else ""
                 elif btn.inhabitant:
