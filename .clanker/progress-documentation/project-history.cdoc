@@ -575,3 +575,15 @@ XCII: DECOUPLING PRESENTATION CONCERNS FROM DOMAIN ENTITIES
     - Refactored '_res_ui' in 'content/render_pipeline/render_service.py' to delegate button layout formatting directly to ContentShaper rather than invoking entity methods.
     - Stripped 'get_repl_map()' and associated render pipeline imports from 'Button' in 'content/app/entities.py'.
     Reflection: Re-established strict domain isolation by ensuring domain entities remain pure data containers stripped of presentation responsibilities.
+
+XCIII: REFACTORING KEYBOARD MANAGEMENT INTO DEDICATED KBSERVICE AND REFINING SERVICE BOUNDARIES
+    Purpose: Isolate keyboard state management and button orchestration into a dedicated service while decoupling presentation rendering dependencies via explicit context objects.
+    - System state was tightly coupled to monolithic structures (`RuntimeConfig`, `Keyboard`) and `AppEngine` was directly managing button state wiring, key routing, and presentation formatting.
+    Actions:
+    - Dissolved `RuntimeConfig` and refactored `IngestionService` to return explicit config components (`Report`, `dict[str, Button]`, `Render`, `list[Resolver]`).
+    - Introduced `KBService` (`KBServiceImpl`) to encapsulate key handling, domain/prompt button wiring, and selected key state management, replacing the legacy `Keyboard` class.
+    - Defined `RenderContext` and `UIRenderContext` data transfer objects in `keyboard.py` to pass strict presentation state (`btn_map`, `selected_key`, `render`, `base_resolvers`) to `RenderService`.
+    - Expanded `RenderService` to own UI and prompt rendering end-to-end via `render_ui` and `render_prompt`, absorbing button-shaping and template hydration logic.
+    - Delegated clipboard formatting to `TUIServiceImpl.to_clipboard`, returning structured `ActionResult` objects.
+    - Simplified `AppEngine` into a thin execution loop coordinating `KBService`, `RenderService`, and `TUIService`.
+    Reflection: Cleanly separated domain state orchestration from presentation rendering, establishing strict service boundaries and removing stateful boilerplate from the main engine loop.

@@ -78,6 +78,9 @@ class ContentShaper:
         ]
         return {f"{btn.key}{idx}": line for idx, line in enumerate(mapped_lines)}
 
+    def shape_action_result(self, msg: str, width: int = 117) -> str:
+        return f"{msg:<{width}}"[:width]
+
     def hydrate(self, template: str, replacements: dict[str, str]) -> str:
         pattern = re.compile(rf"{SystemKeys.DELIM}([^{SystemKeys.DELIM}]+){SystemKeys.DELIM}")
         return pattern.sub(

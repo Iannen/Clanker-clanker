@@ -15,12 +15,12 @@ class RenderServiceImpl(RenderService):
     def set_ui_render(self, ui_render: Render) -> None:
         self._ui_render = ui_render
 
-    def render_ui(self, ctx: UIRenderContext, msg: ActionResult | None) -> str:
+    def render_ui(self, ctx: UIRenderContext, msg: ActionResult) -> str:
         if self._ui_render is None:
             raise CorruptClanker("UI render spec has not been configured.")
         template = self._get_template(self._ui_render)
         repl_map = self._res_ui(ctx.btn_map, ctx.selected_key)
-        repl_map["msg"] = msg.get_msg() if msg is not None else ""
+        repl_map["msg"] = self.shaper.shape_action_result(msg.message)
         return self._hydrate(template, repl_map)
 
     def render_prompt(self, ctx: RenderContext) -> str:

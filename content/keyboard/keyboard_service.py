@@ -26,7 +26,7 @@ class KBServiceImpl(KBService):
                 return None, res
             if isinstance(res, ActionResult):
                 return res, None
-        return ActionResult(f"No action bound to key '{key}'"), None
+        return ActionResult(ActionResult.UNBOUND_KEY.format(key=key)), None
 
     def _get_unique_buttons(self, btn_type: str | None = None) -> list[Button]:
         unique = {btn.key: btn for btn in self.button_map.values()}.values()
@@ -40,12 +40,11 @@ class KBServiceImpl(KBService):
 
     def _set_selected_num_btn(self, key: str | None) -> ActionResult:
         if key is None:
-            case = "none"
-        else:
-            ref_btn = self.button_map[key]
-            if ref_btn.type != Button.TYPE_DOMAIN:
-                raise ValueError("Selected button is not a number button")
-            case = "empty" if ref_btn.inhabitant is None else "inhabited"
+            return ActionResult(ActionResult.BOOTSTRAP_SUCCESS)
+
+        ref_btn = self.button_map[key]
+        if ref_btn.type != Button.TYPE_DOMAIN:
+            raise ValueError("Selected button is not a number button")
 
         self.selected_key = key
         prompt_btns = self._get_unique_buttons(Button.TYPE_PROMPT)
@@ -53,20 +52,19 @@ class KBServiceImpl(KBService):
         for b in prompt_btns:
             b.inhabitant = b.action = None
 
-        if case == "inhabited":
+        if ref_btn.inhabitant is not None:
             for p_btn, prompt in zip(prompt_btns, ref_btn.inhabitant.prompts):
                 p_btn.inhabitant = prompt
                 p_btn.action = self._create_render_context
 
-            return ActionResult(f"Domain '{ref_btn.inhabitant.name}' on key '{key}' selected")
+            return ActionResult(ActionResult.DOMAIN_SELECTED.format(domain=ref_btn.inhabitant.name, key=key))
 
-        msg = "Selection cleared" if case == "none" else f"Domain 'None' on key '{key}' selected"
-        return ActionResult(msg)
+        return ActionResult(ActionResult.KEY_EMPTY.format(key=key))
 
     def _create_render_context(self, key: str) -> RenderContext | ActionResult:
         btn = self.button_map.get(key)
         if btn is None or btn.inhabitant is None or not isinstance(btn.inhabitant, Prompt):
-            return ActionResult(f"No prompt assigned to key '{key}'")
+            return ActionResult(ActionResult.NO_PROMPT_BOUND.format(key=key))
         return RenderContext(
             btn_map=self.button_map,
             selected_key=self.selected_key,

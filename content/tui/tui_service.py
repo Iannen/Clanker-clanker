@@ -21,7 +21,7 @@ class TUIServiceImpl(TUIService):
     def to_clipboard(self, text_content: str) -> ActionResult:
         lines_count = self.io_bridge.to_clipboard(text_content)
         char_count = len(text_content)
-        return ActionResult(f"Copied {lines_count} lines ({char_count} chars) to clipboard")
+        return ActionResult(ActionResult.COPIED_TO_CLIPBOARD.format(lines=lines_count, chars=char_count))
 
     def get_key(self) -> str:
         ch = self.io_bridge.read_char()

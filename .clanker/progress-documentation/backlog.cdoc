@@ -68,112 +68,49 @@ I. Ideas, complaints and non-critical bugs:
             - but what abt * imports?
     - something about python v 3.14 vs older versions - a clue!
 
+5. Mull 'ExceptionPolicy'
+    - its purpose is essentially to classify ex that core does not deal with
+    - and to format the msgs that get printed in main
+
+next. prune keyboard from codebase. it should only be in ingestion module
 
 II. Items to refine & QC:
+III. Slated for implementation:  
+8. Localize engine execution state and formalize ActionResult production in domain/infrastructure services
+    [ ] 'content/app/presentation.py': Strip method logic and define static message members on ActionResult
+        - Remove 'get_msg' method from ActionResult (no methods on class)
+        - Add static string members:
+            - BOOTSTRAP_SUCCESS = "Bootstrap completed successfully"
+            - SELECTION_CLEARED = "Selection cleared"
+            - NO_PROMPT_BOUND = "No prompt assigned to key '{key}'"
+            - UNBOUND_KEY = "No action bound to key '{key}'"
+            - DOMAIN_SELECTED = "Domain '{domain}' on key '{key}' selected"
+            - DOMAIN_NONE_SELECTED = "Domain 'None' on key '{key}' selected"
+            - COPIED_TO_CLIPBOARD = "Copied {lines} lines ({chars} chars) to clipboard"
 
-7. Refactor keyboard management into dedicated KBService, refine AppEngine / services boundaries
-    Phase 1: Dissolve RuntimeConfig container into explicit components
-    [x] 'content/app/entities.py': Remove RuntimeConfig dataclass
-        - Delete RuntimeConfig definition to eliminate monolithic config passing
-    [x] 'content/app/deps/ingestion.py': Update IngestionService interface return type
-        - Update get_runtime_config to return tuple[Report, Keyboard, Render, list[Resolver]]
-    [x] 'content/asset_ingestion/ingestion_service.py': Unpack RtcAssembler components in return tuple
-        - Return keyboard, ui_render, and base_resolvers directly instead of instantiating RuntimeConfig
-    [x] 'content/app/deps/render.py': Update RenderService interface signature
-        - Replace RuntimeConfig parameter in get_repl_map with explicit keyboard and base_resolvers dependencies
-    [x] 'content/render_pipeline/render_service.py': Adapt render service callsites
-        - Update get_repl_map signature and internal calls to accept keyboard and base_resolvers directly
-    [x] 'content/app/engine.py': Store unpacked config components on self
-        - Unpack tuple from session in _bootstrap and assign self.keyboard, self.ui_render, and self.base_resolvers
-        - Update internal _render callsites to pass self.keyboard and self.base_resolvers
-    [x] 'content/asset_ingestion/validators/assets.py': Update AssetValidator interface signature
-        - Replace RuntimeConfig parameter in validate with explicit keyboard, ui_render, and base_resolvers dependencies
-    Phase 2: Shift UI rendering ownership and lifecycle to RenderService
-    [x] 'content/app/deps/render.py': Expand RenderService interface
-        - Add set_ui_render(ui_render: Render) -> None
-        - Add render_ui(keyboard: Keyboard, msg: ActionResult | None) -> str
-    [x] 'content/render_pipeline/render_service.py': Implement render_ui
-        - Store ui_render internally via set_ui_render during bootstrap
-        - Implement render_ui(keyboard, msg): handle template loading, _res_ui replacement mapping, msg string extraction/injection, and hydration
-    [x] 'content/app/engine.py': Delegate UI string generation to RenderService
-        - Pass ui_render to self.renderer.set_ui_render during bootstrap
-        - Simplify _display_ui to pass self.keyboard and self.msg directly into self.renderer.render_ui(self.keyboard, self.msg)
+    [ ] KBService Producer Methods ('content/keyboard/keyboard_service.py'):
+        - handle_key: Return ActionResult.UNBOUND_KEY (formatted with key) for unbound actions
+        - _set_selected_num_btn: Return ActionResult.DOMAIN_SELECTED, ActionResult.DOMAIN_NONE_SELECTED, or ActionResult.SELECTION_CLEARED
+        - _create_render_context: Return ActionResult.NO_PROMPT_BOUND (formatted with key) when prompt inhabitant missing
 
-    Phase 3: Introduce KBService & streamline AppEngine (lookahead item)
-    [x] Create KBServiceImpl class: just a dummy class that accepts button map on self
-        - add set_button_map(self, button map):
-            - store on self
-    [x] Create KBService abc class as app deps member
-    [x] clanker.py: add KBService to DI, set it on AppEngine
-    [x] AppEngine
-        - change init to accept KBService, store on self
-        - on bootstrap, extract Keyboard.button_map, set on KeyboardService
-        - retain all other workings as-is
-    
-    Phase 4: Engine Loop & KBService promotion
-    [x] 'content/app/deps/keyboard.py': Define RenderContext and update KBService ABC
-        - Create RenderContext dataclass holding (render: Render, keyboard: Keyboard, base_resolvers: list[Resolver])
-        - Replace set_button_map with setup(keyboard: Keyboard, base_resolvers: list[Resolver]) -> None on KBService ABC
-        - Update handle_key signature to return tuple[ActionResult | None, RenderContext | None]
-    [x] 'content/keyboard/keyboard_service.py': Implement key handling & button state orchestration
-        - Implement setup to store keyboard and base_resolvers, and wire domain button actions
-        - Move _set_selected_num_btn logic into KBServiceImpl
-        - Implement handle_key to handle domain button state updates, return (None, None) on unhandled keys, or return RenderContext for prompt actions
-    [x] 'content/app/engine.py': Delegate key routing to KBService and compile prompt from RenderContext
-        - Remove _wire_num_row and _set_selected_num_btn from AppEngine
-        - Update _bootstrap to call kb_service.setup(keyboard, base_resolvers)
-        - Refactor run loop to unpack (ActionResult, RenderContext) from KBService.handle_key
-        - Extract render, keyboard, and base_resolvers from RenderContext to invoke RenderService methods directly and pass output to clipboard
+    [ ] TUIService Producer Method ('content/tui/tui_service.py'):
+        - to_clipboard: Return ActionResult using COPIED_TO_CLIPBOARD formatted with line and character counts
 
-    Phase 5: AppEngine to Services delegation of menial tasks
-    [x] 'content/app/deps/render.py' & 'content/render_pipeline/render_service.py': Facade prompt rendering in RenderService
-        - Add `render_prompt(ctx: RenderContext) -> str` to RenderService ABC and implementation
-        - Encapsulate `get_template`, `get_repl_map`, and `hydrate` sequence inside `render_prompt` without passing UI message context
-        - No need to refactor RenderService beyond adding the new methods
-            - simply use its existing methods inside the new method
-    [x] 'content/app/deps/tui.py' & 'content/tui/tui_service.py': Delegate clipboard action result
-        - Update `to_clipboard(content: str)` signature to return `ActionResult`
-        - Move line and character count message formatting into `TUIServiceImpl.to_clipboard`
-    [x] 'content/app/deps/keyboard.py' & 'content/keyboard/keyboard_service.py': Delegate UI context generation
-        - Introduce `UIRenderContext` dataclass containing `keyboard: Keyboard`
-        - Add `get_ui_context() -> UIRenderContext` to `KBService` ABC and implementation
-    [x] 'content/app/engine.py': Streamline engine run loop and eliminate direct KB state
-        - Remove `self.kb` instance attribute assignment from `_bootstrap`
-        - Remove `_display_ui` helper and fetch UI context via `self.kb_service.get_ui_context()` at top of run loop
-        - Unpack `ui_ctx.keyboard` directly into `renderer.render_ui` call site
-        - Inline `renderer.render_ui`, `io.display`, and `io.get_key` execution
-        - Refactor prompt handling branch: call `renderer.render_prompt(render_ctx)` and assign `io.to_clipboard(...)` directly to `self.msg`
+    [ ] IngestionService Producer Method ('content/asset_ingestion/ingestion_service.py'):
+        - get_runtime_config (via error collector / bootstrap flow): Return ActionResult.BOOTSTRAP_SUCCESS
 
-    Phase 6: KBService now returns ctx type classes, which RenderService uses to render the ui string or prompt string, respectively
-    [x] 'content/asset_ingestion/ingestion_service.py': Update runtime config return value
-        - Replace returning keyboard object with returning keyboard.button_map directly
-    [x] 'content/app/deps/ingestion.py': Update IngestionService ABC signature
-        - Update return type of get_runtime_config to tuple[Report, dict[str, Button], Render, list[Resolver]]
-    [x] 'content/app/engine.py': Delegate button map to KBService setup during bootstrap
-        - Update get_runtime_config unpacking to capture btn_map instead of keyboard
-        - Update kb_service.setup call to pass btn_map and base_resolvers
-    [x] 'content/app/deps/keyboard.py': 
-        -Refactor RenderContext to carry prompt render inputs
-            - Remove keyboard attribute from RenderContext
-            - new attributes: btn_map selected_key attributes, the render
-        - Refactor UIRenderContext to carry ui render inputs
-            - btn_map
-            - selected_key
-            (the ui render is already inside RenderService)
-    [x] 'content/keyboard/keyboard_service.py': Absorb Keyboard instance and methods into KBService
-        - Keyboard methods rundown:
-            - 'Keyboard.get_unique_buttons' is legacy and is not required in new system
-            - 'Keyboard.handle_key' is absorbed into the service as appropriate
-        - manage button_map and selected_key state internally
-        - Update _create_render_context to populate new RenderContext fields 
-    [x] 'content/render_pipeline/render_service.py': Update prompt and ui rendering to use new RenderContext and UIRenderContext
-        - 'render_ui'
-            - accepts a UIRenderContext
-            - absorb helper '_res_ui' 
-        - 'render_prompt & helpers'
-            - uses new members of 'RenderContext'
+    [ ] RenderService Consumer Method ('content/render_pipeline/render_service.py'):
+        - render_ui: Pass raw action_res.message to ContentShaper for padding/width adjustment instead of calling get_msg()
 
-III. Slated for implementation:                
+    [ ] ContentShaper Formatting ('content/render_pipeline/content_shaper.py'):
+        - Add method shape_action_result(msg: str, width: int = 117) -> str to pad/truncate action result string to 117 characters
+
+    [ ] AppEngine State Localization ('content/app/engine.py'): Eliminate self.msg instance attribute
+        - Remove self.msg initialization from AppEngine.__init__
+        - Capture IngestionService's ActionResult in run() method scope as local variable action_res
+        - Pass action_res locally to renderer.render_ui(ui_render_ctx, action_res)
+        - Reassign action_res locally from KBService.handle_key and TUIService.to_clipboard loop results
+              
 IV. Recently implemented:
 V. Critical bugs
 

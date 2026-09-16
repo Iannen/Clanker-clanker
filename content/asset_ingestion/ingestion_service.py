@@ -12,6 +12,7 @@ from asset_ingestion.extractors.base_resolver import BaseResolversExtractor
 from asset_ingestion.extractors.ui_render import UIRenderExtractor
 from asset_ingestion.validators.assets import AssetValidator
 from app.constants import CfgFragments, PathTokens, DocPaths
+from app.presentation import ActionResult
 
 class IngestionServiceImpl(IngestionService):
     def __init__(
@@ -22,7 +23,7 @@ class IngestionServiceImpl(IngestionService):
         self.files = files
         self.cfg_ingestor = cfg_ingestor
 
-    def get_runtime_config(self) -> tuple[Report, dict[str, Button], Render, list[Resolver]]:
+    def get_runtime_config(self) -> tuple[ActionResult, Report, dict[str, Button], Render, list[Resolver]]:
         try:
             pud_cfg = self._get_validated_cfg_fragment(CfgFragments.PUD_CFG)
         except NoSuchFile:
@@ -62,7 +63,8 @@ class IngestionServiceImpl(IngestionService):
             collector=collector,
         )
 
-        return collector, keyboard.button_map, ui_render, base_resolvers
+        action_res = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)
+        return action_res, collector, keyboard.button_map, ui_render, base_resolvers
 
     def initialize_workspace(self) -> None:
         if self.files.is_cwd_script_dir():
