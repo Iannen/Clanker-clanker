@@ -2,14 +2,14 @@ from app.entities import MultiDocResolver, RepoContentResolver, ManifestResolver
 from app.deps.render import RenderService
 from render_pipeline.content_shaper import ContentShaper
 from app.constants import Layouts, PathTokens
-from ports_adapters.ports import NoSuchFile
+from ports_adapters.ports import NoSuchFile, DiskPort
    
 from app.presentation import ActionResult
 
 class RenderServiceImpl(RenderService):
-    def __init__(self, files: FileBridgePort) -> None:
-        self.files = files
-        self.shaper = ContentShaper()
+    def __init__(self, files: DiskPort) -> None:
+        self.files: DiskPort = files
+        self.shaper: ContentShaper = ContentShaper()
         self._ui_render: Render | None = None
 
     def set_ui_render(self, ui_render: Render) -> None:
