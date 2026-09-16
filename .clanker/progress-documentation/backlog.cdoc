@@ -104,6 +104,12 @@ II. Items to refine & QC:
         - Implement BaseFixtureTest.run_tests() template method to perform single-run teardown/setup based on subclass statics
         - Iterate over subclass public assert methods to retrieve declarative assert specs (inputs and expected outputs)
         - Execute key sequences, capture outputs, record tuples (inputs, actual, expected), and write aggregated JSON report per subclass
+    note: added 'content/test/reports' for reports. after a run of the test script, this will hold 1 json object for each subclass
+        - when a testclass is run, it first (via baseclass), deletes the old report, then writes a new report at conclusion of all asserts
+    note: added 'content/test/sandboxes' for sb's. after a run of the test script, this will hold dir for each subclass
+        - when a testclass is run, it first (via baseclass), deletes the old sandbox, then creates a new one for the run (not deleting it afterwards)
+    note: the super simply writes a 3 tuple of keysequence, output and expected output. its the job of the interpreter to evaluate the results
+    note: in the future, i will port out the subclass to keep the file contraining subclasses lean
 
 
 III. Slated for implementation:
