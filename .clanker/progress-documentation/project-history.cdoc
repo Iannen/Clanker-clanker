@@ -609,3 +609,13 @@ XCV: PRUNING KEYBOARD ENTITY FROM INGESTION AND VALIDATION PIPELINES
     - Updated 'IngestionServiceImpl.get_runtime_config' in 'content/asset_ingestion/ingestion_service.py' to handle the button dictionary directly without wrapping or unwrapping.
     - Refactored 'AssetValidator.validate' in 'content/asset_ingestion/validators/assets.py' to accept 'button_map: dict[str, Button]' and iterate over its values directly.
     Reflection: Completely eliminates the lingering legacy entity wrapper, simplifying parameter passing and aligning the ingestion pipeline directly with the domain data structures used by 'KBService'.
+
+XCVI: CENTRALIZING TUI CONFIRMATION PROMPTS AND INSTRUCTIONS INTO PRESENTATION TIER
+    Purpose: Centralize user-facing confirmation questions, template instructions, and error messages into presentation models while standardizing signature contracts across TUI services.
+    - Confirmation prompt strings and required response phrases were fragmented across AppEngine and TUIServiceImpl, leaving magic strings and optional defaults in service contracts.
+    Actions:
+    - Introduced `UserQuestions` in `content/app/presentation.py` to hold standardized confirmation constants (`REQUIRED_PHRASE`, `INIT_REPO`, `CONFIRMATION_INSTRUCTIONS`, `CONFIRMATION_INVALID_ERR`) and dynamic prompt formatters (`overflow_proceed`, `complaints_proceed`).
+    - Updated `TUIService` abstract contract in `content/app/deps/tui.py` to make `required_phrase: str` a mandatory parameter in `get_confirmation`.
+    - Refactored `TUIServiceImpl.get_confirmation` in `content/tui/tui_service.py` to remove default `None` fallbacks and format instruction/error templates using `UserQuestions`.
+    - Updated `AppEngine.run` and `AppEngine._bootstrap` in `content/app/engine.py` to reference `UserQuestions` members and pass `REQUIRED_PHRASE` explicitly.
+    Reflection: Cleanly isolates all textual user inquiry definitions within the presentation module and enforces strict explicit parameter passing across TUI confirmation boundaries.

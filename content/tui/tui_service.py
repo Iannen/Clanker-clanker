@@ -1,7 +1,7 @@
 from app.deps.tui import TUIService
 from ports_adapters.ports import IOBridgePort
 from app.exceptions import ProgramExit, UserDecline
-from app.presentation import ActionResult
+from app.presentation import ActionResult, UserQuestions
 
 class IOControl:
     ACCEPTED = "accepted"
@@ -30,7 +30,7 @@ class TUIServiceImpl(TUIService):
         return ch.lower()
 
     def get_confirmation(self, prompt_msg: str, required_phrase: str) -> None:
-        instructions = f"Type '{required_phrase}' and press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n> "
+        instructions = UserQuestions.CONFIRMATION_INSTRUCTIONS.format(required_phrase=required_phrase)
         base_msg = f"\n{prompt_msg}\n{instructions}"
         self.io_bridge.write(base_msg)
         while True:
@@ -40,5 +40,5 @@ class TUIServiceImpl(TUIService):
             if status == IOControl.DECLINED:
                 raise UserDecline
             if status == IOControl.INVALID:
-                err = f"Invalid confirmation. Expected '{required_phrase}', got '{value}'. Try again.\n"
+                err = UserQuestions.CONFIRMATION_INVALID_ERR.format(required_phrase=required_phrase, value=value)
                 self.io_bridge.write(base_msg + err + "> ")
