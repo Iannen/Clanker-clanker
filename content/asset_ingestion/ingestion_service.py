@@ -44,7 +44,7 @@ class IngestionServiceImpl(IngestionService):
 
         pud_doms, shared_doms = DomainsExtractor().extract(pud_cfg, shared_cfg, collector, unified_fsm)
 
-        keyboard = RtcAssembler().assemble(
+        button_map = RtcAssembler().assemble(
             sys_cfg=sys_cfg,
             shared_doms=shared_doms,
             pud_doms=pud_doms,
@@ -57,14 +57,14 @@ class IngestionServiceImpl(IngestionService):
         AssetValidator().validate(
             pud_pathlist=pud_filelist,
             shared_pathlist=shared_filelist,
-            keyboard=keyboard,
+            button_map=button_map,
             ui_render=ui_render,
             base_resolvers=base_resolvers,
             collector=collector,
         )
 
         action_res = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)
-        return action_res, collector, keyboard.button_map, ui_render, base_resolvers
+        return action_res, collector, button_map, ui_render, base_resolvers
 
     def initialize_workspace(self) -> None:
         if self.files.is_cwd_script_dir():

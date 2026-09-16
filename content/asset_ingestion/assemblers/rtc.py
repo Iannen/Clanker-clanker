@@ -5,7 +5,7 @@ from asset_ingestion.commons.fileset_map import FilesetMap
 from asset_ingestion.commons.value_extractor import ValueExtractor
 from asset_ingestion.extractors.domains import DomainsExtractor
 from app.constants import CfgFragments
-from app.entities import Button, Keyboard
+from app.entities import Button
 
 @dataclass
 class DomainOverflow: # create general complain based on 'enum' ?
@@ -32,7 +32,7 @@ class RtcAssembler:
         shared_doms: list[Domain],
         pud_doms: list[Domain],
         collector: ErrorCollector,
-    ) -> Keyboard:
+    ) -> dict[str, Button]:
         extractor = ValueExtractor()
         self.collector = collector
         self.btn_map: dict[str, Button] = {}
@@ -54,7 +54,7 @@ class RtcAssembler:
         for key_char in extractor.req_str(sys_cfg, ["button_rows", "prompts_row"]):
             self.btn_map[key_char] = Button(type=Button.TYPE_PROMPT, key=key_char, inhabitant=None)
 
-        return Keyboard(button_map=self.btn_map, selected_key=None)
+        return self.btn_map
 
     def _populate_domain_buttons(
         self,

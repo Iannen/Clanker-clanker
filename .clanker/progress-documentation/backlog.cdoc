@@ -72,45 +72,18 @@ I. Ideas, complaints and non-critical bugs:
     - its purpose is essentially to classify ex that core does not deal with
     - and to format the msgs that get printed in main
 
-next. prune keyboard from codebase. it should only be in ingestion module
+7. Add 'UserQuestion' or similar to presentation, in similar fashion to ActionResult
+    - the purpose is to centralize str's relating to the calls to TUIService.get_confirmation. make engine use these exclusively
+        - it can carry class attrs for the questions, and class attrs for 'required_phrase'
+    - align TUIService to not assign default = None. 'UserQuestion' will carry a 'required_phrase' so engine can always satisfy the signature.
+
+8. Follow up prompts
+    - to pass the next step of workflow
+        - plan into do into backlog management
+    - reduce token waste
 
 II. Items to refine & QC:
-III. Slated for implementation:  
-8. Localize engine execution state and formalize ActionResult production in domain/infrastructure services
-    [ ] 'content/app/presentation.py': Strip method logic and define static message members on ActionResult
-        - Remove 'get_msg' method from ActionResult (no methods on class)
-        - Add static string members:
-            - BOOTSTRAP_SUCCESS = "Bootstrap completed successfully"
-            - SELECTION_CLEARED = "Selection cleared"
-            - NO_PROMPT_BOUND = "No prompt assigned to key '{key}'"
-            - UNBOUND_KEY = "No action bound to key '{key}'"
-            - DOMAIN_SELECTED = "Domain '{domain}' on key '{key}' selected"
-            - DOMAIN_NONE_SELECTED = "Domain 'None' on key '{key}' selected"
-            - COPIED_TO_CLIPBOARD = "Copied {lines} lines ({chars} chars) to clipboard"
-
-    [ ] KBService Producer Methods ('content/keyboard/keyboard_service.py'):
-        - handle_key: Return ActionResult.UNBOUND_KEY (formatted with key) for unbound actions
-        - _set_selected_num_btn: Return ActionResult.DOMAIN_SELECTED, ActionResult.DOMAIN_NONE_SELECTED, or ActionResult.SELECTION_CLEARED
-        - _create_render_context: Return ActionResult.NO_PROMPT_BOUND (formatted with key) when prompt inhabitant missing
-
-    [ ] TUIService Producer Method ('content/tui/tui_service.py'):
-        - to_clipboard: Return ActionResult using COPIED_TO_CLIPBOARD formatted with line and character counts
-
-    [ ] IngestionService Producer Method ('content/asset_ingestion/ingestion_service.py'):
-        - get_runtime_config (via error collector / bootstrap flow): Return ActionResult.BOOTSTRAP_SUCCESS
-
-    [ ] RenderService Consumer Method ('content/render_pipeline/render_service.py'):
-        - render_ui: Pass raw action_res.message to ContentShaper for padding/width adjustment instead of calling get_msg()
-
-    [ ] ContentShaper Formatting ('content/render_pipeline/content_shaper.py'):
-        - Add method shape_action_result(msg: str, width: int = 117) -> str to pad/truncate action result string to 117 characters
-
-    [ ] AppEngine State Localization ('content/app/engine.py'): Eliminate self.msg instance attribute
-        - Remove self.msg initialization from AppEngine.__init__
-        - Capture IngestionService's ActionResult in run() method scope as local variable action_res
-        - Pass action_res locally to renderer.render_ui(ui_render_ctx, action_res)
-        - Reassign action_res locally from KBService.handle_key and TUIService.to_clipboard loop results
-              
+III. Slated for implementation:               
 IV. Recently implemented:
 V. Critical bugs
 

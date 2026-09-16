@@ -73,23 +73,3 @@ class Button:
     key: str
     inhabitant: Domain | Prompt | None = None
     action: Callable | None = None
-
-@dataclass
-class Keyboard:
-    button_map: dict[str, Button]
-    selected_key: str | None = None
-
-    def get_unique_buttons(self, btn_type: str | None = None) -> list[Button]:
-        unique = {btn.key: btn for btn in self.button_map.values()}.values()
-        if btn_type is None:
-            return list(unique)
-        return [btn for btn in unique if btn.type == btn_type]
-
-    def handle_key(self, key: str) -> ActionResult | None:
-        btn = self.button_map.get(key)
-        if btn is None:
-            return None
-        if callable(btn.action):
-            return btn.action(key)
-        from app.presentation import ActionResult
-        return ActionResult(f"No action bound to key '{key}'")

@@ -6,7 +6,7 @@ class AssetValidator:
         self,
         pud_pathlist: set[str],
         shared_pathlist: set[str],
-        keyboard: Keyboard,
+        button_map: dict[str, Button],
         ui_render: Render,
         base_resolvers: list[Resolver],
         collector: ErrorCollector,
@@ -16,7 +16,7 @@ class AssetValidator:
         resolvers.extend(base_resolvers)
         resolvers.extend(ui_render.resolvers)
 
-        for btn in keyboard.button_map.values():
+        for btn in button_map.values():
             inhabitant = btn.inhabitant
             if inhabitant is None:
                 continue

@@ -587,3 +587,25 @@ XCIII: REFACTORING KEYBOARD MANAGEMENT INTO DEDICATED KBSERVICE AND REFINING SER
     - Delegated clipboard formatting to `TUIServiceImpl.to_clipboard`, returning structured `ActionResult` objects.
     - Simplified `AppEngine` into a thin execution loop coordinating `KBService`, `RenderService`, and `TUIService`.
     Reflection: Cleanly separated domain state orchestration from presentation rendering, establishing strict service boundaries and removing stateful boilerplate from the main engine loop.
+
+XCIV: LOCALIZED ENGINE EXECUTION STATE AND FORMALIZED ACTIONRESULT PRODUCTION IN SERVICES
+    Purpose: Decouple presentation message formatting from engine state by introducing static message templates on ActionResult and localizing response lifecycle tracking within the AppEngine runtime.
+    Actions:
+    - Added static template string constants to `ActionResult` (`BOOTSTRAP_SUCCESS`, `NO_PROMPT_BOUND`, `UNBOUND_KEY`, `DOMAIN_SELECTED`, `KEY_EMPTY`, `COPIED_TO_CLIPBOARD`) and removed the dynamic `get_msg()` method in `presentation.py`.
+    - Refactored `KBServiceImpl` methods (`handle_key`, `_set_selected_num_btn`, and `_create_render_context`) to produce structured `ActionResult` instances formatted with key/domain metadata.
+    - Updated `TUIServiceImpl.to_clipboard` to calculate line/character counts and return a formatted `ActionResult.COPIED_TO_CLIPBOARD` object.
+    - Adjusted `IngestionServiceImpl.get_runtime_config` to return an explicit `ActionResult` indicating bootstrap completion alongside runtime components.
+    - Extended `ContentShaper` with `shape_action_result` to format, pad, and truncate action message strings to a uniform UI width (117 chars).
+    - Updated `RenderServiceImpl.render_ui` to shape raw `ActionResult.message` content directly during UI rendering.
+    - Eliminated `self.msg` instance state from `AppEngine`, converting action results into scoped local variables (`action_res`) passed dynamically across the application loop and renderer.
+    Reflection: Cleanly transferred responsibility for action feedback generation to services, enabling pure value flow through the execution loop without maintaining stateful message attributes on the central engine.
+
+XCV: PRUNING KEYBOARD ENTITY FROM INGESTION AND VALIDATION PIPELINES
+    Purpose: Remove the obsolete 'Keyboard' entity wrapper and pass the button map directly across assembly, ingestion, and validation boundaries.
+    - Following the migration to 'KBService', 'Keyboard' remained only as an unnecessary data container around 'dict[str, Button]' during asset ingestion.
+    Actions:
+    - Removed the 'Keyboard' dataclass and its associated helper methods from 'content/app/entities.py'.
+    - Updated 'RtcAssembler.assemble' in 'content/asset_ingestion/assemblers/rtc.py' to return 'dict[str, Button]' directly.
+    - Updated 'IngestionServiceImpl.get_runtime_config' in 'content/asset_ingestion/ingestion_service.py' to handle the button dictionary directly without wrapping or unwrapping.
+    - Refactored 'AssetValidator.validate' in 'content/asset_ingestion/validators/assets.py' to accept 'button_map: dict[str, Button]' and iterate over its values directly.
+    Reflection: Completely eliminates the lingering legacy entity wrapper, simplifying parameter passing and aligning the ingestion pipeline directly with the domain data structures used by 'KBService'.

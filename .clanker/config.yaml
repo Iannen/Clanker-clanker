@@ -37,13 +37,10 @@ filesets:
     content/clanker.py]}
 
   service_alignment: {includes: [
-    content/app/presentation.py,
-    content/keyboard/keyboard_service.py,
-    content/tui/tui_service.py,
+    content/asset_ingestion/validators/assets.py,
+    content/asset_ingestion/assemblers/rtc.py,
     content/asset_ingestion/ingestion_service.py,
-    content/render_pipeline/render_service.py,
-    content/render_pipeline/content_shaper.py,
-    content/app/engine.py]}
+    content/app/entities.py]}
 
 
 domains:
