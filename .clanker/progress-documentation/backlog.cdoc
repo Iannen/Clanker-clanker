@@ -111,25 +111,36 @@ II. Items to refine & QC:
         - change init to accept KBService, store on self
         - on bootstrap, extract Keyboard.button_map, set on KeyboardService
         - retain all other workings as-is
+    
+    Phase 4: Engine Loop & KBService promotion
+    [x] 'content/app/deps/keyboard.py': Define RenderContext and update KBService ABC
+        - Create RenderContext dataclass holding (render: Render, keyboard: Keyboard, base_resolvers: list[Resolver])
+        - Replace set_button_map with setup(keyboard: Keyboard, base_resolvers: list[Resolver]) -> None on KBService ABC
+        - Update handle_key signature to return tuple[ActionResult | None, RenderContext | None]
+    [x] 'content/keyboard/keyboard_service.py': Implement key handling & button state orchestration
+        - Implement setup to store keyboard and base_resolvers, and wire domain button actions
+        - Move _set_selected_num_btn logic into KBServiceImpl
+        - Implement handle_key to handle domain button state updates, return (None, None) on unhandled keys, or return RenderContext for prompt actions
+    [x] 'content/app/engine.py': Delegate key routing to KBService and compile prompt from RenderContext
+        - Remove _wire_num_row and _set_selected_num_btn from AppEngine
+        - Update _bootstrap to call kb_service.setup(keyboard, base_resolvers)
+        - Refactor run loop to unpack (ActionResult, RenderContext) from KBService.handle_key
+        - Extract render, keyboard, and base_resolvers from RenderContext to invoke RenderService methods directly and pass output to clipboard
+III. Slated for implementation:    
 
-
-    Phase 4: (lookahead item)
-    [ ] Establish KBService contract and delegate keyboard state mechanics
-        - Create KBService interface and implementation to own button_map, selected_key, and base_resolvers
-        - Extract domain selection logic, prompt button population, and key dispatch out of AppEngine
-        - Delete Keyboard dataclass from entities.py
-    [ ] Refactor AppEngine run loop into a pure state dispatcher
-        - Inject KBService into AppEngine via DI
-        - Update run loop to dispatch keys to kb_service.handle_key(cmd_key) -> (res, prompt_ctx)
-        - If prompt_ctx returned: route through self.renderer.render_prompt(prompt_ctx) -> TUI clipboard -> update msg
-        - If res returned: update msg
-        - Remove internal button mutation methods (_wire_num_row, _set_selected_num_btn, _compile_to_clipboard)
-    [ ] Wire KBService dependencies across ingestion, rendering, and main entrypoint
-        - Update IngestionServiceImpl to pass button_map to return tuple instead of Keyboard object
-        - Update RenderServiceImpl to pull UI button layouts from KBService contract
-        - Inject KBServiceImpl into AppEngine instantiation in clanker.py
-
-III. Slated for implementation:
+    Phase 5: AppEngine to Services delegation of menial tasks
+    [ ] 'content/app/deps/render.py' & 'content/render_pipeline/render_service.py': Facade prompt rendering in RenderService
+        - Add `render_prompt(ctx: RenderContext) -> str` to RenderService ABC and implementation
+        - Encapsulate `get_template`, `get_repl_map`, and `hydrate` sequence inside `render_prompt` without passing UI message context
+        - No need to refactor RenderService beyond adding the new methods
+            - simply use its existing methods inside the new method
+    [ ] 'content/app/deps/tui.py' & 'content/tui/tui_service.py': Delegate clipboard action result
+        - Update `to_clipboard(content: str)` signature to return `ActionResult`
+        - Move line and character count message formatting into `TUIServiceImpl.to_clipboard`
+    [ ] 'content/app/engine.py': Streamline engine run loop
+        - Retain investigatory logic to determine if `self.msg` needs new assignment based on service returns
+        - Remove `_display_ui` and inline `renderer.render_ui`, `io.display`, and `io.get_key` directly at the top of the run loop
+        - Refactor prompt handling branch: call `renderer.render_prompt(render_ctx)` and assign `io.to_clipboard(...)` directly to `self.msg`
 
 IV. Recently implemented:
 

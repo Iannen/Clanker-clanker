@@ -36,10 +36,20 @@ filesets:
     content/keyboard/keyboard_service.py,
     content/clanker.py]}
 
+  service_alignment: {includes: [
+    content/app/entities.py,
+    content/app/deps,
+    content/app/engine.py,
+    content/asset_ingestion/ingestion_service.py,
+    content/keyboard/keyboard_service.py,
+    content/render_pipeline/render_service.py,
+    content/tui/tui_service.py]}
+
+
 domains:
 - name: core
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: add_kb_service } 
+    - { id: repo_content, type: repo_content, fileset: service_alignment } 
 
   prompts:
     - name: plan
