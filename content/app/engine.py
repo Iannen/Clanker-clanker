@@ -5,6 +5,8 @@ from app.presentation import ActionResult
 from app.exceptions import UserDecline, NoConfig, Fatal, Notice, UnexpectedEx, BaseEx, ProgramExit, MissedNotice
 from app.deps import *
 from app.entities import Button, Prompt
+from app.deps.keyboard import KBService
+
 class ExceptionPolicy:
     @classmethod
     def protect_adapter(cls, adapter: Any) -> Any:
@@ -56,11 +58,13 @@ class AppEngine:
         self, 
         io: TUIService, 
         session: IngestionService, 
-        renderer: RenderService
+        renderer: RenderService,
+        kb_service: KBService
     ) -> None:
         self.io = io
         self.session = session
         self.renderer = renderer
+        self.kb_service = kb_service
         self.msg: ActionResult | None = None
 
     def run(self) -> str:
@@ -106,6 +110,8 @@ class AppEngine:
         self.kb = keyboard
         self.ui_render = ui_render
         self.base_resolvers = base_resolvers
+        self.renderer.set_ui_render(ui_render)
+        self.kb_service.set_button_map(keyboard.button_map)
         self._wire_num_row()
         self._set_selected_num_btn(None)
         return ActionResult("Bootstrap completed successfully")
@@ -140,7 +146,7 @@ class AppEngine:
         return ActionResult(msg)
 
     def _display_ui(self) -> str:
-        self.io.display(self._render(self.ui_render))
+        self.io.display(self.renderer.render_ui(self.kb, self.msg))
         return self.io.get_key()
 
     def _compile_to_clipboard(self, key: str) -> ActionResult:

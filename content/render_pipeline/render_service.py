@@ -4,10 +4,24 @@ from render_pipeline.content_shaper import ContentShaper
 from app.constants import Layouts, PathTokens
 from ports_adapters.ports import NoSuchFile
    
+from app.presentation import ActionResult
+
 class RenderServiceImpl(RenderService):
     def __init__(self, files: FileBridgePort) -> None:
         self.files = files
         self.shaper = ContentShaper()
+        self._ui_render: Render | None = None
+
+    def set_ui_render(self, ui_render: Render) -> None:
+        self._ui_render = ui_render
+
+    def render_ui(self, keyboard: Keyboard, msg: ActionResult | None) -> str:
+        if self._ui_render is None:
+            raise CorruptClanker("UI render spec has not been configured.")
+        template = self.get_template(self._ui_render)
+        repl_map = self._res_ui(keyboard)
+        repl_map["msg"] = msg.get_msg() if msg is not None else ""
+        return self.hydrate(template, repl_map)
 
     def hydrate(self, template: str, replacements: dict[str, str]) -> str:
         return self.shaper.hydrate(template, replacements)

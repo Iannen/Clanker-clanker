@@ -32,7 +32,9 @@ filesets:
     content/asset_ingestion/ingestion_service.py,
     content/app/deps/render.py,
     content/render_pipeline/render_service.py,
-    content/app/engine.py]}
+    content/app/engine.py,
+    content/keyboard/keyboard_service.py,
+    content/clanker.py]}
 
 domains:
 - name: core

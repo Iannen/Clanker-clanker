@@ -71,7 +71,6 @@ I. Ideas, complaints and non-critical bugs:
     - something about python v 3.14 vs older versions - a clue!
 
 II. Items to refine & QC:
-    
 
 7. Refactor keyboard management into dedicated KBService
     Phase 1: Dissolve RuntimeConfig container into explicit components
@@ -90,19 +89,31 @@ II. Items to refine & QC:
         - Update internal _render callsites to pass self.keyboard and self.base_resolvers
     [x] 'content/asset_ingestion/validators/assets.py': Update AssetValidator interface signature
         - Replace RuntimeConfig parameter in validate with explicit keyboard, ui_render, and base_resolvers dependencies
-        
+
     Phase 2: Shift UI rendering ownership and lifecycle to RenderService
-    [ ] 'content/app/deps/render.py': Expand RenderService interface
+    [x] 'content/app/deps/render.py': Expand RenderService interface
         - Add set_ui_render(ui_render: Render) -> None
         - Add render_ui(keyboard: Keyboard, msg: ActionResult | None) -> str
-    [ ] 'content/render_pipeline/render_service.py': Implement render_ui
+    [x] 'content/render_pipeline/render_service.py': Implement render_ui
         - Store ui_render internally via set_ui_render during bootstrap
         - Implement render_ui(keyboard, msg): handle template loading, _res_ui replacement mapping, msg string extraction/injection, and hydration
-    [ ] 'content/app/engine.py': Delegate UI string generation to RenderService
+    [x] 'content/app/engine.py': Delegate UI string generation to RenderService
         - Pass ui_render to self.renderer.set_ui_render during bootstrap
         - Simplify _display_ui to pass self.keyboard and self.msg directly into self.renderer.render_ui(self.keyboard, self.msg)
 
     Phase 3: Introduce KBService & streamline AppEngine (lookahead item)
+    [x] Create KBServiceImpl class: just a dummy class that accepts button map on self
+        - add set_button_map(self, button map):
+            - store on self
+    [x] Create KBService abc class as app deps member
+    [x] clanker.py: add KBService to DI, set it on AppEngine
+    [x] AppEngine
+        - change init to accept KBService, store on self
+        - on bootstrap, extract Keyboard.button_map, set on KeyboardService
+        - retain all other workings as-is
+
+
+    Phase 4: (lookahead item)
     [ ] Establish KBService contract and delegate keyboard state mechanics
         - Create KBService interface and implementation to own button_map, selected_key, and base_resolvers
         - Extract domain selection logic, prompt button population, and key dispatch out of AppEngine

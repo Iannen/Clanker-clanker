@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from app.entities import Render, Keyboard, Resolver
+from app.presentation import ActionResult
 
 class RenderService(ABC):
     @abstractmethod
@@ -8,3 +9,7 @@ class RenderService(ABC):
     def get_template(self, render: Render) -> str: ...
     @abstractmethod
     def get_repl_map(self, keyboard: Keyboard, base_resolvers: list[Resolver], render: Render) -> dict[str, str]: ...
+    @abstractmethod
+    def set_ui_render(self, ui_render: Render) -> None: ...
+    @abstractmethod
+    def render_ui(self, keyboard: Keyboard, msg: ActionResult | None) -> str: ...

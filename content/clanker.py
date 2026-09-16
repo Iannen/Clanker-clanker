@@ -3,6 +3,7 @@ from ports_adapters.adapters import FileBridge, IOBridge, ConfigIngestor
 from app.engine import AppEngine, ExceptionPolicy
 from render_pipeline.render_service import RenderServiceImpl
 from asset_ingestion.ingestion_service import IngestionServiceImpl
+from keyboard.keyboard_service import KBServiceImpl
 from tui.tui_service import TUIServiceImpl
 import sys
 import traceback
@@ -17,11 +18,13 @@ def main():
         ingestion = IngestionServiceImpl(files=files_adapter, cfg_ingestor=cfg_ingestor)
         renderer = RenderServiceImpl(files=files_adapter)
         io = TUIServiceImpl(io_bridge=io_adapter)
+        kb_service = KBServiceImpl()
 
         engine = AppEngine(
             io=io,
             session=ingestion,
-            renderer=renderer
+            renderer=renderer,
+            kb_service=kb_service
         )
 
         exit_msg = engine.run()
