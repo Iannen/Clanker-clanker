@@ -17,6 +17,14 @@ class DocPaths:
     TEMPL_EXT = ".template"
     DOC_EXT = ".cdoc"
 
+class TemplatePaths:
+    CFG_TEMPLATE = PathTokens.SHARED + "/content/a_lib/templates/config.template"
+    README_TEMPLATE = PathTokens.SHARED + "/content/a_lib/templates/README.template"
+    ARCH_TEMPLATE = PathTokens.SHARED + "/content/a_lib/templates/documentation/architecture.template"
+    BACKLOG_TEMPLATE = PathTokens.SHARED + "/content/a_lib/templates/documentation/backlog.template"
+    NORTH_STAR_TEMPLATE = PathTokens.SHARED + "/content/a_lib/templates/documentation/north-star.template"
+    PROJECT_HISTORY_TEMPLATE = PathTokens.SHARED + "/content/a_lib/templates/documentation/project-history.template"
+
 # used in render_pipeline only
 class Layouts:
     UI = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/ui.layout"

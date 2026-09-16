@@ -619,3 +619,14 @@ XCVI: CENTRALIZING TUI CONFIRMATION PROMPTS AND INSTRUCTIONS INTO PRESENTATION T
     - Refactored `TUIServiceImpl.get_confirmation` in `content/tui/tui_service.py` to remove default `None` fallbacks and format instruction/error templates using `UserQuestions`.
     - Updated `AppEngine.run` and `AppEngine._bootstrap` in `content/app/engine.py` to reference `UserQuestions` members and pass `REQUIRED_PHRASE` explicitly.
     Reflection: Cleanly isolates all textual user inquiry definitions within the presentation module and enforces strict explicit parameter passing across TUI confirmation boundaries.
+
+XCVII: REFINING WORKSPACE SETUP, TEMPLATE COPYING, AND REPO CONTRACT INITIALIZATION
+    Purpose: Modernize workspace initialization by introducing explicit template constants, safe presence assertions, and direct file-to-file copying support while instantiating a root README template to align with the repository contract system vision.
+    - Previous workspace initialization relied on implicit file operations and hardcoded paths without safe file-level pre-checks or generating standard root-level repository contract files like 'README.md'.
+    Actions:
+    - Declared `WorkspaceAlreadyInitialized` exception in `app/exceptions.py` for targeted errors when workspace directories or target files pre-exist.
+    - Defined `TemplatePaths` in `app/constants.py` to centralize paths for system templates including configuration, documentation, and the new root `README.template`.
+    - Extended `FileBridgePort` contract and `FileBridge` implementation (`disk_adapter.py`) with `assert_dir_absent`, `assert_file_absent`, and a unified `copy_file` adapter handling extension transformations.
+    - Re-exported `FileBridge` through `content/ports_adapters/adapters.py` to maintain modular imports across domain layers.
+    - Refactored `initialize_workspace` in `IngestionServiceImpl` to assert absence of both `.clanker` directory and root `README.md` before copying `config.yaml`, root `README.md`, and documentation templates via `TemplatePaths`.
+    Reflection: Establishes safe, deterministic workspace creation logic with explicit path definitions while incorporating root `README.md` generation, inching the system closer to a formal repository contract standard.

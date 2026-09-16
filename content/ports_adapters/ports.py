@@ -23,15 +23,18 @@ class FileBridgePort(ABC):
     def get_file_contents(self, tokenized_path: str) -> str: ...
 
     @abstractmethod
-    def write_default_documents(
-        self, doc_templ_dir: str, pud_doc_dir: str, templ_ext: str, doc_ext: str
+    def assert_dir_absent(self, tokenized_path: str) -> None: ...
+
+    @abstractmethod
+    def assert_file_absent(self, tokenized_path: str) -> None: ...
+
+    @abstractmethod
+    def copy_file(
+        self, from_path: str, to_dir: str, from_ext: str = "", to_ext: str = ""
     ) -> None: ...
 
     @abstractmethod
     def is_cwd_script_dir(self) -> bool: ...
-
-    @abstractmethod
-    def write_yaml(self, tokenized_path: str, data: dict) -> None: ...
 
     @abstractmethod
     def read_asset(self, tokenized_path: str) -> str: ...

@@ -28,6 +28,7 @@ class CorruptClanker(Fatal): leaf_ex = True
 class ConfigAssembly(Fatal): leaf_ex = True
 class IllegalDuplicateFile(Fatal): leaf_ex = True
 class UserTask(Fatal): leaf_ex = True
+class WorkspaceAlreadyInitialized(Fatal): leaf_ex = True
 
 class UserDecline(Notice): leaf_ex = True
 class ProgramExit(Notice): 

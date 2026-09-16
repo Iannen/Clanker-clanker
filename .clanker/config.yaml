@@ -3,8 +3,7 @@
 filesets:
   core: {includes: [
     content/app,
-    content/clanker.py,
-    content/render_pipeline]}
+    content/clanker.py]}
   ingestion_service: {includes: [
     content/app/entities.py, 
     content/asset_ingestion/ingestion_service.py,
@@ -26,27 +25,22 @@ filesets:
     content/render_pipeline/render_service.py, 
     content/ports_adapters]}
 
-  add_kb_service: {includes: [
-    content/app/entities.py,
-    content/app/deps/ingestion.py,
-    content/asset_ingestion/ingestion_service.py,
-    content/app/deps/render.py,
-    content/render_pipeline/render_service.py,
-    content/app/engine.py,
-    content/keyboard/keyboard_service.py,
+  ports_adapters: {includes: [
+    content/app/constants.py,
+    content/app/exceptions.py,
+    content/ports_adapters,
     content/clanker.py]}
-
-  service_alignment: {includes: [
-    content/app/engine.py,
-    content/app/presentation.py,
-    content/app/deps/tui.py,
-    content/tui/tui_service.py]}
-
+    #content/app,
+    #content/clanker.py,
+    #content/asset_ingestion/ingestion_service.py,
+    #content/keyboard/keyboard_service.py,
+    #content/render_pipeline/render_service.py,
+    #content/tui/tui_service.py]}
 
 domains:
 - name: core
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: service_alignment } 
+    - { id: repo_content, type: repo_content, fileset: ports_adapters } 
 
   prompts:
     - name: plan

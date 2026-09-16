@@ -7,29 +7,23 @@ I. Ideas, complaints and non-critical bugs:
     - ez fix is to adjust template.
     - rabbithole solution is to have app write template to rowspec
 
-II. Items to refine & QC:
 
-5. Simple 'end to end' test system, for improved dev confidence when iterating
-   Modeled on my manual 'test flow':
-    - For a clankerized repo
-        - the app should start, display UI
-        - all domain buttons should
-            - if inhabitet, display proper msg
-            - if unhabited, display proper msg
-        - then, for each domain button, every prompt button should
-            - if prompt button inhabitet, produce a prompt of expected size
-            - if no inhabitant, display appropriate msg
-        - for any and all buttons outside the keys specified by system_cfg
-            - be silently ignored, and not cause crash as they do now
-            - exception for things like esc, ctrl+c, ctrl+d and other 'system keys'
-    - When clankerizing a repo:
-        - it should produce a repo on the expected format, containing all members of a yet to be declared 'repo contract'
-        - then it should pass the 'clankerized repo' test
-        - perhaps also a 'unruly repo' scenario, where the repo already contains things contract mandates
-            - > than complain to user, do no harm
-        - so clankerization must be safe. Perhaps the confirm msg can first check and see that it is so? else complain to user 
+1. End-to-end headless test system for dev confidence
+    [ ] 'content/ports_adapters/adapters.py': Implement 'ScriptedIOBridge'
+        - Feeds pre-recorded key sequences, ending with a graceful exit action
+        - Captures screen frames and clipboard outputs into a test report file
+    [ ] 'content/clanker.py': Support test mode flag
+        - Check CLI arguments (`--test`) to select `ScriptedIOBridge` over standard `IOBridge`
+        - Run rest of application setup and execution pipeline unchanged
+    [ ] 'tests/e2e_harness.py': Create E2E test harness
+        - Run app in test mode across clankerized and un-clankerized scenarios
+        - Parse report file, verify UI states and prompt compilations
+        - Prompt dev with interactive summary and pass/fail verdict
+    [ ] 'ship.sh': Add optional quality gate integration
+        - Execute test harness as the first ship gate, blocking commit/push on exit code 1
 
-10. clankerization of a project can represent the much talked about repo contract by the content it creates
+
+2. clankerization of a project can represent the much talked about repo contract by the content it creates
     - it should check 'does any of the content exist'?
         - if so dont do anything, complain to user
     - only if coast clear should it create the stuff in repo root
@@ -37,7 +31,7 @@ II. Items to refine & QC:
         - 'README.md' -> #empty
         - 'content' -> no members
 
-2. i should be able to add more than just filesets as named bottom level sets.
+3. i should be able to add more than just filesets as named bottom level sets.
     - we have 3 resolvers that deal with files
         - md resolver has fallback to shared logic, uses Filelist which contain File 
             - this should become a bottom level thing
@@ -47,21 +41,20 @@ II. Items to refine & QC:
                 - and optionally by some flag var work off of shared instead
             - then improves semantics of yaml?
 
-8. Validation / complaints
+4. Validation / complaints
     - manifest resolver must check if fileset is declared in pud_cfg with fallback to shared_cfg
         - so shared_cfg can declare defaults for it, which the pud_cfg can override
         - if not present, then complain
 
-7. Make use of latest architectural work in ingestion module
+5. Make use of latest architectural work in ingestion module
     - simplify EC and 'Report' for now, lets just have str msgs for ez
 
-
-1. UI / Feedback imp [DX/UX]: 
+6. UI / Feedback imp [DX/UX]: 
     - make prompt compilation msg say which domain, prompt was used in addition to just line/char
     - turns into a pipeline refactor. oh well
     - we have the righthand side of the screen to put info on. will be baller, only green (black) grass
 
-4. Non IDE / linter import strats: BUFF importance of this, as LLMs typically run lower than 3.14 version of python, and cannot compensate.
+7. Non IDE / linter import strats: BUFF importance of this, as LLMs typically run lower than 3.14 version of python, and cannot compensate.
     - goals:
         - We dont have huge import blocks in all the numerous files, eating up precious llm context
         - all types used in a file are always imported (explicitly or via kleene)
@@ -71,16 +64,40 @@ II. Items to refine & QC:
     - something about python v 3.14 vs older versions - a clue!
     - i added instruction to prune in the do-mode.md file, so it gets done bit by bit at least
 
-5. Mull 'ExceptionPolicy'
+8. Mull 'ExceptionPolicy'
     - its purpose is essentially to classify ex that core does not deal with
     - and to format the msgs that get printed in main
 
-8. Follow up prompts
+9. Follow up prompts
     - to pass the next step of workflow
         - plan into do into backlog management
     - reduce token waste
+II. Items to refine & QC:
+
+10. Clean up ports and adapters stuff: 
+    Phase 2: core facing
+    [ ] 'ports.py'
+        - verify all members are in fact used
+    [ ] 'adapters.py'
+        - align to contracts, pruning redundancies
 
 III. Slated for implementation:
+10. Clean up ports and adapters stuff: 
+    Phase 1 adapter refactoring & naming
+    [ ] 'content/ports_adapters/ports.py': Rename ports and align exception contracts
+        - Rename FileBridgePort to DiskPort, IOBridgePort to TerminalPort, and ConfigIngestorPort to ConfigParserPort
+        - Keep translated infrastructure exceptions (NoSuchFile, FileAccessError) adjacent to the ports
+    [ ] 'content/ports_adapters/disk_adapter.py': Rename and refine LinuxDiskAdapter
+        - Rename FileBridge class to LinuxDiskAdapter implementing DiskPort
+        - Ensure proper exception translation boundaries
+    [ ] 'content/ports_adapters/terminal_adapter.py': Populate LinuxTerminalAdapter
+        - Move IOBridge out of legacy adapters.py and rename to LinuxTerminalAdapter implementing TerminalPort
+    [ ] 'content/ports_adapters/yaml_parser.py': Populate RuamelYamlParserAdapter
+        - Move ConfigIngestor out of legacy adapters.py and rename to RuamelYamlParserAdapter implementing ConfigParserPort
+    [ ] 'content/ports_adapters/adapters.py': Clean up and remove legacy file
+        - Remove old definitions now that each adapter resides in its own isolated file (user will delete on ack)
+    [ ] 'content/clanker.py': Update entry point imports and instantiation wiring
+        - Update initialization to use LinuxDiskAdapter, LinuxTerminalAdapter, and RuamelYamlParserAdapter
 IV. Recently implemented:
 V. Critical bugs
 
