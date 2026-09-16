@@ -32,8 +32,8 @@ class UserTask(Fatal): leaf_ex = True
 class UserDecline(Notice): leaf_ex = True
 class ProgramExit(Notice): 
     leaf_ex = True
-    MSG_DEFAULT: ClassVar[str] = "Program exited"
-    MSG_DECLINED_INIT: ClassVar[str] = "Initialization declined by user"
-    MSG_DECLINED_BOOTSTRAP: ClassVar[str] = "Bootstrap declined by user"
+    MSG_DEFAULT: str = "Program exited"
+    MSG_DECLINED_INIT: str = "Initialization declined by user"
+    MSG_DECLINED_BOOTSTRAP: str = "Bootstrap declined by user"
     
 class NoConfig(Notice): leaf_ex = True

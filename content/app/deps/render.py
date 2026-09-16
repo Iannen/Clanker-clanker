@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from app.entities import Render, RuntimeConfig
+from app.entities import Render, Keyboard, Resolver
 
 class RenderService(ABC):
     @abstractmethod
@@ -7,4 +7,4 @@ class RenderService(ABC):
     @abstractmethod
     def get_template(self, render: Render) -> str: ...
     @abstractmethod
-    def get_repl_map(self, cfg: RuntimeConfig, render: Render) -> dict[str, str]: ...
+    def get_repl_map(self, keyboard: Keyboard, base_resolvers: list[Resolver], render: Render) -> dict[str, str]: ...

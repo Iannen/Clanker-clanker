@@ -27,18 +27,17 @@ filesets:
     content/ports_adapters]}
 
   add_kb_service: {includes: [
-    content/app/deps/keyboard.py,
-    content/app/engine.py,
     content/app/entities.py,
-    content/app/services/keyboard_service.py,
-    content/asset_ingestion/assemblers/rtc.py,
+    content/app/deps/ingestion.py,
     content/asset_ingestion/ingestion_service.py,
-    content/clanker.py]}
+    content/app/deps/render.py,
+    content/render_pipeline/render_service.py,
+    content/app/engine.py]}
 
 domains:
 - name: core
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: core } 
+    - { id: repo_content, type: repo_content, fileset: add_kb_service } 
 
   prompts:
     - name: plan

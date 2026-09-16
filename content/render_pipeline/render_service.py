@@ -1,4 +1,4 @@
-from app.entities import MultiDocResolver, RepoContentResolver, ManifestResolver, KBStateResolver, Button, Domain
+from app.entities import MultiDocResolver, RepoContentResolver, ManifestResolver, KBStateResolver, Button, Domain, Keyboard, Resolver, Render
 from app.deps.render import RenderService
 from render_pipeline.content_shaper import ContentShaper
 from app.constants import Layouts, PathTokens
@@ -22,12 +22,12 @@ class RenderServiceImpl(RenderService):
         except NoSuchFile as ex:
             raise CorruptClanker(f"Error loading template for '{render.template}': {ex}") from ex
 
-    def get_repl_map(self, cfg: RuntimeConfig, render: Render) -> dict[str, str]:
+    def get_repl_map(self, keyboard: Keyboard, base_resolvers: list[Resolver], render: Render) -> dict[str, str]:
         active_resolvers: list[Resolver] = []
         if render.inherit_base:
-            active_resolvers.extend(cfg.base_resolvers)
+            active_resolvers.extend(base_resolvers)
         if render.inherit_domain:
-            active_btn = cfg.keyboard.button_map.get(cfg.keyboard.selected_key)
+            active_btn = keyboard.button_map.get(keyboard.selected_key)
             if active_btn and isinstance(active_btn.inhabitant, Domain):
                 active_resolvers.extend(active_btn.inhabitant.resolvers)
         active_resolvers.extend(render.resolvers)
@@ -41,7 +41,7 @@ class RenderServiceImpl(RenderService):
                 case ManifestResolver():
                     replacements.update(self._res_manifest(resolver))
                 case KBStateResolver():
-                    replacements.update(self._res_ui(cfg.keyboard))
+                    replacements.update(self._res_ui(keyboard))
         return replacements
 
     def _res_multi_doc(self, resolver: MultiDocResolver) -> dict[str, str]:

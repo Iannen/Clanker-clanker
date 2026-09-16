@@ -6,15 +6,17 @@ class AssetValidator:
         self,
         pud_pathlist: set[str],
         shared_pathlist: set[str],
-        rtc: RuntimeConfig,
+        keyboard: Keyboard,
+        ui_render: Render,
+        base_resolvers: list[Resolver],
         collector: ErrorCollector,
     ) -> None:
         resolvers: list[Resolver] = []
 
-        resolvers.extend(rtc.base_resolvers)
-        resolvers.extend(rtc.ui_render.resolvers)
+        resolvers.extend(base_resolvers)
+        resolvers.extend(ui_render.resolvers)
 
-        for btn in rtc.keyboard.button_map.values():
+        for btn in keyboard.button_map.values():
             inhabitant = btn.inhabitant
             if inhabitant is None:
                 continue

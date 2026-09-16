@@ -90,7 +90,7 @@ class AppEngine:
             return ExceptionPolicy.interpret_as_fatal(other_ex)
 
     def _bootstrap(self) -> ActionResult:
-        report, rtc = self.session.get_runtime_config()
+        report, keyboard, ui_render, base_resolvers = self.session.get_runtime_config()
         dof_report = report.get_domain_overflow_report()
         if dof_report is not None:
             self.io.get_confirmation(
@@ -103,8 +103,9 @@ class AppEngine:
                 f"{"\n".join(complaints)}\nProceed anyway?",
                 required_phrase="yes"
             )
-        self.runtime_config = rtc
-        self.kb = self.runtime_config.keyboard
+        self.kb = keyboard
+        self.ui_render = ui_render
+        self.base_resolvers = base_resolvers
         self._wire_num_row()
         self._set_selected_num_btn(None)
         return ActionResult("Bootstrap completed successfully")
@@ -139,20 +140,20 @@ class AppEngine:
         return ActionResult(msg)
 
     def _display_ui(self) -> str:
-        self.io.display(self._render(self.runtime_config, self.runtime_config.ui_render))
+        self.io.display(self._render(self.ui_render))
         return self.io.get_key()
 
     def _compile_to_clipboard(self, key: str) -> ActionResult:
         btn = self.kb.button_map.get(key)
         if btn is None or btn.inhabitant is None or not isinstance(btn.inhabitant, Prompt):
             return ActionResult(f"No prompt assigned to key '{key}'")
-        rendered_text = self._render(self.runtime_config, btn.inhabitant.render)
+        rendered_text = self._render(btn.inhabitant.render)
         lines_count = self.io.to_clipboard(rendered_text)
         char_count = len(rendered_text)
         return ActionResult(f"Copied {lines_count} lines ({char_count} chars) to clipboard")
 
-    def _render(self, cfg: RuntimeConfig, render: Render):
+    def _render(self, render: Render):
         template = self.renderer.get_template(render)
-        repl_map = self.renderer.get_repl_map(cfg, render)
+        repl_map = self.renderer.get_repl_map(self.kb, self.base_resolvers, render)
         repl_map["msg"] = self.msg.get_msg()
         return self.renderer.hydrate(template, repl_map)

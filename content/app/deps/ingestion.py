@@ -1,4 +1,3 @@
-from app.entities import RuntimeConfig
 from abc import ABC, abstractmethod
 
 class Report(ABC):
@@ -9,6 +8,6 @@ class Report(ABC):
 
 class IngestionService(ABC): 
     @abstractmethod
-    def get_runtime_config(self) -> tuple[Report, RuntimeConfig]: ...
+    def get_runtime_config(self) -> tuple[Report, Keyboard, Render, list[Resolver]]: ...
     @abstractmethod
     def initialize_workspace(self) -> None: ...

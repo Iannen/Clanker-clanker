@@ -75,20 +75,22 @@ II. Items to refine & QC:
 
 7. Refactor keyboard management into dedicated KBService
     Phase 1: Dissolve RuntimeConfig container into explicit components
-    [ ] 'content/app/entities.py': Remove RuntimeConfig dataclass
+    [x] 'content/app/entities.py': Remove RuntimeConfig dataclass
         - Delete RuntimeConfig definition to eliminate monolithic config passing
-    [ ] 'content/app/deps/ingestion.py': Update IngestionService interface return type
+    [x] 'content/app/deps/ingestion.py': Update IngestionService interface return type
         - Update get_runtime_config to return tuple[Report, Keyboard, Render, list[Resolver]]
-    [ ] 'content/asset_ingestion/ingestion_service.py': Unpack RtcAssembler components in return tuple
+    [x] 'content/asset_ingestion/ingestion_service.py': Unpack RtcAssembler components in return tuple
         - Return keyboard, ui_render, and base_resolvers directly instead of instantiating RuntimeConfig
-    [ ] 'content/app/deps/render.py': Update RenderService interface signature
+    [x] 'content/app/deps/render.py': Update RenderService interface signature
         - Replace RuntimeConfig parameter in get_repl_map with explicit keyboard and base_resolvers dependencies
-    [ ] 'content/render_pipeline/render_service.py': Adapt render service callsites
+    [x] 'content/render_pipeline/render_service.py': Adapt render service callsites
         - Update get_repl_map signature and internal calls to accept keyboard and base_resolvers directly
-    [ ] 'content/app/engine.py': Store unpacked config components on self
+    [x] 'content/app/engine.py': Store unpacked config components on self
         - Unpack tuple from session in _bootstrap and assign self.keyboard, self.ui_render, and self.base_resolvers
         - Update internal _render callsites to pass self.keyboard and self.base_resolvers
-
+    [x] 'content/asset_ingestion/validators/assets.py': Update AssetValidator interface signature
+        - Replace RuntimeConfig parameter in validate with explicit keyboard, ui_render, and base_resolvers dependencies
+        
     Phase 2: Shift UI rendering ownership and lifecycle to RenderService
     [ ] 'content/app/deps/render.py': Expand RenderService interface
         - Add set_ui_render(ui_render: Render) -> None
@@ -117,6 +119,7 @@ II. Items to refine & QC:
         - Inject KBServiceImpl into AppEngine instantiation in clanker.py
 
 III. Slated for implementation:
+
 IV. Recently implemented:
 
 V. Critical bugs
