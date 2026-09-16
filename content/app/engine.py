@@ -84,11 +84,13 @@ class AppEngine:
 
         try:
             while True:
-                self.io.display(self.renderer.render_ui(self.kb, self.msg))
+                ui_ctx = self.kb_service.get_ui_context()
+                ui_render = self.renderer.render_ui(ui_ctx.keyboard, self.msg)
+                self.io.display(ui_render)
                 cmd_key = self.io.get_key()
-                ar, render_ctx = self.kb_service.handle_key(cmd_key)
-                if ar is not None:
-                    self.msg = ar
+                action_res, render_ctx = self.kb_service.handle_key(cmd_key)
+                if action_res is not None:
+                    self.msg = action_res
                 elif render_ctx is not None:
                     rendered_text = self.renderer.render_prompt(render_ctx)
                     self.msg = self.io.to_clipboard(rendered_text)
@@ -111,9 +113,6 @@ class AppEngine:
                 f"{"\n".join(complaints)}\nProceed anyway?",
                 required_phrase="yes"
             )
-        self.kb = keyboard
-        self.ui_render = ui_render
-        self.base_resolvers = base_resolvers
         self.renderer.set_ui_render(ui_render)
         self.kb_service.setup(keyboard, base_resolvers)
         return ActionResult("Bootstrap completed successfully")

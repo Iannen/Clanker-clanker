@@ -1,4 +1,4 @@
-from app.deps.keyboard import KBService, RenderContext
+from app.deps.keyboard import KBService, RenderContext, UIRenderContext
 from app.entities import Keyboard, Resolver, Button, Prompt
 from app.presentation import ActionResult
 
@@ -8,6 +8,9 @@ class KBServiceImpl(KBService):
         self.base_resolvers = base_resolvers
         self._wire_num_row()
         self._set_selected_num_btn(None)
+
+    def get_ui_context(self) -> UIRenderContext:
+        return UIRenderContext(keyboard=self.keyboard)
 
     def handle_key(self, key: str) -> tuple[ActionResult | None, RenderContext | None]:
         btn = self.keyboard.button_map.get(key)

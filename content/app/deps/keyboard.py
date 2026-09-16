@@ -9,8 +9,14 @@ class RenderContext:
     keyboard: Keyboard
     base_resolvers: list[Resolver]
 
+@dataclass
+class UIRenderContext:
+    keyboard: Keyboard
+
 class KBService(ABC):
     @abstractmethod
     def setup(self, keyboard: Keyboard, base_resolvers: list[Resolver]) -> None: ...
     @abstractmethod
     def handle_key(self, key: str) -> tuple[ActionResult | None, RenderContext | None]: ...
+    @abstractmethod
+    def get_ui_context(self) -> UIRenderContext: ...
