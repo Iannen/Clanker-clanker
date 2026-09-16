@@ -52,10 +52,6 @@ class DiskPort(ABC):
         self, file_names: list[str]
     ) -> dict[str, str | None]: ...
 
-    @abstractmethod
-    def getFileContent(self, full_path: str) -> str: ...
-
-
 class ConfigParserPort(ABC):
     @abstractmethod
     def get_as_dict(self, raw_text: str) -> dict: ...

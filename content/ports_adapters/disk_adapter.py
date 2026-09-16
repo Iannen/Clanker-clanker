@@ -139,11 +139,3 @@ class LinuxDiskAdapter(DiskPort):
             raise FileAccessError(f"Access error during fallback lookup: {ex}") from ex
 
         return ret_map
-
-    def getFileContent(self, full_path: str) -> str:
-        try:
-            return Path(full_path).read_text(encoding="utf-8")
-        except FileNotFoundError as ex:
-            raise NoSuchFile(f"File not found: {full_path}") from ex
-        except (PermissionError, UnicodeDecodeError) as ex:
-            raise FileAccessError(f"File access error for {full_path}: {ex}") from ex
