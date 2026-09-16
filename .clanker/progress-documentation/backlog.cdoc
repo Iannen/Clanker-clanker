@@ -91,10 +91,19 @@ II. Items to refine & QC:
 1. Implement headless test adapter and clanker test mode integration
     [x] 'content/ports_adapters/scripted_terminal_adapter.py': Implement ScriptedIOBridge adhering to TerminalPort
     [x] 'content/clanker.py': Add command-line flag support for test mode
-    [x] 'content/test/ship_gate.py': Create two-phase quality gate script with global test-clank command
+    [x] 'content/test/ship_gate.py': Refactor into an OOP, two-phase quality gate with BaseFixtureTest and GateInspector classes
     [x] 'content/test/test_repos/test_repo_1/': Establish persistent test fixture directory mirroring ~/Projects/test
-    [x] 'content/test/ship_gate.py': Run clanker.py against test_repo_1 sandbox and assert execution verdicts
-    [ ] 'content/test/e2e_harness.py': Expand JSON report inspection to deeply validate rendered terminal frames and UI states
+    [x] 'content/test/ship_gate.py': Run clanker.py against test_repo_1 sandbox, maintaining inspectable active_sandbox and JSON reporting
+    [ ] 'content/test/ship_gate.py': Refactor BaseFixtureTest with template method orchestration
+        - Implement public 'run_tests' orchestrator to sequence lifecycle management and test execution
+        - Implement private helper methods for sandbox teardown, setup, and executing assertion specs
+    [ ] 'content/test/ship_gate.py': Update test repo subclasses to expose declarative public assert methods
+        - Subclass assertion methods return input sequences and test specs rather than directly driving execution loops
+    [ ] 'content/test/ship_gate.py': Configure BaseFixtureTest and TestRepo1 for declarative lifecycle and reporting
+        - Declare source fixture and sandbox destination paths statically on subclasses
+        - Implement BaseFixtureTest.run_tests() template method to perform single-run teardown/setup based on subclass statics
+        - Iterate over subclass public assert methods to retrieve declarative assert specs (inputs and expected outputs)
+        - Execute key sequences, capture outputs, record tuples (inputs, actual, expected), and write aggregated JSON report per subclass
 
 
 III. Slated for implementation:
