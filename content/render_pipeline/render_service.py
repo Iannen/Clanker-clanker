@@ -23,6 +23,11 @@ class RenderServiceImpl(RenderService):
         repl_map["msg"] = msg.get_msg() if msg is not None else ""
         return self.hydrate(template, repl_map)
 
+    def render_prompt(self, ctx: RenderContext) -> str:
+        template = self.get_template(ctx.render)
+        repl_map = self.get_repl_map(ctx.keyboard, ctx.base_resolvers, ctx.render)
+        return self.hydrate(template, repl_map)
+
     def hydrate(self, template: str, replacements: dict[str, str]) -> str:
         return self.shaper.hydrate(template, replacements)
 

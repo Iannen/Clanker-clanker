@@ -1,6 +1,7 @@
 from app.deps.tui import TUIService
 from ports_adapters.ports import IOBridgePort
 from app.exceptions import ProgramExit, UserDecline
+from app.presentation import ActionResult
 
 class IOControl:
     ACCEPTED = "accepted"
@@ -17,8 +18,10 @@ class TUIServiceImpl(TUIService):
     def display(self, ui_string: str) -> None:
         self.io_bridge.write(f"{ui_string}\n")
 
-    def to_clipboard(self, text_content: str) -> int:
-        return self.io_bridge.to_clipboard(text_content)
+    def to_clipboard(self, text_content: str) -> ActionResult:
+        lines_count = self.io_bridge.to_clipboard(text_content)
+        char_count = len(text_content)
+        return ActionResult(f"Copied {lines_count} lines ({char_count} chars) to clipboard")
 
     def get_key(self) -> str:
         ch = self.io_bridge.read_char()

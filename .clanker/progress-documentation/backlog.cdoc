@@ -127,22 +127,20 @@ II. Items to refine & QC:
         - Refactor run loop to unpack (ActionResult, RenderContext) from KBService.handle_key
         - Extract render, keyboard, and base_resolvers from RenderContext to invoke RenderService methods directly and pass output to clipboard
 III. Slated for implementation:    
-
+IV. Recently implemented:
     Phase 5: AppEngine to Services delegation of menial tasks
-    [ ] 'content/app/deps/render.py' & 'content/render_pipeline/render_service.py': Facade prompt rendering in RenderService
+    [x] 'content/app/deps/render.py' & 'content/render_pipeline/render_service.py': Facade prompt rendering in RenderService
         - Add `render_prompt(ctx: RenderContext) -> str` to RenderService ABC and implementation
         - Encapsulate `get_template`, `get_repl_map`, and `hydrate` sequence inside `render_prompt` without passing UI message context
         - No need to refactor RenderService beyond adding the new methods
             - simply use its existing methods inside the new method
-    [ ] 'content/app/deps/tui.py' & 'content/tui/tui_service.py': Delegate clipboard action result
+    [x] 'content/app/deps/tui.py' & 'content/tui/tui_service.py': Delegate clipboard action result
         - Update `to_clipboard(content: str)` signature to return `ActionResult`
         - Move line and character count message formatting into `TUIServiceImpl.to_clipboard`
-    [ ] 'content/app/engine.py': Streamline engine run loop
+    [x] 'content/app/engine.py': Streamline engine run loop
         - Retain investigatory logic to determine if `self.msg` needs new assignment based on service returns
         - Remove `_display_ui` and inline `renderer.render_ui`, `io.display`, and `io.get_key` directly at the top of the run loop
         - Refactor prompt handling branch: call `renderer.render_prompt(render_ctx)` and assign `io.to_clipboard(...)` directly to `self.msg`
-
-IV. Recently implemented:
 
 V. Critical bugs
 

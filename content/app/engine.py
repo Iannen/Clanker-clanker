@@ -84,20 +84,14 @@ class AppEngine:
 
         try:
             while True:
-                cmd_key = self._display_ui()
+                self.io.display(self.renderer.render_ui(self.kb, self.msg))
+                cmd_key = self.io.get_key()
                 ar, render_ctx = self.kb_service.handle_key(cmd_key)
                 if ar is not None:
                     self.msg = ar
                 elif render_ctx is not None:
-                    # i think perhaps a next step could be to reduce the calls to RenderService in one public render_prompt method or similar
-                    template = self.renderer.get_template(render_ctx.render)
-                    repl_map = self.renderer.get_repl_map(render_ctx.keyboard, render_ctx.base_resolvers, render_ctx.render)
-                    repl_map["msg"] = self.msg.get_msg() if self.msg is not None else ""
-                    rendered_text = self.renderer.hydrate(template, repl_map)
-                    # i think TUIService should return the actionresult here - so engine dont need to doctor it up
-                    lines_count = self.io.to_clipboard(rendered_text)
-                    char_count = len(rendered_text)
-                    self.msg = ActionResult(f"Copied {lines_count} lines ({char_count} chars) to clipboard")
+                    rendered_text = self.renderer.render_prompt(render_ctx)
+                    self.msg = self.io.to_clipboard(rendered_text)
         except ProgramExit:
             return ProgramExit.MSG_DEFAULT
         except Exception as other_ex:
@@ -123,7 +117,3 @@ class AppEngine:
         self.renderer.set_ui_render(ui_render)
         self.kb_service.setup(keyboard, base_resolvers)
         return ActionResult("Bootstrap completed successfully")
-    # perhaps we can inline this at callsite, its a small thing. extract it into self render call, then self io display call, then io get key call, inline at callsite
-    def _display_ui(self) -> str:
-        self.io.display(self.renderer.render_ui(self.kb, self.msg))
-        return self.io.get_key()
