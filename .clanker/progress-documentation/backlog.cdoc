@@ -21,6 +21,7 @@ I. Ideas, complaints and non-critical bugs:
         - Prompt dev with interactive summary and pass/fail verdict
     [ ] 'ship.sh': Add optional quality gate integration
         - Execute test harness as the first ship gate, blocking commit/push on exit code 1
+    - Finally P/A architecture becomes useful
 
 
 2. clankerization of a project can represent the much talked about repo contract by the content it creates
