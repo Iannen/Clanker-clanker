@@ -90,18 +90,11 @@ I. Ideas, complaints and non-critical bugs:
 II. Items to refine & QC:
 1. Implement headless test adapter and clanker test mode integration
     [x] 'content/ports_adapters/scripted_terminal_adapter.py': Implement ScriptedIOBridge adhering to TerminalPort
-        - Replaces blocking stdin reads with a pre-recorded sequence of inputs
-        - Captures rendered terminal frames and clipboard outputs into a structured test report file
     [x] 'content/clanker.py': Add command-line flag support for test mode
-        - Parse CLI arguments to selectively instantiate ScriptedIOBridge over standard LinuxTerminalAdapter
-        - Keep the rest of the application setup and execution pipeline unchanged
-    [x] 'content/test/ship_gate.py': Create new Python-based quality gate script and initial tests
-        - House the new ship automation under content/test/ leaving the legacy root ship.sh untouched
-        - Added Test 1 (true repo `.clanker` inspection) and Test 2 (isolated sandbox workspace execution)
-    [ ] 'content/test/e2e_harness.py': Create E2E test harness to parse and validate test reports
-        - Parse the generated JSON report files from sandbox runs to verify UI states, rendered frames, and expected application flows
-    [ ] 'ship.sh': Integrate Python ship gate wrapper
-        - Hook the new quality gate script into the release pipeline to block on failure exit codes
+    [x] 'content/test/ship_gate.py': Create two-phase quality gate script with global test-clank command
+    [x] 'content/test/test_repos/test_repo_1/': Establish persistent test fixture directory mirroring ~/Projects/test
+    [x] 'content/test/ship_gate.py': Run clanker.py against test_repo_1 sandbox and assert execution verdicts
+    [ ] 'content/test/e2e_harness.py': Expand JSON report inspection to deeply validate rendered terminal frames and UI states
 
 
 III. Slated for implementation:
