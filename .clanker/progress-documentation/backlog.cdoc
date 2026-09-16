@@ -7,23 +7,6 @@ I. Ideas, complaints and non-critical bugs:
     - ez fix is to adjust template.
     - rabbithole solution is to have app write template to rowspec
 
-
-1. End-to-end headless test system for dev confidence
-    [ ] 'content/ports_adapters/adapters.py': Implement 'ScriptedIOBridge'
-        - Feeds pre-recorded key sequences, ending with a graceful exit action
-        - Captures screen frames and clipboard outputs into a test report file
-    [ ] 'content/clanker.py': Support test mode flag
-        - Check CLI arguments (`--test`) to select `ScriptedIOBridge` over standard `IOBridge`
-        - Run rest of application setup and execution pipeline unchanged
-    [ ] 'tests/e2e_harness.py': Create E2E test harness
-        - Run app in test mode across clankerized and un-clankerized scenarios
-        - Parse report file, verify UI states and prompt compilations
-        - Prompt dev with interactive summary and pass/fail verdict
-    [ ] 'ship.sh': Add optional quality gate integration
-        - Execute test harness as the first ship gate, blocking commit/push on exit code 1
-    - Finally P/A architecture becomes useful
-
-
 2. clankerization of a project can represent the much talked about repo contract by the content it creates
     - it should check 'does any of the content exist'?
         - if so dont do anything, complain to user
@@ -48,12 +31,13 @@ I. Ideas, complaints and non-critical bugs:
         - if not present, then complain
 
 5. Make use of latest architectural work in ingestion module
-    - simplify EC and 'Report' for now, lets just have str msgs for ez
+    [ ] simplify EC and 'Report' for now, lets just have str msgs for ez
+        - so prune the typed thing, and just use the 1 type of complaint registration for all cases
+    - Here we add complaintreasons we can think of, as they pop into our head. they should be represented by a method with the complaintproducer
 
 6. UI / Feedback imp [DX/UX]: 
-    - make prompt compilation msg say which domain, prompt was used in addition to just line/char
-    - turns into a pipeline refactor. oh well
-    - we have the righthand side of the screen to put info on. will be baller, only green (black) grass
+    - recent architectural work should make this easier
+    - the UI can produce a better header message, and also perhaps a filetree on the right hand side, where there is ample space
 
 7. Non IDE / linter import strats: BUFF importance of this, as LLMs typically run lower than 3.14 version of python, and cannot compensate.
     - goals:
@@ -68,12 +52,15 @@ I. Ideas, complaints and non-critical bugs:
 8. Mull 'ExceptionPolicy'
     - its purpose is essentially to classify ex that core does not deal with
     - and to format the msgs that get printed in main
+    - 'protection' must be done up in main
+    - while formatting via method is in appengine (it receives the ex)
+        - perhaps it all goes to main? 
 
 9. Follow up prompts
     - to pass the next step of workflow
         - plan into do into backlog management
     - reduce token waste
-II. Items to refine & QC:
+    - quicker iterations
 
 10. Clean up ports and adapters stuff: 
     Phase 1 adapter refactoring & naming
@@ -95,14 +82,31 @@ II. Items to refine & QC:
     Phase 2: core facing
     [x] 'ports.py'
         - 'getFileContent' is not used and can be pruned from port and adapter
-    [ ] LinuxDiskAdapter cannot pass str arg to any notice, it violates ex policy
+    [ ] LinuxDiskAdapter cannot pass str arg to any notice, it violates ex policy.
     [ ] core must deal with LDA's raising of 'FileAccessError'
+    let us find out how the situation is at the call sites
+    [ ] Let us then look to the adapters for easy wins with regards to code quality
+
+II. Items to refine & QC:
+1. Implement headless test adapter and clanker test mode integration
+    [x] 'content/ports_adapters/scripted_terminal_adapter.py': Implement ScriptedIOBridge adhering to TerminalPort
+        - Replaces blocking stdin reads with a pre-recorded sequence of inputs
+        - Captures rendered terminal frames and clipboard outputs into a structured test report file
+    [x] 'content/clanker.py': Add command-line flag support for test mode
+        - Parse CLI arguments to selectively instantiate ScriptedIOBridge over standard LinuxTerminalAdapter
+        - Keep the rest of the application setup and execution pipeline unchanged
+    [x] 'content/test/ship_gate.py': Create new Python-based quality gate script and initial tests
+        - House the new ship automation under content/test/ leaving the legacy root ship.sh untouched
+        - Added Test 1 (true repo `.clanker` inspection) and Test 2 (isolated sandbox workspace execution)
+    [ ] 'content/test/e2e_harness.py': Create E2E test harness to parse and validate test reports
+        - Parse the generated JSON report files from sandbox runs to verify UI states, rendered frames, and expected application flows
+    [ ] 'ship.sh': Integrate Python ship gate wrapper
+        - Hook the new quality gate script into the release pipeline to block on failure exit codes
+
 
 III. Slated for implementation:
 IV. Recently implemented:
 V. Critical bugs
-
-well, not that critical for a WIP imo
 on test repo, manifest domain for 'a' only (keys 1 -> a):
 '''
 [FATAL] FileAccessError: File access error for presentation/image_lib/clanker_boot.png: 'utf-8' codec can't decode byte 0x89 in position 0: invalid start byte
