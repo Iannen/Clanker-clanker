@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from app.exceptions import Notice, Fatal
 
-class IOBridgePort(ABC):
+class TerminalPort(ABC):
     @abstractmethod
     def to_clipboard(self, text_content: str) -> int: ...
 
@@ -18,7 +18,7 @@ class IOBridgePort(ABC):
 class NoSuchFile(Notice): leaf_ex = True
 class FileAccessError(Fatal): leaf_ex = True
 
-class FileBridgePort(ABC):
+class DiskPort(ABC):
     @abstractmethod
     def get_file_contents(self, tokenized_path: str) -> str: ...
 
@@ -56,6 +56,6 @@ class FileBridgePort(ABC):
     def getFileContent(self, full_path: str) -> str: ...
 
 
-class ConfigIngestorPort(ABC):
+class ConfigParserPort(ABC):
     @abstractmethod
     def get_as_dict(self, raw_text: str) -> dict: ...

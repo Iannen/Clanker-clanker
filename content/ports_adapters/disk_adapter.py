@@ -2,9 +2,9 @@ import os
 from pathlib import Path
 from app.constants import PathTokens
 from app.exceptions import CorruptClanker, WorkspaceAlreadyInitialized
-from ports_adapters.ports import FileBridgePort, NoSuchFile, FileAccessError
+from ports_adapters.ports import DiskPort, NoSuchFile, FileAccessError
 
-class FileBridge(FileBridgePort):
+class LinuxDiskAdapter(DiskPort):
     def __init__(self) -> None:
         self.clanker_path = Path(os.path.realpath(__file__)).parent.parent.parent
         self.pud_path = Path.cwd()

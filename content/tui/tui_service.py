@@ -1,5 +1,5 @@
 from app.deps.tui import TUIService
-from ports_adapters.ports import IOBridgePort
+from ports_adapters.ports import TerminalPort
 from app.exceptions import ProgramExit, UserDecline
 from app.presentation import ActionResult, UserQuestions
 
@@ -12,7 +12,7 @@ class IOControl:
     BACKSPACE_KEYS = ("\x7f", "\x08")
 
 class TUIServiceImpl(TUIService):
-    def __init__(self, io_bridge: IOBridgePort) -> None:
+    def __init__(self, io_bridge: TerminalPort) -> None:
         self.io_bridge = io_bridge
 
     def display(self, ui_string: str) -> None:

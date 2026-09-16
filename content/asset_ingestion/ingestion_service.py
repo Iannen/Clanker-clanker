@@ -1,7 +1,7 @@
 from app.deps.ingestion import IngestionService
 from app.entities import KBStateResolver
 from app.exceptions import NoConfig, ConfigAssembly, CorruptClanker
-from ports_adapters.ports import NoSuchFile
+from ports_adapters.ports import NoSuchFile, DiskPort, ConfigParserPort
 from asset_ingestion.commons.value_extractor import ValueExtractor
 from asset_ingestion.commons.error_collector import ErrorCollector
 from asset_ingestion.extractors.domains import DomainsExtractor
@@ -17,8 +17,8 @@ from app.presentation import ActionResult
 class IngestionServiceImpl(IngestionService):
     def __init__(
         self,
-        files: FileBridgePort,
-        cfg_ingestor: ConfigIngestorPort,
+        files: DiskPort,
+        cfg_ingestor: ConfigParserPort,
     ) -> None:
         self.files = files
         self.cfg_ingestor = cfg_ingestor
