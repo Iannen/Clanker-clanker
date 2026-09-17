@@ -60,7 +60,6 @@ D. Testing
 II. Items to refine & QC:
 
 II. Items to refine & QC:
-III. Slated for implementation:
 5. P&A, Exception arg Hygiene:
     Phase 1:
     [x] 'ports.py'
@@ -74,30 +73,36 @@ III. Slated for implementation:
         - Standardized ExceptionPolicy to treat all system exceptions as parameterless
         - utilizing __cause__ chaining for stack trace formatting and error diagnostics
 
-    [ ] 'ports_adapters/': align exception raising to exception policy. align adapter imports to 'adapter import policy', described below
+    [x] 'ports_adapters/': align exception raising to exception policy. 
         - Align all raising of ex to policy, parameterless raising - always omitting parentheses
             - yes: raise ExName
+            - also yes: raise ExName from InstantiatedValuePassingEg("Here we can put a little msg if we must")
             - no: raise ExName()
             - cause of exit 1 due to policy: raise ExName("we raise the ex!")
-        - adapter import policy: Adapters may only import from 'ports' package, or the imports which they encapsulate for the system
-        - no members of 'ports' should be 'core near' in their semantics
-            - business rules belong in core. the ex of adapters are adapter centric translation only
-                - 'NoSuchFile' OK
-                - 'IllegalDuplicateFile' - not OK
-        [ ] subtasks go here, leave the above untouched
-
     Phase 3:
-    [ ] Portfolio-wide analysis: Review exception responsibilities across adapters
-        - any ex raise by an adapter should be declared adjacent to port. the adapter should only import from the port and the ex language of it
-        - the semantics of the ex should be adapter centric, referring to the action of the adapter
-            - they may be fatal, if the case warrants that
-        - move IOControl adjacent to adapter
-        - make the members it returns to the service ex raises
-        - but retain key vocabulary
-    [ ] Core alignment: Update core callers to handle adapter exceptions
-        - audit all call sites invoking DiskPort methods
-        - ensure core properly catches, translates, or handles Notice and Fatal exceptions from adapters
+    [x] 'ports_adapters/': align adapter imports to 'adapter import policy', described below
+        note: if also semantic violation, its deferred
+        - adapter import policy: Adapters may only import from 'ports' package, or the imports which they encapsulate for the system
 
+    [ ] All adapters must raise proper ex, located adjacent to their ports
+        Static explainer: The ex they raise should be 'core near' in their semantics, so the adapters dont carry business rules
+            - 'NoSuchFile' OK
+            - 'IllegalDuplicateFile' - not OK
+        [ ] 'linux.py'
+        [ ] 'scripted_terminal_adapter.py'
+        [ ] 'yaml_parser.py'
+        [ ] 'linux.py'
+        [ ] 'ports.py'
+
+    Phase 4: Core alignment to port adjacent ex 
+        Static explainer: The services should catch and make use of them in a meaningful way
+            - if they are notice
+            - if they are fatal, no need to listen
+        [ ] 'content/asset_ingestion/ingestion_service.py'
+        [ ] 'content/render_pipeline/render_service.py'
+        [ ] 'content/tui/tui_service.py'
+
+III. Slated for implementation:
 IV. Recently implemented:
 V. Critical bugs
 on test repo, manifest domain for 'a' only (keys 1 -> a):

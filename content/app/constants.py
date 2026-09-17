@@ -1,8 +1,4 @@
-# user in render_pipeline, asset_ingestion and ports_adapters
-class PathTokens:
-    PUD = "<PUD>"
-    SHARED = "<SHARED>"
-    CONTENT = "content"
+from ports_adapters.ports import PathTokens
 
 # used in asset_ingestion only
 class CfgFragments:

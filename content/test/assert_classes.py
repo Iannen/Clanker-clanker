@@ -1,7 +1,7 @@
 from ship_gate import BaseFixtureTest
 from app.exceptions import ProgramExit
 from app.presentation import ActionResult
-from tui.tui_service import IOControl
+from ports_adapters.ports import IOControl
 from app.constants import RepoContract
 
 

@@ -1,6 +1,14 @@
 from abc import ABC, abstractmethod
 from app.exceptions import Notice, Fatal
 
+class IOControl:
+    ACCEPTED = "accepted"
+    DECLINED = "declined"
+    INVALID = "invalid"
+    ABORT_KEYS = ("\x1b", "\x03")
+    ACCEPT_KEY = "\x04"
+    BACKSPACE_KEYS = ("\x7f", "\x08")
+    
 class TerminalPort(ABC):
     @abstractmethod
     def to_clipboard(self, text_content: str) -> int: ...
@@ -17,6 +25,12 @@ class TerminalPort(ABC):
 
 class NoSuchFile(Notice): leaf_ex = True
 class FileAccessError(Fatal): leaf_ex = True
+class InvalidPathToken(Fatal): leaf_ex = True
+
+class PathTokens:
+    PUD = "<PUD>"
+    SHARED = "<SHARED>"
+    CONTENT = "content"
 
 class DiskPort(ABC):
     @abstractmethod
@@ -52,6 +66,7 @@ class DiskPort(ABC):
         self, file_names: list[str]
     ) -> dict[str, str | None]: ...
 
+class ConfigParseError(Notice): leaf_ex = True
 class ConfigParserPort(ABC):
     @abstractmethod
     def get_as_dict(self, raw_text: str) -> dict: ...

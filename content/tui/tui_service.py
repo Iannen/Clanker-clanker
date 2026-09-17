@@ -1,15 +1,7 @@
 from app.deps.tui import TUIService
-from ports_adapters.ports import TerminalPort
+from ports_adapters.ports import TerminalPort, IOControl
 from app.exceptions import ProgramExit, UserDecline
 from app.presentation import ActionResult, UserQuestions
-
-class IOControl:
-    ACCEPTED = "accepted"
-    DECLINED = "declined"
-    INVALID = "invalid"
-    ABORT_KEYS = ("\x1b", "\x03")
-    ACCEPT_KEY = "\x04"
-    BACKSPACE_KEYS = ("\x7f", "\x08")
 
 class TUIServiceImpl(TUIService):
     def __init__(self, io_bridge: TerminalPort) -> None:

@@ -1,8 +1,7 @@
 import base64
 import os
 import sys
-from ports_adapters.ports import TerminalPort
-from tui.tui_service import IOControl
+from ports_adapters.ports import TerminalPort, IOControl
 
 class LinuxTerminalAdapter(TerminalPort):
     def to_clipboard(self, text_content: str) -> int:

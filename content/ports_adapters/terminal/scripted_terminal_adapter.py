@@ -1,7 +1,6 @@
 import json
 import os
-from ports_adapters.ports import TerminalPort
-from tui.tui_service import IOControl
+from ports_adapters.ports import TerminalPort, IOControl
 
 class ScriptedTeminalAdapter(TerminalPort):
     def __init__(self, input_sequence: list[str], report_path: str):

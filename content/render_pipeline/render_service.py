@@ -1,8 +1,8 @@
 from app.entities import MultiDocResolver, RepoContentResolver, ManifestResolver, KBStateResolver, Button, Domain, Resolver, Render
 from app.deps.render import RenderService
 from render_pipeline.content_shaper import ContentShaper
-from app.constants import Layouts, PathTokens
-from ports_adapters.ports import NoSuchFile, DiskPort
+from app.constants import Layouts
+from ports_adapters.ports import PathTokens, NoSuchFile, DiskPort
    
 from app.presentation import ActionResult
 

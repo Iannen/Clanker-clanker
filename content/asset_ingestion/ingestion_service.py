@@ -1,7 +1,7 @@
 from app.deps.ingestion import IngestionService
 from app.entities import KBStateResolver
 from app.exceptions import NoConfig, ConfigAssembly, CorruptClanker
-from ports_adapters.ports import NoSuchFile, DiskPort, ConfigParserPort
+from ports_adapters.ports import PathTokens, NoSuchFile, DiskPort, ConfigParserPort
 from asset_ingestion.commons.value_extractor import ValueExtractor
 from asset_ingestion.commons.error_collector import ErrorCollector
 from asset_ingestion.extractors.domains import DomainsExtractor
