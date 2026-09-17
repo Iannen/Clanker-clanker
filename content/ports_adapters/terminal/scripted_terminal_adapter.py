@@ -3,13 +3,25 @@ import os
 from ports_adapters.ports import TerminalPort
 from tui.tui_service import IOControl
 
-class ScriptedIOBridge(TerminalPort):
+class ScriptedTeminalAdapter(TerminalPort):
     def __init__(self, input_sequence: list[str], report_path: str):
-        self.input_sequence = list(input_sequence)
+        self.input_sequence = self._flatten_sequence(input_sequence)
         self.report_path = report_path
         self.input_index = 0
         self.frames = []
         self.clipboards = []
+
+    def _flatten_sequence(self, input_sequence: list[str]) -> list[str]:
+        flattened = []
+        for item in input_sequence:
+            if isinstance(item, str):
+                if len(item) > 1 and not item.startswith("\x1b") and not item.startswith("\033"):
+                    flattened.extend(list(item))
+                else:
+                    flattened.append(item)
+            else:
+                flattened.append(item)
+        return flattened
 
     def to_clipboard(self, text_content: str) -> int:
         self.clipboards.append(text_content)

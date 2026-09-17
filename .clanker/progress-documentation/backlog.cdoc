@@ -63,7 +63,7 @@ I. Ideas, complaints and non-critical bugs:
     - quicker iterations
 
 10. Clean up ports and adapters stuff: 
-    Phase 1 adapter refactoring & naming
+    Phase 1: adapter refactoring & naming
     [x] 'content/ports_adapters/ports.py': Rename ports and align exception contracts
         - Rename FileBridgePort to DiskPort, IOBridgePort to TerminalPort, and ConfigIngestorPort to ConfigParserPort
         - Keep translated infrastructure exceptions (NoSuchFile, FileAccessError) adjacent to the ports
@@ -88,31 +88,42 @@ I. Ideas, complaints and non-critical bugs:
     [ ] Let us then look to the adapters for easy wins with regards to code quality
 
 II. Items to refine & QC:
-1. Implement headless test adapter and clanker test mode integration
-    [x] 'content/ports_adapters/scripted_terminal_adapter.py': Implement ScriptedIOBridge adhering to TerminalPort
-    [x] 'content/clanker.py': Add command-line flag support for test mode
-    [x] 'content/test/ship_gate.py': Refactor into an OOP, two-phase quality gate with BaseFixtureTest and GateInspector classes
-    [x] 'content/test/test_repos/test_repo_1/': Establish persistent test fixture directory mirroring ~/Projects/test
-    [x] 'content/test/ship_gate.py': Run clanker.py against test_repo_1 sandbox, maintaining inspectable active_sandbox and JSON reporting
-    [ ] 'content/test/ship_gate.py': Refactor BaseFixtureTest with template method orchestration
-        - Implement public 'run_tests' orchestrator to sequence lifecycle management and test execution
-        - Implement private helper methods for sandbox teardown, setup, and executing assertion specs
-    [ ] 'content/test/ship_gate.py': Update test repo subclasses to expose declarative public assert methods
-        - Subclass assertion methods return input sequences and test specs rather than directly driving execution loops
-    [ ] 'content/test/ship_gate.py': Configure BaseFixtureTest and TestRepo1 for declarative lifecycle and reporting
-        - Declare source fixture and sandbox destination paths statically on subclasses
-        - Implement BaseFixtureTest.run_tests() template method to perform single-run teardown/setup based on subclass statics
-        - Iterate over subclass public assert methods to retrieve declarative assert specs (inputs and expected outputs)
-        - Execute key sequences, capture outputs, record tuples (inputs, actual, expected), and write aggregated JSON report per subclass
-    note: added 'content/test/reports' for reports. after a run of the test script, this will hold 1 json object for each subclass
-        - when a testclass is run, it first (via baseclass), deletes the old report, then writes a new report at conclusion of all asserts
-    note: added 'content/test/sandboxes' for sb's. after a run of the test script, this will hold dir for each subclass
-        - when a testclass is run, it first (via baseclass), deletes the old sandbox, then creates a new one for the run (not deleting it afterwards)
-    note: the super simply writes a 3 tuple of keysequence, output and expected output. its the job of the interpreter to evaluate the results
-    note: in the future, i will port out the subclass to keep the file contraining subclasses lean
-
-
 III. Slated for implementation:
+1. Implement initial headless test system and quality gate pipeline
+    Phase 1: Setup / initial work
+    [x] 'content/ports_adapters/terminal/scripted_terminal_adapter.py': Implement ScriptedTeminalAdapter adhering to TerminalPort
+        - Record UI frames, inputs consumed, and clipboards
+        - Flush execution metrics to JSON report file on output write
+    [x] 'content/clanker.py': Add command-line flag support for headless test mode execution
+        - Support --test, --input-script, and --report-path parameters
+        - Swap LinuxTerminalAdapter for ScriptedTeminalAdapter when running in test mode
+    [x] 'content/test/ship_gate.py': Implement OOP two-phase quality gate architecture
+        - BaseFixtureTest manages test orchestration, sandboxing, and execution
+        - GateInspector evaluates subclass JSON reports and outputs formatted results
+    [x] 'content/test/test_repos/empty_repo/': Establish persistent source fixture directory templates
+        - Serve as immutable template for sandbox isolation
+    [x] 'content/test/assert_classes.py': Implement declarative test fixture class EmptyRepoTests
+        - Expose assert_escape_exits and assert_ctrl_c_exits return specs
+        - Define input sequences and expected exit codes/messages
+    [x] 'content/test/ship_gate.py': Automate test lifecycle management and sandbox isolation
+        - Recreate active sandboxes from source templates per test class run
+        - Execute headless clanker.py subprocesses and output structured JSON reports to content/test/reports/
+    Phase 2: machinery improvements
+    [x] 'content/test/ship_gate.py': Shift teardown responsibility to global test suite initialization
+        - Remove per-class teardown logic inside BaseFixtureTest setup lifecycle
+        - Execute a single wipe (rm -rf) of content/test/sandboxes/ and content/test/reports/ at the start of ship_gate run
+        - BaseFixtureTest creates sandbox once per class, runs asserts (aggregating outcomes), and writes final report
+    [x] 'content/ports_adapters/terminal/scripted_terminal_adapter.py': Implement character stream flattening in ScriptedTerminalAdapter
+        - Accept strings or lists of mixed strings/control characters in input_sequence
+        - Automatically expand string tokens into individual character elements while preserving special control sequences (e.g., "yes" expands to "y", "e", "s")
+    Phase 3: next assert & prereqs of it
+    [ ] 'content/test/ship_gate.py': Support filesystem domain inspection in BaseFixtureTest execution
+        - Support 'fs_paths_exist' and 'fs_paths_absent' keys inside expected spec dictionary
+        - Verify path existence relative to active_sandbox directory post-execution
+    [ ] 'content/test/assert_classes.py': Add assert_clankerize_repo_contract assertion to EmptyRepoTests
+        - Input sequence to accept workspace initialization
+        - Assert process exit code/message and presence of .clanker directory/files inside sandbox
+
 IV. Recently implemented:
 V. Critical bugs
 on test repo, manifest domain for 'a' only (keys 1 -> a):

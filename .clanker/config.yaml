@@ -32,6 +32,7 @@ filesets:
     content/clanker.py]}
 
   test_harness: {includes: [
+    content/app/engine.py,
     content/clanker.py,
     content/ports_adapters/terminal/scripted_terminal_adapter.py,
     content/test,

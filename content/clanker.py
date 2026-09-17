@@ -1,7 +1,7 @@
 #!/usr/bin/env -S python3 -B
 from ports_adapters.disk_adapter import LinuxDiskAdapter
 from ports_adapters.terminal.linux import LinuxTerminalAdapter
-from ports_adapters.terminal.scripted_terminal_adapter import ScriptedIOBridge
+from ports_adapters.terminal.scripted_terminal_adapter import ScriptedTeminalAdapter
 from ports_adapters.yaml_parser import RuamelYamlParserAdapter
 from app.engine import AppEngine, ExceptionPolicy
 from render_pipeline.render_service import RenderServiceImpl
@@ -25,7 +25,7 @@ def main():
         # Select IO bridge based on test mode flag
         if args.test:
             io_adapter = ExceptionPolicy.protect_adapter(
-                ScriptedIOBridge(input_sequence=args.input_script, report_path=args.report_path)
+                ScriptedTeminalAdapter(input_sequence=args.input_script, report_path=args.report_path)
             )
         else:
             io_adapter = ExceptionPolicy.protect_adapter(LinuxTerminalAdapter())
