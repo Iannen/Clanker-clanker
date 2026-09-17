@@ -60,3 +60,99 @@ VII. Testing
        - should test that the prompt gen works for all leaves (prompts)
     - clankerization of a project
       - test the branches of the process
+
+VIII. App model V2: Dual workflow - dev cycles & repo mapping
+I. Dev cycles - All from yaml configs.
+Essentially what the system is today:
+- Plan -> implement -> add to history doc -> repeat
+- ..but reworks the entity model, making filesets the central artifact, while domains and prompts become reusable
+
+1. Fileset: the central bottom-level entity. 
+- only declared bottom level
+- can be aggregated (set operation style)
+    - so this + that = new fileset
+- they reference domains by name to subscribe to them
+
+2. Domains: bottom level too.
+Domains are used to create reusable prompting contexts
+- attach documents via the md resolver.
+    - code standards
+    - domain purpose docs
+
+3. Prompts attach to domains. 
+Attach prompt specific documents via md resolver
+- mode instructions
+- additional docs, doctrines, whatever becomes of that concept
+The collection of prompts becomes the core workflow
+- plan
+- implement
+- migrate to history
+Prompts have an alt-mode, which only uses the prompt attached assets. This allows one to squeeze value out of an llm context
+    - first full plan mode
+        - then alt-implement
+        - then alt-migrate
+        - then so on
+    - or start with implement
+        - then alt-migrate
+        - then alt-plan
+        ..
+Hit prompt key to get the prompt
+.. then hit it again for the alt mode
+
+Result: the model deepens a level
+- today its select domain, select prompt, there you go
+- new system? select fileset, select domain, select prompt (1x, 2x)-> there you go
+    - can a single simple UI view support this?
+        - we need 1 row for filesets, 2 rows for domains, and 1 for prompts
+
+II. Config production / maintenance (selecting the files to make up a fileset)
+Primary purpose: produce filesets to cover the repository in full
+    - secondary, domain & prompt asset selection / production
+Problems:
+- There may be many types of repos
+    - well organized repos
+    - spaghettiburgers
+    - non-code repos
+- There are many purposes for which one would want a fileset
+    - To analyse something stand-alone, as a 'module'
+    - a 'vertical slice' through the layers (ingestion/validation for the purpose of a particular entity)
+    - the essentails of the system , for readme work
+    - bragpacks
+Approaches:
+- Deterministic
+    - repo type specific
+        - code? which language?
+        - technically hard, huge rabbithole
+        - .. I think?
+- HIL LLM based:
+    - To recruit we must present
+    - so file metadata + current set of filesets. attempt to 'eyeball it'
+    - then QA filesets via LLM? 'does this set provide complete ctx for <suchandso> concern?'
+- User history based
+    - Suppose the app generates a history of used filesets
+    - This could provide some value?
+Additional concerns & thoughts:
+- token economy always matters
+- there are upper bounds to context size
+- the human should not have to manually edit yaml.
+    - that is horrible
+    - and clankerwork
+
+IX: Standard 3-Stage Prompt Payload Layout
+
+To maximize LLM retrieval accuracy and enforce strict output compliance across all modes, the render pipeline must assemble prompt payloads into a deterministic 3-stage sequence:
+
+1. Rules & Execution Framework (Top)
+   - Establish operational persona, system directives, and behavioural rules
+   - Assets: general-rules.md, behavioural_instructions/ (e.g. plan-mode.md, do-mode.md), doctrines/
+   - Purpose: Sets the primary attention mask through which all subsequent data is interpreted
+
+2. Passive Payload & Grounding Data (Middle)
+   - Contain all raw reference artifacts, project docs, and current state payloads
+   - Assets: <repo-content> (Filesets), <backlog.cdoc>, <project-history.cdoc>
+   - Purpose: Functions as a passive lookup pool; placed in the middle attention zone to prevent context contamination
+
+3. Output Instructions & Mandates (Bottom)
+   - Define exact syntax, structural rules, formatting specs, and negative constraints
+   - Assets: output-instructions/ (e.g. backlog-output-instructions.md, code-output-instruction.md)
+   - Purpose: Maximizes recency attention weight directly adjacent to token generation

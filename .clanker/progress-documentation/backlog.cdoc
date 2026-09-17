@@ -7,41 +7,10 @@ I. Ideas, complaints and non-critical bugs:
     - ez fix is to adjust template.
     - rabbithole solution is to have app write template to rowspec
 
-2. clankerization of a project can represent the much talked about repo contract by the content it creates
-    - it should check 'does any of the content exist'?
-        - if so dont do anything, complain to user
-    - only if coast clear should it create the stuff in repo root
-        - '.clanker' dir and its internal stuff
-        - 'README.md' -> #empty
-        - 'content' -> no members
+A. Deprioritized / Housekeeping
 
-II. Items to refine & QC:
-
-3. i should be able to add more than just filesets as named bottom level sets.
-    - we have 3 resolvers that deal with files
-        - md resolver has fallback to shared logic, uses Filelist which contain File 
-            - this should become a bottom level thing
-        - repo and manifest resolvers both use Filesets
-            - this is already a bottom level thing. do Fileset class need an attr to say source? 
-                - It can default to pud
-                - and optionally by some flag var work off of shared instead
-            - then improves semantics of yaml?
-
-4. Validation / complaints
-    - manifest resolver must check if fileset is declared in pud_cfg with fallback to shared_cfg
-        - so shared_cfg can declare defaults for it, which the pud_cfg can override
-        - if not present, then complain
-
-5. Make use of latest architectural work in ingestion module
-    [ ] simplify EC and 'Report' for now, lets just have str msgs for ez
-        - so prune the typed thing, and just use the 1 type of complaint registration for all cases
-    - Here we add complaintreasons we can think of, as they pop into our head. they should be represented by a method with the complaintproducer
-
-6. UI / Feedback imp [DX/UX]: 
-    - recent architectural work should make this easier
-    - the UI can produce a better header message, and also perhaps a filetree on the right hand side, where there is ample space
-
-7. Non IDE / linter import strats: BUFF importance of this, as LLMs typically run lower than 3.14 version of python, and cannot compensate.
+2. Non IDE / linter import strats: 
+    note: not so important, just nice for bragpacks
     - goals:
         - We dont have huge import blocks in all the numerous files, eating up precious llm context
         - all types used in a file are always imported (explicitly or via kleene)
@@ -51,98 +20,84 @@ II. Items to refine & QC:
     - something about python v 3.14 vs older versions - a clue!
     - i added instruction to prune in the do-mode.md file, so it gets done bit by bit at least
 
-8. Mull 'ExceptionPolicy'
+3. Mull 'ExceptionPolicy'
+    (this too nice but not mission critical)
     - its purpose is essentially to classify ex that core does not deal with
     - and to format the msgs that get printed in main
     - 'protection' must be done up in main
     - while formatting via method is in appengine (it receives the ex)
         - perhaps it all goes to main? 
 
-9. Follow up prompts
-    - to pass the next step of workflow
-        - plan into do into backlog management
-    - reduce token waste
-    - quicker iterations
-        - drop the 'plan' prompt
-        - then the implement it follow up
-        - then the convert it follow up
-        - these could be standalone prompts, which belong to a 'prompt' member of a domain attached prompt
-    - alternative ideas
+B. Ingestion, Validation & Complaints
 
-n. we have a Repocontract class in constants. The system should align to this.
+4. we have a Repocontract class in constants. The system should align to this.
+    (yes)
     - the initialize_workspace method uses the repo contract over old system
     - on boot validation that pud fulfills contract, else complain
+    
+7. Landingzone for Validation / complaint ideas
+    - manifest resolver must check if fileset is declared in pud_cfg with fallback to shared_cfg
+        - so shared_cfg can declare defaults for it, which the pud_cfg can override
+        - if not present, then complain
 
-10. Clean up ports and adapters stuff: 
-    Phase 1: adapter refactoring & naming
-    [x] 'content/ports_adapters/ports.py': Rename ports and align exception contracts
-        - Rename FileBridgePort to DiskPort, IOBridgePort to TerminalPort, and ConfigIngestorPort to ConfigParserPort
-        - Keep translated infrastructure exceptions (NoSuchFile, FileAccessError) adjacent to the ports
-    [x] 'content/ports_adapters/disk_adapter.py': Rename and refine LinuxDiskAdapter
-        - Rename FileBridge class to LinuxDiskAdapter implementing DiskPort
-        - Ensure proper exception translation boundaries
-    [x] 'content/ports_adapters/terminal_adapter.py': Populate LinuxTerminalAdapter
-        - Move IOBridge out of legacy adapters.py and rename to LinuxTerminalAdapter implementing TerminalPort
-    [x] 'content/ports_adapters/yaml_parser.py': Populate RuamelYamlParserAdapter
-        - Move ConfigIngestor out of legacy adapters.py and rename to RuamelYamlParserAdapter implementing ConfigParserPort
-    [x] 'content/ports_adapters/adapters.py': Clean up and remove legacy file
-        - Remove old definitions now that each adapter resides in its own isolated file (user will delete on ack)
-    [x] 'content/clanker.py': Update entry point imports and instantiation wiring
-        - Update initialization to use LinuxDiskAdapter, LinuxTerminalAdapter, and RuamelYamlParserAdapter
-
-    Phase 2: core facing
-    [x] 'ports.py'
-        - 'getFileContent' is not used and can be pruned from port and adapter
-    [ ] LinuxDiskAdapter cannot pass str arg to any notice, it violates ex policy.
-    [ ] core must deal with LDA's raising of 'FileAccessError'
-    let us find out how the situation is at the call sites
-    [ ] Let us then look to the adapters for easy wins with regards to code quality
-1. Implement initial headless test system and quality gate pipeline
-    Phase 1: Setup / initial work
-    [x] 'content/ports_adapters/terminal/scripted_terminal_adapter.py': Implement ScriptedTeminalAdapter adhering to TerminalPort
-        - Record UI frames, inputs consumed, and clipboards
-        - Flush execution metrics to JSON report file on output write
-    [x] 'content/clanker.py': Add command-line flag support for headless test mode execution
-        - Support --test, --input-script, and --report-path parameters
-        - Swap LinuxTerminalAdapter for ScriptedTeminalAdapter when running in test mode
-    [x] 'content/test/ship_gate.py': Implement OOP two-phase quality gate architecture
-        - BaseFixtureTest manages test orchestration, sandboxing, and execution
-        - GateInspector evaluates subclass JSON reports and outputs formatted results
-    [x] 'content/test/test_repos/empty_repo/': Establish persistent source fixture directory templates
-        - Serve as immutable template for sandbox isolation
-    [x] 'content/test/assert_classes.py': Implement declarative test fixture class EmptyRepoTests
-        - Expose assert_escape_exits and assert_ctrl_c_exits return specs
-        - Define input sequences and expected exit codes/messages
-    [x] 'content/test/ship_gate.py': Automate test lifecycle management and sandbox isolation
-        - Recreate active sandboxes from source templates per test class run
-        - Execute headless clanker.py subprocesses and output structured JSON reports to content/test/reports/
-    Phase 2: machinery improvements
-    [x] 'content/test/ship_gate.py': Shift teardown responsibility to global test suite initialization
-        - Remove per-class teardown logic inside BaseFixtureTest setup lifecycle
-        - Execute a single wipe (rm -rf) of content/test/sandboxes/ and content/test/reports/ at the start of ship_gate run
-        - BaseFixtureTest creates sandbox once per class, runs asserts (aggregating outcomes), and writes final report
-    [x] 'content/ports_adapters/terminal/scripted_terminal_adapter.py': Implement character stream flattening in ScriptedTerminalAdapter
-        - Accept strings or lists of mixed strings/control characters in input_sequence
-        - Automatically expand string tokens into individual character elements while preserving special control sequences (e.g., "yes" expands to "y", "e", "s")
-    Phase 3: next assert & prereqs of it
-    [x] 'content/test/ship_gate.py': Add filesystem existence assertions to BaseFixtureTest
-        - Support 'fs_paths_exist' list inside expected spec dictionary
-        - Verify each path in 'fs_paths_exist' exists relative to active sandbox post-execution
-        - Allow 'exit_code' and 'exit_msg' keys to be optional in expected spec evaluation
-        - Mark test as failed if any specified path is missing
-    [x] 'content/test/assert_classes.py': Add RepoContract and assert_clankerize_repo_contract assertion to EmptyRepoTests
-        - Define RepoContract with named string attributes for required paths and an all_paths() class method
-        - Sequence passing "yes" followed by IOControl.ACCEPT_KEY
-        - Assert presence of all RepoContract.all_paths() inside active sandbox
-    Phase 4: next steps
+D. Testing
+10. Refine and develop E2E test system
+    note: must be interpreting the app, dont the test system to gulliverize progression
+    Next steps
     - when the suite has run, it should offer to delete the sandbox and report directory by prompt
     - finish out the assertclass to match my manual flow for the test repo
         - after the init / repocontract assert, assert that we are in the UI
         - then assert that buttons yield expected results
             - grep the UI ouputs for messages? then we can pick up on 'domain xx selected, prompt xx this many lines / chars'
     - after manual flow of testrepo is implemented, run at grumpy Grok to see if he approves of it
+    - then implement assertclass for 'unruly' repo  
+        - has members that collide with contract
+    - then the pud = clanker case
+        - which is just spam the buttons to see that they all work as expected
+            - but frequent drift of expectation, cuz not predetermined/static like with the other repos
+        - also path resolution is different?
 
+II. Items to refine & QC:
+
+II. Items to refine & QC:
 III. Slated for implementation:
+5. P&A, Exception arg Hygiene:
+    Phase 1:
+    [x] 'ports.py'
+        - 'getFileContent' was pruned, not used
+    Phase 2:
+    [x] 'app/exceptions.py': Prohibit arguments across all BaseEx exception classes
+        - Override BaseEx.__init__ to convert any incoming args/kwargs into an IllegalExArgs exception with a synthetic ValueError cause
+        - Enforce parameterless exception instantiation at runtime across the entire system
+    [x] Move the prohibition of arguments up to BaseEx and integrate ExceptionPolicy
+        - Consolidated ExceptionPolicy in app/exceptions.py alongside the exception hierarchy
+        - Standardized ExceptionPolicy to treat all system exceptions as parameterless
+        - utilizing __cause__ chaining for stack trace formatting and error diagnostics
+
+    [ ] 'ports_adapters/': align exception raising to exception policy. align adapter imports to 'adapter import policy', described below
+        - Align all raising of ex to policy, parameterless raising - always omitting parentheses
+            - yes: raise ExName
+            - no: raise ExName()
+            - cause of exit 1 due to policy: raise ExName("we raise the ex!")
+        - adapter import policy: Adapters may only import from 'ports' package, or the imports which they encapsulate for the system
+        - no members of 'ports' should be 'core near' in their semantics
+            - business rules belong in core. the ex of adapters are adapter centric translation only
+                - 'NoSuchFile' OK
+                - 'IllegalDuplicateFile' - not OK
+        [ ] subtasks go here, leave the above untouched
+
+    Phase 3:
+    [ ] Portfolio-wide analysis: Review exception responsibilities across adapters
+        - any ex raise by an adapter should be declared adjacent to port. the adapter should only import from the port and the ex language of it
+        - the semantics of the ex should be adapter centric, referring to the action of the adapter
+            - they may be fatal, if the case warrants that
+        - move IOControl adjacent to adapter
+        - make the members it returns to the service ex raises
+        - but retain key vocabulary
+    [ ] Core alignment: Update core callers to handle adapter exceptions
+        - audit all call sites invoking DiskPort methods
+        - ensure core properly catches, translates, or handles Notice and Fatal exceptions from adapters
+
 IV. Recently implemented:
 V. Critical bugs
 on test repo, manifest domain for 'a' only (keys 1 -> a):

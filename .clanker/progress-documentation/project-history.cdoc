@@ -630,3 +630,45 @@ XCVII: REFINING WORKSPACE SETUP, TEMPLATE COPYING, AND REPO CONTRACT INITIALIZAT
     - Re-exported `FileBridge` through `content/ports_adapters/adapters.py` to maintain modular imports across domain layers.
     - Refactored `initialize_workspace` in `IngestionServiceImpl` to assert absence of both `.clanker` directory and root `README.md` before copying `config.yaml`, root `README.md`, and documentation templates via `TemplatePaths`.
     Reflection: Establishes safe, deterministic workspace creation logic with explicit path definitions while incorporating root `README.md` generation, inching the system closer to a formal repository contract standard.
+
+XCVIII: HEADLESS TEST SYSTEM AND QUALITY GATE PIPELINE (PHASES 1 & 2)
+    Purpose: Establish an automated, headless quality gate pipeline capable of running deterministic tests against isolated repository sandboxes with flexible input streams.
+    - Testing clanker manually was slow, error-prone, and lacked reproducible isolated workspace fixtures.
+    Actions:
+    - Implemented `ScriptedTerminalAdapter` adhering to `TerminalPort` to simulate user input sequences, record UI frames/clipboards, and dump execution metrics to JSON reports.
+    - Updated `clanker.py` with CLI flags (`--test`, `--input-script`, `--report-path`) to conditionally swap in `ScriptedTerminalAdapter`.
+    - Created `ship_gate.py` with an OOP fixture test framework (`BaseFixtureTest`, `GateInspector`) managing sandbox setup, headless execution, and test assertion aggregation.
+    - Created `empty_repo` persistent template directory and established `EmptyRepoTests` in `assert_classes.py` to assert clean program exits via `ESC` or `Ctrl+C`.
+    - Shifted sandbox wipe and report cleanup to a single global execution phase at the start of `ship_gate.py`.
+    - Added character stream flattening in `ScriptedTerminalAdapter` to allow mixed strings and control sequence arrays in test input definitions.
+    Reflection: Provides a robust foundation for automated UI testing, enabling fast feedback loops without manual key-press cycles across various repository fixture states.
+
+XCIX: FILESYSTEM ASSERTIONS AND REPOSITORY CONTRACT VERIFICATION (PHASE 3)
+    Purpose: Enable post-execution verification of created filesystem structures and contracts within test sandboxes.
+    - The quality gate required capabilities to verify that repository initialization (`clankerize`) actually generates the required filesystem layout and files.
+    Actions:
+    - Extended `BaseFixtureTest` in `ship_gate.py` to evaluate `fs_paths_exist` specifications against active sandboxes post-execution, supporting optional exit code / exit message keys.
+    - Added `assert_clankerize_repo_contract` to `EmptyRepoTests`, dynamically evaluating presence of all paths defined in `RepoContract` following a `"yes"` confirmation sequence.
+    Reflection: Completes automated verification for the workspace initialization lifecycle, allowing declarative verification of expected repository contract artifacts.
+
+C: PORTS AND ADAPTERS REFACTORING AND ADAPTER ISOLATION (PHASE 1)
+    Purpose: Clean up ports and adapters architecture by introducing domain-aligned naming conventions, isolating individual adapters into dedicated modules, and enforcing exception contracts across infrastructure boundaries.
+    - Legacy ports used generic naming (`FileBridgePort`, `IOBridgePort`, `ConfigIngestorPort`), and adapters were co-located inside a monolithic `adapters.py` module.
+    Actions:
+    - Renamed ports in `content/ports_adapters/ports.py` to `DiskPort`, `TerminalPort`, and `ConfigParserPort`, keeping domain infrastructure exceptions (`NoSuchFile`, `FileAccessError`) adjacent to port declarations.
+    - Refactored `content/ports_adapters/disk_adapter.py` by renaming `FileBridge` to `LinuxDiskAdapter` implementing `DiskPort`.
+    - Created `content/ports_adapters/terminal_adapter.py` housing `LinuxTerminalAdapter` implementing `TerminalPort`.
+    - Created `content/ports_adapters/yaml_parser.py` housing `RuamelYamlParserAdapter` implementing `ConfigParserPort`.
+    - Removed legacy definitions from `content/ports_adapters/adapters.py`.
+    - Updated initialization in `content/clanker.py` to import and instantiate the newly isolated adapters directly.
+    Reflection: Establishes a clean, modular ports-and-adapters boundary where each infrastructure concern is isolated in its own adapter file adhering to strictly named port contracts.
+
+CI: UNIFIED COMPLAINT REPORTING AND ERROR COLLECTION SIMPLIFICATION
+    Purpose: Streamline error collection across asset ingestion by eliminating distinct domain overflow reporting pathways in favor of a single unified complaint reporting mechanism.
+    - Maintaining a separate `DomainOverflow` dataclass and `get_domain_overflow_report` method added redundant reporting pathways and extra interface surface area.
+    Actions:
+    - Removed `get_domain_overflow_report` from the `Report` interface in `content/app/deps/ingestion.py`.
+    - Updated `AppEngine._bootstrap` in `content/app/engine.py` to remove domain overflow confirmation checks and rely strictly on `report.get_complaints()`.
+    - Cleaned up `ErrorCollector` in `content/asset_ingestion/commons/error_collector.py` by removing `_domain_overflows` state storage and domain overflow methods.
+    - Removed `DomainOverflow` dataclass from `content/asset_ingestion/assemblers/rtc.py` and updated `_populate_domain_buttons` to record domain overflow warnings directly via `collector.add_complaint`.
+    Reflection: Reduces interface clutter and unifies startup error reporting under a single, consistent complaint pipeline across ingestion workflows.

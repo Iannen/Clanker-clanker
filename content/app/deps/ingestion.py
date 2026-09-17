@@ -3,8 +3,6 @@ from app.entities import Button, Render, Resolver
 
 class Report(ABC):
     @abstractmethod
-    def get_domain_overflow_report(self) -> str | None: ...
-    @abstractmethod
     def get_complaints(self) -> list[str]: ...
 
 from app.presentation import ActionResult

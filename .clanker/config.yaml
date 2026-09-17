@@ -1,17 +1,17 @@
-#this appears to gravitate towards the filesets of nodes in system being the important bits to declare
-# filesets should have a little 'this is such a collection of repo content', which become part of ctx
 filesets:
   core: {includes: [
     content/app,
     content/clanker.py,
     content/test/assert_classes.py]}
-  ingestion_service: {includes: [
-    content/app/entities.py, 
-    content/asset_ingestion/ingestion_service.py,
+
+  asset_ingestion: {includes: [
+    content/app/deps/ingestion.py,
+    content/app/engine.py,
+    content/app/entities.py,
+    content/asset_ingestion/assemblers/rtc.py,
     content/asset_ingestion/commons/error_collector.py,
-    content/asset_ingestion/commons/value_extractor.py,
-    content/ports_adapters,
-    content/app/deps/ingestion.py]}
+    content/asset_ingestion/extractors/ui_render.py]}
+
   cfg_validation: {includes: [
     content/app/entities.py,  
     content/a_lib/shared-assets/config-fragments, 
@@ -27,7 +27,6 @@ filesets:
     content/ports_adapters]}
 
   ports_adapters: {includes: [
-    content/app/constants.py,
     content/app/exceptions.py,
     content/ports_adapters,
     content/clanker.py]}
@@ -41,7 +40,7 @@ filesets:
 domains:
 - name: core
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: core } 
+    - { id: repo_content, type: repo_content, fileset: ports_adapters } 
 
   prompts:
     - name: plan
@@ -55,7 +54,7 @@ domains:
           - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.md, code-output-instruction.md]}
           - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: III. Slated for implementation:, up_to: IV. Recently implemented}]}
 
-    - name: impl
+    - name: drain
       render:
         resolvers:
           - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 16}, history-output-instructions.md]}
@@ -63,7 +62,7 @@ domains:
 
 - name: ingestion
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: ingestion_service }
+    - { id: repo_content, type: repo_content, fileset: asset_ingestion }
   prompts:
     - name: plan
       render:

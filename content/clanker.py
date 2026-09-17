@@ -3,7 +3,8 @@ from ports_adapters.disk_adapter import LinuxDiskAdapter
 from ports_adapters.terminal.linux import LinuxTerminalAdapter
 from ports_adapters.terminal.scripted_terminal_adapter import ScriptedTeminalAdapter
 from ports_adapters.yaml_parser import RuamelYamlParserAdapter
-from app.engine import AppEngine, ExceptionPolicy
+from app.engine import AppEngine
+from app.exceptions import ExceptionPolicy
 from render_pipeline.render_service import RenderServiceImpl
 from asset_ingestion.ingestion_service import IngestionServiceImpl
 from keyboard.keyboard_service import KBServiceImpl

@@ -17,13 +17,14 @@ class LinuxDiskAdapter(DiskPort):
         elif str_path.startswith(PathTokens.SHARED):
             rel_path = str_path[len(PathTokens.SHARED):].lstrip("/")
             return self.clanker_path / rel_path
+        # needs a new ex in port
         raise ValueError(f"Path does not start with a recognized BasePathToken: {tokenized_path}")
 
     def _read_path_as_string(self, target_path: Path) -> str:
         try:
             return target_path.read_text(encoding="utf-8")
         except FileNotFoundError as ex:
-            raise NoSuchFile(f"File not found: {target_path}") from ex
+            raise NoSuchFile from ex
         except (PermissionError, UnicodeDecodeError) as ex:
             raise FileAccessError(f"File access error for {target_path}: {ex}") from ex
 
@@ -46,9 +47,9 @@ class LinuxDiskAdapter(DiskPort):
     ) -> None:
         src_path = self._resolve_tokenized_path(from_path)
         dest_dir = self._resolve_tokenized_path(to_dir)
-
+        # can we provoke an ex, so we can raise NSF with cause?
         if not src_path.exists() or not src_path.is_file():
-            raise NoSuchFile(f"Source file not found: {src_path}")
+            raise NoSuchFile from ex
 
         filename = src_path.name
         if from_ext and to_ext and filename.endswith(from_ext):
@@ -87,11 +88,11 @@ class LinuxDiskAdapter(DiskPort):
             for root_str in rel_roots:
                 rel_path = Path(root_str)
                 full_path = base_dir / rel_path
-
+                # can we provoke an ex, so we can raise NSF with cause?
                 if not full_path.exists():
                     if missing_ok:
                         continue
-                    raise NoSuchFile(rel_path)
+                    raise NoSuchFile from ex
 
                 if full_path.is_file():
                     resolved_files.add(str(rel_path))
@@ -109,7 +110,6 @@ class LinuxDiskAdapter(DiskPort):
         def _is_test_path(p: Path, base_path: Path) -> bool:
             try:
                 rel_parts = p.relative_to(base_path).parts
-                # Excludes root-level 'test' or 'content/test'
                 return rel_parts[0] == "test" or (len(rel_parts) > 1 and rel_parts[0:2] == ("content", "test"))
             except ValueError:
                 return False
@@ -150,7 +150,7 @@ class LinuxDiskAdapter(DiskPort):
                 if fn in ret_map:
                     ret_map[fn] = path.read_text(encoding="utf-8")
         except FileNotFoundError as ex:
-            raise NoSuchFile(f"Missing file during fallback lookup: {ex}") from ex
+            raise NoSuchFile from ex
         except (PermissionError, UnicodeDecodeError) as ex:
             raise FileAccessError(f"Access error during fallback lookup: {ex}") from ex
 

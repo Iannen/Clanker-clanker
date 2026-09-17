@@ -1,30 +1,11 @@
-from dataclasses import dataclass
 from typing import Any
 from asset_ingestion.commons.error_collector import ErrorCollector
 from asset_ingestion.commons.fileset_map import FilesetMap
 from asset_ingestion.commons.value_extractor import ValueExtractor
 from asset_ingestion.extractors.domains import DomainsExtractor
 from app.constants import CfgFragments
-from app.entities import Button
+from app.entities import Button, Domain
 
-@dataclass
-class DomainOverflow: # create general complain based on 'enum' ?
-    sys_cfg_name: str
-    row_keys: str
-    domain_names: list[str]
-    cfg_filename: str
-    overflow_count: int
-
-    def get_msg(self) -> str:
-        overflowing = ", ".join(self.domain_names[-self.overflow_count:])
-        return (
-            f"Domain overflow in '{self.cfg_filename}' ({self.sys_cfg_name}): "
-            f"{self.overflow_count} domain(s) overflowed key slots '{self.row_keys}'. "
-            f"Excess domains: [{overflowing}]"
-        )
-
-
-    
 class RtcAssembler:
     def assemble(
         self,
@@ -66,14 +47,14 @@ class RtcAssembler:
         dom_btns = list(row_keys)
         if len(domains) > len(dom_btns):
             overflow_cnt = len(domains) - len(dom_btns)
-            dof = DomainOverflow(
-                sys_cfg_name=sys_cfg_name,
-                row_keys=row_keys,
-                domain_names=[d.name for d in domains],
-                cfg_filename=cfg_filename,
-                overflow_count=overflow_cnt,
+            domain_names = [d.name for d in domains]
+            overflowing = ", ".join(domain_names[-overflow_cnt:])
+            msg = (
+                f"Domain overflow in '{cfg_filename}' ({sys_cfg_name}): "
+                f"{overflow_cnt} domain(s) overflowed key slots '{row_keys}'. "
+                f"Excess domains: [{overflowing}]"
             )
-            self.collector.record_domain_overflow(dof)
+            self.collector.add_complaint(msg)
 
         for key_char, dom in zip(dom_btns, domains):
             self.btn_map[key_char] = Button(type=Button.TYPE_DOMAIN, key=key_char, inhabitant=dom)
