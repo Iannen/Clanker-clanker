@@ -2,6 +2,8 @@ from ship_gate import BaseFixtureTest
 from app.exceptions import ProgramExit
 from app.presentation import ActionResult
 from tui.tui_service import IOControl
+from app.constants import RepoContract
+
 
 class EmptyRepoTests(BaseFixtureTest):
     TEMPLATE_FIXTURE_NAME = "empty_repo"
@@ -23,4 +25,17 @@ class EmptyRepoTests(BaseFixtureTest):
                 "exit_code": 0,
                 "exit_msg": ProgramExit.MSG_DECLINED_INIT
             }
+        }
+
+    def assert_clankerize_repo_contract(self) -> dict:
+        contract_paths = [
+            getattr(RepoContract, attr)
+            for attr in dir(RepoContract)
+            if not attr.startswith("_") and isinstance(getattr(RepoContract, attr), str)
+        ]
+        return {
+            "input_sequence": ["yes", IOControl.ACCEPT_KEY],
+            "expected": {
+                "fs_paths_exist": contract_paths
+            },
         }

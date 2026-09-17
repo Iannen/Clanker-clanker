@@ -113,7 +113,7 @@ class BaseFixtureTest(ABC):
         self._setup()
 
         spec_methods = [
-            getattr(self, m) for m in dir(self)
+            getattr(self, m) for m in self.__class__.__dict__
             if m.startswith("assert_") and callable(getattr(self, m))
         ]
 
@@ -121,11 +121,19 @@ class BaseFixtureTest(ABC):
             spec = method()
             exit_code, stdout_msg, adapter_data = self._execute_cli(spec["input_sequence"])
 
+            missing_fs_paths = []
+            if "fs_paths_exist" in spec.get("expected", {}):
+                for path_str in spec["expected"]["fs_paths_exist"]:
+                    target_path = self.sandbox_dir / path_str
+                    if not target_path.exists():
+                        missing_fs_paths.append(path_str)
+
             actual = {
                 "exit_code": exit_code,
                 "exit_msg": stdout_msg.strip(),
                 "clipboards": adapter_data.get("clipboards", []),
-                "frames_count": len(adapter_data.get("frames", []))
+                "frames_count": len(adapter_data.get("frames", [])),
+                "missing_fs_paths": missing_fs_paths
             }
 
             self.records.append({
@@ -173,10 +181,16 @@ class GateInspector:
                 actual = record["actual"]
                 expected = record["expected"]
 
-                passed = (
-                    actual.get("exit_code") == expected.get("exit_code") and
-                    actual.get("exit_msg") == expected.get("exit_msg")
-                )
+                passed = True
+
+                if "exit_code" in expected and actual.get("exit_code") != expected["exit_code"]:
+                    passed = False
+
+                if "exit_msg" in expected and actual.get("exit_msg") != expected["exit_msg"]:
+                    passed = False
+
+                if "fs_paths_exist" in expected and len(actual.get("missing_fs_paths", [])) > 0:
+                    passed = False
 
                 status = "pass" if passed else "fail"
                 if not passed:

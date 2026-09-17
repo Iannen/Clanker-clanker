@@ -15,6 +15,8 @@ I. Ideas, complaints and non-critical bugs:
         - 'README.md' -> #empty
         - 'content' -> no members
 
+II. Items to refine & QC:
+
 3. i should be able to add more than just filesets as named bottom level sets.
     - we have 3 resolvers that deal with files
         - md resolver has fallback to shared logic, uses Filelist which contain File 
@@ -61,6 +63,15 @@ I. Ideas, complaints and non-critical bugs:
         - plan into do into backlog management
     - reduce token waste
     - quicker iterations
+        - drop the 'plan' prompt
+        - then the implement it follow up
+        - then the convert it follow up
+        - these could be standalone prompts, which belong to a 'prompt' member of a domain attached prompt
+    - alternative ideas
+
+n. we have a Repocontract class in constants. The system should align to this.
+    - the initialize_workspace method uses the repo contract over old system
+    - on boot validation that pud fulfills contract, else complain
 
 10. Clean up ports and adapters stuff: 
     Phase 1: adapter refactoring & naming
@@ -86,9 +97,6 @@ I. Ideas, complaints and non-critical bugs:
     [ ] core must deal with LDA's raising of 'FileAccessError'
     let us find out how the situation is at the call sites
     [ ] Let us then look to the adapters for easy wins with regards to code quality
-
-II. Items to refine & QC:
-III. Slated for implementation:
 1. Implement initial headless test system and quality gate pipeline
     Phase 1: Setup / initial work
     [x] 'content/ports_adapters/terminal/scripted_terminal_adapter.py': Implement ScriptedTeminalAdapter adhering to TerminalPort
@@ -117,13 +125,24 @@ III. Slated for implementation:
         - Accept strings or lists of mixed strings/control characters in input_sequence
         - Automatically expand string tokens into individual character elements while preserving special control sequences (e.g., "yes" expands to "y", "e", "s")
     Phase 3: next assert & prereqs of it
-    [ ] 'content/test/ship_gate.py': Support filesystem domain inspection in BaseFixtureTest execution
-        - Support 'fs_paths_exist' and 'fs_paths_absent' keys inside expected spec dictionary
-        - Verify path existence relative to active_sandbox directory post-execution
-    [ ] 'content/test/assert_classes.py': Add assert_clankerize_repo_contract assertion to EmptyRepoTests
-        - Input sequence to accept workspace initialization
-        - Assert process exit code/message and presence of .clanker directory/files inside sandbox
+    [x] 'content/test/ship_gate.py': Add filesystem existence assertions to BaseFixtureTest
+        - Support 'fs_paths_exist' list inside expected spec dictionary
+        - Verify each path in 'fs_paths_exist' exists relative to active sandbox post-execution
+        - Allow 'exit_code' and 'exit_msg' keys to be optional in expected spec evaluation
+        - Mark test as failed if any specified path is missing
+    [x] 'content/test/assert_classes.py': Add RepoContract and assert_clankerize_repo_contract assertion to EmptyRepoTests
+        - Define RepoContract with named string attributes for required paths and an all_paths() class method
+        - Sequence passing "yes" followed by IOControl.ACCEPT_KEY
+        - Assert presence of all RepoContract.all_paths() inside active sandbox
+    Phase 4: next steps
+    - when the suite has run, it should offer to delete the sandbox and report directory by prompt
+    - finish out the assertclass to match my manual flow for the test repo
+        - after the init / repocontract assert, assert that we are in the UI
+        - then assert that buttons yield expected results
+            - grep the UI ouputs for messages? then we can pick up on 'domain xx selected, prompt xx this many lines / chars'
+    - after manual flow of testrepo is implemented, run at grumpy Grok to see if he approves of it
 
+III. Slated for implementation:
 IV. Recently implemented:
 V. Critical bugs
 on test repo, manifest domain for 'a' only (keys 1 -> a):

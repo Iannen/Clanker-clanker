@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from app.constants import PathTokens
-from app.exceptions import CorruptClanker, WorkspaceAlreadyInitialized
+from app.exceptions import CorruptClanker, WorkspaceAlreadyInitialized, IllegalDuplicateFile
 from ports_adapters.ports import DiskPort, NoSuchFile, FileAccessError
 
 class LinuxDiskAdapter(DiskPort):
@@ -106,13 +106,24 @@ class LinuxDiskAdapter(DiskPort):
     def get_contents_with_pud_fallback(self, file_names: list[str]) -> dict[str, str | None]:
         ret_map: dict[str, str | None] = {fn: None for fn in file_names}
 
+        def _is_test_path(p: Path, base_path: Path) -> bool:
+            try:
+                rel_parts = p.relative_to(base_path).parts
+                # Excludes root-level 'test' or 'content/test'
+                return rel_parts[0] == "test" or (len(rel_parts) > 1 and rel_parts[0:2] == ("content", "test"))
+            except ValueError:
+                return False
+
         try:
             shr_map: dict[str, Path] = {}
             if self.clanker_path.exists():
                 for fn in file_names:
                     matches = [
                         p for p in self.clanker_path.rglob("*") 
-                        if p.is_file() and p.name == fn and not any(part.startswith('.') for part in p.parts)
+                        if p.is_file() 
+                        and p.name == fn 
+                        and not any(part.startswith('.') for part in p.parts)
+                        and not _is_test_path(p, self.clanker_path)
                     ]
                     if len(matches) > 1:
                         raise IllegalDuplicateFile(f"Collision in SHARED for '{fn}': {matches}")
@@ -122,7 +133,12 @@ class LinuxDiskAdapter(DiskPort):
             pud_map: dict[str, Path] = {}
             if self.pud_path.exists():
                 for fn in file_names:
-                    matches = [p for p in self.pud_path.rglob("*") if p.is_file() and p.name == fn]
+                    matches = [
+                        p for p in self.pud_path.rglob("*") 
+                        if p.is_file() 
+                        and p.name == fn
+                        and not _is_test_path(p, self.pud_path)
+                    ]
                     if len(matches) > 1:
                         raise IllegalDuplicateFile(f"Collision in PUD for '{fn}': {matches}")
                     elif len(matches) == 1:

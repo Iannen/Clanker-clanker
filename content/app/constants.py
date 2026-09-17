@@ -32,3 +32,8 @@ class Layouts:
     BTN_ACTIVE = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/btn_active.layout"
     BTN_HL = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/btn_hl.layout"
     BTN_INACTIVE = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/btn_inactive.layout"
+    
+# New kid on the block
+class RepoContract:
+    CLANKER_DIR = ".clanker"
+    CONFIG_YAML = ".clanker/config.yaml"

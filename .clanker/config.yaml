@@ -3,7 +3,8 @@
 filesets:
   core: {includes: [
     content/app,
-    content/clanker.py]}
+    content/clanker.py,
+    content/test/assert_classes.py]}
   ingestion_service: {includes: [
     content/app/entities.py, 
     content/asset_ingestion/ingestion_service.py,
@@ -35,9 +36,7 @@ filesets:
     content/app/engine.py,
     content/clanker.py,
     content/ports_adapters/terminal/scripted_terminal_adapter.py,
-    content/test,
-    ship.sh
-  ]}
+    content/test]}
 
 domains:
 - name: core

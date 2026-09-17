@@ -2,7 +2,7 @@
 import traceback
 from typing import Any
 from app.presentation import ActionResult, UserQuestions
-from app.exceptions import UserDecline, NoConfig, Fatal, Notice, UnexpectedEx, BaseEx, ProgramExit, MissedNotice
+from app.exceptions import UserDecline, NoConfig, Fatal, Notice, UnexpectedEx, BaseEx, ProgramExit, MissedNotice, AdapterLeakage
 from app.deps import *
 from app.deps.keyboard import KBService
 
