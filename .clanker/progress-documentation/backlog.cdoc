@@ -60,6 +60,7 @@ D. Testing
 II. Items to refine & QC:
 
 II. Items to refine & QC:
+III. Slated for implementation:
 5. P&A, Exception arg Hygiene:
     Phase 1:
     [x] 'ports.py'
@@ -79,30 +80,37 @@ II. Items to refine & QC:
             - also yes: raise ExName from InstantiatedValuePassingEg("Here we can put a little msg if we must")
             - no: raise ExName()
             - cause of exit 1 due to policy: raise ExName("we raise the ex!")
-    Phase 3:
-    [x] 'ports_adapters/': align adapter imports to 'adapter import policy', described below
-        note: if also semantic violation, its deferred
-        - adapter import policy: Adapters may only import from 'ports' package, or the imports which they encapsulate for the system
-
-    [ ] All adapters must raise proper ex, located adjacent to their ports
+    Phase 3: All adapters must raise proper ex, located adjacent to their ports
+        Note: LinuxDiskAdapter is deliberately deferred to later phase
         Static explainer: The ex they raise should be 'core near' in their semantics, so the adapters dont carry business rules
             - 'NoSuchFile' OK
             - 'IllegalDuplicateFile' - not OK
-        [ ] 'linux.py'
-        [ ] 'scripted_terminal_adapter.py'
-        [ ] 'yaml_parser.py'
-        [ ] 'linux.py'
-        [ ] 'ports.py'
+        [x] 'yaml_parser.py': came pre-aligned
+        [x] 'scripted_terminal_adapter.py': Align test terminal adapter to exception policy
+            - 'read_char': Handle script bounds; catch unexpected sequence access or EOF -> raise TerminalFailure from ex
+            - '_flush_report': Wrap report file writing and directory creation (OSError, UnicodeError) -> raise TerminalFailure from ex
+        [x] 'linux.py': Align terminal adapter exception handling to policy
+            - Define 'TerminalFailure(Fatal)' in 'ports.py'
+            - 'to_clipboard': Catch stream/encoding exceptions -> raise TerminalFailure from ex
+            - 'write': Check non-zero exit code of 'os.system("clear")' -> raise TerminalFailure from ValueError(...); catch stdout write/flush exceptions -> raise TerminalFailure from ex
+            - 'read_char': Catch termios and stdin stream errors (termios.error, OSError, EOFError) -> raise TerminalFailure from ex; check for unexpected empty EOF read -> raise TerminalFailure from ValueError(...)
+            - 'get_acceptance': Propagate read_char exceptions naturally; catch stdout echo write/flush errors -> raise TerminalFailure from ex
+        [x] 'ports.py'
+            - declare new ex here - adjacent to their port following current structure of placement
 
     Phase 4: Core alignment to port adjacent ex 
+        Note: DiskPort is deferred to phase 5 and not a concern
         Static explainer: The services should catch and make use of them in a meaningful way
-            - if they are notice
-            - if they are fatal, no need to listen
+            - if they are notice, then deal with it
+            - if they are fatal, reraise / no need to listen
         [ ] 'content/asset_ingestion/ingestion_service.py'
         [ ] 'content/render_pipeline/render_service.py'
         [ ] 'content/tui/tui_service.py'
 
-III. Slated for implementation:
+    Phase 5: LinuxDiskAdapter / DiskPort:  alignment to all of the above
+        Static explainer: the big one
+        [ ] 'linux.py'
+
 IV. Recently implemented:
 V. Critical bugs
 on test repo, manifest domain for 'a' only (keys 1 -> a):

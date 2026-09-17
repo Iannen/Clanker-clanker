@@ -1,6 +1,6 @@
 import json
 import os
-from ports_adapters.ports import TerminalPort, IOControl
+from ports_adapters.ports import TerminalPort, IOControl, TerminalFailure
 
 class ScriptedTeminalAdapter(TerminalPort):
     def __init__(self, input_sequence: list[str], report_path: str):
@@ -31,13 +31,16 @@ class ScriptedTeminalAdapter(TerminalPort):
         self._flush_report()
 
     def read_char(self) -> str:
-        if self.input_index >= len(self.input_sequence):
-            # Default to abort/exit if script runs out of inputs unexpectedly
-            return IOControl.ABORT_KEYS[0]
-        
-        ch = self.input_sequence[self.input_index]
-        self.input_index += 1
-        return ch
+        try:
+            if self.input_index >= len(self.input_sequence):
+                raise TerminalFailure from IndexError("Scripted input sequence exhausted")
+            ch = self.input_sequence[self.input_index]
+            self.input_index += 1
+            return ch
+        except TerminalFailure:
+            raise
+        except Exception as ex:
+            raise TerminalFailure from ex
 
     def get_acceptance(self, required_phrase: str | None) -> tuple[str, str]:
         # Reuses the standard interaction pattern driven by read_char()
@@ -65,11 +68,14 @@ class ScriptedTeminalAdapter(TerminalPort):
                 buffer += ch
 
     def _flush_report(self) -> None:
-        report = {
-            "frames": self.frames,
-            "clipboards": self.clipboards,
-            "inputs_consumed": self.input_index
-        }
-        os.makedirs(os.path.dirname(os.path.abspath(self.report_path)), exist_ok=True)
-        with open(self.report_path, "w", encoding="utf-8") as f:
-            json.dump(report, f, indent=2)
+        try:
+            report = {
+                "frames": self.frames,
+                "clipboards": self.clipboards,
+                "inputs_consumed": self.input_index
+            }
+            os.makedirs(os.path.dirname(os.path.abspath(self.report_path)), exist_ok=True)
+            with open(self.report_path, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2)
+        except (OSError, UnicodeError, TypeError) as ex:
+            raise TerminalFailure from ex
