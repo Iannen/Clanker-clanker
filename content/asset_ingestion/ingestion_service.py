@@ -1,7 +1,7 @@
 from app.deps.ingestion import IngestionService
 from app.entities import KBStateResolver
-from app.exceptions import NoConfig, ConfigAssembly, CorruptClanker
-from ports_adapters.ports import PathTokens, NoSuchFile, DiskPort, ConfigParseError, ConfigParserPort
+from app.exceptions import NoConfig, ConfigAssembly, CorruptClanker, WorkspaceAlreadyInitialized
+from ports_adapters.ports import PathTokens, NoSuchFile, AssetExists, DiskPort, ConfigParseError, ConfigParserPort
 from asset_ingestion.commons.value_extractor import ValueExtractor
 from asset_ingestion.commons.error_collector import ErrorCollector
 from asset_ingestion.extractors.domains import DomainsExtractor
@@ -73,8 +73,11 @@ class IngestionServiceImpl(IngestionService):
         pud_clanker_dir = PathTokens.PUD + "/.clanker"
         target_readme = PathTokens.PUD + "/README.md"
 
-        self.files.assert_dir_absent(pud_clanker_dir)
-        self.files.assert_file_absent(target_readme)
+        try:
+            self.files.assert_absent(pud_clanker_dir)
+            self.files.assert_absent(target_readme)
+        except AssetExists as ex:
+            raise WorkspaceAlreadyInitialized from ex
 
         self.files.copy_file(
             from_path=TemplatePaths.CFG_TEMPLATE,

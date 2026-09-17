@@ -27,14 +27,7 @@ filesets:
     content/ports_adapters]}
 
   ports_adapters: {includes: [
-    content/app,
-    content/ports_adapters/disk_adapter.py,
-    content/asset_ingestion/ingestion_service.py,
-    content/render_pipeline/render_service.py,
-    content/ports_adapters/ports.py], excludes: [
-      content/app/deps/keyboard.py,
-      content/app/deps/tui.py
-    ]}
+    content/ports_adapters]}
 
   test_harness: {includes: [
     content/app/engine.py,

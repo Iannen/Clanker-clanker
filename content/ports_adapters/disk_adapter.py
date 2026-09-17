@@ -1,8 +1,6 @@
 import os
 from pathlib import Path
-""" these 3 violate both import and semantic rule, so they will get fixed later."""
-from app.exceptions import CorruptClanker, WorkspaceAlreadyInitialized, IllegalDuplicateFile
-from ports_adapters.ports import PathTokens, DiskPort, NoSuchFile, FileAccessError, InvalidPathToken
+from ports_adapters.ports import PathTokens, DiskPort, NoSuchFile, AssetExists, FileAccessError, InvalidPathToken
 
 class LinuxDiskAdapter(DiskPort):
     def __init__(self) -> None:
@@ -31,15 +29,10 @@ class LinuxDiskAdapter(DiskPort):
         target_path = self._resolve_tokenized_path(tokenized_path)
         return self._read_path_as_string(target_path)
 
-    def assert_dir_absent(self, tokenized_path: str) -> None:
+    def assert_absent(self, tokenized_path: str) -> None:
         target_path = self._resolve_tokenized_path(tokenized_path)
-        if target_path.exists() and target_path.is_dir():
-            raise WorkspaceAlreadyInitialized(f"Workspace directory already exists: {target_path}")
-
-    def assert_file_absent(self, tokenized_path: str) -> None:
-        target_path = self._resolve_tokenized_path(tokenized_path)
-        if target_path.exists() and target_path.is_file():
-            raise WorkspaceAlreadyInitialized(f"Workspace file already exists: {target_path}")
+        if target_path.exists():
+            raise AssetExists from ValueError(f"Target already exists: {target_path}")
 
     def copy_file(
         self, from_path: str, to_dir: str, from_ext: str = "", to_ext: str = ""
@@ -100,55 +93,3 @@ class LinuxDiskAdapter(DiskPort):
         except (PermissionError, UnicodeDecodeError) as ex:
             raise FileAccessError from ex
         return resolved_files
-
-    def get_contents_with_pud_fallback(self, file_names: list[str]) -> dict[str, str | None]:
-        ret_map: dict[str, str | None] = {fn: None for fn in file_names}
-
-        def _is_test_path(p: Path, base_path: Path) -> bool:
-            try:
-                rel_parts = p.relative_to(base_path).parts
-                return rel_parts[0] == "test" or (len(rel_parts) > 1 and rel_parts[0:2] == ("content", "test"))
-            except ValueError:
-                return False
-
-        try:
-            shr_map: dict[str, Path] = {}
-            if self.clanker_path.exists():
-                for fn in file_names:
-                    matches = [
-                        p for p in self.clanker_path.rglob("*") 
-                        if p.is_file() 
-                        and p.name == fn 
-                        and not any(part.startswith('.') for part in p.parts)
-                        and not _is_test_path(p, self.clanker_path)
-                    ]
-                    if len(matches) > 1:
-                        raise IllegalDuplicateFile
-                    elif len(matches) == 1:
-                        shr_map[fn] = matches[0]
-
-            pud_map: dict[str, Path] = {}
-            if self.pud_path.exists():
-                for fn in file_names:
-                    matches = [
-                        p for p in self.pud_path.rglob("*") 
-                        if p.is_file() 
-                        and p.name == fn
-                        and not _is_test_path(p, self.pud_path)
-                    ]
-                    if len(matches) > 1:
-                        raise IllegalDuplicateFile
-                    elif len(matches) == 1:
-                        pud_map[fn] = matches[0]
-
-            resolved_paths: dict[str, Path] = {**shr_map, **pud_map}
-
-            for fn, path in resolved_paths.items():
-                if fn in ret_map:
-                    ret_map[fn] = path.read_text(encoding="utf-8")
-        except FileNotFoundError as ex:
-            raise NoSuchFile from ex
-        except (PermissionError, UnicodeDecodeError) as ex:
-            raise FileAccessError from ex
-
-        return ret_map

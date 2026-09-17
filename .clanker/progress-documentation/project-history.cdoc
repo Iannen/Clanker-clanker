@@ -672,3 +672,15 @@ CI: UNIFIED COMPLAINT REPORTING AND ERROR COLLECTION SIMPLIFICATION
     - Cleaned up `ErrorCollector` in `content/asset_ingestion/commons/error_collector.py` by removing `_domain_overflows` state storage and domain overflow methods.
     - Removed `DomainOverflow` dataclass from `content/asset_ingestion/assemblers/rtc.py` and updated `_populate_domain_buttons` to record domain overflow warnings directly via `collector.add_complaint`.
     Reflection: Reduces interface clutter and unifies startup error reporting under a single, consistent complaint pipeline across ingestion workflows.
+
+CII: EXCEPTION ARGUMENT HYGIENE, EXCEPTION POLICY INTEGRATION, AND ADAPTER DECOUPLING (PHASES 1-5)
+    Purpose: Enforce runtime parameterless exception instantiation across the application hierarchy, integrate exception policy chaining, and completely decouple domain exceptions from the infrastructure adapter layer.
+    - System exceptions previously permitted positional/keyword message arguments, and infrastructure adapters raised domain-specific exceptions directly, violating architectural boundary isolation and cluttering adapter code with business rules.
+    Actions:
+    - Overrode `BaseEx.__init__` in `app/exceptions.py` to reject all positional and keyword arguments, raising `IllegalExArgs` with a synthetic `ValueError` cause if violated, and updated `ExceptionPolicy` to treat all exceptions as parameterless.
+    - Standardized system-wide exception raising to parameterless syntax (`raise ExName` or `raise ExName from cause`), transferring descriptive diagnostic context strictly through cause chaining.
+    - Consolidated port-adjacent exceptions in `ports_adapters/ports.py` by introducing `AssetExists(Notice)` and `TerminalFailure(Fatal)`, and updated `DiskPort` to replace split absence assertions with a single `assert_absent(tokenized_path: str)` interface method while removing `get_contents_with_pud_fallback`.
+    - Refactored `LinuxDiskAdapter`, `LinuxTerminalAdapter`, `ScriptedTerminalAdapter`, and `RuamelYamlParserAdapter` to eliminate all domain exception imports, raising only port-adjacent parameterless exceptions (`NoSuchFile`, `AssetExists`, `FileAccessError`, `TerminalFailure`, `ConfigParseError`).
+    - Translated port-level exceptions into domain exceptions at service boundaries, updating `IngestionServiceImpl` to catch `AssetExists` and `ConfigParseError` to raise `WorkspaceAlreadyInitialized` and `ConfigAssembly` respectively.
+    - Refactored `_res_multi_doc` in `RenderServiceImpl` to handle multi-doc fallback resolution, path token mapping, and duplicate file collision checks (`IllegalDuplicateFile`) in the service layer using string parsing and standard `DiskPort.get_files` calls.
+    Reflection: Completely isolates infrastructure adapters from business logic, establishes a strict parameterless exception convention across all application layers, and simplifies system diagnostics through explicit `__cause__` trace chaining.

@@ -26,6 +26,7 @@ class TerminalPort(ABC):
 
 
 class NoSuchFile(Notice): leaf_ex = True
+class AssetExists(Notice): leaf_ex = True
 class FileAccessError(Fatal): leaf_ex = True
 class InvalidPathToken(Fatal): leaf_ex = True
 
@@ -39,10 +40,7 @@ class DiskPort(ABC):
     def get_file_contents(self, tokenized_path: str) -> str: ...  # raises: InvalidPathToken, NoSuchFile, FileAccessError
 
     @abstractmethod
-    def assert_dir_absent(self, tokenized_path: str) -> None: ...  # raises: InvalidPathToken, WorkspaceAlreadyInitialized
-
-    @abstractmethod
-    def assert_file_absent(self, tokenized_path: str) -> None: ...  # raises: InvalidPathToken, WorkspaceAlreadyInitialized
+    def assert_absent(self, tokenized_path: str) -> None: ...  # raises: InvalidPathToken, AssetExists
 
     @abstractmethod
     def copy_file(
@@ -62,11 +60,6 @@ class DiskPort(ABC):
         rel_roots: list[str],
         missing_ok: bool = False
     ) -> set[str]: ...  # raises: InvalidPathToken, NoSuchFile, FileAccessError
-
-    @abstractmethod
-    def get_contents_with_pud_fallback(
-        self, file_names: list[str]
-    ) -> dict[str, str | None]: ...  # raises: IllegalDuplicateFile, NoSuchFile, FileAccessError
 
 class ConfigParseError(Notice): leaf_ex = True
 class ConfigParserPort(ABC):
