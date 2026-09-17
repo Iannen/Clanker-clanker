@@ -100,16 +100,32 @@ III. Slated for implementation:
 
     Phase 4: Core alignment to port adjacent ex 
         Note: DiskPort is deferred to phase 5 and not a concern
-        Static explainer: The services should catch and make use of them in a meaningful way
-            - if they are notice, then deal with it
-            - if they are fatal, reraise / no need to listen
-        [ ] 'content/asset_ingestion/ingestion_service.py'
-        [ ] 'content/render_pipeline/render_service.py'
-        [ ] 'content/tui/tui_service.py'
+        Static explainer: The services should..
+        - if ex is notice, then deal with it
+        - if fatal, reraise / no need to listen
+        [x] 'content/asset_ingestion/ingestion_service.py': Catch ConfigParseError in _get_validated_cfg_fragment
+        - import ConfigParseError from ports_adapters.ports
+        - catch ConfigParseError and raise ConfigAssembly with original exception as cause
+        [x] 'content/render_pipeline/render_service.py'
+            - all good, nothing to do
+        [x] 'content/tui/tui_service.py'
+            - all good, nothing to do
 
-    Phase 5: LinuxDiskAdapter / DiskPort:  alignment to all of the above
-        Static explainer: the big one
-        [ ] 'linux.py'
+    Phase 5: LinuxDiskAdapter / DiskPort alignment
+        [ ] 'ports_adapters/ports.py': Declare DiskPort-adjacent exceptions
+            - Define 'AssetExists(Notice)' for path presence checks
+            - Update 'DiskPort' interface: collapse 'assert_dir_absent' & 'assert_file_absent' into 'assert_absent(tokenized_path: str)'
+            - Deprecate and remove 'get_contents_with_pud_fallback' from interface
+        [ ] 'ports_adapters/disk_adapter.py': Align 'LinuxDiskAdapter' to exception policy and decouple domain exceptions
+            - Remove domain imports ('WorkspaceAlreadyInitialized', 'IllegalDuplicateFile', unused 'CorruptClanker')
+            - Replace 'assert_dir_absent' and 'assert_file_absent' with single 'assert_absent' raising parameterless 'AssetExists' from 'ValueError'
+            - Remove 'get_contents_with_pud_fallback' implementation from adapter
+            - Convert all raises across method implementations to parameterless syntax with context passed via 'from ...'
+        [ ] 'content/asset_ingestion/ingestion_service.py': Catch and translate port exceptions
+            - Update 'initialize_workspace' to call 'self.files.assert_absent(...)', catching 'AssetExists' and raising 'WorkspaceAlreadyInitialized' from cause
+        [ ] 'content/render_pipeline/render_service.py': Rehouse multi-doc fallback & collision checking
+            - Refactor '_res_multi_doc' to walk PUD and SHARED using 'get_files'
+            - Implement filename mapping, collision detection (raising 'IllegalDuplicateFile'), and fallback resolution using standard 'read_asset' calls
 
 IV. Recently implemented:
 V. Critical bugs

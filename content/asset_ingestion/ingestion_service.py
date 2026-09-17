@@ -1,7 +1,7 @@
 from app.deps.ingestion import IngestionService
 from app.entities import KBStateResolver
 from app.exceptions import NoConfig, ConfigAssembly, CorruptClanker
-from ports_adapters.ports import PathTokens, NoSuchFile, DiskPort, ConfigParserPort
+from ports_adapters.ports import PathTokens, NoSuchFile, DiskPort, ConfigParseError, ConfigParserPort
 from asset_ingestion.commons.value_extractor import ValueExtractor
 from asset_ingestion.commons.error_collector import ErrorCollector
 from asset_ingestion.extractors.domains import DomainsExtractor
@@ -105,5 +105,8 @@ class IngestionServiceImpl(IngestionService):
 
     def _get_validated_cfg_fragment(self, fragment_token_path: str) -> dict:
         raw_content = self.files.get_file_contents(fragment_token_path)
-        cfg_dict = self.cfg_ingestor.get_as_dict(raw_content)
+        try:
+            cfg_dict = self.cfg_ingestor.get_as_dict(raw_content)
+        except ConfigParseError as ex:
+            raise ConfigAssembly() from ex
         return cfg_dict
