@@ -9,6 +9,11 @@ filesets:
   clanker-shared-assets: {includes: [content/a_lib/shared-assets]}
   presentation: {includes: []}
 
+filelists:
+  plan_mode_instructions: [plan-mode.mode_instruction, backlog-output-instructions.output_instruction]
+  do_mode_instructions: [do-mode.mode_instruction, code-output-instruction.output_instruction]
+  doc_management_mode_instructions: [doc-management-mode.mode_instruction, {file: project-history.history, tail_lines: 16}, history-output-instructions.output_instruction]
+
 domains:
   - name: manifest-analysis
     resolvers:

@@ -10,6 +10,7 @@ from asset_ingestion.assemblers.rtc import RtcAssembler
 from asset_ingestion.parsers.render import RenderParser
 from asset_ingestion.extractors.base_resolver import BaseResolversExtractor
 from asset_ingestion.extractors.ui_render import UIRenderExtractor
+from asset_ingestion.extractors.filelist import FilelistExtractor
 from asset_ingestion.validators.assets import FilesetValidator
 from asset_ingestion.validators.file_list import FilelistValidator
 from app.constants import CfgFragments, PathTokens, DocPaths, TemplatePaths
@@ -37,12 +38,13 @@ class IngestionServiceImpl(IngestionService):
             raise ConfigAssembly(f"Missing configuration fragment: {ex}") from ex
 
         unified_fsm = FilesetExtractor().extract(pud_cfg, shared_cfg, collector)
+        unified_flm = FilelistExtractor().extract(pud_cfg, shared_cfg, collector)
 
         base_resolvers = BaseResolversExtractor().extract(pud_cfg, shared_cfg, collector)
 
-        ui_render = UIRenderExtractor().extract(sys_cfg, collector, unified_fsm)
+        ui_render = UIRenderExtractor().extract(sys_cfg, collector, unified_fsm, unified_flm)
 
-        pud_doms, shared_doms = DomainsExtractor().extract(pud_cfg, shared_cfg, collector, unified_fsm, base_resolvers)
+        pud_doms, shared_doms = DomainsExtractor().extract(pud_cfg, shared_cfg, collector, unified_fsm, base_resolvers, unified_flm)
 
         button_map = RtcAssembler().assemble(
             sys_cfg=sys_cfg,

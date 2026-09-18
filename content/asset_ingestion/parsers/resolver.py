@@ -1,10 +1,11 @@
 from typing import Any
-from app.entities import File, MultiDocResolver, Filelist, KBStateResolver, RepoContentResolver, TruncationSpec, ManifestResolver
+from app.entities import File, MultiDocResolver, Filelist, KBStateResolver, RepoContentResolver, TruncationSpec, ManifestResolver, Resolver, FileSet
 from app.exceptions import ConfigAssembly
 from asset_ingestion.commons.error_collector import ErrorCollector
-from asset_ingestion.commons.fileset_map import FilesetMap
+from asset_ingestion.commons.fileset_map import FilesetMap, FilelistMap
 from asset_ingestion.commons.value_extractor import ValueExtractor
 from asset_ingestion.parsers.fileset import FilesetParser
+from asset_ingestion.parsers.filelist import FilelistParser
 
 
 class ResolverParser:
@@ -13,10 +14,12 @@ class ResolverParser:
         resolver_cfg: dict[str, Any],
         collector: ErrorCollector,
         fileset_map: FilesetMap | None = None,
+        filelist_map: FilelistMap | None = None,
     ) -> None:
         self.resolver_cfg = resolver_cfg
         self.collector = collector
         self.fileset_map = fileset_map
+        self.filelist_map = filelist_map
         self.extractor = ValueExtractor()
 
     def parse(self) -> Resolver:
@@ -24,9 +27,13 @@ class ResolverParser:
         anchor = self.extractor.req_str(self.resolver_cfg, ["id"])
 
         if res_type == "multi-document-retrieval":
-            raw_files = self.extractor.req_list(self.resolver_cfg, ["files"], default=[])
-            file_objs = [self._build_file(f) for f in raw_files]
-            return MultiDocResolver(anchor=anchor, files=Filelist(files=file_objs))
+            if "files" in self.resolver_cfg and isinstance(self.resolver_cfg["files"], str):
+                filelist_val = self.resolver_cfg["files"]
+            else:
+                filelist_val = self.extractor.req_list(self.resolver_cfg, ["files"], default=[])
+
+            filelist_obj = FilelistParser(filelist_val, self.collector, self.filelist_map).parse()
+            return MultiDocResolver(anchor=anchor, files=filelist_obj)
 
         if res_type == "repo_content":
             if "fileset" in self.resolver_cfg:

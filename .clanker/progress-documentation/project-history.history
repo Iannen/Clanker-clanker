@@ -732,3 +732,12 @@ CVII: HOTPROMPT EPHEMERAL CONTEXT EXTENSION AND DOCUMENT RENAME CONVENTIONS
     - Renamed backlog and template file references to use `.backlog` and history document references to use `.history` in `content/app/constants.py`.
     - Updated `get_hot_prompt_context` in `content/keyboard/keyboard_service.py` to filter and collect `.history` files alongside `.mode_instruction` and `.output_instruction` files into the ephemeral prompt render context.
     Reflection: Standardizes file extension naming across backlog and history artifacts while ensuring hotprompt rendering retains essential historical context without altering the underlying conversation subject.
+
+CVIII: SHARED CONFIG FILELISTS ABSTRACTION AND INLINE RESOLVER MAPPING
+    Purpose: Refactor redundant resolver prompt fragments into reusable shared config filelists with inline flow-style support.
+    - Multiple prompt mode resolvers contained duplicated array definitions for mode and output instructions, leading to configuration verbosity and maintenance overhead.
+    Actions:
+    - Added top-level `filelists` dictionary support to centralize reusable file arrays using inline flow syntax (`[...]`).
+    - Refactored `plan`, `impl`, and `drain` resolvers across `core`, `ingestion`, and `test` domains to reference `plan_mode_instructions`, `do_mode_instructions`, and `doc_management_mode_instructions`.
+    - Maintained support for mixed inline file configurations and dictionary range queries (`from_line` / `up_to`).
+    Reflection: Eliminates repetitive prompt fragment arrays across all domain mode definitions while ensuring full backward compatibility with inline YAML resolution syntax.

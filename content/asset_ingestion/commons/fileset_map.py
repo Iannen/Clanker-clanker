@@ -1,16 +1,45 @@
-class FilesetMap: #generalize?
-    def __init__(self, data: dict[str, FileSet], collector: ErrorCollector) -> None:
+from typing import Generic, TypeVar
+from app.entities import FileSet, Filelist
+from asset_ingestion.commons.error_collector import ErrorCollector
+
+T = TypeVar("T")
+
+
+class NamedMap(Generic[T]):
+    def __init__(
+        self,
+        data: dict[str, T],
+        collector: ErrorCollector,
+        entity_label: str = "item",
+    ) -> None:
         self._data = data
         self._collector = collector
+        self._entity_label = entity_label
 
-    def get(self, key: str) -> FileSet | None:
+    def get(self, key: str) -> T | None:
         if key not in self._data:
-            self._collector.add_complaint(f"Referenced fileset '{key}' does not exist")
+            self._collector.add_complaint(
+                f"Referenced {self._entity_label} '{key}' does not exist"
+            )
             return None
         return self._data[key]
 
-    def merge(self, other: FilesetMap) -> FilesetMap:
+    def merge(self, other: "NamedMap[T]") -> "NamedMap[T]":
         merged_data = dict(self._data)
-        if isinstance(other, FilesetMap):
+        if isinstance(other, NamedMap):
             merged_data.update(other._data)
-        return FilesetMap(data=merged_data, collector=self._collector)
+        return NamedMap(
+            data=merged_data,
+            collector=self._collector,
+            entity_label=self._entity_label,
+        )
+
+
+class FilesetMap(NamedMap[FileSet]):
+    def __init__(self, data: dict[str, FileSet], collector: ErrorCollector) -> None:
+        super().__init__(data=data, collector=collector, entity_label="fileset")
+
+
+class FilelistMap(NamedMap[Filelist]):
+    def __init__(self, data: dict[str, Filelist], collector: ErrorCollector) -> None:
+        super().__init__(data=data, collector=collector, entity_label="filelist")

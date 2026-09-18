@@ -55,18 +55,18 @@ domains:
     - name: plan
       render:
         resolvers:
-          - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.mode_instruction, backlog-output-instructions.output_instruction] }
+          - { id: prompt_fragments, type: multi-document-retrieval, files: plan_mode_instructions }
           - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.backlog, from_line: II. Items to refine & QC, up_to: III. Slated for implementation}]}
     - name: impl
       render:
         resolvers:
-          - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.mode_instruction, code-output-instruction.output_instruction]}
+          - {id: prompt_fragments, type: multi-document-retrieval, files: do_mode_instructions}
           - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.backlog, from_line: III. Slated for implementation:, up_to: IV. Recently implemented}]}
 
     - name: drain
       render:
         resolvers:
-          - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.mode_instruction, {file: project-history.history, tail_lines: 16}, history-output-instructions.output_instruction]}
+          - {id: prompt_fragments, type: multi-document-retrieval, files: doc_management_mode_instructions}
           - {id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.backlog, from_line: IV. Recently implemented, up_to: V. Bugs}]}
 
 - name: ingestion
@@ -76,18 +76,18 @@ domains:
     - name: plan
       render:
         resolvers:
-          - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.mode_instruction, backlog-output-instructions.output_instruction] }
+          - { id: prompt_fragments, type: multi-document-retrieval, files: plan_mode_instructions }
           - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.backlog, from_line: II. Items to refine & QC, up_to: III. Slated for implementation}]}
     - name: impl
       render:
         resolvers:
-          - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.mode_instruction, code-output-instruction.output_instruction]}
+          - {id: prompt_fragments, type: multi-document-retrieval, files: do_mode_instructions}
           - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.backlog, from_line: III. Slated for implementation:, up_to: IV. Recently implemented:}]}
 
     - name: drain
       render:
         resolvers:
-          - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.mode_instruction, {file: project-history.history, tail_lines: 16}, history-output-instructions.output_instruction]}
+          - {id: prompt_fragments, type: multi-document-retrieval, files: doc_management_mode_instructions}
           - {id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.backlog, from_line: IV. Recently implemented, up_to: V. Bugs}]}
 
 - name: test
@@ -98,15 +98,15 @@ domains:
     - name: plan
       render:
         resolvers:
-          - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.mode_instruction, backlog-output-instructions.output_instruction] }
+          - { id: prompt_fragments, type: multi-document-retrieval, files: plan_mode_instructions }
           - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.backlog, from_line: II. Items to refine & QC, up_to: III. Slated for implementation}]}
     - name: impl
       render:
         resolvers:
-          - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.mode_instruction, code-output-instruction.output_instruction]}
+          - {id: prompt_fragments, type: multi-document-retrieval, files: do_mode_instructions}
           - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.backlog, from_line: III. Slated for implementation:, up_to: IV. Recently implemented:}]}
     - name: drain
       render:
         resolvers:
-          - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.mode_instruction, {file: project-history.history, tail_lines: 16}, history-output-instructions.output_instruction]}
+          - {id: prompt_fragments, type: multi-document-retrieval, files: doc_management_mode_instructions}
           - {id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.backlog, from_line: IV. Recently implemented, up_to: V. Bugs}]}

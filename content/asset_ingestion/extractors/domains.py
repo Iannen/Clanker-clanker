@@ -1,10 +1,11 @@
 from typing import Any
 from app.entities import Domain, Prompt, Resolver
 from asset_ingestion.commons.error_collector import ErrorCollector
-from asset_ingestion.commons.fileset_map import FilesetMap
+from asset_ingestion.commons.fileset_map import FilesetMap, FilelistMap
 from asset_ingestion.commons.value_extractor import ValueExtractor
 from asset_ingestion.parsers.resolver import ResolverParser
 from asset_ingestion.parsers.render import RenderParser
+
 
 class DomainsExtractor:
     def extract(
@@ -14,6 +15,7 @@ class DomainsExtractor:
         collector: ErrorCollector,
         fileset_map: FilesetMap,
         base_resolvers: list[Resolver],
+        filelist_map: FilelistMap | None = None,
     ) -> tuple[list[Domain], list[Domain]]:
         extractor = ValueExtractor()
         results = []
@@ -27,8 +29,8 @@ class DomainsExtractor:
                     raw_resolvers = extractor.req_list(d, ["resolvers"])
                     raw_prompts = extractor.req_list(d, ["prompts"])
 
-                    resolvers = list(base_resolvers) + [ResolverParser(r, collector, fileset_map).parse() for r in raw_resolvers]
-                    prompts = self._build_prompts(raw_prompts, collector, fileset_map, extractor)
+                    resolvers = list(base_resolvers) + [ResolverParser(r, collector, fileset_map, filelist_map).parse() for r in raw_resolvers]
+                    prompts = self._build_prompts(raw_prompts, collector, fileset_map, filelist_map, extractor)
                     domains.append(Domain(name=name, prompts=prompts, resolvers=resolvers))
             results.append(domains)
 
@@ -39,6 +41,7 @@ class DomainsExtractor:
         dicts: list[dict[str, Any]],
         collector: ErrorCollector,
         fileset_map: FilesetMap,
+        filelist_map: FilelistMap | None,
         extractor: ValueExtractor,
     ) -> list[Prompt]:
         prompts = []
@@ -46,6 +49,6 @@ class DomainsExtractor:
             name = extractor.req_str(d, ["name"])
             with collector.path(name):
                 render_dict = extractor.req_dict(d, ["render"], default={})
-                render = RenderParser(render_dict, collector, fileset_map).extract()
+                render = RenderParser(render_dict, collector, fileset_map, filelist_map).extract()
                 prompts.append(Prompt(name=name, render=render))
         return prompts
