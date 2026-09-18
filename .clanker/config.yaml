@@ -31,9 +31,9 @@ filesets:
     content/test]}
 
   rationalize_renderservice: {includes: [
-    content/app/entities.py,
-    content/asset_ingestion/validators/file_list.py,
-    content/render_pipeline/render_service.py]}
+    content/asset_ingestion/ingestion_service.py,
+    content/asset_ingestion/extractors/domains.py,
+    content/asset_ingestion/validators/file_list.py]}
 
 domains:
 - name: core

@@ -80,10 +80,12 @@ D. Testing
     They bypassed the core domain structure entirely.
     This forced us to create duplicated logic like _detect_unbacked_filerefs_of_base_resolvers and _extract_base_resolver_existencereqs.
     Standardizing base resolvers as mandatory pre-appended includes within all domain resolver lists will eliminate these split workflows.
-    [ ] 'content/asset_ingestion/ingestion_service.py': Normalize domain resolvers during assembly
-        - Automatically prepend/inject base resolvers into each domain's resolver list upon configuration load
-        - Ensure base resolvers maintain single-instance identity or controlled copies across domain trees
-    [ ] 'content/asset_ingestion/validators/file_list.py': Refactor FilelistValidator to single traversal path
+    [ ] 'content/asset_ingestion/ingestion_service.py': 
+        - pass base_resolvers to 'DomainsExtractor().extract as last arg
+        - remove base_resolvers from FilelistValidator validate call
+    [ ] 'content/asset_ingestion/extractors/domains.py'
+        - add base resolvers to each Domains list of resolver
+    [ ] 'content/asset_ingestion/validators/file_list.py':
         - Remove `_detect_unbacked_filerefs_of_base_resolvers` and `_extract_base_resolver_existencereqs`
         - Remove `Resolver` union handling in `_handle_unbacked_file`, reverting `targets` exclusively to `list[Domain]`
         - Validate all files (base and domain-specific) through the primary `_detect_unbacked_filerefs` pass
