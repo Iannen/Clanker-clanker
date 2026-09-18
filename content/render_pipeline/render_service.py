@@ -1,12 +1,9 @@
 from app.entities import MultiDocResolver, RepoContentResolver, ManifestResolver, KBStateResolver, Button, Domain, Resolver, Render
 from app.deps.render import RenderService
-from app.exceptions import CorruptClanker, IllegalDuplicateFile
+from app.exceptions import CorruptClanker
 from render_pipeline.content_shaper import ContentShaper
 from app.constants import Layouts
 from ports_adapters.ports import PathTokens, NoSuchFile, DiskPort
-    
-from app.presentation import ActionResult
-    
 from app.presentation import ActionResult
 
 class RenderServiceImpl(RenderService):
@@ -67,54 +64,15 @@ class RenderServiceImpl(RenderService):
         return replacements
 
     def _res_multi_doc(self, resolver: MultiDocResolver) -> dict[str, str]:
-        target_filenames = {f.name for f in resolver.files.files}
-
-        def _is_test_path(rel_p_str: str) -> bool:
-            parts = rel_p_str.split('/')
-            return parts[0] == "test" or (len(parts) > 1 and parts[0] == "content" and parts[1] == "test")
-
-        shared_files = self.files.get_files(PathTokens.SHARED, ["."], missing_ok=True)
-        shared_map: dict[str, str] = {}
-        for p in shared_files:
-            parts = p.split('/')
-            if any(part.startswith('.') for part in parts) or _is_test_path(p):
-                continue
-            name = parts[-1]
-            if name in target_filenames:
-                if name in shared_map:
-                    raise IllegalDuplicateFile
-                shared_map[name] = f"{PathTokens.SHARED}/{p}"
-
-        pud_files = self.files.get_files(PathTokens.PUD, ["."], missing_ok=True)
-        pud_map: dict[str, str] = {}
-        for p in pud_files:
-            if _is_test_path(p):
-                continue
-            name = p.rsplit('/', 1)[-1]
-            if name in target_filenames:
-                if name in pud_map:
-                    raise IllegalDuplicateFile
-                pud_map[name] = f"{PathTokens.PUD}/{p}"
-
-        resolved_token_paths = {**shared_map, **pud_map}
-
         fragments = []
         for file_obj in resolver.files.files:
-            filename = file_obj.name
-            basename = filename.rsplit('/', 1)[-1]
-            token_path = resolved_token_paths.get(filename)
+            try:
+                raw_content = self.files.read_asset(file_obj.path)
+            except NoSuchFile as ex:
+                raise ConfigAssemblyError from ex
 
-            if token_path:
-                try:
-                    raw_content = self.files.read_asset(token_path)
-                    content = self.shaper.apply_truncation(raw_content, file_obj.truncation_spec)
-                except NoSuchFile:
-                    content = f"[{resolver.anchor}: No content found at '{filename}']"
-            else:
-                content = f"[{resolver.anchor}: No content found at '{filename}']"
-
-            tag_name = basename
-            fragments.append(f"<{tag_name}>\n{content}\n</{tag_name}>")
+            content = self.shaper.apply_truncation(raw_content, file_obj.truncation_spec)
+            fragments.append(f"<{file_obj.name}>\n{content}\n</{file_obj.name}>")
 
         return {resolver.anchor: "\n\n".join(fragments)}
 

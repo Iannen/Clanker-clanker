@@ -15,6 +15,7 @@ class TruncationSpec:
 class File:
     name: str
     truncation_spec: TruncationSpec | None = None
+    path: str | None = None
 
 @dataclass
 class Filelist:

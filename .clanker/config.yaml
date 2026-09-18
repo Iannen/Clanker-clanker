@@ -16,15 +16,10 @@ filesets:
     content/app/entities.py,  
     content/a_lib/shared-assets/config-fragments, 
     .clanker/config.yaml]}
+
   presentation: {includes: [
     content/app,
     content/clanker.py]}
-
-  move_assets: {includes: [
-    content/app/constants.py, 
-    content/app/engine.py,
-    content/render_pipeline/render_service.py, 
-    content/ports_adapters]}
 
   ports_adapters: {includes: [
     content/ports_adapters]}
@@ -35,10 +30,15 @@ filesets:
     content/ports_adapters/terminal/scripted_terminal_adapter.py,
     content/test]}
 
+  rationalize_renderservice: {includes: [
+    content/app/entities.py,
+    content/asset_ingestion/validators/file_list.py,
+    content/render_pipeline/render_service.py]}
+
 domains:
 - name: core
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: ports_adapters } 
+    - { id: repo_content, type: repo_content, fileset: rationalize_renderservice } 
 
   prompts:
     - name: plan
