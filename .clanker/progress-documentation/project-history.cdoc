@@ -684,3 +684,22 @@ CII: EXCEPTION ARGUMENT HYGIENE, EXCEPTION POLICY INTEGRATION, AND ADAPTER DECOU
     - Translated port-level exceptions into domain exceptions at service boundaries, updating `IngestionServiceImpl` to catch `AssetExists` and `ConfigParseError` to raise `WorkspaceAlreadyInitialized` and `ConfigAssembly` respectively.
     - Refactored `_res_multi_doc` in `RenderServiceImpl` to handle multi-doc fallback resolution, path token mapping, and duplicate file collision checks (`IllegalDuplicateFile`) in the service layer using string parsing and standard `DiskPort.get_files` calls.
     Reflection: Completely isolates infrastructure adapters from business logic, establishes a strict parameterless exception convention across all application layers, and simplifies system diagnostics through explicit `__cause__` trace chaining.
+
+CIII: ASSET VALIDATOR SPLIT INTO FILESET AND FILELIST VALIDATORS
+    Purpose: Decouple asset pool verification for file patterns from explicit filename collision detection and missing asset resolution.
+    - Resolving both wildcard pattern matching and explicit file references in a single validator mixed concerns and made error context tracking fragile across repository boundaries.
+    Actions:
+    - Extracted `FilesetValidator` to validate pattern-based includes against PUD and Shared asset pools for `RepoContentResolver` and `ManifestResolver`.
+    - Introduced `FilelistValidator` to detect repository-internal filename collisions (independent of subpath) within PUD and Shared pools.
+    - Updated `FilelistValidator` to detect unbacked file references in `MultiDocResolver` across domains and base resolvers, mapping resolved paths to `PathTokens` or stripping invalid references with complaints.
+    Reflection: Separates structural path pattern validation from explicit file existence and duplicate handling, clarifying error diagnostics and streamlining resolver file path mapping.
+
+CIV: MULTI-DOC RESOLUTION SIMPLIFICATION VIA PRE-RESOLVED FILE PATHS
+    Purpose: Streamline runtime multi-doc rendering by leveraging ingestion-time file path pre-resolution and reference pruning.
+    - `RenderServiceImpl._res_multi_doc` previously performed redundant filesystem scans, local map assemblies, and runtime collision/existence checks that duplicated work performed during ingestion validation.
+    Actions:
+    - Added an optional `path: str | None = None` attribute to the `File` entity to store pre-resolved asset token paths.
+    - Updated `FilelistValidator` to resolve and assign `File.path` using `PathTokens` (prioritizing PUD over Shared) and prune unbacked `File` objects directly from resolvers while issuing informative complaints.
+    - Extended `FilelistValidator` to process base resolvers in parallel with domain resolvers to ensure base resolver file references are properly populated and validated.
+    - Simplified `RenderServiceImpl._res_multi_doc` to read directly from `file_obj.path`, removing redundant collision detection logic, local maps, and obsolete exception handling.
+    Reflection: Offloading path mapping and validity checks to the ingestion phase eliminates runtime filesystem overhead and simplifies the rendering pipeline, though handling `base_resolvers` separately in validation highlighted the need to treat base resolvers as mandatory domain includes in future refactoring.

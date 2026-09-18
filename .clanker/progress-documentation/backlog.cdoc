@@ -74,6 +74,7 @@ D. Testing
         - which is just spam the buttons to see that they all work as expected
             - but frequent drift of expectation, cuz not predetermined/static like with the other repos
         - also path resolution is different?
+
 9. Streamline FilelistValidator by normalizing Base Resolvers into Domain Lists
     During the RenderServiceImpl._res_multi_doc refactor, base resolvers required dedicated validation paths.
     They bypassed the core domain structure entirely.
@@ -89,33 +90,8 @@ D. Testing
 
 
 II. Items to refine & QC:
-8. Leverage recent filelist validation work to simplify RenderServiceImpl._res_multi_doc
-    Recent work in the asset ingestion module introduced file collision detection, path assignment, and existence checking during validation, establishing unambiguous asset paths before runtime. We can now harvest these benefits by attaching resolved paths directly to File objects and pruning unbacked references during validation (across domains and base resolvers), eliminating redundant filesystem scans, duplicate detection, and token mapping inside RenderServiceImpl._res_multi_doc.
-
-    [x] 'content/app/entities.py': Add path attribute to File entity
-        - Add path: str | None = None to File dataclass to store resolved asset token paths
-    [x] 'content/asset_ingestion/validators/file_list.py': Populate path, prune missing references, and support base resolvers
-        - Resolve File.path against pud assets first, falling back to shared assets using PathTokens
-        - Validate base resolvers alongside domain resolvers to ensure base resolver files are assigned paths
-        - Remove File objects from resolver.files.files if no matching asset path is found
-        - Update complaint message to note that the unbacked file was removed from the resolver
-    [x] 'content/render_pipeline/render_service.py': Simplify _res_multi_doc resolution logic
-        - Replace filesystem scanning, local map assembly, and unused exception handling with direct usage of file_obj.path
-        - Remove obsolete IllegalDuplicateFile import and re-raise NoSuchFile directly as ConfigAssemblyError
-    Implementation of this revealed a weakness in ingestion, where base_resolvers lack of proper placement caused a nasty bughunt.
-    This was fixed by balooning the FilelistValidator class to handle base_resolvers in parallel to domains.
-    Next step will be to treat base resolvers as mandatory includes to all domain resolver lists, which should allow a return to a more streamlined FilelistValidator.
 III. Slated for implementation:
 IV. Recently implemented:
-8. Split AssetValidator into FilesetValidator and FilelistValidator
-    [x] FilesetValidator, validates the fileset includes of content/manifest resolvers.
-        - complains if asset includes targeted at pud (RepoContentResolver.fileset or ManifestResolver.pud_fileset) are not found in the pud asset pool
-        - complains if asset includes targeted at ManifestResolver.shared_fileset are not found in the shared asset pool
-    [x] FilelistValidator, validates the filelist of md resolvers.
-        - complains if repo internal asset naming collisions exist (by filename comparison, independent of path)
-            - within pud
-            - within shared
-        - complains if assets referenced by a config are not provided by either the pud or shared repo
 V. Bugs
 
 1. on test repo, manifest domain for 'a' only (keys 1 -> a):
