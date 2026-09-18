@@ -703,3 +703,13 @@ CIV: MULTI-DOC RESOLUTION SIMPLIFICATION VIA PRE-RESOLVED FILE PATHS
     - Extended `FilelistValidator` to process base resolvers in parallel with domain resolvers to ensure base resolver file references are properly populated and validated.
     - Simplified `RenderServiceImpl._res_multi_doc` to read directly from `file_obj.path`, removing redundant collision detection logic, local maps, and obsolete exception handling.
     Reflection: Offloading path mapping and validity checks to the ingestion phase eliminates runtime filesystem overhead and simplifies the rendering pipeline, though handling `base_resolvers` separately in validation highlighted the need to treat base resolvers as mandatory domain includes in future refactoring.
+
+CV: BASE RESOLVER NORMALIZATION INTO DOMAIN LISTS AND FILELIST VALIDATOR STREAMLINING
+    Purpose: Streamline FilelistValidator workflows by standardizing base resolvers as mandatory pre-appended includes within all domain resolver lists.
+    - Base resolvers previously bypassed the core domain structure during extraction, forcing dedicated validation paths, duplicated extraction functions, and split union handling in FilelistValidator.
+    Actions:
+    - Updated `DomainsExtractor.extract` to accept `base_resolvers` and prepended them to the `resolvers` list of each extracted `Domain`.
+    - Simplified `IngestionServiceImpl.get_runtime_config` to pass `base_resolvers` into `DomainsExtractor.extract` and removed `base_resolvers` from the `FilelistValidator.validate` call signature.
+    - Removed `_detect_unbacked_filerefs_of_base_resolvers` and `_extract_base_resolver_existencereqs` from `FilelistValidator`.
+    - Restored targets in `FilelistValidator._handle_unbacked_file` exclusively to `list[Domain]`, removing `Resolver` union handling.
+    Reflection: Eliminates duplicated base-resolver validation paths and type union handling by embedding base resolvers directly into the domain structure at extraction time, yielding a cleaner and more maintainable ingestion pipeline.

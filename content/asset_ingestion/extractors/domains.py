@@ -1,5 +1,5 @@
 from typing import Any
-from app.entities import Domain, Prompt
+from app.entities import Domain, Prompt, Resolver
 from asset_ingestion.commons.error_collector import ErrorCollector
 from asset_ingestion.commons.fileset_map import FilesetMap
 from asset_ingestion.commons.value_extractor import ValueExtractor
@@ -13,6 +13,7 @@ class DomainsExtractor:
         shared_cfg: dict[str, Any],
         collector: ErrorCollector,
         fileset_map: FilesetMap,
+        base_resolvers: list[Resolver],
     ) -> tuple[list[Domain], list[Domain]]:
         extractor = ValueExtractor()
         results = []
@@ -26,7 +27,7 @@ class DomainsExtractor:
                     raw_resolvers = extractor.req_list(d, ["resolvers"])
                     raw_prompts = extractor.req_list(d, ["prompts"])
 
-                    resolvers = [ResolverParser(r, collector, fileset_map).parse() for r in raw_resolvers]
+                    resolvers = list(base_resolvers) + [ResolverParser(r, collector, fileset_map).parse() for r in raw_resolvers]
                     prompts = self._build_prompts(raw_prompts, collector, fileset_map, extractor)
                     domains.append(Domain(name=name, prompts=prompts, resolvers=resolvers))
             results.append(domains)

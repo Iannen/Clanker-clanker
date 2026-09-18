@@ -1,5 +1,5 @@
 from collections import defaultdict
-from app.entities import Domain, File, MultiDocResolver, Prompt, Resolver
+from app.entities import Domain, File, MultiDocResolver
 from ports_adapters.ports import PathTokens
 
 class FilelistValidator:
@@ -9,7 +9,6 @@ class FilelistValidator:
         pud_doms: list[Domain],
         shared_assets: set[str],
         shared_doms: list[Domain],
-        base_resolver: list[Resolver],
         collector,
     ) -> None:
         pud_cfg_name = "pud"
@@ -20,7 +19,6 @@ class FilelistValidator:
 
         self._detect_unbacked_filerefs(pud_cfg_name, pud_assets, shared_assets, pud_doms, collector)
         self._detect_unbacked_filerefs(shared_cfg_name, pud_assets, shared_assets, shared_doms, collector)
-        self._detect_unbacked_filerefs_of_base_resolvers(shared_cfg_name, pud_assets, shared_assets, base_resolver, collector)
 
     def _detect_collisions(self, repo_name: str, searchspace: set[str], error_collector) -> None:
         filename_to_paths: dict[str, list[str]] = defaultdict(list)
@@ -59,29 +57,10 @@ class FilelistValidator:
             else:
                 self._handle_unbacked_file(collector, doms, file_item.name, config_name, context_path)
 
-    def _detect_unbacked_filerefs_of_base_resolvers(
-        self,
-        config_name: str,
-        pud_assets: set[str],
-        shared_assets: set[str],
-        base_resolvers: list[Resolver],
-        collector,
-    ) -> None:
-        reqs = self._extract_base_resolver_existencereqs(base_resolvers)
-        pud_map = {p.rsplit("/", 1)[-1]: f"{PathTokens.PUD}/{p}" for p in pud_assets}
-        shared_map = {p.rsplit("/", 1)[-1]: f"{PathTokens.SHARED}/{p}" for p in shared_assets}
-
-        for file_item, context_path in reqs:
-            target_path = pud_map.get(file_item.name) or shared_map.get(file_item.name)
-            if target_path:
-                file_item.path = target_path
-            else:
-                self._handle_unbacked_file(collector, base_resolvers, file_item.name, config_name, context_path)
-
     def _handle_unbacked_file(
         self,
         collector,
-        targets: list[Domain | Resolver],
+        targets: list[Domain],
         filename: str,
         config_name: str,
         context_path: str,
@@ -92,9 +71,6 @@ class FilelistValidator:
             )
 
         for target in targets:
-            if isinstance(target, MultiDocResolver):
-                target.files.files = [f for f in target.files.files if f.name != filename]
-
             for resolver in getattr(target, "resolvers", []):
                 if isinstance(resolver, MultiDocResolver):
                     resolver.files.files = [f for f in resolver.files.files if f.name != filename]
@@ -120,13 +96,4 @@ class FilelistValidator:
                         for file_item in resolver.files.files:
                             context = f"domain={dom.name}, prompt={prompt.name}, resolver=MultiDocResolver, fileset=files, file={file_item.name}"
                             reqs.append((file_item, context))
-        return reqs
-
-    def _extract_base_resolver_existencereqs(self, base_resolvers: list[Resolver]) -> list[tuple[File, str]]:
-        reqs: list[tuple[File, str]] = []
-        for idx, resolver in enumerate(base_resolvers):
-            if isinstance(resolver, MultiDocResolver):
-                for file_item in resolver.files.files:
-                    context = f"base_resolver_idx={idx}, resolver=MultiDocResolver, fileset=files, file={file_item.name}"
-                    reqs.append((file_item, context))
         return reqs
