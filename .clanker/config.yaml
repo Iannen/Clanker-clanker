@@ -35,16 +35,21 @@ filesets:
     content/asset_ingestion/extractors/domains.py,
     content/asset_ingestion/validators/file_list.py]}
 
-  implement_hotprompt: {includes: [
-    content/app/exceptions.py,
-    content/app/deps/keyboard.py,
-    content/keyboard/keyboard_service.py,
-    content/app]}
+  btm_lvl_filelist: {includes: [
+    content/app/entities.py,
+    content/asset_ingestion/ingestion_service.py,
+    content/asset_ingestion/extractors/fileset.py,
+    content/asset_ingestion/extractors/domains.py,
+    content/asset_ingestion/extractors/base_resolver.py,
+    content/asset_ingestion/parsers,
+    content/asset_ingestion/commons/fileset_map.py]}
+
+
 
 domains:
 - name: core
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: implement_hotprompt } 
+    - { id: repo_content, type: repo_content, fileset: btm_lvl_filelist } 
 
   prompts:
     - name: plan

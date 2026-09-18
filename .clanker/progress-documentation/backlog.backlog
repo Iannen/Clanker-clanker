@@ -74,7 +74,46 @@ D. Testing
         - which is just spam the buttons to see that they all work as expected
             - but frequent drift of expectation, cuz not predetermined/static like with the other repos
         - also path resolution is different?
+
+1. the backlog &  follow ups
+    - instead of items to refine / to implement / recently implemented, it should have sorting categories
+        - less shuffling around, aligns better with follow up
+    - then it should have one 'on the block' section, which is the one that is fed in all prompts, and subject to plan, impl and history transfer
+        - plan / implement / history all deliver as before, but the 'on the block' bl item is the same for all.
+        - the hotprompts dont deliver backlog, only the instructions + any history file
+
+2. paths cleanup
+    - perhaps repocontract has tuples of 'this templatepath, that locationpath', instead of that other nonsense
+    - so constants.py encodes the truth, the service just executes that. 
+    - easier to verify other places
+    - the filebridge method must be adjusted.
+    - also the bootstrap thing must recognize an empty dir as fulfilling repocontract, and not complain about it.
+        - probably an adapter update
 II. Items to refine & QC:
+3. Support top-level named filelists in shared/PUD configs
+    [ ] 'content/asset_ingestion/commons/fileset_map.py': Refactor FilesetMap into generic NamedMap[T]
+        - generic over asset type T with customizable entity_label for error complaints
+        - preserve get and merge semantics
+        - export FilesetMap and FilelistMap type aliases
+    [ ] 'content/asset_ingestion/parsers/filelist.py': Implement FilelistParser
+        - parse both raw list/dict file definitions and string key references using FilelistMap
+        - return Filelist entity objects
+    [ ] 'content/asset_ingestion/extractors/filelist.py': Create FilelistExtractor
+        - extract top-level 'filelists' blocks from shared_cfg and pud_cfg with error path context
+        - merge shared and PUD configurations into a unified FilelistMap
+    [ ] 'content/asset_ingestion/parsers/resolver.py': Update ResolverParser to resolve named filelists
+        - accept filelist_map in constructor
+        - parse 'files' field in multi-document-retrieval as either a list of files or a string key lookup via FilelistMap
+    [ ] 'content/asset_ingestion/parsers/render.py': Forward filelist_map
+        - update RenderParser constructor and pass filelist_map to ResolverParser
+    [ ] 'content/asset_ingestion/extractors/domains.py': Pass filelist_map through domain/prompt extraction
+        - accept filelist_map in DomainsExtractor.extract and pass to ResolverParser and RenderParser
+    [ ] 'content/asset_ingestion/extractors/ui_render.py': Forward filelist_map
+        - accept filelist_map and forward to RenderParser
+    [ ] 'content/asset_ingestion/ingestion_service.py': Integrate FilelistExtractor into pipeline
+        - execute FilelistExtractor alongside FilesetExtractor
+        - pass unified filelist_map into UIRenderExtractor and DomainsExtractor
+
 III. Slated for implementation:
 
 IV. Recently implemented:
