@@ -7,22 +7,6 @@ class CfgFragments:
     SHARED_CFG = PathTokens.SHARED + "/content/a_lib/shared-assets/config-fragments/shared_cfg.yaml" 
     TEMPLATE_CFG = PathTokens.SHARED + "/content/a_lib/templates/config.template"
 
-class DocPaths:
-    SHARED_TEMPLATES = PathTokens.SHARED + "/content/a_lib/templates/documentation"
-    PUD_DOCS = PathTokens.PUD + "/.clanker/progress-documentation"
-    TEMPL_EXT = ".template"
-    DOC_EXT = ".cdoc"
-    BACKLOG_EXT = ".backlog"
-    HISTORY_EXT = ".history"
-
-class TemplatePaths:
-    CFG_TEMPLATE = PathTokens.SHARED + "/content/a_lib/templates/config.template"
-    README_TEMPLATE = PathTokens.SHARED + "/content/a_lib/templates/README.template"
-    ARCH_TEMPLATE = PathTokens.SHARED + "/content/a_lib/templates/documentation/architecture.template"
-    BACKLOG_TEMPLATE = PathTokens.SHARED + "/content/a_lib/templates/documentation/backlog.template"
-    NORTH_STAR_TEMPLATE = PathTokens.SHARED + "/content/a_lib/templates/documentation/north-star.template"
-    PROJECT_HISTORY_TEMPLATE = PathTokens.SHARED + "/content/a_lib/templates/documentation/project-history.template"
-
 # used in render_pipeline only
 class Layouts:
     UI = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/ui.layout"
@@ -31,7 +15,41 @@ class Layouts:
     BTN_HL = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/btn_hl.layout"
     BTN_INACTIVE = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/btn_inactive.layout"
     
-# New kid on the block
 class RepoContract:
-    CLANKER_DIR = ".clanker"
-    CONFIG_YAML = ".clanker/config.yaml"
+    DIRS_TO_CREATE = [
+        PathTokens.PUD + "/content",
+    ]
+
+    MAPPINGS = [
+        (
+            PathTokens.SHARED + "/content/a_lib/templates/config.template",
+            PathTokens.PUD + "/.clanker/config.yaml",
+        ),
+        (
+            PathTokens.SHARED + "/content/a_lib/templates/README.template",
+            PathTokens.PUD + "/README.md",
+        ),
+        (
+            PathTokens.SHARED + "/content/a_lib/templates/documentation/architecture.template",
+            PathTokens.PUD + "/.clanker/progress-documentation/architecture.cdoc",
+        ),
+        (
+            PathTokens.SHARED + "/content/a_lib/templates/documentation/north-star.template",
+            PathTokens.PUD + "/.clanker/progress-documentation/north-star.cdoc",
+        ),
+        (
+            PathTokens.SHARED + "/content/a_lib/templates/documentation/backlog.template",
+            PathTokens.PUD + "/.clanker/progress-documentation/backlog.backlog",
+        ),
+        (
+            PathTokens.SHARED + "/content/a_lib/templates/documentation/project-history.template",
+            PathTokens.PUD + "/.clanker/progress-documentation/project-history.history",
+        ),
+    ]
+
+    @classmethod
+    def get_all_target_paths(cls) -> set[str]:
+        target_paths = set(cls.DIRS_TO_CREATE)
+        for _, to_path in cls.MAPPINGS:
+            target_paths.add(to_path)
+        return target_paths

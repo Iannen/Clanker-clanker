@@ -82,15 +82,11 @@ D. Testing
         - plan / implement / history all deliver as before, but the 'on the block' bl item is the same for all.
         - the hotprompts dont deliver backlog, only the instructions + any history file
 
-2. paths cleanup
-    - perhaps repocontract has tuples of 'this templatepath, that locationpath', instead of that other nonsense
-    - so constants.py encodes the truth, the service just executes that. 
-    - easier to verify other places
-    - the filebridge method must be adjusted.
-    - also the bootstrap thing must recognize an empty dir as fulfilling repocontract, and not complain about it.
-        - probably an adapter update
+
 II. Items to refine & QC:
 
+1. validation bug. 
+    - if the 'contents' dir is empty, then validation thinks it doesnt exist, probably due to filebridge implementation
 III. Slated for implementation:
 
 IV. Recently implemented:

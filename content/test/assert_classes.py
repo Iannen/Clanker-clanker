@@ -28,14 +28,9 @@ class EmptyRepoTests(BaseFixtureTest):
         }
 
     def assert_clankerize_repo_contract(self) -> dict:
-        contract_paths = [
-            getattr(RepoContract, attr)
-            for attr in dir(RepoContract)
-            if not attr.startswith("_") and isinstance(getattr(RepoContract, attr), str)
-        ]
         return {
             "input_sequence": ["yes", IOControl.ACCEPT_KEY],
             "expected": {
-                "fs_paths_exist": contract_paths
+                "fs_paths_exist": list(RepoContract.get_all_target_paths())
             },
         }

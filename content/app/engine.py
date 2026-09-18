@@ -31,6 +31,8 @@ class AppEngine:
                 action_res = self._bootstrap()
             except UserDecline:
                 return ProgramExit.MSG_DECLINED_INIT
+            except Exception as other_ex: #LLM question i had to add this catch, it didnt bubble to the below one which was surprising to me. educate me on how this works
+                return ExceptionPolicy.interpret_as_fatal(other_ex)
         except Exception as other_ex:
             return ExceptionPolicy.interpret_as_fatal(other_ex)
 

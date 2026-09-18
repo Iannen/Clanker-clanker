@@ -43,8 +43,13 @@ class DiskPort(ABC):
     def assert_absent(self, tokenized_path: str) -> None: ...  # raises: InvalidPathToken, AssetExists
 
     @abstractmethod
+    def create_dir(
+        self, tokenized_path: str
+    ) -> None: ...  # raises: InvalidPathToken, FileAccessError
+
+    @abstractmethod
     def copy_file(
-        self, from_path: str, to_dir: str, from_ext: str = "", to_ext: str = ""
+        self, from_path: str, to_path: str
     ) -> None: ...  # raises: InvalidPathToken, NoSuchFile, FileAccessError
 
     @abstractmethod

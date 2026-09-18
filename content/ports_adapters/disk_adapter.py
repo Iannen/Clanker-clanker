@@ -34,27 +34,27 @@ class LinuxDiskAdapter(DiskPort):
         if target_path.exists():
             raise AssetExists from ValueError(f"Target already exists: {target_path}")
 
+    def create_dir(self, tokenized_path: str) -> None:
+        target_path = self._resolve_tokenized_path(tokenized_path)
+        try:
+            target_path.mkdir(parents=True, exist_ok=True)
+        except (PermissionError, UnicodeDecodeError) as ex:
+            raise FileAccessError from ex
+
     def copy_file(
-        self, from_path: str, to_dir: str, from_ext: str = "", to_ext: str = ""
+        self, from_path: str, to_path: str
     ) -> None:
         src_path = self._resolve_tokenized_path(from_path)
-        dest_dir = self._resolve_tokenized_path(to_dir)
+        dest_path = self._resolve_tokenized_path(to_path)
         if not src_path.exists() or not src_path.is_file():
             raise NoSuchFile from FileNotFoundError(f"Source file does not exist: {src_path}")
 
-        filename = src_path.name
-        if from_ext and to_ext and filename.endswith(from_ext):
-            filename = filename[:-len(from_ext)] + to_ext
-
-        dest_path = dest_dir / filename
-
         try:
-            dest_dir.mkdir(parents=True, exist_ok=True)
+            dest_path.parent.mkdir(parents=True, exist_ok=True)
             content = src_path.read_text(encoding="utf-8")
             dest_path.write_text(content, encoding="utf-8")
         except (PermissionError, UnicodeDecodeError) as ex:
             raise FileAccessError from ex
-
     def is_cwd_script_dir(self) -> bool:
         return self.pud_path.resolve() == self.clanker_path.resolve()
 

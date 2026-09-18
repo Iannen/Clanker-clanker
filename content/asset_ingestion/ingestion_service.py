@@ -13,7 +13,7 @@ from asset_ingestion.extractors.ui_render import UIRenderExtractor
 from asset_ingestion.extractors.filelist import FilelistExtractor
 from asset_ingestion.validators.assets import FilesetValidator
 from asset_ingestion.validators.file_list import FilelistValidator
-from app.constants import CfgFragments, PathTokens, DocPaths, TemplatePaths
+from app.constants import CfgFragments, PathTokens, RepoContract
 from app.presentation import ActionResult
 
 class IngestionServiceImpl(IngestionService):
@@ -69,51 +69,17 @@ class IngestionServiceImpl(IngestionService):
         if self.files.is_cwd_script_dir():
             raise CorruptClanker("Clanker repository initialized is beyond scope of app.")
 
-        pud_clanker_dir = PathTokens.PUD + "/.clanker"
-        target_readme = PathTokens.PUD + "/README.md"
-
         try:
-            self.files.assert_absent(pud_clanker_dir)
-            self.files.assert_absent(target_readme)
+            for path in RepoContract.get_all_target_paths():
+                self.files.assert_absent(path)
         except AssetExists as ex:
             raise WorkspaceAlreadyInitialized from ex
 
-        self.files.copy_file(
-            from_path=TemplatePaths.CFG_TEMPLATE,
-            to_dir=pud_clanker_dir,
-            from_ext=DocPaths.TEMPL_EXT,
-            to_ext=".yaml",
-        )
+        for dir_path in RepoContract.DIRS_TO_CREATE:
+            self.files.create_dir(dir_path)
 
-        self.files.copy_file(
-            from_path=TemplatePaths.README_TEMPLATE,
-            to_dir=PathTokens.PUD,
-            from_ext=DocPaths.TEMPL_EXT,
-            to_ext=".md",
-        )
-
-        for templ_path in (
-            TemplatePaths.ARCH_TEMPLATE,
-            TemplatePaths.NORTH_STAR_TEMPLATE,
-        ):
-            self.files.copy_file(
-                from_path=templ_path,
-                to_dir=DocPaths.PUD_DOCS,
-                from_ext=DocPaths.TEMPL_EXT,
-                to_ext=DocPaths.DOC_EXT,
-            )
-        self.files.copy_file(
-                from_path=TemplatePaths.BACKLOG_TEMPLATE,
-                to_dir=DocPaths.PUD_DOCS,
-                from_ext=DocPaths.TEMPL_EXT,
-                to_ext=DocPaths.BACKLOG_EXT,
-            )
-        self.files.copy_file(
-                from_path=TemplatePaths.PROJECT_HISTORY_TEMPLATE,
-                to_dir=DocPaths.PUD_DOCS,
-                from_ext=DocPaths.TEMPL_EXT,
-                to_ext=DocPaths.HISTORY_EXT, 
-            )
+        for from_path, to_path in RepoContract.MAPPINGS:
+            self.files.copy_file(from_path=from_path, to_path=to_path)
 
     def _get_validated_cfg_fragment(self, fragment_token_path: str) -> dict:
         raw_content = self.files.get_file_contents(fragment_token_path)

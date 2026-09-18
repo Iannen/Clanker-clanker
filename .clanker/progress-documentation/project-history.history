@@ -741,3 +741,13 @@ CVIII: SHARED CONFIG FILELISTS ABSTRACTION AND INLINE RESOLVER MAPPING
     - Refactored `plan`, `impl`, and `drain` resolvers across `core`, `ingestion`, and `test` domains to reference `plan_mode_instructions`, `do_mode_instructions`, and `doc_management_mode_instructions`.
     - Maintained support for mixed inline file configurations and dictionary range queries (`from_line` / `up_to`).
     Reflection: Eliminates repetitive prompt fragment arrays across all domain mode definitions while ensuring full backward compatibility with inline YAML resolution syntax.
+
+CIX: REPOCONTRACT CONSOLIDATION AND DISK PORT PATH CLEANUP
+    Purpose: Consolidate workspace creation specifications into RepoContract as the single source of truth and simplify file/directory creation across DiskPort interfaces.
+    - Previous workspace initialization scattered target paths across hardcoded strings, static extension parameters, and fragmented template constants, leading to maintenance overhead and duplication in pre-flight safety checks.
+    Actions:
+    - Updated `RepoContract` in `app/constants.py` to define workspace target paths (`DIRS_TO_CREATE`, `MAPPINGS`) using `PathTokens`, adding a `get_all_target_paths()` helper and removing obsolete `DocPaths` and `TemplatePaths` classes.
+    - Updated `DiskPort` interface and `LinuxDiskAdapter` implementation to accept explicit `(from_path, to_path)` arguments for `copy_file` and added `create_dir` for directory creation.
+    - Refactored `initialize_workspace` in `IngestionServiceImpl` to assert absence across all `RepoContract.get_all_target_paths()` before executing directory creations and template file copies.
+    - Updated `EmptyRepoTests` in `content/test/assert_classes.py` to assert expected file and directory existence directly against `RepoContract.get_all_target_paths()`.
+    Reflection: Establishes `RepoContract` as the declarative authority for workspace initialization, eliminating dynamic extension swapping while guaranteeing strict parity between pre-flight safety checks and actual path creation.

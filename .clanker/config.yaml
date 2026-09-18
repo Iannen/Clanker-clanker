@@ -35,21 +35,18 @@ filesets:
     content/asset_ingestion/extractors/domains.py,
     content/asset_ingestion/validators/file_list.py]}
 
-  btm_lvl_filelist: {includes: [
-    content/app/entities.py,
+  validation_bug: {includes: [
+    content/asset_ingestion/validators/assets.py,
     content/asset_ingestion/ingestion_service.py,
-    content/asset_ingestion/extractors/fileset.py,
-    content/asset_ingestion/extractors/domains.py,
-    content/asset_ingestion/extractors/base_resolver.py,
-    content/asset_ingestion/parsers,
-    content/asset_ingestion/commons/fileset_map.py]}
+    content/ports_adapters/disk_adapter.py,
+    content/ports_adapters/ports.py]}
 
 
 
 domains:
 - name: core
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: btm_lvl_filelist } 
+    - { id: repo_content, type: repo_content, fileset: validation_bug } 
 
   prompts:
     - name: plan
