@@ -1,5 +1,6 @@
 from app.deps.keyboard import KBService, RenderContext, UIRenderContext
-from app.entities import Button, Resolver, Prompt
+from app.entities import Button, Resolver, Prompt, Render, Domain, MultiDocResolver, Filelist, File
+from app.exceptions import HotPromptRequested
 from app.presentation import ActionResult
 
 class KBServiceImpl(KBService):
@@ -7,6 +8,8 @@ class KBServiceImpl(KBService):
         self.button_map = btn_map
         self.selected_key: str | None = None
         self.base_resolvers = base_resolvers
+        self.active_prompt_key: str | None = None
+        self.active_prompt: Prompt | None = None
         self._wire_num_row()
         self._set_selected_num_btn(None)
 
@@ -14,6 +17,41 @@ class KBServiceImpl(KBService):
         return UIRenderContext(
             btn_map=self.button_map,
             selected_key=self.selected_key
+        )
+    def get_hot_prompt_context(self) -> RenderContext:
+        template = self.active_prompt.render.template
+
+        domain_resolvers = self.button_map[self.selected_key].inhabitant.resolvers
+        prompt_resolvers = self.active_prompt.render.resolvers
+
+        md_resolvers = [
+            r for r in (domain_resolvers + prompt_resolvers + self.base_resolvers)
+            if isinstance(r, MultiDocResolver)
+        ]
+
+        instruction_files = [
+            f for r in md_resolvers
+            for f in r.files.files
+            if f.name.endswith(".mode_instruction") or f.name.endswith(".output_instruction")
+        ]
+
+        lone_resolver = MultiDocResolver(
+            anchor="prompt_fragments",
+            files=Filelist(files=instruction_files)
+        )
+
+        ephemeral_render = Render(
+            template=template,
+            resolvers=[lone_resolver],
+            inherit_base=False,
+            inherit_domain=False
+        )
+        self.active_prompt_key = self.active_prompt = None
+        return RenderContext(
+            btn_map=self.button_map,
+            selected_key=self.selected_key,
+            render=ephemeral_render,
+            base_resolvers=[]
         )
 
     def handle_key(self, key: str) -> tuple[ActionResult | None, RenderContext | None]:
@@ -39,6 +77,9 @@ class KBServiceImpl(KBService):
             btn.action = self._set_selected_num_btn
 
     def _set_selected_num_btn(self, key: str | None) -> ActionResult:
+        self.active_prompt_key = None
+        self.active_prompt = None
+
         if key is None:
             return ActionResult(ActionResult.BOOTSTRAP_SUCCESS)
 
@@ -65,6 +106,13 @@ class KBServiceImpl(KBService):
         btn = self.button_map.get(key)
         if btn is None or btn.inhabitant is None or not isinstance(btn.inhabitant, Prompt):
             return ActionResult(ActionResult.NO_PROMPT_BOUND.format(key=key))
+
+        if key == self.active_prompt_key:
+            raise HotPromptRequested()
+
+        self.active_prompt_key = key
+        self.active_prompt = btn.inhabitant
+
         return RenderContext(
             btn_map=self.button_map,
             selected_key=self.selected_key,

@@ -21,7 +21,7 @@ domains:
       - name: core
         render:
           resolvers:
-            - { id: domain_fragments, type: multi-document-retrieval, files: [config-development-mode.md] }
+            - { id: domain_fragments, type: multi-document-retrieval, files: [config-development-mode.mode_instruction] }
             - { id: repo_content, type: repo_content, fileset: core }
 
   - name: readme
@@ -32,12 +32,12 @@ domains:
         render:
           resolvers:
             - { id: domain_fragments, type: multi-document-retrieval, files: [readme.structure_spec] }
-            - { id: prompt_fragments, type: multi-document-retrieval, files: [readme_structure.analysis_instruction] }
+            - { id: prompt_fragments, type: multi-document-retrieval, files: [readme_structure.mode_instruction] }
       - name: content 
         render:
           resolvers:
             - { id: domain_fragments, type: multi-document-retrieval, files: [readme_messaging.intent] }
-            - { id: prompt_fragments, type: multi-document-retrieval, files: [readme_content.analysis_instruction] }
+            - { id: prompt_fragments, type: multi-document-retrieval, files: [readme_content.mode_instruction] }
 
   - name: north-star
     resolvers:
@@ -46,7 +46,7 @@ domains:
       - name: core
         render:
           resolvers:
-            - { id: prompt_fragments, type: multi-document-retrieval, files: [north-star-mode.md] }
+            - { id: prompt_fragments, type: multi-document-retrieval, files: [north-star-mode.mode_instruction] }
             - { id: repo_content, type: repo_content, fileset: core }
 
   - name: config-dev

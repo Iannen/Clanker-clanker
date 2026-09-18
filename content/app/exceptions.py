@@ -81,3 +81,4 @@ class ProgramExit(Notice):
     MSG_DECLINED_INIT: str = "Initialization declined by user"
     MSG_DECLINED_BOOTSTRAP: str = "Bootstrap declined by user"
 class NoConfig(Notice): leaf_ex = True
+class HotPromptRequested(Notice): leaf_ex = True

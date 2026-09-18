@@ -2,7 +2,7 @@
 import traceback
 from typing import Any
 from app.presentation import ActionResult, UserQuestions
-from app.exceptions import ExceptionPolicy, UserDecline, NoConfig, ProgramExit
+from app.exceptions import ExceptionPolicy, UserDecline, NoConfig, ProgramExit, HotPromptRequested
 from app.deps import *
 from app.deps.keyboard import KBService
 
@@ -40,12 +40,18 @@ class AppEngine:
                 ui_render = self.renderer.render_ui(ui_render_ctx, action_res)
                 self.io.display(ui_render)
                 cmd_key = self.io.get_key()
-                new_action_res, prompt_render_ctx = self.kb_service.handle_key(cmd_key)
-                if new_action_res is not None:
-                    action_res = new_action_res
-                elif prompt_render_ctx is not None:
-                    rendered_text = self.renderer.render_prompt(prompt_render_ctx)
+                try:
+                    new_action_res, prompt_render_ctx = self.kb_service.handle_key(cmd_key)
+                except HotPromptRequested:
+                    hot_ctx = self.kb_service.get_hot_prompt_context()
+                    rendered_text = self.renderer.render_prompt(hot_ctx)
                     action_res = self.io.to_clipboard(rendered_text)
+                else:
+                    if new_action_res is not None:
+                        action_res = new_action_res
+                    elif prompt_render_ctx is not None:
+                        rendered_text = self.renderer.render_prompt(prompt_render_ctx)
+                        action_res = self.io.to_clipboard(rendered_text)
         except ProgramExit:
             return ProgramExit.MSG_DEFAULT
         except Exception as other_ex:

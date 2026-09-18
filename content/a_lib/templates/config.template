@@ -10,5 +10,5 @@ domains:
       - name: init
         render:
           resolvers:
-            - { id: prompt_fragments, type: multi-document-retrieval, files: [config.yaml, system_cfg.yaml, shared_cfg.yaml, config-development-mode.md, config-dev-output.instruction] }
+            - { id: prompt_fragments, type: multi-document-retrieval, files: [config.yaml, system_cfg.yaml, shared_cfg.yaml, config-development-mode.mode_instruction, config-dev-output.output_instruction] }
             - { id: repo_content, type: repo_content, fileset: empty }

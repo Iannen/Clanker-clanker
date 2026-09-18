@@ -74,9 +74,13 @@ D. Testing
         - which is just spam the buttons to see that they all work as expected
             - but frequent drift of expectation, cuz not predetermined/static like with the other repos
         - also path resolution is different?
-
 II. Items to refine & QC:
+1. Contextual document fragment injection for hotprompt double-tap rendering
+    - Automatically inject section II excerpt of backlog.cdoc when triggering plan-mode hotprompt
+    - Automatically inject section III of backlog.cdoc when triggering do-mode hotprompt
+    - Automatically inject section VI of backlog.cdoc and the tail section of history.cdoc when triggering doc-management-mode hotprompt
 III. Slated for implementation:
+
 IV. Recently implemented:
 V. Bugs
 

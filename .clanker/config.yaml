@@ -35,27 +35,33 @@ filesets:
     content/asset_ingestion/extractors/domains.py,
     content/asset_ingestion/validators/file_list.py]}
 
+  implement_hotprompt: {includes: [
+    content/app/exceptions.py,
+    content/app/deps/keyboard.py,
+    content/keyboard/keyboard_service.py,
+    content/app]}
+
 domains:
 - name: core
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: rationalize_renderservice } 
+    - { id: repo_content, type: repo_content, fileset: implement_hotprompt } 
 
   prompts:
     - name: plan
       render:
         resolvers:
-          - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.md, backlog-output-instructions.md] }
+          - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.mode_instruction, backlog-output-instructions.output_instruction] }
           - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: II. Items to refine & QC, up_to: III. Slated for implementation}]}
     - name: impl
       render:
         resolvers:
-          - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.md, code-output-instruction.md]}
+          - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.mode_instruction, code-output-instruction.output_instruction]}
           - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: III. Slated for implementation:, up_to: IV. Recently implemented}]}
 
     - name: drain
       render:
         resolvers:
-          - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 16}, history-output-instructions.md]}
+          - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.mode_instruction, {file: project-history.cdoc, tail_lines: 16}, history-output-instructions.output_instruction]}
           - {id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: IV. Recently implemented, up_to: V. Bugs}]}
 
 - name: ingestion
@@ -65,18 +71,18 @@ domains:
     - name: plan
       render:
         resolvers:
-          - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.md, backlog-output-instructions.md] }
+          - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.mode_instruction, backlog-output-instructions.output_instruction] }
           - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: II. Items to refine & QC, up_to: III. Slated for implementation}]}
     - name: impl
       render:
         resolvers:
-          - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.md, code-output-instruction.md]}
+          - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.mode_instruction, code-output-instruction.output_instruction]}
           - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: III. Slated for implementation:, up_to: IV. Recently implemented:}]}
 
     - name: drain
       render:
         resolvers:
-          - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 16}, history-output-instructions.md]}
+          - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.mode_instruction, {file: project-history.cdoc, tail_lines: 16}, history-output-instructions.output_instruction]}
           - {id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: IV. Recently implemented, up_to: V. Bugs}]}
 
 - name: test
@@ -87,15 +93,15 @@ domains:
     - name: plan
       render:
         resolvers:
-          - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.md, backlog-output-instructions.md] }
+          - { id: prompt_fragments, type: multi-document-retrieval, files: [plan-mode.mode_instruction, backlog-output-instructions.output_instruction] }
           - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: II. Items to refine & QC, up_to: III. Slated for implementation}]}
     - name: impl
       render:
         resolvers:
-          - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.md, code-output-instruction.md]}
+          - {id: prompt_fragments, type: multi-document-retrieval, files: [do-mode.mode_instruction, code-output-instruction.output_instruction]}
           - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: III. Slated for implementation:, up_to: IV. Recently implemented:}]}
     - name: drain
       render:
         resolvers:
-          - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 16}, history-output-instructions.md]}
+          - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.mode_instruction, {file: project-history.cdoc, tail_lines: 16}, history-output-instructions.output_instruction]}
           - {id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: IV. Recently implemented, up_to: V. Bugs}]}

@@ -713,3 +713,14 @@ CV: BASE RESOLVER NORMALIZATION INTO DOMAIN LISTS AND FILELIST VALIDATOR STREAML
     - Removed `_detect_unbacked_filerefs_of_base_resolvers` and `_extract_base_resolver_existencereqs` from `FilelistValidator`.
     - Restored targets in `FilelistValidator._handle_unbacked_file` exclusively to `list[Domain]`, removing `Resolver` union handling.
     Reflection: Eliminates duplicated base-resolver validation paths and type union handling by embedding base resolvers directly into the domain structure at extraction time, yielding a cleaner and more maintainable ingestion pipeline.
+
+CVI: DUAL-MODE PROMPT RENDERING VIA KEY DOUBLE-TAP ORCHESTRATION
+    Purpose: Enable quick rendering of isolated prompt mode and output instructions through a key double-tap workflow.
+    - Full prompt contexts often include redundant system instructions when iteratively testing mode instructions, making an ephemeral isolated mode rendering workflow necessary for developer experience.
+    Actions:
+    - Added `HotPromptRequested` notice exception in `content/app/exceptions.py`.
+    - Expanded `KBService` abstract interface in `content/app/deps/keyboard.py` to include state management documentation and `get_hot_prompt_context`.
+    - Implemented double-tap key detection and active prompt/key state tracking in `KBServiceImpl` (`content/keyboard/keyboard_service.py`), raising `HotPromptRequested` when an active prompt key is re-triggered.
+    - Implemented `get_hot_prompt_context` in `KBServiceImpl` to construct an ephemeral isolated `RenderContext` (`inherit_base=False`, `inherit_domain=False`) filtering for `.mode_instruction` and `.output_instruction` anchors.
+    - Updated `AppEngine.run` (`content/app/engine.py`) to intercept `HotPromptRequested` in the main loop, render the ephemeral prompt context, and pass the result to clipboard.
+    Reflection: Delivers accelerated developer experience for testing instruction fragments via quick hotkey double-taps, though the filtering and context isolation mechanism remains rudimentary and will require further refinement for complex mode and history scenarios.
