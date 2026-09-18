@@ -32,7 +32,7 @@ class KBServiceImpl(KBService):
         instruction_files = [
             f for r in md_resolvers
             for f in r.files.files
-            if f.name.endswith(".mode_instruction") or f.name.endswith(".output_instruction")
+            if f.name.endswith(".mode_instruction") or f.name.endswith(".output_instruction") or f.name.endswith(".history")
         ]
 
         lone_resolver = MultiDocResolver(

@@ -21,7 +21,7 @@ jobs:
           tar cf - .clanker content | (cd clanker-evalcopy && tar xf -)
 
           # --- tail-truncate history doc to reduce token pressure ---
-          HISTORY="clanker-evalcopy/.clanker/progress-documentation/project-history.cdoc"
+          HISTORY="clanker-evalcopy/.clanker/progress-documentation/project-history.history"
           KEEP_CHARS=12000
 
           if [[ -f "$HISTORY" ]]; then

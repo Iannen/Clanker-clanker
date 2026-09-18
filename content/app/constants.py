@@ -12,6 +12,8 @@ class DocPaths:
     PUD_DOCS = PathTokens.PUD + "/.clanker/progress-documentation"
     TEMPL_EXT = ".template"
     DOC_EXT = ".cdoc"
+    BACKLOG_EXT = ".backlog"
+    HISTORY_EXT = ".history"
 
 class TemplatePaths:
     CFG_TEMPLATE = PathTokens.SHARED + "/content/a_lib/templates/config.template"

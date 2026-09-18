@@ -724,3 +724,11 @@ CVI: DUAL-MODE PROMPT RENDERING VIA KEY DOUBLE-TAP ORCHESTRATION
     - Implemented `get_hot_prompt_context` in `KBServiceImpl` to construct an ephemeral isolated `RenderContext` (`inherit_base=False`, `inherit_domain=False`) filtering for `.mode_instruction` and `.output_instruction` anchors.
     - Updated `AppEngine.run` (`content/app/engine.py`) to intercept `HotPromptRequested` in the main loop, render the ephemeral prompt context, and pass the result to clipboard.
     Reflection: Delivers accelerated developer experience for testing instruction fragments via quick hotkey double-taps, though the filtering and context isolation mechanism remains rudimentary and will require further refinement for complex mode and history scenarios.
+
+CVII: HOTPROMPT EPHEMERAL CONTEXT EXTENSION AND DOCUMENT RENAME CONVENTIONS
+    Purpose: Align document extension conventions and extend hotprompt ephemeral context rendering to include historical context.
+    - Double-tap hotprompts previously only captured mode and output instructions, lacking project history context necessary for converting completed items into structured history entries while retaining subject context.
+    Actions:
+    - Renamed backlog and template file references to use `.backlog` and history document references to use `.history` in `content/app/constants.py`.
+    - Updated `get_hot_prompt_context` in `content/keyboard/keyboard_service.py` to filter and collect `.history` files alongside `.mode_instruction` and `.output_instruction` files into the ephemeral prompt render context.
+    Reflection: Standardizes file extension naming across backlog and history artifacts while ensuring hotprompt rendering retains essential historical context without altering the underlying conversation subject.

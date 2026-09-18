@@ -41,7 +41,7 @@ domains:
 
   - name: north-star
     resolvers:
-      - { id: domain_fragments, type: multi-document-retrieval, files: [north-star.cdoc, backlog.cdoc] }
+      - { id: domain_fragments, type: multi-document-retrieval, files: [north-star.cdoc, backlog.backlog] }
     prompts:
       - name: core
         render:

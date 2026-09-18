@@ -92,15 +92,25 @@ class IngestionServiceImpl(IngestionService):
 
         for templ_path in (
             TemplatePaths.ARCH_TEMPLATE,
-            TemplatePaths.BACKLOG_TEMPLATE,
             TemplatePaths.NORTH_STAR_TEMPLATE,
-            TemplatePaths.PROJECT_HISTORY_TEMPLATE,
         ):
             self.files.copy_file(
                 from_path=templ_path,
                 to_dir=DocPaths.PUD_DOCS,
                 from_ext=DocPaths.TEMPL_EXT,
                 to_ext=DocPaths.DOC_EXT,
+            )
+        self.files.copy_file(
+                from_path=TemplatePaths.BACKLOG_TEMPLATE,
+                to_dir=DocPaths.PUD_DOCS,
+                from_ext=DocPaths.TEMPL_EXT,
+                to_ext=DocPaths.BACKLOG_EXT,
+            )
+        self.files.copy_file(
+                from_path=TemplatePaths.PROJECT_HISTORY_TEMPLATE,
+                to_dir=DocPaths.PUD_DOCS,
+                from_ext=DocPaths.TEMPL_EXT,
+                to_ext=DocPaths.HISTORY_EXT, 
             )
 
     def _get_validated_cfg_fragment(self, fragment_token_path: str) -> dict:
