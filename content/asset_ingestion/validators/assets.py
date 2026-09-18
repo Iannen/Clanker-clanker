@@ -1,101 +1,111 @@
-from app.entities import MultiDocResolver, RepoContentResolver, ManifestResolver
+from app.entities import ManifestResolver, RepoContentResolver, Resolver, Render, Button
 from asset_ingestion.commons.error_collector import ErrorCollector
-# big 'ol slopburger - but free
-class AssetValidator:
+
+class FilesetValidator:
     def validate(
         self,
-        pud_pathlist: set[str],
-        shared_pathlist: set[str],
-        button_map: dict[str, Button],
-        ui_render: Render,
-        base_resolvers: list[Resolver],
-        collector: ErrorCollector,
+        pud_assets: set[str],
+        pud_doms: list[Domain],
+        shared_assets: set[str],
+        shared_doms: list[Domain],
+        collector,
     ) -> None:
-        resolvers: list[Resolver] = []
+        pud_cfg_name = "pud"
+        shared_cfg_name = "shared"
+        self._detect_unbacked_includes(pud_cfg_name, pud_assets, shared_assets, pud_doms, collector)
+        self._detect_unbacked_includes(shared_cfg_name, pud_assets, shared_assets, shared_doms, collector)
 
-        resolvers.extend(base_resolvers)
-        resolvers.extend(ui_render.resolvers)
-
-        for btn in button_map.values():
-            inhabitant = btn.inhabitant
-            if inhabitant is None:
-                continue
-            if hasattr(inhabitant, "resolvers"):
-                resolvers.extend(inhabitant.resolvers)
-            if hasattr(inhabitant, "prompts"):
-                for prompt in inhabitant.prompts:
-                    if hasattr(prompt, "render") and hasattr(prompt.render, "resolvers"):
-                        resolvers.extend(prompt.render.resolvers)
-
-        referenced_pud_files: set[str] = set()
-
-        def _is_parent_or_equal(path_str: str, prefix_str: str) -> bool:
-            norm_p = path_str.strip("/")
-            norm_pref = prefix_str.strip("/")
-
-            if norm_pref in ("", "."):
-                return not norm_p.startswith(".clanker/prompt-assets")
-
-            return norm_p == norm_pref or norm_p.startswith(norm_pref + "/")
-
-        def _get_basename(path_str: str) -> str:
-            return path_str.rsplit("/", 1)[-1]
-
-        for resolver in resolvers:
-            if isinstance(resolver, MultiDocResolver):
-                for file_item in resolver.files.files:
-                    file_name = file_item.name
-                    pud_matches = {p for p in pud_pathlist if _get_basename(p) == file_name}
-                    shared_matches = {p for p in shared_pathlist if _get_basename(p) == file_name}
-
-                    if not (pud_matches or shared_matches):
-                        collector.add_complaint(
-                            f"MultiDocResolver asset '{file_name}' not found in PUD or SHARED filelists."
-                        )
-                    else:
-                        referenced_pud_files.update(pud_matches)
-
-            elif isinstance(resolver, RepoContentResolver):
-                for inc in resolver.fileset.includes:
-                    matches = {
-                        p for p in pud_pathlist if _is_parent_or_equal(p, inc)
-                    }
-                    if not matches:
-                        collector.add_complaint(
-                            f"RepoContentResolver asset '{inc}' not found in PUD filelist."
-                        )
-                    else:
-                        referenced_pud_files.update(matches)
-
-            elif isinstance(resolver, ManifestResolver):
-                for pud_inc in resolver.pud_fileset.includes:
-                    matches = {
-                        p for p in pud_pathlist if _is_parent_or_equal(p, pud_inc)
-                    }
-                    if not matches:
-                        collector.add_complaint(
-                            f"ManifestResolver pud asset '{pud_inc}' not found in PUD filelist."
-                        )
-                    else:
-                        referenced_pud_files.update(matches)
-
-                if resolver.shared_fileset is not None:
-                    for shared_inc in resolver.shared_fileset.includes:
-                        shared_has_match = any(
-                            _is_parent_or_equal(p, shared_inc) for p in shared_pathlist
-                        )
-                        if not shared_has_match:
-                            collector.add_complaint(
-                                f"ManifestResolver shared asset '{shared_inc}' not found in SHARED filelist."
-                            )
-
-        prompt_assets_prefix = ".clanker/prompt-assets"
-        pud_prompt_assets = {
-            p for p in pud_pathlist if _is_parent_or_equal(p, prompt_assets_prefix)
-        }
-
-        dangling_assets = pud_prompt_assets - referenced_pud_files
-        for dangling in sorted(dangling_assets):
-            collector.add_complaint(
-                f"Dangling asset detected: '{dangling}' in '.clanker/prompt-assets' is not referenced by any resolver."
+    def _detect_unbacked_includes(
+        self,
+        config_name: str,
+        pud_assets: set[str],
+        shared_assets: set[str],
+        doms: list[Domain],
+        collector,
+    ) -> None:
+        pud_reqs = self._extract_filesets_that_target_pud(doms)
+        for include_path, context in pud_reqs:
+            has_match = any(
+                self._is_parent_or_equal(asset_path, include_path)
+                for asset_path in pud_assets
             )
+            if not has_match:
+                self._report_unbacked_include(
+                    collector, config_name, "pud", include_path, context
+                )
+        shared_reqs = self._extract_filesets_that_target_shared(doms)
+        for include_path, context in shared_reqs:
+            has_match = any(
+                self._is_parent_or_equal(asset_path, include_path)
+                for asset_path in shared_assets
+            )
+            if not has_match:
+                self._report_unbacked_include(
+                    collector, config_name, "shared", include_path, context
+                )
+
+    def _report_unbacked_include(
+            self,
+            collector,
+            config_name: str,
+            target_name: str,
+            include_path: str,
+            context: str,
+        ) -> None:
+            with collector.path(config_name):
+                collector.add_complaint(
+                    f"asset include '{include_path}' (<{context}>) was not found in {target_name}"
+                )
+
+    def _is_parent_or_equal(self, asset_path: str, include_path: str) -> bool:
+        if asset_path == include_path:
+            return True
+        prefix = include_path if include_path.endswith("/") else f"{include_path}/"
+        return asset_path.startswith(prefix)
+        
+    def _extract_filesets_that_target_pud(self, doms: list[Domain]) -> list[tuple[str, str]]:
+        reqs: list[tuple[str, str]] = []
+
+        for dom in doms:
+            for resolver in dom.resolvers:
+                if isinstance(resolver, RepoContentResolver):
+                    for inc in resolver.fileset.includes:
+                        context = f"domain={dom.name}, resolver=RepoContentResolver, include={inc}"
+                        reqs.append((inc, context))
+                elif isinstance(resolver, ManifestResolver):
+                    for inc in resolver.pud_fileset.includes:
+                        context = f"domain={dom.name}, resolver=ManifestResolver, fileset=pud_fileset, include={inc}"
+                        reqs.append((inc, context))
+
+            for prompt in dom.prompts:
+                for resolver in prompt.render.resolvers:
+                    if isinstance(resolver, RepoContentResolver):
+                        for inc in resolver.fileset.includes:
+                            context = f"domain={dom.name}, prompt={prompt.name}, resolver=RepoContentResolver, include={inc}"
+                            reqs.append((inc, context))
+                    elif isinstance(resolver, ManifestResolver):
+                        for inc in resolver.pud_fileset.includes:
+                            context = f"domain={dom.name}, prompt={prompt.name}, resolver=ManifestResolver, fileset=pud_fileset, include={inc}"
+                            reqs.append((inc, context))
+
+        return reqs
+
+    def _extract_filesets_that_target_shared(self, doms: list[Domain]) -> list[tuple[str, str]]:
+        reqs: list[tuple[str, str]] = []
+
+        for dom in doms:
+            for resolver in dom.resolvers:
+                if isinstance(resolver, ManifestResolver) and resolver.shared_fileset is not None:
+                    for inc in resolver.shared_fileset.includes:
+                        context = f"domain={dom.name}, resolver=ManifestResolver, fileset=shared_fileset, include={inc}"
+                        reqs.append((inc, context))
+
+            for prompt in dom.prompts:
+                for resolver in prompt.render.resolvers:
+                    if isinstance(resolver, ManifestResolver) and resolver.shared_fileset is not None:
+                        for inc in resolver.shared_fileset.includes:
+                            context = f"domain={dom.name}, prompt={prompt.name}, resolver=ManifestResolver, fileset=shared_fileset, include={inc}"
+                            reqs.append((inc, context))
+
+        return reqs
+

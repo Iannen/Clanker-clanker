@@ -1,5 +1,6 @@
 filesets:
   core: { includes: [.], excludes: [.git, .clanker] }
+  content: { includes: [.], excludes: [.git, .clanker] }
 
 domains:
   - name: analysis

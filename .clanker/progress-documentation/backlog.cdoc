@@ -7,6 +7,13 @@ I. Ideas, complaints and non-critical bugs:
     - ez fix is to adjust template.
     - rabbithole solution is to have app write template to rowspec
 
+- bootstrap / repo init
+    - if 'content' dir is empty, then it doesnt get recognized (if a fileset wants it)
+    - bootstrap validation does not understand the '.' to mean 'the whole repo', but think there is a dir named '.' that must exist
+        '[shared] asset include '.' (<domain=debloat, prompt=debloat, resolver=RepoContentResolver, include=.>) was not found in pud'
+    - the repo init must also create the 'content' dir, to fulfill contract
+
+
 A. Deprioritized / Housekeeping
 
 2. Non IDE / linter import strats: 
@@ -39,6 +46,27 @@ B. Ingestion, Validation & Complaints
     - manifest resolver must check if fileset is declared in pud_cfg with fallback to shared_cfg
         - so shared_cfg can declare defaults for it, which the pud_cfg can override
         - if not present, then complain
+    - MD asset collision, fallback and absense
+        - Files of Filelist, subject to the md resolver, referenced by name in Filelists, must follow these rules
+            - there can be no pud internal or shared internal naming collisions
+                - <pud>/onepath/file.txt and <pud>/another/file.txt is a violation
+                    - because name is the same, it is pud internal collision. the same rule applies to shared internals
+                - <pud>/onepath/file.txt and <shared>/another/file.txt is OK
+                    - this is fine. the system uses fallback from pud to shared
+        - so we need to validate that the files mentioned
+            - exist in one or both repos
+            - but are unique internally in any repo they exist
+        - then manifest resolver can do less work
+
+8. Split AssetValidator into FilesetValidator and FilelistValidator
+    [x] FilesetValidator, validates the fileset includes of content/manifest resolvers.
+        - complains if asset includes targeted at pud (RepoContentResolver.fileset or ManifestResolver.pud_fileset) are not found in the pud asset pool
+        - complains if asset includes targeted at ManifestResolver.shared_fileset are not found in the shared asset pool
+    [x] FilelistValidator, validates the filelist of md resolvers.
+        - complains if repo internal asset naming collisions exist (by filename comparison, independent of path)
+            - within pud
+            - within shared
+        - complains if assets referenced by a config are not provided by either the pud or shared repo
 
 D. Testing
 10. Refine and develop E2E test system
@@ -57,15 +85,14 @@ D. Testing
             - but frequent drift of expectation, cuz not predetermined/static like with the other repos
         - also path resolution is different?
 
-11.
-    Potential UnboundLocalError in RuamelYamlParserAdapter
-    If self.yaml.load(raw_text) returns None (which ruamel.yaml does for empty strings or comments-only files), this returns None instead of a dict. If callers expect a dict, you may want return self.yaml.load(raw_text) or {}.
+
 
 II. Items to refine & QC:
 III. Slated for implementation:
 IV. Recently implemented:
-V. Critical bugs
-on test repo, manifest domain for 'a' only (keys 1 -> a):
+V. Bugs
+
+1. on test repo, manifest domain for 'a' only (keys 1 -> a):
 '''
 [FATAL] FileAccessError: File access error for presentation/image_lib/clanker_boot.png: 'utf-8' codec can't decode byte 0x89 in position 0: invalid start byte
 
@@ -86,3 +113,5 @@ on test repo, manifest domain for 's' only (keys 1 -> s):
 works fine, but dont use a manifest resolver..
 
 
+2. Potential UnboundLocalError in RuamelYamlParserAdapter
+-   If self.yaml.load(raw_text) returns None (which ruamel.yaml does for empty strings or comments-only files), this returns None instead of a dict. If callers expect a dict, you may want return self.yaml.load(raw_text) or {}.

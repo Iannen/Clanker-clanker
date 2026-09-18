@@ -10,7 +10,8 @@ from asset_ingestion.assemblers.rtc import RtcAssembler
 from asset_ingestion.parsers.render import RenderParser
 from asset_ingestion.extractors.base_resolver import BaseResolversExtractor
 from asset_ingestion.extractors.ui_render import UIRenderExtractor
-from asset_ingestion.validators.assets import AssetValidator
+from asset_ingestion.validators.assets import FilesetValidator
+from asset_ingestion.validators.file_list import FilelistValidator
 from app.constants import CfgFragments, PathTokens, DocPaths, TemplatePaths
 from app.presentation import ActionResult
 
@@ -24,16 +25,15 @@ class IngestionServiceImpl(IngestionService):
         self.cfg_ingestor = cfg_ingestor
 
     def get_runtime_config(self) -> tuple[ActionResult, Report, dict[str, Button], Render, list[Resolver]]:
+        collector = ErrorCollector() 
         try:
             pud_cfg = self._get_validated_cfg_fragment(CfgFragments.PUD_CFG)
         except NoSuchFile:
             raise NoConfig
-        collector = ErrorCollector() 
         try:
             sys_cfg = self._get_validated_cfg_fragment(CfgFragments.SYSTEM_CFG)
             shared_cfg = self._get_validated_cfg_fragment(CfgFragments.SHARED_CFG)
         except NoSuchFile as ex:
-            #if NoSuchFile -> complain critically to user not raise
             raise ConfigAssembly(f"Missing configuration fragment: {ex}") from ex
 
         unified_fsm = FilesetExtractor().extract(pud_cfg, shared_cfg, collector)
@@ -51,17 +51,14 @@ class IngestionServiceImpl(IngestionService):
             collector=collector,
         )
 
-        pud_filelist = self.files.get_files(PathTokens.PUD, ["."], missing_ok=True)
-        shared_filelist = self.files.get_files(PathTokens.SHARED, ["."], missing_ok=True)
+        pud_multidoc_assets = self.files.get_files(PathTokens.PUD, [".clanker"])
+        shared_multidoc_assets = self.files.get_files(PathTokens.SHARED, ["content/a_lib"])
+        FilelistValidator().validate(pud_multidoc_assets, pud_doms, shared_multidoc_assets, shared_doms, collector)
+        
+        pud_fileset_assets = self.files.get_files(PathTokens.PUD, ["content", ".clanker", "README.md"])
+        shared_fileset_assets = self.files.get_files(PathTokens.SHARED, ["content/a_lib"])
 
-        AssetValidator().validate(
-            pud_pathlist=pud_filelist,
-            shared_pathlist=shared_filelist,
-            button_map=button_map,
-            ui_render=ui_render,
-            base_resolvers=base_resolvers,
-            collector=collector,
-        )
+        FilesetValidator().validate(pud_fileset_assets, pud_doms, shared_fileset_assets, shared_doms, collector)
 
         action_res = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)
         return action_res, collector, button_map, ui_render, base_resolvers

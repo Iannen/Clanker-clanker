@@ -56,7 +56,7 @@ domains:
       render:
         resolvers:
           - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 16}, history-output-instructions.md]}
-          - {id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: IV. Recently implemented, up_to: V. Critical bugs}]}
+          - {id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: IV. Recently implemented, up_to: V. Bugs}]}
 
 - name: ingestion
   resolvers:
@@ -77,7 +77,7 @@ domains:
       render:
         resolvers:
           - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 16}, history-output-instructions.md]}
-          - {id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: IV. Recently implemented, up_to: V. Critical bugs}]}
+          - {id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: IV. Recently implemented, up_to: V. Bugs}]}
 
 - name: test
   resolvers:
@@ -98,4 +98,4 @@ domains:
       render:
         resolvers:
           - {id: prompt_fragments, type: multi-document-retrieval, files: [doc-management-mode.md, {file: project-history.cdoc, tail_lines: 16}, history-output-instructions.md]}
-          - {id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: IV. Recently implemented, up_to: V. Critical bugs}]}
+          - {id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.cdoc, from_line: IV. Recently implemented, up_to: V. Bugs}]}

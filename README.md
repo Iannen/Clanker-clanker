@@ -350,7 +350,7 @@ Clanker attempts to adress such ills by way of its, per llm feedback, 'opinionat
   II. Items to refine & QC:
   III. Slated for implementation:
   IV. Recently implemented:
-  V. Critical bugs
+  V. Bugs
 
   === .clanker/progress-documentation/north-star.cdoc ===
   // A dropbox of sorts
