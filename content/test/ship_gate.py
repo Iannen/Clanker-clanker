@@ -114,34 +114,40 @@ class BaseFixtureTest(ABC):
 
         spec_methods = [
             getattr(self, m) for m in self.__class__.__dict__
-            if m.startswith("assert_") and callable(getattr(self, m))
+            if not m.startswith("_") and callable(getattr(self, m))
         ]
 
         for method in spec_methods:
-            spec = method()
-            exit_code, stdout_msg, adapter_data = self._execute_cli(spec["input_sequence"])
+            specs = method()
+            if isinstance(specs, dict):
+                specs = [specs]
 
-            missing_fs_paths = []
-            if "fs_paths_exist" in spec.get("expected", {}):
-                for path_str in spec["expected"]["fs_paths_exist"]:
-                    target_path = self.sandbox_dir / path_str
-                    if not target_path.exists():
-                        missing_fs_paths.append(path_str)
+            for idx, spec in enumerate(specs):
+                exit_code, stdout_msg, adapter_data = self._execute_cli(spec["input_sequence"])
 
-            actual = {
-                "exit_code": exit_code,
-                "exit_msg": stdout_msg.strip(),
-                "clipboards": adapter_data.get("clipboards", []),
-                "frames_count": len(adapter_data.get("frames", [])),
-                "missing_fs_paths": missing_fs_paths
-            }
+                missing_fs_paths = []
+                if "fs_paths_exist" in spec.get("expected", {}):
+                    for path_str in spec["expected"]["fs_paths_exist"]:
+                        target_path = self.sandbox_dir / path_str
+                        if not target_path.exists():
+                            missing_fs_paths.append(path_str)
 
-            self.records.append({
-                "assert_method": method.__name__,
-                "input_sequence": spec["input_sequence"],
-                "actual": actual,
-                "expected": spec["expected"]
-            })
+                actual = {
+                    "exit_code": exit_code,
+                    "exit_msg": stdout_msg.strip(),
+                    "clipboards": adapter_data.get("clipboards", []),
+                    "frames_count": len(adapter_data.get("frames", [])),
+                    "missing_fs_paths": missing_fs_paths
+                }
+
+                method_display = method.__name__ if len(specs) == 1 else f"{method.__name__}[{idx}]"
+
+                self.records.append({
+                    "assert_method": method_display,
+                    "input_sequence": spec["input_sequence"],
+                    "actual": actual,
+                    "expected": spec["expected"]
+                })
 
         self._flush_report()
 

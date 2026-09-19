@@ -73,12 +73,7 @@ class ConfigAssembly(Fatal): leaf_ex = True
 class IllegalDuplicateFile(Fatal): leaf_ex = True
 class UserTask(Fatal): leaf_ex = True
 class WorkspaceAlreadyInitialized(Fatal): leaf_ex = True
-
 class UserDecline(Notice): leaf_ex = True
-class ProgramExit(Notice): 
-    leaf_ex = True
-    MSG_DEFAULT: str = "Program exited"
-    MSG_DECLINED_INIT: str = "Initialization declined by user"
-    MSG_DECLINED_BOOTSTRAP: str = "Bootstrap declined by user"
+class ProgramExit(Notice): leaf_ex = True
 class NoConfig(Notice): leaf_ex = True
 class HotPromptRequested(Notice): leaf_ex = True

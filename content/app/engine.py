@@ -23,15 +23,15 @@ class AppEngine:
         try:
             action_res = self._bootstrap()
         except UserDecline:
-            return ProgramExit.MSG_DECLINED_BOOTSTRAP        
+            return ActionResult.MSG_DECLINED_BOOTSTRAP        
         except NoConfig:
             try:
                 self.io.get_confirmation(UserQuestions.INIT_REPO, UserQuestions.REQUIRED_PHRASE)
                 self.session.initialize_workspace()
                 action_res = self._bootstrap()
             except UserDecline:
-                return ProgramExit.MSG_DECLINED_INIT
-            except Exception as other_ex: #LLM question i had to add this catch, it didnt bubble to the below one which was surprising to me. educate me on how this works
+                return ActionResult.MSG_DECLINED_INIT
+            except Exception as other_ex:
                 return ExceptionPolicy.interpret_as_fatal(other_ex)
         except Exception as other_ex:
             return ExceptionPolicy.interpret_as_fatal(other_ex)
@@ -55,7 +55,7 @@ class AppEngine:
                         rendered_text = self.renderer.render_prompt(prompt_render_ctx)
                         action_res = self.io.to_clipboard(rendered_text)
         except ProgramExit:
-            return ProgramExit.MSG_DEFAULT
+            return ActionResult.MSG_DEFAULT
         except Exception as other_ex:
             return ExceptionPolicy.interpret_as_fatal(other_ex)
 

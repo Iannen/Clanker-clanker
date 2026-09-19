@@ -6,6 +6,10 @@ class ActionResult:
     KEY_EMPTY = "Key '{key}' is empty"
     COPIED_TO_CLIPBOARD = "Copied {lines} lines ({chars} chars) to clipboard"
 
+    MSG_DEFAULT: str = "Program exited"
+    MSG_DECLINED_INIT: str = "Initialization declined by user"
+    MSG_DECLINED_BOOTSTRAP: str = "Bootstrap declined by user"
+
     def __init__(self, message: str):
         self.message = message
         

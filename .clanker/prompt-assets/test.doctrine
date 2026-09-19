@@ -1,0 +1,17 @@
+Automates manual CLI testing using stateful, user-journey test flows.
+
+1. Test Execution & Statefulness
+- A single sandbox fixture is provisioned per BaseFixtureTest subclass.
+- Test methods (assert_*) run sequentially in order of declaration against the same mutating sandbox state.
+- Individual assert_* methods can return either a single test spec dictionary or an ordered list of test specs
+- Within an assert class, atomic tests are carried out in order mandated by
+    - assert method declaration order
+    - method internal order of list carried test-spec objects
+
+2. Reporting
+   - BaseFixtureTest captures CLI results (exit_code, exit_msg, clipboards, frames_count, missing_fs_paths) for each step.
+   - On completion, ship_gate.py flushes a detailed JSON report payload to disk.
+
+3. Feedback & Inspection
+   - The GateInspector parses the generated JSON report.
+   - Formats and outputs human-readable console feedback summarizing pass/fail status and state mismatches for the developer.

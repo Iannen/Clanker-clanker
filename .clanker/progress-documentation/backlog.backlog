@@ -17,7 +17,7 @@ I. Ideas, complaints and non-critical bugs:
 A. Deprioritized / Housekeeping
 
 2. Non IDE / linter import strats: 
-    note: not so important, just nice for bragpacks
+    - import statements are huge blocks - big token waste (?)
     - goals:
         - We dont have huge import blocks in all the numerous files, eating up precious llm context
         - all types used in a file are always imported (explicitly or via kleene)
@@ -58,62 +58,99 @@ B. Ingestion, Validation & Complaints
             - but are unique internally in any repo they exist
         - then manifest resolver can do less work
 
-D. Testing
-
-1. the backlog &  follow ups
-    - instead of items to refine / to implement / recently implemented, it should have sorting categories
-        - less shuffling around, aligns better with follow up
-    - then it should have one 'on the block' section, which is the one that is fed in all prompts, and subject to plan, impl and history transfer
-        - plan / implement / history all deliver as before, but the 'on the block' bl item is the same for all.
-        - the hotprompts dont deliver backlog, only the instructions + any history file
-
-
-II. Items to refine & QC:
 1. Add next numeral line to history output instructions
     [ ] 'a_lib/templates/documentation/backlog.template': Update history output instruction format
         - append a trailing 'Next item numeral: <FOLLOWING_ROMAN_NUMERAL>' marker to history output instructions
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
-10. Refine and develop E2E test system
-    note: must be interpreting the app, dont the test system to gulliverize progression
-    Next steps
-    - when the suite has run, it should offer to delete the sandbox and report directory by prompt
-    - finish out the assertclass to match my manual flow for the test repo
-        - after the init / repocontract assert, assert that we are in the UI
-        - then assert that buttons yield expected results
-            - grep the UI ouputs for messages? then we can pick up on 'domain xx selected, prompt xx this many lines / chars'
-    - after manual flow of testrepo is implemented, run at grumpy Grok to see if he approves of it
-    - then implement assertclass for 'unruly' repo  
-        - has members that collide with contract
-    - then the pud = clanker case
-        - which is just spam the buttons to see that they all work as expected
-            - but frequent drift of expectation, cuz not predetermined/static like with the other repos
-        - also path resolution is different?
-
-IV. Recently implemented:
-V. Bugs
-
-1. on test repo, manifest domain for 'a' only (keys 1 -> a):
-'''
-[FATAL] FileAccessError: File access error for presentation/image_lib/clanker_boot.png: 'utf-8' codec can't decode byte 0x89 in position 0: invalid start byte
-
---- Underlying Stack Trace ---
-Traceback (most recent call last):
-  File "/home/user/Projects/Clanker-clanker/content/ports_adapters/adapters.py", line 72, in _pud_file_as_string
-    return (self.pud_path / rel_path).read_text(encoding="utf-8")
-           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
-  File "/usr/lib/python3.14/pathlib/__init__.py", line 788, in read_text
-    return f.read()
-           ~~~~~~^^
-  File "<frozen codecs>", line 325, in decode
-UnicodeDecodeError: 'utf-8' codec can't decode byte 0x89 in position 0: invalid start byte
-
-~/Projects/Clanker-clanker main*
-'''
-on test repo, manifest domain for 's' only (keys 1 -> s):
-works fine, but dont use a manifest resolver..
-
-
-2. Potential UnboundLocalError in RuamelYamlParserAdapter
--   If self.yaml.load(raw_text) returns None (which ruamel.yaml does for empty strings or comments-only files), this returns None instead of a dict. If callers expect a dict, you may want return self.yaml.load(raw_text) or {}.
 
 Backlog tail, Selected item/items:
+Test harness development:
+
+1. Implement PUT lifecycle management and assertion information channels via constant classes
+    [ ] 'content/test/ship_gate.py': Add COMMAND and INFOSOURCE constructs 
+        - refactor BaseFixtureTest to handle the requirements the vision implies
+    [ ] 'content/test/assert_classes.py': Align EmptyRepoTests to vision
+
+'''static classes, declared adjacent to BaseFixtureTest
+from enum import Enum, auto
+
+class COMMAND:
+    START_APP = "START_APP"
+    TERMINATE_APP = "TERMINATE_APP"
+
+class INFOSOURCE:
+    TERMINAL_WRITE = "TERMINAL_WRITE"
+    PROGRAM_EXIT_MSG = "PROGRAM_EXIT_MSG"
+    TO_CLIPBOARD_CONTENT = "TO_CLIPBOARD_CONTENT"
+    DISK = "DISK"
+'''
+
+''' vision of what is to become of it
+class EmptyRepoTests(BaseFixtureTest):
+    TEMPLATE_FIXTURE_NAME = "empty_repo"
+
+    def abort_keys_decline_init(self) -> list[dict]:
+        return [
+            {
+                "before": COMMAND.START_APP,
+                "sequence": [key],
+                "expected": {
+                    "source": INFOSOURCE.PROGRAM_EXIT_MSG,
+                    "value": ProgramExit.MSG_DECLINED_INIT,
+                },
+            }
+            for key in IOControl.ABORT_KEYS
+        ]
+
+    def clankerize_repo_contract(self) -> dict:
+        clean_paths = [
+            p.removeprefix(f"{PathTokens.PUD}/")
+            for p in RepoContract.get_all_target_paths()
+        ]
+        return {
+            "before": COMMAND.START_APP,
+            "sequence": ["yes", IOControl.ACCEPT_KEY],
+            "expected": {
+                "source": INFOSOURCE.DISK,
+                "value": clean_paths,
+            },
+        }
+
+    def navigate_ui_and_copy_prompts(self) -> list[dict]:
+        return [
+            {
+                "sequence": ["1"],  # select domain
+                "expected": {
+                    "source": INFOSOURCE.TERMINAL_WRITE,
+                    "value": "Domain <..> on key <..> selected",
+                },
+            },
+            {
+                "sequence": ["q"],  # select prompt 'q'
+                "expected": {
+                    "source": INFOSOURCE.TO_CLIPBOARD_CONTENT,
+                    "value": "Copied <..> lines (<..> chars) to clipboard",
+                },
+            },
+            {
+                "sequence": ["w"],  # select prompt 'w'
+                "expected": {
+                    "source": INFOSOURCE.TO_CLIPBOARD_CONTENT,
+                    "value": "Copied <..> lines (<..> chars) to clipboard",
+                },
+                "after": COMMAND.TERMINATE_APP,
+            },
+        ]
+'''
+
+2. Report upgrade
+- in addition to the printing of results to the console
+    - the report should reflect if the test passed or not
+    - so I can just pass that sucker to a clanker!
+
+3. instead of a single 'expected' object in response to a sequence, we should have a list of expected observations
+    - so we can verify several things at once:
+        - the UI displays what we think it should
+        - while the disk state is what it should be
+        - and the content received to clipboard matches expectations
+

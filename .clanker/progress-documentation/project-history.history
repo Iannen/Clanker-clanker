@@ -770,3 +770,21 @@ CXI: BACKLOG TAIL RESTRUCTURING AND NAMED FILELISTS DECLARATION
     - Updated `shared_cfg.yaml` asset fragments to declare bottom-level named filelists, replacing repetitive inline filelist blocks across domain configurations.
     - Preserved head and body truncation specs to allow upstream backlog extraction without altering active filelist definitions.
     Reflection: Significantly reduces operational overhead during LLM task management while leveraging bottom-level filelist resolution to keep shared YAML declarations clean and maintainable.
+
+CXII: E2E HARNESS MULTI-SPEC SCENARIO SUPPORT AND EMPTY REPO TEST REFLECTION
+    Purpose: Enable parameterized test spec execution in the E2E test harness and eliminate repetitive test method definitions for key controls.
+    - Test runner expected single assertion dictionaries, forcing separate boilerplate test methods for simple variations like individual abort keys and leaving token prefixes unresolved during filesystem contract checks.
+    Actions:
+    - Updated `BaseFixtureTest.run_tests` in `ship_gate.py` to handle both single `dict` and `list[dict]` return types from assertion methods, appending index descriptors (`[idx]`) to record method names.
+    - Refactored `EmptyRepoTests` in `assert_classes.py` to consolidate individual exit tests into `assert_abort_keys_decline_init`, dynamically iterating over `IOControl.ABORT_KEYS`.
+    - Added prefix stripping (`removeprefix(f"{PathTokens.PUD}/")`) to target contract paths in `assert_clankerize_repo_contract` to ensure correct relative sandbox evaluation.
+    Reflection: Significantly improves E2E test harness flexibility by allowing assertion methods to declare input sequences declaratively as iterable scenario lists without requiring harness-level changes for each new control key.
+
+CXIII: DECOUPLING EXIT MESSAGE CONSTANTS FROM EXCEPTION POLICY
+    Purpose: Move user-facing exit and status message constants off exception classes and centralize them on `ActionResult`.
+    - Exception classes were carrying static message constants (`MSG_*`), mixing presentation concerns into exception signaling and policy definitions.
+    Actions:
+    - Defined `MSG_DEFAULT`, `MSG_DECLINED_INIT`, and `MSG_DECLINED_BOOTSTRAP` constants on `ActionResult` in `content/app/presentation.py`.
+    - Removed `MSG_*` class attributes from `ProgramExit` in `content/app/exceptions.py`, keeping it strictly as a control-flow notice signal.
+    - Updated return paths in `AppEngine.run` (`content/app/engine.py`) and assertion checks in `EmptyRepoTests` (`content/test/assert_classes.py`) to reference `ActionResult` constants.
+    Reflection: Cleanly isolates exception classes to exception policy and control-flow signaling while consolidating all user-facing output messages within `ActionResult`.

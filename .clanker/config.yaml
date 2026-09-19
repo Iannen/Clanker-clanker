@@ -26,21 +26,11 @@ filesets:
 
   test_harness: {includes: [
     content/app/engine.py,
+    content/app/constants.py,
+    content/app/presentation.py,
     content/clanker.py,
     content/ports_adapters/terminal/scripted_terminal_adapter.py,
     content/test]}
-
-  rationalize_renderservice: {includes: [
-    content/asset_ingestion/ingestion_service.py,
-    content/asset_ingestion/extractors/domains.py,
-    content/asset_ingestion/validators/file_list.py]}
-
-  validation_bug: {includes: [
-    content/asset_ingestion/validators/assets.py,
-    content/asset_ingestion/ingestion_service.py,
-    content/render_pipeline/render_service.py,
-    content/ports_adapters/disk_adapter.py,
-    content/ports_adapters/ports.py]}
 
 domains:
 - name: core
@@ -89,6 +79,7 @@ domains:
 - name: test
   resolvers:
     - { id: repo_content, type: repo_content, fileset: test_harness }
+    - { id: base_fragments, type: multi-document-retrieval, files: [test.doctrine] }
   prompts:
     - name: plan
       render:
