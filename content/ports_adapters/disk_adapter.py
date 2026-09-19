@@ -61,7 +61,7 @@ class LinuxDiskAdapter(DiskPort):
     def read_asset(self, tokenized_path: str) -> str:
         return self.get_file_contents(tokenized_path)
 
-    def get_files(
+    def get_file_paths(
         self,
         basepath_token: str,
         rel_roots: list[str],
@@ -90,6 +90,39 @@ class LinuxDiskAdapter(DiskPort):
                     for file_path in full_path.rglob("*"):
                         if file_path.is_file():
                             resolved_files.add(str(file_path.relative_to(base_dir)))
+        except (PermissionError, UnicodeDecodeError) as ex:
+            raise FileAccessError from ex
+        return resolved_files
+
+    def get_dir_manifest(
+        self,
+        basepath_token: str,
+        rel_roots: list[str]
+    ) -> set[str]:
+        if basepath_token == PathTokens.PUD:
+            base_dir = self.pud_path
+        elif basepath_token == PathTokens.SHARED:
+            base_dir = self.clanker_path
+        else:
+            raise InvalidPathToken from ValueError(f"Unrecognized basepath token: {basepath_token}")
+
+        resolved_files: set[str] = set()
+        try:
+            for root_str in rel_roots:
+                rel_path = Path(root_str)
+                full_path = base_dir / rel_path
+                if not full_path.exists():
+                    raise NoSuchFile from FileNotFoundError(f"Path does not exist: {full_path}")
+
+                if full_path.is_file():
+                    resolved_files.add(str(rel_path))
+                elif full_path.is_dir():
+                    if not any(full_path.iterdir()):
+                        resolved_files.add(str(rel_path))
+                    else:
+                        for sub_path in full_path.rglob("*"):
+                            if sub_path.is_file() or (sub_path.is_dir() and not any(sub_path.iterdir())):
+                                resolved_files.add(str(sub_path.relative_to(base_dir)))
         except (PermissionError, UnicodeDecodeError) as ex:
             raise FileAccessError from ex
         return resolved_files

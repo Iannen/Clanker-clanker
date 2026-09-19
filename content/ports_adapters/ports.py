@@ -59,11 +59,18 @@ class DiskPort(ABC):
     def read_asset(self, tokenized_path: str) -> str: ...  # raises: InvalidPathToken, NoSuchFile, FileAccessError
 
     @abstractmethod
-    def get_files(
+    def get_file_paths(
         self,
         basepath_token: str,
         rel_roots: list[str],
         missing_ok: bool = False
+    ) -> set[str]: ...  # raises: InvalidPathToken, NoSuchFile, FileAccessError
+
+    @abstractmethod
+    def get_dir_manifest(
+        self,
+        basepath_token: str,
+        rel_roots: list[str]
     ) -> set[str]: ...  # raises: InvalidPathToken, NoSuchFile, FileAccessError
 
 class ConfigParseError(Notice): leaf_ex = True

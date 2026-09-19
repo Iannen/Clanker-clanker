@@ -78,8 +78,8 @@ class RenderServiceImpl(RenderService):
 
     def _res_repo_content(self, resolver: RepoContentResolver) -> dict[str, str]:
         paths = sorted(
-            self.files.get_files(PathTokens.PUD, resolver.fileset.includes, missing_ok=False) -
-            self.files.get_files(PathTokens.PUD, resolver.fileset.excludes, missing_ok=True)
+            self.files.get_file_paths(PathTokens.PUD, resolver.fileset.includes, missing_ok=False) -
+            self.files.get_file_paths(PathTokens.PUD, resolver.fileset.excludes, missing_ok=True)
         )
 
         tree_header = f"<tree>\n" + "\n".join(f"├── {p}" for p in paths) + "\n</tree>"
@@ -109,8 +109,8 @@ class RenderServiceImpl(RenderService):
 
     def _build_manifest(self, tag: str, basepath_token: str, fileset: FileSet) -> str:
         paths = sorted(
-            self.files.get_files(basepath_token, fileset.includes, missing_ok=False) -
-            self.files.get_files(basepath_token, fileset.excludes, missing_ok=True)
+            self.files.get_file_paths(basepath_token, fileset.includes, missing_ok=False) -
+            self.files.get_file_paths(basepath_token, fileset.excludes, missing_ok=True)
         )
 
         lines = []

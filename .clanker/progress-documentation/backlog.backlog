@@ -59,6 +59,20 @@ B. Ingestion, Validation & Complaints
         - then manifest resolver can do less work
 
 D. Testing
+
+1. the backlog &  follow ups
+    - instead of items to refine / to implement / recently implemented, it should have sorting categories
+        - less shuffling around, aligns better with follow up
+    - then it should have one 'on the block' section, which is the one that is fed in all prompts, and subject to plan, impl and history transfer
+        - plan / implement / history all deliver as before, but the 'on the block' bl item is the same for all.
+        - the hotprompts dont deliver backlog, only the instructions + any history file
+
+
+II. Items to refine & QC:
+1. Add next numeral line to history output instructions
+    [ ] 'a_lib/templates/documentation/backlog.template': Update history output instruction format
+        - append a trailing 'Next item numeral: <FOLLOWING_ROMAN_NUMERAL>' marker to history output instructions
+        - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 10. Refine and develop E2E test system
     note: must be interpreting the app, dont the test system to gulliverize progression
     Next steps
@@ -74,90 +88,6 @@ D. Testing
         - which is just spam the buttons to see that they all work as expected
             - but frequent drift of expectation, cuz not predetermined/static like with the other repos
         - also path resolution is different?
-
-1. the backlog &  follow ups
-    - instead of items to refine / to implement / recently implemented, it should have sorting categories
-        - less shuffling around, aligns better with follow up
-    - then it should have one 'on the block' section, which is the one that is fed in all prompts, and subject to plan, impl and history transfer
-        - plan / implement / history all deliver as before, but the 'on the block' bl item is the same for all.
-        - the hotprompts dont deliver backlog, only the instructions + any history file
-
-
-II. Items to refine & QC:
-
-1. Fix empty directory validation false positives in asset ingestion
-    [ ] 'content/ports_adapters/disk_adapter.py': Include relative root and directory paths in resolved files set
-        - update LinuxDiskAdapter.get_files to add rel_path and traversed directory paths when full_path is a directory
-
-an attempted implementation of above which introduced below version of method (now rolled back) introduced a bug:
-'''
-[FATAL] AdapterLeakage
-
---- Underlying Stack Trace ---
-Traceback (most recent call last):
-  File "/home/user/Projects/Clanker-clanker/content/app/exceptions.py", line 11, in wrapper
-    return fn(*args, **kwargs)
-  File "/home/user/Projects/Clanker-clanker/content/ports_adapters/disk_adapter.py", line 30, in get_file_contents
-    return self._read_path_as_string(target_path)
-           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
-  File "/home/user/Projects/Clanker-clanker/content/ports_adapters/disk_adapter.py", line 22, in _read_path_as_string
-    return target_path.read_text(encoding="utf-8")
-           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
-  File "/usr/lib/python3.14/pathlib/__init__.py", line 787, in read_text
-    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
-         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/lib/python3.14/pathlib/__init__.py", line 771, in open
-    return io.open(self, mode, buffering, encoding, errors, newline)
-           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-IsADirectoryError: [Errno 21] Is a directory: '/home/user/Projects/Clanker-clanker/content'
-'''
-'''
-def get_files(
-        self,
-        basepath_token: str,
-        rel_roots: list[str],
-        missing_ok: bool = False
-    ) -> set[str]:
-        if basepath_token == PathTokens.PUD:
-            base_dir = self.pud_path
-        elif basepath_token == PathTokens.SHARED:
-            base_dir = self.clanker_path
-        else:
-            raise InvalidPathToken from ValueError(f"Unrecognized basepath token: {basepath_token}")
-
-        resolved_files: set[str] = set()
-        try:
-            for root_str in rel_roots:
-                rel_path = Path(root_str)
-                full_path = base_dir / rel_path
-                if not full_path.exists():
-                    if missing_ok:
-                        continue
-                    raise NoSuchFile from FileNotFoundError(f"Path does not exist: {full_path}")
-
-                if full_path.is_file():
-                    resolved_files.add(str(rel_path))
-                elif full_path.is_dir():
-                    resolved_files.add(str(rel_path))
-                    for sub_path in full_path.rglob("*"):
-                        resolved_files.add(str(sub_path.relative_to(base_dir)))
-        except (PermissionError, UnicodeDecodeError) as ex:
-            raise FileAccessError from ex
-        return resolved_files
-'''
-bug
-affects all prompts of test repo domains
-- shared: manifest, north star, config, debloat
-- pud: analysis
-
-affects all prompts of clanker repo domains
-- shared: manifest, north star, config, debloat, presentation
-- pud: test
-
-the crash dump is always like seen above, only varying appropriately with repo path, and also the target dir
-'IsADirectoryError: [Errno 21] Is a directory: '<varies from one repo to anoterh>/<last segment was always a directory>''
-
-III. Slated for implementation:
 
 IV. Recently implemented:
 V. Bugs
@@ -185,3 +115,5 @@ works fine, but dont use a manifest resolver..
 
 2. Potential UnboundLocalError in RuamelYamlParserAdapter
 -   If self.yaml.load(raw_text) returns None (which ruamel.yaml does for empty strings or comments-only files), this returns None instead of a dict. If callers expect a dict, you may want return self.yaml.load(raw_text) or {}.
+
+Backlog tail, Selected item/items:

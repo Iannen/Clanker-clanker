@@ -751,3 +751,22 @@ CIX: REPOCONTRACT CONSOLIDATION AND DISK PORT PATH CLEANUP
     - Refactored `initialize_workspace` in `IngestionServiceImpl` to assert absence across all `RepoContract.get_all_target_paths()` before executing directory creations and template file copies.
     - Updated `EmptyRepoTests` in `content/test/assert_classes.py` to assert expected file and directory existence directly against `RepoContract.get_all_target_paths()`.
     Reflection: Establishes `RepoContract` as the declarative authority for workspace initialization, eliminating dynamic extension swapping while guaranteeing strict parity between pre-flight safety checks and actual path creation.
+
+CX: DISK PORT SEPARATION OF FILE PATHS AND DIRECTORY MANIFESTS
+    Purpose: Eliminate false positives in empty directory asset validation while preventing IsADirectoryError crashes during render service execution.
+    - IngestionService required a structural representation of disk assets (including empty directories) to validate configured paths, while RenderService required strictly read-safe file path strings for prompt template hydration.
+    Actions:
+    - Replaced the overloaded `get_files` method on `DiskPort` and `LinuxDiskAdapter` with two distinct methods: `get_file_paths` and `get_dir_manifest`.
+    - Implemented `get_file_paths` to expand directory roots exclusively into nested file paths, respecting the `missing_ok` flag for non-existent relative roots.
+    - Implemented `get_dir_manifest` to expand relative roots into leaf file paths and empty subdirectories (including echoing empty directory roots), strictly raising `NoSuchFile` if any root is missing.
+    - Updated `IngestionServiceImpl` to use `get_dir_manifest` for asset validation and `RenderServiceImpl` to use `get_file_paths` in `_res_repo_content` and `_build_manifest`.
+    Reflection: Eliminates directory-reading exceptions at the domain boundary without requiring defensive type checks inside rendering services, maintaining a strict contract where `get_file_paths` guarantees readable file targets.
+
+CXI: BACKLOG TAIL RESTRUCTURING AND NAMED FILELISTS DECLARATION
+    Purpose: Streamline LLM interaction workflows and eliminate redundant in-line filelist configurations in shared asset templates.
+    - Frequent item shuffling in earlier backlog structures created friction during plan, do, and drain modes, while repetitive filelist declarations cluttered YAML asset configurations.
+    Actions:
+    - Reorganized `backlog.template` structure to introduce a dedicated 'tail part' as the explicit focus for active LLM operations.
+    - Updated `shared_cfg.yaml` asset fragments to declare bottom-level named filelists, replacing repetitive inline filelist blocks across domain configurations.
+    - Preserved head and body truncation specs to allow upstream backlog extraction without altering active filelist definitions.
+    Reflection: Significantly reduces operational overhead during LLM task management while leveraging bottom-level filelist resolution to keep shared YAML declarations clean and maintainable.

@@ -38,33 +38,32 @@ filesets:
   validation_bug: {includes: [
     content/asset_ingestion/validators/assets.py,
     content/asset_ingestion/ingestion_service.py,
+    content/render_pipeline/render_service.py,
     content/ports_adapters/disk_adapter.py,
     content/ports_adapters/ports.py]}
-
-
 
 domains:
 - name: core
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: validation_bug } 
+    - { id: repo_content, type: repo_content, fileset: core } 
 
   prompts:
     - name: plan
       render:
         resolvers:
           - { id: prompt_fragments, type: multi-document-retrieval, files: plan_mode_instructions }
-          - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.backlog, from_line: II. Items to refine & QC, up_to: III. Slated for implementation}]}
+          - { id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant }
     - name: impl
       render:
         resolvers:
           - {id: prompt_fragments, type: multi-document-retrieval, files: do_mode_instructions}
-          - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.backlog, from_line: III. Slated for implementation:, up_to: IV. Recently implemented}]}
+          - { id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant }
 
     - name: drain
       render:
         resolvers:
           - {id: prompt_fragments, type: multi-document-retrieval, files: doc_management_mode_instructions}
-          - {id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.backlog, from_line: IV. Recently implemented, up_to: V. Bugs}]}
+          - {id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant }
 
 - name: ingestion
   resolvers:
@@ -74,36 +73,35 @@ domains:
       render:
         resolvers:
           - { id: prompt_fragments, type: multi-document-retrieval, files: plan_mode_instructions }
-          - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.backlog, from_line: II. Items to refine & QC, up_to: III. Slated for implementation}]}
+          - { id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant }
     - name: impl
       render:
         resolvers:
           - {id: prompt_fragments, type: multi-document-retrieval, files: do_mode_instructions}
-          - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.backlog, from_line: III. Slated for implementation:, up_to: IV. Recently implemented:}]}
+          - { id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant }
 
     - name: drain
       render:
         resolvers:
           - {id: prompt_fragments, type: multi-document-retrieval, files: doc_management_mode_instructions}
-          - {id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.backlog, from_line: IV. Recently implemented, up_to: V. Bugs}]}
+          - {id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant}
 
 - name: test
   resolvers:
     - { id: repo_content, type: repo_content, fileset: test_harness }
-    - { id: domain_fragments, type: multi-document-retrieval, files: [backlog.backlog], }
   prompts:
     - name: plan
       render:
         resolvers:
           - { id: prompt_fragments, type: multi-document-retrieval, files: plan_mode_instructions }
-          - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.backlog, from_line: II. Items to refine & QC, up_to: III. Slated for implementation}]}
+          - { id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant}
     - name: impl
       render:
         resolvers:
           - {id: prompt_fragments, type: multi-document-retrieval, files: do_mode_instructions}
-          - { id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.backlog, from_line: III. Slated for implementation:, up_to: IV. Recently implemented:}]}
+          - { id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant}
     - name: drain
       render:
         resolvers:
           - {id: prompt_fragments, type: multi-document-retrieval, files: doc_management_mode_instructions}
-          - {id: domain_fragments, type: multi-document-retrieval, files: [{file: backlog.backlog, from_line: IV. Recently implemented, up_to: V. Bugs}]}
+          - {id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant}

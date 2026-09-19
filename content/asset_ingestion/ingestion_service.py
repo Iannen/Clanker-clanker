@@ -53,12 +53,12 @@ class IngestionServiceImpl(IngestionService):
             collector=collector,
         )
 
-        pud_multidoc_assets = self.files.get_files(PathTokens.PUD, [".clanker"])
-        shared_multidoc_assets = self.files.get_files(PathTokens.SHARED, ["content/a_lib"])
+        pud_multidoc_assets = self.files.get_dir_manifest(PathTokens.PUD, [".clanker"])
+        shared_multidoc_assets = self.files.get_dir_manifest(PathTokens.SHARED, ["content/a_lib"])
         FilelistValidator().validate(pud_multidoc_assets, pud_doms, shared_multidoc_assets, shared_doms, collector)
         
-        pud_fileset_assets = self.files.get_files(PathTokens.PUD, ["content", ".clanker", "README.md"])
-        shared_fileset_assets = self.files.get_files(PathTokens.SHARED, ["content/a_lib"])
+        pud_fileset_assets = self.files.get_dir_manifest(PathTokens.PUD, ["content", ".clanker", "README.md"])
+        shared_fileset_assets = self.files.get_dir_manifest(PathTokens.SHARED, ["content/a_lib"])
 
         FilesetValidator().validate(pud_fileset_assets, pud_doms, shared_fileset_assets, shared_doms, collector)
 
