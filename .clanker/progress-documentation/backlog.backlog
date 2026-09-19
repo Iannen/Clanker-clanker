@@ -66,83 +66,6 @@ B. Ingestion, Validation & Complaints
 Backlog tail, Selected item/items:
 Test harness development:
 
-1. Implement PUT lifecycle management and assertion information channels via constant classes
-    [ ] 'content/test/ship_gate.py': Add COMMAND and INFOSOURCE constructs 
-        - refactor BaseFixtureTest to handle the requirements the vision implies
-    [ ] 'content/test/assert_classes.py': Align EmptyRepoTests to vision
-
-'''static classes, declared adjacent to BaseFixtureTest
-from enum import Enum, auto
-
-class COMMAND:
-    START_APP = "START_APP"
-    TERMINATE_APP = "TERMINATE_APP"
-
-class INFOSOURCE:
-    TERMINAL_WRITE = "TERMINAL_WRITE"
-    PROGRAM_EXIT_MSG = "PROGRAM_EXIT_MSG"
-    TO_CLIPBOARD_CONTENT = "TO_CLIPBOARD_CONTENT"
-    DISK = "DISK"
-'''
-
-''' vision of what is to become of it
-class EmptyRepoTests(BaseFixtureTest):
-    TEMPLATE_FIXTURE_NAME = "empty_repo"
-
-    def abort_keys_decline_init(self) -> list[dict]:
-        return [
-            {
-                "before": COMMAND.START_APP,
-                "sequence": [key],
-                "expected": {
-                    "source": INFOSOURCE.PROGRAM_EXIT_MSG,
-                    "value": ProgramExit.MSG_DECLINED_INIT,
-                },
-            }
-            for key in IOControl.ABORT_KEYS
-        ]
-
-    def clankerize_repo_contract(self) -> dict:
-        clean_paths = [
-            p.removeprefix(f"{PathTokens.PUD}/")
-            for p in RepoContract.get_all_target_paths()
-        ]
-        return {
-            "before": COMMAND.START_APP,
-            "sequence": ["yes", IOControl.ACCEPT_KEY],
-            "expected": {
-                "source": INFOSOURCE.DISK,
-                "value": clean_paths,
-            },
-        }
-
-    def navigate_ui_and_copy_prompts(self) -> list[dict]:
-        return [
-            {
-                "sequence": ["1"],  # select domain
-                "expected": {
-                    "source": INFOSOURCE.TERMINAL_WRITE,
-                    "value": "Domain <..> on key <..> selected",
-                },
-            },
-            {
-                "sequence": ["q"],  # select prompt 'q'
-                "expected": {
-                    "source": INFOSOURCE.TO_CLIPBOARD_CONTENT,
-                    "value": "Copied <..> lines (<..> chars) to clipboard",
-                },
-            },
-            {
-                "sequence": ["w"],  # select prompt 'w'
-                "expected": {
-                    "source": INFOSOURCE.TO_CLIPBOARD_CONTENT,
-                    "value": "Copied <..> lines (<..> chars) to clipboard",
-                },
-                "after": COMMAND.TERMINATE_APP,
-            },
-        ]
-'''
-
 2. Report upgrade
 - in addition to the printing of results to the console
     - the report should reflect if the test passed or not
@@ -153,4 +76,13 @@ class EmptyRepoTests(BaseFixtureTest):
         - the UI displays what we think it should
         - while the disk state is what it should be
         - and the content received to clipboard matches expectations
+
+1. REFACTOR E2E HARNESS TO USE ATOMICTEST OBJECTS
+    [ ] 'content/test/ship_gate.py': Define AtomicTest class and update BaseFixtureTest discovery
+        - Define AtomicTest dataclass with fields: name, before, sequence, expected, after
+        - Extract test discovery into _get_atomic_tests helper on BaseFixtureTest
+        - Inject display names into AtomicTest instances during discovery (appending : {idx} for multi-step scenarios)
+        - Refactor run_tests execution loop to consume flat AtomicTest instances
+    [ ] 'content/test/assert_classes.py': Update test assertions to instantiate AtomicTest
+        - Update EmptyRepoTests methods to return AtomicTest or list[AtomicTest] instead of untyped dictionaries
 

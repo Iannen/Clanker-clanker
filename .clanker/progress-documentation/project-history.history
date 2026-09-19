@@ -788,3 +788,12 @@ CXIII: DECOUPLING EXIT MESSAGE CONSTANTS FROM EXCEPTION POLICY
     - Removed `MSG_*` class attributes from `ProgramExit` in `content/app/exceptions.py`, keeping it strictly as a control-flow notice signal.
     - Updated return paths in `AppEngine.run` (`content/app/engine.py`) and assertion checks in `EmptyRepoTests` (`content/test/assert_classes.py`) to reference `ActionResult` constants.
     Reflection: Cleanly isolates exception classes to exception policy and control-flow signaling while consolidating all user-facing output messages within `ActionResult`.
+
+CXIV: STATEFUL CLI TEST HARNESS & LIFECYCLE MANAGEMENT
+    Purpose: Establish lifecycle control constants and stateful multi-assertion support in the CLI test harness.
+    - CLI testing lacked standard lifecycle commands (`START_APP`, `TERMINATE_APP`) and multi-source assertion channels (`INFOSOURCE`), requiring manual harness setup and limiting assertions against mutating state.
+    Actions:
+    - Introduced `COMMAND` and `INFOSOURCE` constant classes in `content/test/ship_gate.py` to standardize test step controls and target data channels (exit messages, terminal output frames, clipboard, disk).
+    - Updated `BaseFixtureTest` in `content/test/ship_gate.py` to process `before`/`after` step hooks, track active input sequences, and capture adapter outputs per step.
+    - Refactored `EmptyRepoTests` in `content/test/assert_classes.py` to align test declarations with `COMMAND` and `INFOSOURCE` semantics across initialization and UI navigation scenarios.
+    Reflection: Establishes a declarative foundation for stateful CLI journey testing while decoupling assertion spec definitions from low-level execution mechanics.

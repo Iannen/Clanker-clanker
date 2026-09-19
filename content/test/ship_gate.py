@@ -57,6 +57,18 @@ def main() -> None:
         sys.exit(1)
 
 
+class COMMAND:
+    START_APP = "START_APP"
+    TERMINATE_APP = "TERMINATE_APP"
+
+
+class INFOSOURCE:
+    TERMINAL_WRITE = "TERMINAL_WRITE"
+    PROGRAM_EXIT_MSG = "PROGRAM_EXIT_MSG"
+    TO_CLIPBOARD_CONTENT = "TO_CLIPBOARD_CONTENT"
+    DISK = "DISK"
+
+
 class BaseFixtureTest(ABC):
     FIXTURES_DIR = TEST_ROOT / "test_repos"
     SANDBOXES_DIR = TEST_ROOT / "sandboxes"
@@ -90,9 +102,9 @@ class BaseFixtureTest(ABC):
             shutil.rmtree(self.sandbox_dir)
 
         shutil.copytree(self.source_fixture, self.sandbox_dir)
-        
+
     def _execute_cli(self, input_script: list[str]) -> tuple[int, str, dict]:
-        temp_scenario_report = self.REPORTS_DIR / f"_temp_{self.REPORT_FILENAME}"
+        temp_scenario_report = self.REPORTS_DIR / f"_temp_{self.report_file.name}"
 
         result = subprocess.run(
             [sys.executable, "-B", str(CLANKER_PATH), "--test", "--input-script"] + input_script + ["--report-path", str(temp_scenario_report)],
@@ -117,37 +129,65 @@ class BaseFixtureTest(ABC):
             if not m.startswith("_") and callable(getattr(self, m))
         ]
 
+        active_sequence: list[str] = []
+
         for method in spec_methods:
             specs = method()
             if isinstance(specs, dict):
                 specs = [specs]
 
             for idx, spec in enumerate(specs):
-                exit_code, stdout_msg, adapter_data = self._execute_cli(spec["input_sequence"])
+                if spec.get("before") == COMMAND.START_APP:
+                    active_sequence = []
 
-                missing_fs_paths = []
-                if "fs_paths_exist" in spec.get("expected", {}):
-                    for path_str in spec["expected"]["fs_paths_exist"]:
-                        target_path = self.sandbox_dir / path_str
-                        if not target_path.exists():
-                            missing_fs_paths.append(path_str)
+                active_sequence.extend(spec.get("sequence", []))
+
+                expected = spec.get("expected", {})
+                source = expected.get("source")
+
+                exit_code, stdout_msg, adapter_data = self._execute_cli(active_sequence)
+
+                frames = adapter_data.get("frames", [])
+                clipboards = adapter_data.get("clipboards", [])
+
+                actual_val = None
+                if source == INFOSOURCE.PROGRAM_EXIT_MSG:
+                    actual_val = stdout_msg.strip()
+                elif source == INFOSOURCE.TERMINAL_WRITE:
+                    actual_val = frames[-1] if frames else ""
+                elif source == INFOSOURCE.TO_CLIPBOARD_CONTENT:
+                    actual_val = clipboards[-1] if clipboards else ""
+                elif source == INFOSOURCE.DISK:
+                    expected_paths = expected.get("value", [])
+                    actual_val = [
+                        p for p in expected_paths
+                        if (self.sandbox_dir / p).exists()
+                    ]
 
                 actual = {
                     "exit_code": exit_code,
-                    "exit_msg": stdout_msg.strip(),
-                    "clipboards": adapter_data.get("clipboards", []),
-                    "frames_count": len(adapter_data.get("frames", [])),
-                    "missing_fs_paths": missing_fs_paths
+                    "value": actual_val,
+                    "clipboards": clipboards,
+                    "frames_count": len(frames)
                 }
 
                 method_display = method.__name__ if len(specs) == 1 else f"{method.__name__}[{idx}]"
 
-                self.records.append({
+                record = {
                     "assert_method": method_display,
-                    "input_sequence": spec["input_sequence"],
+                    "input_sequence": active_sequence.copy(),
                     "actual": actual,
-                    "expected": spec["expected"]
-                })
+                    "expected": expected
+                }
+                if "before" in spec:
+                    record["before"] = spec["before"]
+                if "after" in spec:
+                    record["after"] = spec["after"]
+
+                self.records.append(record)
+
+                if spec.get("after") == COMMAND.TERMINATE_APP:
+                    active_sequence = []
 
         self._flush_report()
 
@@ -189,14 +229,19 @@ class GateInspector:
 
                 passed = True
 
-                if "exit_code" in expected and actual.get("exit_code") != expected["exit_code"]:
-                    passed = False
-
-                if "exit_msg" in expected and actual.get("exit_msg") != expected["exit_msg"]:
-                    passed = False
-
-                if "fs_paths_exist" in expected and len(actual.get("missing_fs_paths", [])) > 0:
-                    passed = False
+                if "value" in expected:
+                    exp_val = expected["value"]
+                    act_val = actual.get("value")
+                    if isinstance(exp_val, str) and "<..>" in exp_val:
+                        import re
+                        pattern = "^" + re.escape(exp_val).replace(r"\<\.\.\>", ".*") + "$"
+                        if not act_val or not re.match(pattern, act_val):
+                            passed = False
+                    elif isinstance(exp_val, list):
+                        if sorted(act_val or []) != sorted(exp_val):
+                            passed = False
+                    elif act_val != exp_val:
+                        passed = False
 
                 status = "pass" if passed else "fail"
                 if not passed:

@@ -30,7 +30,11 @@ filesets:
     content/app/presentation.py,
     content/clanker.py,
     content/ports_adapters/terminal/scripted_terminal_adapter.py,
-    content/test]}
+    content/test], excludes: [
+      content/test/reports,
+      content/test/sandboxes,
+      content/test/test_repos
+    ]}
 
 domains:
 - name: core
