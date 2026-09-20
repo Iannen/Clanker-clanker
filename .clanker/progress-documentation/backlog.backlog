@@ -65,4 +65,27 @@ B. Ingestion, Validation & Complaints
 
 Backlog tail, Selected item/items:
 
-we are working towards making the test system functional for the purpose of the current limited suite of tests only
+I am trying to get 'assert_end_of_sequence_terminates_properly' to display an output which i can recognize.
+
+here is report from latest run
+
+{
+  "test_class": "EmptyRepoTests",
+  "fixture_used": "empty_repo",
+  "sandbox_dir": "/home/user/Projects/Clanker-clanker/content/test/sandboxes/active_sandbox_empty_repo_tests",
+  "results": [
+    {
+      "assertion": "ExitMsg == 'Initialization declined by user'",
+      "passed": true
+    },
+    {
+      "assertion": "ExitMsg == 'Initialization declined by user'",
+      "passed": true
+    },
+    {
+      "assertion": "Stderr contains ' the assert does not matter at the moment '",
+      "passed": false,
+      "details": "Expected stderr to contain ' the assert does not matter at the moment ', got 'usage: clanker.py [-h] [--test]\n                  [--input-script INPUT_SCRIPT [INPUT_SCRIPT ...]]\n                  [--report-path REPORT_PATH]\nclanker.py: error: argument --input-script: expected at least one argument\n'"
+    }
+  ]
+}

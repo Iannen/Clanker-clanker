@@ -5,8 +5,10 @@ from base_classes import (
     ExitMsg,
     PromptRender,
     UIRender,
+    StderrContains
 )
 from app.presentation import ActionResult
+from app.exceptions import TestSequenceEnded
 from ports_adapters.ports import IOControl, PathTokens
 from app.constants import RepoContract
 
@@ -17,22 +19,26 @@ class EmptyRepoTests(BaseFixtureTest):
         return [
             AtomicTest(
                 sequence=[key],
-                expected=ExitMsg(ActionResult.MSG_DECLINED_INIT),
+                expects=ExitMsg(ActionResult.MSG_DECLINED_INIT),
+                reset_sequence=True,
             )
             for key in IOControl.ABORT_KEYS
         ]
 
+    def assert_end_of_sequence_terminates_properly(self) -> list[AtomicTest]:
+        return AtomicTest(sequence=[],expects=ExitMsg(TestSequenceEnded.__name__))
+
     def _assert_clankerize_repo_contract(self) -> AtomicTest:
         return AtomicTest(
             sequence=["yes", IOControl.ACCEPT_KEY],
-            expected=DiskState(RepoContract.get_all_target_paths()),
+            expects=DiskState(RepoContract.get_all_target_paths()),
         )
 
     def _navigate_ui_and_copy_prompts(self) -> list[AtomicTest]:
         return [
             AtomicTest(
                 sequence=["1"],
-                expected=UIRender(
+                expects=UIRender(
                     "Domain 'manifest-analysis' on key '1' selected"
                 ),
             ),

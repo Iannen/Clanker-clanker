@@ -16,7 +16,12 @@ import argparse
 def main():
     parser = argparse.ArgumentParser(description="Clanker TUI Engine")
     parser.add_argument("--test", action="store_true", help="Run in headless test mode")
-    parser.add_argument("--input-script", nargs="+", default=["q"], help="Pre-recorded key sequence for test mode")
+    parser.add_argument(
+        "--input-script",
+        nargs="*",
+        default=[],
+        help="Pre-recorded key sequence for test mode",
+    )
     parser.add_argument("--report-path", default="content/test/reports/latest_run.json", help="Path to output test report")
     args = parser.parse_args()
 

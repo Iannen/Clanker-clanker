@@ -6,8 +6,13 @@ import shutil
 import sys
 from pathlib import Path
 
+content_dir = Path(__file__).resolve().parent.parent
+if str(content_dir) not in sys.path:
+    sys.path.insert(0, str(content_dir))
+
 from base_classes import BaseFixtureTest, GateInspector
 import assert_classes
+
 
 
 def main() -> None:
@@ -15,7 +20,7 @@ def main() -> None:
     test_instances = instantiate_test_classes(context)
     setup_sandboxes_and_reports(context, test_instances)
     run_tests(test_instances)
-    evaluate_tests(test_instances)
+    evaluate_tests(test_instances, context)
 
 
 def verify_execution_context() -> dict[str, Path]:
@@ -41,12 +46,12 @@ def verify_execution_context() -> dict[str, Path]:
     test_root = repo_root / "content" / "test"
     return {
         "repo_root": repo_root,
+        "clanker_path": clanker_path,  # <-- ADD THIS LINE
         "test_root": test_root,
         "fixtures_dir": test_root / "test_repos",
         "sandboxes_dir": test_root / "sandboxes",
         "reports_dir": test_root / "reports",
     }
-
 
 def instantiate_test_classes(context: dict[str, Path]):
     from base_classes import BaseFixtureTest
@@ -94,10 +99,10 @@ def run_tests(test_instances) -> None:
         instance.run_tests()
 
 
-def evaluate_tests(test_instances) -> None:
+def evaluate_tests(test_instances, context) -> None:
     from base_classes import GateInspector
 
-    interpreter = GateInspector(test_instances)
+    interpreter = GateInspector(test_instances, context["reports_dir"])
     success = interpreter.evaluate_and_report()
 
     if success:

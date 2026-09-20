@@ -1,8 +1,10 @@
 #!/usr/bin/env -S python3 -B
 import json
+import sys
 import subprocess
 from pathlib import Path
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 
 class Expectance(ABC):
     @abstractmethod
@@ -15,14 +17,26 @@ class ExitMsg(Expectance):
 
     def to_result(self, run_state: dict, sandbox_dir: Path) -> Result:
         actual = run_state.get("exit_msg")
-        passed = actual == self.expected_msg
+        passed = self.expected_msg in actual
+
+        assertion = f"ExitMsg contains '{self.expected_msg}'"
+        
         details = "" if passed else f"Expected exit_msg '{self.expected_msg}', got '{actual}'"
         return Result(
-            assertion="ExitMsg",
+            assertion=assertion,
             passed=passed,
             details=details,
         )
 
+class StderrContains(Expectance):
+    def __init__(self, expected_text: str) -> None:
+        self.expected_text = expected_text
+
+    def to_result(self, run_state: dict, sandbox_dir: Path) -> Result:
+        actual = run_state.get("stderr", "")
+        passed = self.expected_text in actual
+        details = "" if passed else f"Expected stderr to contain '{self.expected_text}', got '{actual}'"
+        return Result(assertion=f"Stderr contains '{self.expected_text}'", passed=passed, details=details)
 
 class DiskState(Expectance):
     def __init__(self, expected_paths: list[str] | set[str]) -> None:
@@ -41,12 +55,31 @@ class PromptRender(Expectance):
     def __init__(self, expected_prompt: str) -> None:
         self.expected_prompt = expected_prompt
 
+@dataclass
 class AtomicTest:
-    name: str
     sequence: list[str]
-    expects: list[Expectance]
+    expects: list[Expectance] | Expectance
+    name: str = ""
+    reset_sequence: bool = False
 
-class Result:pass
+    def __post_init__(self) -> None:
+        if not isinstance(self.expects, list):
+            self.expects = [self.expects]
+
+@dataclass
+class Result:
+    assertion: str = ""
+    passed: bool = False
+    details: str = ""
+
+    def to_dict(self) -> dict:
+        res = {
+            "assertion": self.assertion,
+            "passed": self.passed,
+        }
+        if self.details:
+            res["details"] = self.details
+        return res
 
 class BaseFixtureTest:
     TEMPLATE_FIXTURE_NAME: str = ""
@@ -70,7 +103,9 @@ class BaseFixtureTest:
         for expectance in test.expects:
             match expectance:
                 case ExitMsg():
-                    self.results.append(Result())
+                    self.results.append(expectance.to_result(run_state, self.sandbox_dir))
+                case StderrContains():
+                    self.results.append(expectance.to_result(run_state, self.sandbox_dir))
                 case DiskState():
                     self.results.append(Result())
                 case UIRender():
@@ -78,9 +113,13 @@ class BaseFixtureTest:
                 case PromptRender():
                     self.results.append(Result())
 
+        if test.reset_sequence:
+            self._replay_seq = []
+
     def _run_put(self) -> dict:
         cmd = [
             sys.executable,
+            "-B",
             str(self.clanker_path),
             "--test",
             "--input-script",
@@ -152,12 +191,13 @@ class BaseFixtureTest:
         return atomic_tests
 
 class GateInspector:
-    def __init__(self, test_instances: list[BaseFixtureTest], reports_dir: Path) -> None:
+    def __init__(self, test_instances: list["BaseFixtureTest"], reports_dir: Path) -> None:
         self.test_instances = test_instances
         self.reports_dir = reports_dir
 
     def evaluate_and_report(self) -> bool:
-        """Serializes in-memory test results to JSON report files and prints console summary."""
+        self.reports_dir.mkdir(parents=True, exist_ok=True)
+
         all_passed = True
         total_assertions = 0
         failed_assertions = 0
@@ -170,32 +210,39 @@ class GateInspector:
             cls_name = instance.__class__.__name__
             report_file = self.reports_dir / f"{cls_name.lower()}.json"
 
-            # Serialize in-memory test results to the reports directory
+            results_dicts = [
+                res.to_dict() if isinstance(res, Result) else res
+                for res in instance.results
+            ]
+
             payload = {
                 "test_class": cls_name,
                 "fixture_used": instance.TEMPLATE_FIXTURE_NAME,
                 "sandbox_dir": str(instance.sandbox_dir),
-                "results": instance.results,
+                "results": results_dicts,
             }
 
-            report_file.write_text(json.dumps(payload, indent=2))
+            report_file.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
-            # Evaluate execution outcomes
             instance_passed = True
             print(f"\n[SUITE] {cls_name}")
 
-            for res in instance.results:
+            for res in results_dicts:
                 total_assertions += 1
-                status = "PASS" if res["passed"] else "FAIL"
+                passed = res.get("passed", False)
+                assertion = res.get("assertion", "")
+                details = res.get("details", "")
 
-                if not res["passed"]:
+                status = "PASS" if passed else "FAIL"
+
+                if not passed:
                     instance_passed = False
                     all_passed = False
                     failed_assertions += 1
 
-                print(f"  - [{status}] {res['assertion']}")
-                if not res["passed"] and res.get("details"):
-                    print(f"      Details: {res['details']}")
+                print(f"  - [{status}] {assertion}")
+                if not passed and details:
+                    print(f"      Details: {details}")
 
             suite_status = "PASSED" if instance_passed else "FAILED"
             print(f"  Summary: {suite_status}")

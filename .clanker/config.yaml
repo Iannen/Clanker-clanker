@@ -27,6 +27,7 @@ filesets:
   test_harness: {includes: [
     content/app/engine.py,
     content/app/constants.py,
+    content/app/exceptions.py,
     content/app/presentation.py,
     content/clanker.py,
     content/ports_adapters/terminal/scripted_terminal_adapter.py,
