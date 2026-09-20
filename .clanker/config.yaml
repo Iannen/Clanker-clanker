@@ -34,7 +34,9 @@ filesets:
     content/test], excludes: [
       content/test/reports,
       content/test/sandboxes,
-      content/test/test_repos
+      content/test/test_repos,
+      content/test/reporter.py,
+      content/test/ship_gate.py,
     ]}
 
 domains:
@@ -84,7 +86,7 @@ domains:
 - name: test
   resolvers:
     - { id: repo_content, type: repo_content, fileset: test_harness }
-    - { id: base_fragments, type: multi-document-retrieval, files: [test.doctrine] }
+    #- { id: base_fragments, type: multi-document-retrieval, files: [test.doctrine] }
   prompts:
     - name: plan
       render:

@@ -10,7 +10,8 @@ content_dir = Path(__file__).resolve().parent.parent
 if str(content_dir) not in sys.path:
     sys.path.insert(0, str(content_dir))
 
-from base_classes import BaseFixtureTest, GateInspector
+from base_classes import BaseFixtureTest
+from reporter import GateInspector
 import assert_classes
 
 
@@ -54,9 +55,6 @@ def verify_execution_context() -> dict[str, Path]:
     }
 
 def instantiate_test_classes(context: dict[str, Path]):
-    from base_classes import BaseFixtureTest
-    import assert_classes
-
     discovered_classes = [
         cls
         for name, cls in inspect.getmembers(assert_classes, inspect.isclass)
@@ -100,7 +98,6 @@ def run_tests(test_instances) -> None:
 
 
 def evaluate_tests(test_instances, context) -> None:
-    from base_classes import GateInspector
 
     interpreter = GateInspector(test_instances, context["reports_dir"])
     success = interpreter.evaluate_and_report()

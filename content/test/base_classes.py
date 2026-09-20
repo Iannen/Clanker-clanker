@@ -5,6 +5,7 @@ import subprocess
 from pathlib import Path
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+import re
 
 class Expectance(ABC):
     @abstractmethod
@@ -42,14 +43,60 @@ class DiskState(Expectance):
     def __init__(self, expected_paths: list[str] | set[str]) -> None:
         self.expected_paths = list(expected_paths)
 
+    def to_result(self, run_state: dict, sandbox_dir: Path) -> Result:
+        actual_paths = set(run_state.get("disk_paths", []))
+        
+        missing = []
+        for expected in self.expected_paths:
+            rel_path = expected
+            if rel_path.startswith("<PUD>"):
+                rel_path = rel_path[len("<PUD>"):].lstrip("/")
+            if rel_path not in actual_paths and not (sandbox_dir / rel_path).exists():
+                missing.append(expected)
+
+        passed = len(missing) == 0
+        assertion = "Disk state matches expected repository contract paths"
+        details = "" if passed else f"Missing expected paths on disk: {missing}"
+        return Result(assertion=assertion, passed=passed, details=details)
+
+
+@dataclass
+class Regex:
+    pattern: str
+    validator: Optional[Callable[[re.Match], bool]] = None
 
 class UIRender(Expectance):
-    def __init__(self, expected_lines: str | list[str]) -> None:
-        if isinstance(expected_lines, str):
-            self.expected_lines = [expected_lines]
-        else:
-            self.expected_lines = list(expected_lines)
+    def __init__(self, expected: str | Regex) -> None:
+        self.expected = expected
 
+    def to_result(self, run_state: dict, sandbox_dir: Path) -> Result:
+        ui_frames = run_state.get("ui_frames", [])
+        latest_frame = ui_frames[-1] if ui_frames else "(No UI frames captured)"
+        
+        if isinstance(self.expected, Regex):
+            match = re.search(self.expected.pattern, latest_frame)
+            if match and self.expected.validator:
+                passed = self.expected.validator(match)
+            else:
+                passed = bool(match)
+            
+            assertion = f"Latest UI render matches regex pattern with validation: '{self.expected.pattern}'"
+            target_desc = self.expected.pattern
+        else:
+            passed = self.expected in latest_frame
+            assertion = f"Latest UI render contains text: '{self.expected}'"
+            target_desc = self.expected
+
+        if passed:
+            details = ""
+        else:
+            details = f"Expected UI pattern/validation not met: '{target_desc}'\n\n--- Latest UI Render ---\n{latest_frame}"
+
+        return Result(
+            assertion=assertion,
+            passed=passed,
+            details=details,
+        )
 
 class PromptRender(Expectance):
     def __init__(self, expected_prompt: str) -> None:
@@ -101,18 +148,7 @@ class BaseFixtureTest:
         self._replay_seq = self._replay_seq + test.sequence
         run_state = self._run_put()
         for expectance in test.expects:
-            match expectance:
-                case ExitMsg():
-                    self.results.append(expectance.to_result(run_state, self.sandbox_dir))
-                case StderrContains():
-                    self.results.append(expectance.to_result(run_state, self.sandbox_dir))
-                case DiskState():
-                    self.results.append(Result())
-                case UIRender():
-                    self.results.append(Result())
-                case PromptRender():
-                    self.results.append(Result())
-
+            self.results.append(expectance.to_result(run_state, self.sandbox_dir))
         if test.reset_sequence:
             self._replay_seq = []
 
@@ -158,6 +194,11 @@ class BaseFixtureTest:
             except Exception:
                 pass
 
+        disk_paths = []
+        if self.sandbox_dir.is_dir():
+            for path in self.sandbox_dir.rglob("*"):
+                disk_paths.append(str(path.relative_to(self.sandbox_dir)))
+
         return {
             "exit_code": exit_code,
             "exit_msg": exit_msg,
@@ -165,6 +206,7 @@ class BaseFixtureTest:
             "rendered_prompts": rendered_prompts,
             "inputs_consumed": inputs_consumed,
             "stderr": stderr,
+            "disk_paths": disk_paths,
         }
 
     def _get_tests(self) -> list[AtomicTest]:
@@ -189,70 +231,3 @@ class BaseFixtureTest:
                 atomic_tests.append(result)
 
         return atomic_tests
-
-class GateInspector:
-    def __init__(self, test_instances: list["BaseFixtureTest"], reports_dir: Path) -> None:
-        self.test_instances = test_instances
-        self.reports_dir = reports_dir
-
-    def evaluate_and_report(self) -> bool:
-        self.reports_dir.mkdir(parents=True, exist_ok=True)
-
-        all_passed = True
-        total_assertions = 0
-        failed_assertions = 0
-
-        print("\n" + "=" * 60)
-        print(" SHIP GATE EVALUATION REPORT")
-        print("=" * 60)
-
-        for instance in self.test_instances:
-            cls_name = instance.__class__.__name__
-            report_file = self.reports_dir / f"{cls_name.lower()}.json"
-
-            results_dicts = [
-                res.to_dict() if isinstance(res, Result) else res
-                for res in instance.results
-            ]
-
-            payload = {
-                "test_class": cls_name,
-                "fixture_used": instance.TEMPLATE_FIXTURE_NAME,
-                "sandbox_dir": str(instance.sandbox_dir),
-                "results": results_dicts,
-            }
-
-            report_file.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-
-            instance_passed = True
-            print(f"\n[SUITE] {cls_name}")
-
-            for res in results_dicts:
-                total_assertions += 1
-                passed = res.get("passed", False)
-                assertion = res.get("assertion", "")
-                details = res.get("details", "")
-
-                status = "PASS" if passed else "FAIL"
-
-                if not passed:
-                    instance_passed = False
-                    all_passed = False
-                    failed_assertions += 1
-
-                print(f"  - [{status}] {assertion}")
-                if not passed and details:
-                    print(f"      Details: {details}")
-
-            suite_status = "PASSED" if instance_passed else "FAILED"
-            print(f"  Summary: {suite_status}")
-
-        print("\n" + "-" * 60)
-        print(
-            f"TOTAL: {total_assertions} assertions | "
-            f"PASSED: {total_assertions - failed_assertions} | "
-            f"FAILED: {failed_assertions}"
-        )
-        print("=" * 60 + "\n")
-
-        return all_passed
