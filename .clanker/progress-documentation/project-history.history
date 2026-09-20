@@ -797,3 +797,14 @@ CXIV: STATEFUL CLI TEST HARNESS & LIFECYCLE MANAGEMENT
     - Updated `BaseFixtureTest` in `content/test/ship_gate.py` to process `before`/`after` step hooks, track active input sequences, and capture adapter outputs per step.
     - Refactored `EmptyRepoTests` in `content/test/assert_classes.py` to align test declarations with `COMMAND` and `INFOSOURCE` semantics across initialization and UI navigation scenarios.
     Reflection: Establishes a declarative foundation for stateful CLI journey testing while decoupling assertion spec definitions from low-level execution mechanics.
+
+CXV: CENTRALIZED TEST HARNESS & SHADOW EXPECTANCE FRAMEWORK
+    Purpose: Redesign the CLI testing framework to centralize test writing and implement dynamic shadow expectance interfaces.
+    - The legacy v1 test setup scattered test context across multiple files. The refactored system centralizes all information required to write new tests into `assert_classes.py`.
+    Actions:
+    - Created `BaseFixtureTest` in `content/test/base_classes.py` for sandbox directory isolation, subprocess execution, and JSON report parsing.
+    - Implemented concrete expectances (`ExitMsgImpl`, `StderrContainsImpl`, `DiskStateImpl`, `UIRenderImpl`, `PromptRenderImpl`) and the `@shadow_of` decorator in `content/test/expectance_impls.py` to map fluent shadow classes dynamically.
+    - Defined test shadow interface proxies and the `EmptyRepoTests` suite in `content/test/assert_classes.py` covering navigation, clipboard operations, and abort sequences.
+    - Implemented `GateInspector` in `content/test/reporter.py` to output formatted PASS/FAIL summaries and persistent JSON reports.
+    - Built the `ship_gate.py` CLI runner to validate execution context, manage sandbox fixture duplication, and emit gate process exit status.
+    Reflection: Significantly improves test authoring ergonomics by centralizing test declarations, though fluent API constructors require further simplification to eliminate parameter ambiguity, and additional fixture suites are needed for dirty/existing repositories and self-referential execution.
