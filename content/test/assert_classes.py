@@ -6,7 +6,6 @@ from base_classes import (
     PromptRender,
     UIRender,
     StderrContains,
-    Regex
 )
 from app.presentation import ActionResult
 from app.exceptions import TestSequenceEnded
@@ -46,11 +45,7 @@ class EmptyRepoTests(BaseFixtureTest):
             ),
             AtomicTest(
                 sequence=["a"],
-                expects=UIRender(
-                    Regex(
-                        r"Copied (?P<lines>\d+) lines \((?P<chars>\d+) chars\) to clipboard",
-                        validator=lambda m: int(m.group("lines")) > 0 and int(m.group("chars")) > 0
-                    )
-                ),
-            )
+                expects=UIRender(ActionResult.COPIED_TO_CLIPBOARD)
+                    .where("lines", lambda l: int(l) > 150)
+                    .where("chars", lambda c: int(c) > 100),)
         ]

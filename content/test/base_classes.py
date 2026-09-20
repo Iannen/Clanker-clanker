@@ -59,44 +59,50 @@ class DiskState(Expectance):
         details = "" if passed else f"Missing expected paths on disk: {missing}"
         return Result(assertion=assertion, passed=passed, details=details)
 
-
-@dataclass
-class Regex:
-    pattern: str
-    validator: Optional[Callable[[re.Match], bool]] = None
-
 class UIRender(Expectance):
-    def __init__(self, expected: str | Regex) -> None:
-        self.expected = expected
+    def __init__(self, template: str) -> None:
+        self.template = template
+        self.validators: dict[str, callable] = {}
+
+    def where(self, field: str, predicate: callable) -> "UIRender":
+        self.validators[field] = predicate
+        return self
 
     def to_result(self, run_state: dict, sandbox_dir: Path) -> Result:
         ui_frames = run_state.get("ui_frames", [])
         latest_frame = ui_frames[-1] if ui_frames else "(No UI frames captured)"
-        
-        if isinstance(self.expected, Regex):
-            match = re.search(self.expected.pattern, latest_frame)
-            if match and self.expected.validator:
-                passed = self.expected.validator(match)
-            else:
-                passed = bool(match)
-            
-            assertion = f"Latest UI render matches regex pattern with validation: '{self.expected.pattern}'"
-            target_desc = self.expected.pattern
-        else:
-            passed = self.expected in latest_frame
-            assertion = f"Latest UI render contains text: '{self.expected}'"
-            target_desc = self.expected
 
-        if passed:
-            details = ""
-        else:
-            details = f"Expected UI pattern/validation not met: '{target_desc}'\n\n--- Latest UI Render ---\n{latest_frame}"
+        regex_pattern = re.sub(r"\{(\w+)\}", r"(?P<\1>.+?)", re.escape(self.template))
 
-        return Result(
-            assertion=assertion,
-            passed=passed,
-            details=details,
-        )
+        parts = []
+        last_idx = 0
+        field_names = []
+        for match in re.finditer(r"\{(\w+)\}", self.template):
+            parts.append(re.escape(self.template[last_idx:match.start()]))
+            field_name = match.group(1)
+            field_names.append(field_name)
+            parts.append(f"(?P<{field_name}>.+?)")
+            last_idx = match.end()
+        parts.append(re.escape(self.template[last_idx:]))
+        built_regex = "".join(parts)
+
+        match = re.search(built_regex, latest_frame)
+        passed = bool(match)
+        details = ""
+
+        if passed and match:
+            # Evaluate fluent .where() validators if any exist
+            for field, predicate in self.validators.items():
+                val = match.group(field)
+                if not predicate(val):
+                    passed = False
+                    details = f"Validation failed for field '{field}' with value '{val}'"
+                    break
+        elif not passed:
+            details = f"Expected UI pattern not found: '{self.template}'\n\n--- Latest UI Render ---\n{latest_frame}"
+
+        assertion = f"Latest UI render matches template: '{self.template}'"
+        return Result(assertion=assertion, passed=passed, details=details)
 
 class PromptRender(Expectance):
     def __init__(self, expected_prompt: str) -> None:
