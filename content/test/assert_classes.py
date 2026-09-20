@@ -1,16 +1,52 @@
-from base_classes import (
-    AtomicTest,
-    BaseFixtureTest,
-    DiskState,
-    ExitMsg,
-    PromptRender,
-    UIRender,
-    StderrContains,
+from base_classes import BaseFixtureTest
+
+from expectance_impls import (
+    ShadowBase,
+    DiskStateImpl,
+    ExitMsgImpl,
+    PromptRenderImpl,
+    StderrContainsImpl,
+    UIRenderImpl,
+    AtomicTest
 )
+
 from app.presentation import ActionResult
 from app.exceptions import TestSequenceEnded
 from ports_adapters.ports import IOControl, PathTokens
 from app.constants import RepoContract
+
+class ExitMsg(ShadowBase):
+    IMPL_CLASS = ExitMsgImpl
+
+    def to_result(self, run_state: dict, sandbox_dir: Path) -> Result:
+        return self._impl.to_result(run_state, sandbox_dir)
+
+class StderrContains(ShadowBase):
+    IMPL_CLASS = StderrContainsImpl
+
+    def to_result(self, run_state: dict, sandbox_dir: Path) -> Result:
+        return self._impl.to_result(run_state, sandbox_dir)
+
+class DiskState(ShadowBase):
+    IMPL_CLASS = DiskStateImpl
+
+    def to_result(self, run_state: dict, sandbox_dir: Path) -> Result:
+        return self._impl.to_result(run_state, sandbox_dir)
+
+class PromptRender(ShadowBase):
+    IMPL_CLASS = PromptRenderImpl
+
+    def to_result(self, run_state: dict, sandbox_dir: Path) -> Result:
+        return self._impl.to_result(run_state, sandbox_dir)
+
+class UIRender(ShadowBase):
+    IMPL_CLASS = UIRenderImpl  
+    def where(self, field: str, predicate: callable) -> "UIRender":
+        self._impl.where(field, predicate)
+        return self
+
+    def to_result(self, run_state: dict, sandbox_dir: Path) -> Result:
+        return self._impl.to_result(run_state, sandbox_dir)
 
 class EmptyRepoTests(BaseFixtureTest):
     TEMPLATE_FIXTURE_NAME = "empty_repo"

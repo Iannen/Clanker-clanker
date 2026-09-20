@@ -24,7 +24,7 @@ filesets:
   ports_adapters: {includes: [
     content/ports_adapters]}
 
-  test_harness: {includes: [
+  test_cover: {includes: [
     content/app/engine.py,
     content/app/constants.py,
     content/app/exceptions.py,
@@ -37,6 +37,13 @@ filesets:
       content/test/test_repos,
       content/test/reporter.py,
       content/test/ship_gate.py,
+    ]}
+
+  test_harness: {includes: [
+    content/test], excludes: [
+      content/test/reports,
+      content/test/sandboxes,
+      content/test/test_repos,
     ]}
 
 domains:
@@ -85,7 +92,7 @@ domains:
 
 - name: test
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: test_harness }
+    - { id: repo_content, type: repo_content, fileset: test_harness}
     #- { id: base_fragments, type: multi-document-retrieval, files: [test.doctrine] }
   prompts:
     - name: plan

@@ -65,6 +65,7 @@ B. Ingestion, Validation & Complaints
 
 Backlog tail, Selected item/items:
 
-question: do you have all in scope to help with things like
+1. question: do you have all in scope to help with things like
     - working on new assert classes / methods
     - working on implementing their handling in the BaseFixtureTest class
+2. question: what do you think about approach? 

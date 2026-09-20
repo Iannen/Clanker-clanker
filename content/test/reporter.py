@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
-from base_classes import BaseFixtureTest, Result
+from base_classes import BaseFixtureTest
+from expectance_impls import Result
 
 class GateInspector:
     def __init__(self, test_instances: list["BaseFixtureTest"], reports_dir: Path) -> None:
