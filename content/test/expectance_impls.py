@@ -6,7 +6,7 @@ import functools
 
 def shadow_of(impl_class):
     def decorator(cls):
-        @functools.wraps(cls.__init__ if hasattr(cls, "__init__") and cls.__init__ is not object.__init__ else lambda self, *a, **kw: None)
+        @functools.wraps(impl_class.__init__ if hasattr(impl_class, "__init__") and impl_class.__init__ is not object.__init__ else lambda self, *a, **kw: None)
         def new_init(self, *args, **kwargs):
             self._impl = impl_class(*args, **kwargs)
             real_methods = {m for m in dir(impl_class) if not m.startswith("_")}
@@ -20,13 +20,30 @@ def shadow_of(impl_class):
         real_methods = [m for m in dir(impl_class) if not m.startswith("_")]
         for method_name in real_methods:
             def make_delegated(name):
-                @functools.wraps(getattr(impl_class, name))
-                def delegated_method(self, *args, **kwargs):
-                    res = getattr(self._impl, name)(*args, **kwargs)
-                    if res is self._impl:
-                        return self
+                original_method = getattr(impl_class, name)
+                
+                def class_delegated(cls_target, *args, **kwargs):
+                    instance = cls_target()
+                    res = getattr(instance._impl, name)(*args, **kwargs)
+                    if res is instance._impl:
+                        return instance
                     return res
-                return delegated_method
+
+                def instance_delegated(self_target, *args, **kwargs):
+                    res = getattr(self_target._impl, name)(*args, **kwargs)
+                    if res is self_target._impl:
+                        return self_target
+                    return res
+
+                class DualMethod:
+                    def __get__(self, instance, owner):
+                        if instance is None:
+                            return lambda *a, **kw: class_delegated(owner, *a, **kw)
+                        else:
+                            return lambda *a, **kw: instance_delegated(instance, *a, **kw)
+
+                return DualMethod()
+
             setattr(cls, method_name, make_delegated(method_name))
 
         return cls
@@ -38,8 +55,12 @@ class Expectance(ABC):
         pass
 
 class ExitMsgImpl(Expectance):
-    def __init__(self, expected_msg: str) -> None:
+    def __init__(self) -> None:
+        self.expected_msg = ""
+
+    def contains(self, expected_msg: str) -> "ExitMsgImpl":
         self.expected_msg = expected_msg
+        return self
 
     def to_result(self, run_state: dict) -> Result:
         actual = run_state.get("exit_msg")
@@ -55,8 +76,12 @@ class ExitMsgImpl(Expectance):
         )
 
 class StderrContainsImpl(Expectance):
-    def __init__(self, expected_text: str) -> None:
+    def __init__(self) -> None:
+        self.expected_text = ""
+
+    def contains(self, expected_text: str) -> "StderrContainsImpl":
         self.expected_text = expected_text
+        return self
 
     def to_result(self, run_state: dict) -> Result:
         actual = run_state.get("stderr", "")
@@ -65,8 +90,12 @@ class StderrContainsImpl(Expectance):
         return Result(assertion=f"Stderr contains '{self.expected_text}'", passed=passed, details=details)
 
 class DiskStateImpl(Expectance):
-    def __init__(self, expected_paths: list[str] | set[str]) -> None:
+    def __init__(self) -> None:
+        self.expected_paths = []
+
+    def has(self, expected_paths: list[str] | set[str]) -> "DiskStateImpl":
         self.expected_paths = list(expected_paths)
+        return self
 
     def to_result(self, run_state: dict) -> Result:
         actual_paths = set(run_state.get("disk_paths"))
@@ -85,11 +114,15 @@ class DiskStateImpl(Expectance):
         return Result(assertion=assertion, passed=passed, details=details)
 
 class UIRenderImpl(Expectance):
-    def __init__(self, template: str) -> None:
-        self.template = template
+    def __init__(self) -> None:
+        self.template = ""
         self.validators: dict[str, callable] = {}
 
-    def where(self, field: str, predicate: callable) -> "UIRender":
+    def contains(self, template: str) -> "UIRenderImpl":
+        self.template = template
+        return self
+
+    def where(self, field: str, predicate: callable) -> "UIRenderImpl":
         self.validators[field] = predicate
         return self
 
@@ -130,8 +163,12 @@ class UIRenderImpl(Expectance):
         return Result(assertion=assertion, passed=passed, details=details)
 
 class PromptRenderImpl(Expectance):
-    def __init__(self, expected_prompt: str) -> None:
+    def __init__(self) -> None:
+        self.expected_prompt = ""
+
+    def contains(self, expected_prompt: str) -> "PromptRenderImpl":
         self.expected_prompt = expected_prompt
+        return self
 
 @dataclass
 class AtomicTest:
