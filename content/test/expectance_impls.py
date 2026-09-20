@@ -15,14 +15,14 @@ class ShadowBase:
 
 class Expectance(ABC):
     @abstractmethod
-    def to_result(self, run_state: dict, sandbox_dir: Path) -> Result:
+    def to_result(self, run_state: dict) -> Result:
         pass
 
 class ExitMsgImpl(Expectance):
     def __init__(self, expected_msg: str) -> None:
         self.expected_msg = expected_msg
 
-    def to_result(self, run_state: dict, sandbox_dir: Path) -> Result:
+    def to_result(self, run_state: dict) -> Result:
         actual = run_state.get("exit_msg")
         passed = self.expected_msg in actual
 
@@ -39,7 +39,7 @@ class StderrContainsImpl(Expectance):
     def __init__(self, expected_text: str) -> None:
         self.expected_text = expected_text
 
-    def to_result(self, run_state: dict, sandbox_dir: Path) -> Result:
+    def to_result(self, run_state: dict) -> Result:
         actual = run_state.get("stderr", "")
         passed = self.expected_text in actual
         details = "" if passed else f"Expected stderr to contain '{self.expected_text}', got '{actual}'"
@@ -49,15 +49,15 @@ class DiskStateImpl(Expectance):
     def __init__(self, expected_paths: list[str] | set[str]) -> None:
         self.expected_paths = list(expected_paths)
 
-    def to_result(self, run_state: dict, sandbox_dir: Path) -> Result:
-        actual_paths = set(run_state.get("disk_paths", []))
+    def to_result(self, run_state: dict) -> Result:
+        actual_paths = set(run_state.get("disk_paths"))
         
         missing = []
         for expected in self.expected_paths:
             rel_path = expected
             if rel_path.startswith("<PUD>"):
                 rel_path = rel_path[len("<PUD>"):].lstrip("/")
-            if rel_path not in actual_paths and not (sandbox_dir / rel_path).exists():
+            if rel_path not in actual_paths:
                 missing.append(expected)
 
         passed = len(missing) == 0
@@ -74,7 +74,7 @@ class UIRenderImpl(Expectance):
         self.validators[field] = predicate
         return self
 
-    def to_result(self, run_state: dict, sandbox_dir: Path) -> Result:
+    def to_result(self, run_state: dict) -> Result:
         ui_frames = run_state.get("ui_frames", [])
         latest_frame = ui_frames[-1] if ui_frames else "(No UI frames captured)"
 

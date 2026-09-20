@@ -27,7 +27,7 @@ class BaseFixtureTest:
         self._replay_seq = self._replay_seq + test.sequence
         run_state = self._run_put()
         for expectance in test.expects:
-            self.results.append(expectance.to_result(run_state, self.sandbox_dir))
+            self.results.append(expectance.to_result(run_state))
         if test.reset_sequence:
             self._replay_seq = []
 

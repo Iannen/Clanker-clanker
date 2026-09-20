@@ -18,26 +18,26 @@ from app.constants import RepoContract
 class ExitMsg(ShadowBase):
     IMPL_CLASS = ExitMsgImpl
 
-    def to_result(self, run_state: dict, sandbox_dir: Path) -> Result:
-        return self._impl.to_result(run_state, sandbox_dir)
+    def to_result(self, run_state: dict) -> Result:
+        return self._impl.to_result(run_state)
 
 class StderrContains(ShadowBase):
     IMPL_CLASS = StderrContainsImpl
 
-    def to_result(self, run_state: dict, sandbox_dir: Path) -> Result:
-        return self._impl.to_result(run_state, sandbox_dir)
+    def to_result(self, run_state: dict) -> Result:
+        return self._impl.to_result(run_state)
 
 class DiskState(ShadowBase):
     IMPL_CLASS = DiskStateImpl
 
-    def to_result(self, run_state: dict, sandbox_dir: Path) -> Result:
-        return self._impl.to_result(run_state, sandbox_dir)
+    def to_result(self, run_state: dict) -> Result:
+        return self._impl.to_result(run_state)
 
 class PromptRender(ShadowBase):
     IMPL_CLASS = PromptRenderImpl
 
-    def to_result(self, run_state: dict, sandbox_dir: Path) -> Result:
-        return self._impl.to_result(run_state, sandbox_dir)
+    def to_result(self, run_state: dict) -> Result:
+        return self._impl.to_result(run_state)
 
 class UIRender(ShadowBase):
     IMPL_CLASS = UIRenderImpl  
@@ -45,8 +45,8 @@ class UIRender(ShadowBase):
         self._impl.where(field, predicate)
         return self
 
-    def to_result(self, run_state: dict, sandbox_dir: Path) -> Result:
-        return self._impl.to_result(run_state, sandbox_dir)
+    def to_result(self, run_state: dict) -> Result:
+        return self._impl.to_result(run_state)
 
 class EmptyRepoTests(BaseFixtureTest):
     TEMPLATE_FIXTURE_NAME = "empty_repo"
