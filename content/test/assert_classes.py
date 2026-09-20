@@ -1,13 +1,14 @@
 from base_classes import BaseFixtureTest
 
 from expectance_impls import (
-    ShadowBase,
+    shadow_of,
     DiskStateImpl,
     ExitMsgImpl,
     PromptRenderImpl,
     StderrContainsImpl,
     UIRenderImpl,
-    AtomicTest
+    AtomicTest,
+    Result
 )
 
 from app.presentation import ActionResult
@@ -15,38 +16,26 @@ from app.exceptions import TestSequenceEnded
 from ports_adapters.ports import IOControl, PathTokens
 from app.constants import RepoContract
 
-class ExitMsg(ShadowBase):
-    IMPL_CLASS = ExitMsgImpl
+@shadow_of(ExitMsgImpl)
+class ExitMsg:
+    def to_result(self, run_state: dict) -> Result: pass
 
-    def to_result(self, run_state: dict) -> Result:
-        return self._impl.to_result(run_state)
+@shadow_of(StderrContainsImpl)
+class StderrContains:
+    def to_result(self, run_state: dict) -> Result: pass
 
-class StderrContains(ShadowBase):
-    IMPL_CLASS = StderrContainsImpl
+@shadow_of(DiskStateImpl)
+class DiskState:
+    def to_result(self, run_state: dict) -> Result: pass
 
-    def to_result(self, run_state: dict) -> Result:
-        return self._impl.to_result(run_state)
+@shadow_of(PromptRenderImpl)
+class PromptRender:
+    def to_result(self, run_state: dict) -> Result: pass
 
-class DiskState(ShadowBase):
-    IMPL_CLASS = DiskStateImpl
-
-    def to_result(self, run_state: dict) -> Result:
-        return self._impl.to_result(run_state)
-
-class PromptRender(ShadowBase):
-    IMPL_CLASS = PromptRenderImpl
-
-    def to_result(self, run_state: dict) -> Result:
-        return self._impl.to_result(run_state)
-
-class UIRender(ShadowBase):
-    IMPL_CLASS = UIRenderImpl  
-    def where(self, field: str, predicate: callable) -> "UIRender":
-        self._impl.where(field, predicate)
-        return self
-
-    def to_result(self, run_state: dict) -> Result:
-        return self._impl.to_result(run_state)
+@shadow_of(UIRenderImpl)
+class UIRender:
+    def where(self, field: str, predicate: callable) -> "UIRender": pass
+    def to_result(self, run_state: dict) -> Result: pass
 
 class EmptyRepoTests(BaseFixtureTest):
     TEMPLATE_FIXTURE_NAME = "empty_repo"

@@ -2,16 +2,35 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 import re
 
-class ShadowBase:
-    IMPL_CLASS = None
+import functools
 
-    def __init__(self, *args, **kwargs) -> None:
-        self._impl = self.IMPL_CLASS(*args, **kwargs)
-        real_methods = {m for m in dir(self.IMPL_CLASS) if not m.startswith("_")}
-        shadow_methods = {m for m in dir(self) if not m.startswith("_")}
-        missing = real_methods - shadow_methods
-        if missing:
-            raise TypeError(f"{self.__class__.__name__} out of sync. Missing: {missing}")
+def shadow_of(impl_class):
+    def decorator(cls):
+        @functools.wraps(cls.__init__ if hasattr(cls, "__init__") and cls.__init__ is not object.__init__ else lambda self, *a, **kw: None)
+        def new_init(self, *args, **kwargs):
+            self._impl = impl_class(*args, **kwargs)
+            real_methods = {m for m in dir(impl_class) if not m.startswith("_")}
+            shadow_methods = {m for m in dir(cls) if not m.startswith("_")}
+            missing = real_methods - shadow_methods
+            if missing:
+                raise TypeError(f"{cls.__name__} out of sync. Missing: {missing}")
+
+        cls.__init__ = new_init
+
+        real_methods = [m for m in dir(impl_class) if not m.startswith("_")]
+        for method_name in real_methods:
+            def make_delegated(name):
+                @functools.wraps(getattr(impl_class, name))
+                def delegated_method(self, *args, **kwargs):
+                    res = getattr(self._impl, name)(*args, **kwargs)
+                    if res is self._impl:
+                        return self
+                    return res
+                return delegated_method
+            setattr(cls, method_name, make_delegated(method_name))
+
+        return cls
+    return decorator
 
 class Expectance(ABC):
     @abstractmethod

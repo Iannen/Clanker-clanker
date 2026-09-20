@@ -67,12 +67,5 @@ B. Ingestion, Validation & Complaints
 
 Backlog tail, Selected item/items:
     
-    2. Implement @shadow_of class decorator for automatic method delegation and sync validation
-        [ ] 'content/test/expectance_impls.py': Add and export the @shadow_of class decorator
-            - Handle automatic public method delegation to the underlying implementation class
-            - Support fluent chaining by returning the shadow proxy instance when methods return the underlying implementation
-            - Manage initialization and perform automatic sync validation against real class implementations
-        [ ] 'content/test/assert_classes.py': Refactor shadow expectance classes to use the @shadow_of decorator
-            - Decorate shadow classes with @shadow_of specifying their target implementation class
-            - Keep method bodies clean and declarative with single-line pass statements (e.g., def method(...): pass)
+the classes which shadow / are shadowed to not expose the functionality of the shadowed init method. lets discuss ways to adress this
 
