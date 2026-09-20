@@ -68,17 +68,29 @@ class EmptyRepoTests(BaseFixtureTest):
         )
 
     def navigate_ui_and_copy_prompts(self) -> list[AtomicTest]:
-        return [
-            AtomicTest(
+        ats = []
+        ats.append(AtomicTest(
                 sequence=["1"],
                 expects=UIRender.contains("Domain 'manifest-analysis' on key '1' selected"),
-            ),
-            AtomicTest(
-                sequence=["a"],
-                expects=[
-                    UIRender.contains(ActionResult.COPIED_TO_CLIPBOARD)
-                        .where("lines", lambda l: int(l) > 150)
-                        .where("chars", lambda c: int(c) > 100)
-                ],
+            ))
+        for c in "as":
+            ats.append(
+                AtomicTest(
+                    sequence=[c],
+                    expects=[
+                        UIRender.contains(ActionResult.COPIED_TO_CLIPBOARD)
+                            .where("lines", lambda l: int(l) > 100)
+                            .where("chars", lambda c: int(c) > 3000),
+                        PromptRender.min_lines(50),
+                    ]    
+                )
             )
-        ]
+        for c in "df":
+            ats.append(
+                AtomicTest(
+                    sequence=[c],
+                    expects = UIRender.contains(ActionResult.UNBOUND_KEY)
+                        .where("key", lambda k, target=c: str(k) == target)
+                )
+            )
+        return ats

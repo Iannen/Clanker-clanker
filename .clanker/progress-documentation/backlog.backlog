@@ -67,13 +67,6 @@ B. Ingestion, Validation & Complaints
 
 Backlog tail, Selected item/items:
     
-1. Update expectance implementation classes and shadow decorator to support fluent class methods
-    [ ] 'content/test/expectance_impls.py': Add class-method initializers and update @shadow_of decorator
-        - Add class methods for initial state (e.g., contains, has) on implementation classes to enable direct instantiation
-        - Update @shadow_of decorator to generate corresponding class methods on shadow classes that instantiate and delegate to the implementation
-        - Preserve instance methods (such as where) for post-initialization fluent chaining
-    [ ] 'content/test/assert_classes.py': Update test assertions to use classmethod syntax without empty parentheses
-        - Replace ExitMsg(...) with ExitMsg.contains(...)
-        - Replace DiskState(...) with DiskState.has(...)
-        - Replace UIRender(...) with UIRender.contains(...)
+lets continue now to find a reasonable implementation for promptrender.
+i think we might want to checkthat num lines is above some count.
 

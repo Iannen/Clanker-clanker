@@ -165,10 +165,44 @@ class UIRenderImpl(Expectance):
 class PromptRenderImpl(Expectance):
     def __init__(self) -> None:
         self.expected_prompt = ""
+        self.minimum_lines = None
 
     def contains(self, expected_prompt: str) -> "PromptRenderImpl":
         self.expected_prompt = expected_prompt
         return self
+
+    def min_lines(self, count: int) -> "PromptRenderImpl":
+        self.minimum_lines = count
+        return self
+
+    def to_result(self, run_state: dict) -> Result:
+        rendered_prompts = run_state.get("rendered_prompts", [])
+        latest_prompt = rendered_prompts[-1] if rendered_prompts else ""
+
+        passed = True
+        failures = []
+
+        if self.expected_prompt and self.expected_prompt not in latest_prompt:
+            passed = False
+            failures.append(f"Expected prompt text '{self.expected_prompt}' not found.")
+
+        if self.minimum_lines is not None:
+            line_count = len(latest_prompt.splitlines()) if latest_prompt else 0
+            if line_count < self.minimum_lines:
+                passed = False
+                failures.append(
+                    f"Expected at least {self.minimum_lines} lines, got {line_count}."
+                )
+
+        assertion_parts = []
+        if self.expected_prompt:
+            assertion_parts.append(f"contains '{self.expected_prompt}'")
+        if self.minimum_lines is not None:
+            assertion_parts.append(f"min_lines >= {self.minimum_lines}")
+
+        assertion = f"Prompt render check ({', '.join(assertion_parts)})"
+        details = "\n".join(failures) if not passed else ""
+        return Result(assertion=assertion, passed=passed, details=details)
 
 @dataclass
 class AtomicTest:
