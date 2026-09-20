@@ -1,5 +1,8 @@
 Automates manual CLI testing using stateful, user-journey test flows.
 
+- feed sequence, extract data
+- next text replay to resume from that state
+
 1. Test Execution & Statefulness
 - A single sandbox fixture is provisioned per BaseFixtureTest subclass.
 - Test methods (assert_*) run sequentially in order of declaration against the same mutating sandbox state.

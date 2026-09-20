@@ -1,6 +1,7 @@
 import json
 import os
 from ports_adapters.ports import TerminalPort, IOControl, TerminalFailure
+from app.exceptions import TestSequenceEnded
 
 class ScriptedTeminalAdapter(TerminalPort):
     def __init__(self, input_sequence: list[str], report_path: str):
@@ -31,14 +32,13 @@ class ScriptedTeminalAdapter(TerminalPort):
         self._flush_report()
 
     def read_char(self) -> str:
+        if self.input_index >= len(self.input_sequence):
+            raise TestSequenceEnded
+        
         try:
-            if self.input_index >= len(self.input_sequence):
-                raise TerminalFailure from IndexError("Scripted input sequence exhausted")
             ch = self.input_sequence[self.input_index]
             self.input_index += 1
             return ch
-        except TerminalFailure:
-            raise
         except Exception as ex:
             raise TerminalFailure from ex
 

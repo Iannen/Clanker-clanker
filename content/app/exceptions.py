@@ -70,6 +70,7 @@ class AdapterLeakage(Fatal): leaf_ex = True
 class UnexpectedEx(Fatal): leaf_ex = True
 class CorruptClanker(Fatal): leaf_ex = True
 class ConfigAssembly(Fatal): leaf_ex = True
+class TestSequenceEnded(Fatal): leaf_ex = True
 class IllegalDuplicateFile(Fatal): leaf_ex = True
 class UserTask(Fatal): leaf_ex = True
 class WorkspaceAlreadyInitialized(Fatal): leaf_ex = True
