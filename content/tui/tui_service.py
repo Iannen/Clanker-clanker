@@ -1,7 +1,6 @@
+from app import ActionResult, ProgramExit, UserDecline, UserQuestions
 from app.deps.tui import TUIService
-from ports_adapters.ports import TerminalPort, IOControl
-from app.exceptions import ProgramExit, UserDecline
-from app.presentation import ActionResult, UserQuestions
+from ports_adapters.ports import IOControl, TerminalPort
 
 class TUIServiceImpl(TUIService):
     def __init__(self, io_bridge: TerminalPort) -> None:

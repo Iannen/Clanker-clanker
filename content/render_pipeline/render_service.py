@@ -1,10 +1,20 @@
-from app.entities import MultiDocResolver, RepoContentResolver, ManifestResolver, KBStateResolver, Button, Domain, Resolver, Render
+from app import (
+    ActionResult,
+    Button,
+    CorruptClanker,
+    Domain,
+    KBStateResolver,
+    Layouts,
+    ManifestResolver,
+    MultiDocResolver,
+    PathTokens,
+    Render,
+    RepoContentResolver,
+    Resolver,
+)
 from app.deps.render import RenderService
-from app.exceptions import CorruptClanker
+from ports_adapters.ports import DiskPort, NoSuchFile
 from render_pipeline.content_shaper import ContentShaper
-from app.constants import Layouts, PathTokens
-from ports_adapters.ports import NoSuchFile, DiskPort
-from app.presentation import ActionResult
 
 class RenderServiceImpl(RenderService):
     def __init__(self, files: DiskPort) -> None:

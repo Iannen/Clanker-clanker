@@ -1,7 +1,16 @@
+from app import (
+    ActionResult,
+    Button,
+    Domain,
+    File,
+    Filelist,
+    HotPromptRequested,
+    MultiDocResolver,
+    Prompt,
+    Render,
+    Resolver,
+)
 from app.deps.keyboard import KBService, RenderContext, UIRenderContext
-from app.entities import Button, Resolver, Prompt, Render, Domain, MultiDocResolver, Filelist, File
-from app.exceptions import HotPromptRequested
-from app.presentation import ActionResult
 
 class KBServiceImpl(KBService):
     def setup(self, btn_map: dict[str, Button], base_resolvers: list[Resolver]) -> None:
