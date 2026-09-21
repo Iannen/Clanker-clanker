@@ -1,8 +1,5 @@
-import re
-from app.entities import TruncationSpec
-from app.exceptions import ConfigAssembly
-from abc import ABC, abstractmethod
-from app.entities import Button
+from stdlib import re
+from app import TruncationSpec, ConfigAssembly, Button
 class SystemKeys:
     DELIM = "§"
 
@@ -66,7 +63,7 @@ class ContentShaper:
 
         return content
 
-    def shape_button_replacements(self, btn: "Button", label: str, template: str) -> dict[str, str]:
+    def shape_button_replacements(self, btn: Button, label: str, template: str) -> dict[str, str]:
         lines = template.strip("\n").splitlines()
         norm_label = label[:6].ljust(6)
         mapped_lines = [

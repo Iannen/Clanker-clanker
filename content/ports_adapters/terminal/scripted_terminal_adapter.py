@@ -1,5 +1,4 @@
-import json
-import os
+from stdlib import json, os
 from ports_adapters.ports import TerminalPort, IOControl, TerminalFailure
 from app.exceptions import TestSequenceEnded
 

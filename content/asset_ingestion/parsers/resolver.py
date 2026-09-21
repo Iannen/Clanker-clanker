@@ -1,8 +1,7 @@
-from typing import Any
+from stdlib import Any
 from app import (
     File,
     MultiDocResolver,
-    Filelist,
     KBStateResolver,
     RepoContentResolver,
     TruncationSpec,

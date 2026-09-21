@@ -1,4 +1,4 @@
-from collections import defaultdict
+from stdlib import defaultdict
 from app import Domain, File, MultiDocResolver, PathTokens
 
 class FilelistValidator:

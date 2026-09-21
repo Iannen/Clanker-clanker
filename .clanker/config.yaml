@@ -1,8 +1,7 @@
 filesets:
   core: {includes: [
     content/app,
-    content/clanker.py,
-    content/test/assert_classes.py]}
+    content/clanker.py]}
 
   asset_ingestion: {includes: [content/asset_ingestion]}
 

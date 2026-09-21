@@ -1,8 +1,6 @@
 from app import (
     ActionResult,
     Button,
-    Domain,
-    File,
     Filelist,
     HotPromptRequested,
     MultiDocResolver,

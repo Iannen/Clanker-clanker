@@ -1,5 +1,4 @@
-from contextlib import contextmanager
-from typing import Generator
+from stdlib import contextmanager, Generator
 from app.deps.ingestion import Report
 
 class ErrorCollector(Report):

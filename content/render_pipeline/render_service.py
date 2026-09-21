@@ -1,4 +1,5 @@
 from app import (
+    FileSet,
     ActionResult,
     Button,
     CorruptClanker,
@@ -11,8 +12,9 @@ from app import (
     Render,
     RepoContentResolver,
     Resolver,
+    ConfigAssembly
 )
-from app.deps.render import RenderService
+from app.deps.render import RenderService, RenderContext, UIRenderContext
 from ports_adapters.ports import DiskPort, NoSuchFile
 from render_pipeline.content_shaper import ContentShaper
 
@@ -79,7 +81,7 @@ class RenderServiceImpl(RenderService):
             try:
                 raw_content = self.files.read_asset(file_obj.path)
             except NoSuchFile as ex:
-                raise ConfigAssemblyError from ex
+                raise ConfigAssembly from ex
 
             content = self.shaper.apply_truncation(raw_content, file_obj.truncation_spec)
             fragments.append(f"<{file_obj.name}>\n{content}\n</{file_obj.name}>")

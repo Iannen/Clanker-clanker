@@ -49,6 +49,13 @@ DX for test writing
 - this is fine, but perhaps it can be less 'involved'? or it could be like it is (but then need to prevent test classes with same name overwriting)
 - just better fluent api of the shadowed things.
 - the UI report should be more to the point, while the json report contain the full info (no ui dumps in console, but in the report)
+Import verification
+- thinks 'from app.xxx import yyy' is equal to 'from app import yyy'
+- needs to ban adapters from using the stdlib import, so mandate them having free reins
+- needs to treat all __init__ files differently, validating that they are economical (not from bottom)
+- needs to not gaf about ex 
+- needs to also work the bottom level files
+- output format too, but less important
 
 Backlog tail, Selected item/items:
 
@@ -76,6 +83,6 @@ Backlog tail, Selected item/items:
     [ ] 'content/tui/__init__.py': Create tui facade
     Phase 7: populate ports_adapters module with core ports and adapters
     [ ] 'content/ports_adapters/__init__.py': Create ports_adapters module facade
-    Phase 8: optional stdlib facade (governance / capability boundary)
-    [ ] 'content/std.py': Create standard library allowlist facade
+    Phase 8: stdlib facade (governance / capability boundary)
+    [x] 'content/std.py': Create standard library allowlist facade
 

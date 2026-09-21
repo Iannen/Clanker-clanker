@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from stdlib import ABC, abstractmethod
 from app.exceptions import Notice, Fatal
 
 class IOControl:

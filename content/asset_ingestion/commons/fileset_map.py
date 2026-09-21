@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar
+from stdlib import TypeVar, Generic
 from app import FileSet, Filelist
 from asset_ingestion import ErrorCollector
 

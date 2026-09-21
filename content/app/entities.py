@@ -1,5 +1,4 @@
-from dataclasses import dataclass, field
-from typing import ClassVar, Callable
+from stdlib import dataclass, field, ClassVar, Callable
 
 #eliminate all default assignments
 @dataclass

@@ -1,4 +1,4 @@
-from typing import Any
+from stdlib import Any
 from asset_ingestion import ErrorCollector, FilelistMap, ValueExtractor, FilelistParser
 
 

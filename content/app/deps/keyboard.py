@@ -1,5 +1,4 @@
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from stdlib import ABC, abstractmethod, dataclass
 from app import Button, Resolver, Render, ActionResult
 
 @dataclass

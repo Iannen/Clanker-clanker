@@ -1,4 +1,4 @@
-from typing import Any
+from stdlib import Any
 from app import KBStateResolver, Render
 from asset_ingestion import ErrorCollector, FilesetMap, FilelistMap, ValueExtractor, RenderParser
 
