@@ -1,10 +1,17 @@
 #!/usr/bin/env -S python3 -B
-import traceback
-from typing import Any
-from app.presentation import ActionResult, UserQuestions
-from app.exceptions import ExceptionPolicy, UserDecline, NoConfig, ProgramExit, HotPromptRequested
-from app.deps import *
+from app import (
+    ActionResult,
+    UserQuestions,
+    ExceptionPolicy,
+    UserDecline,
+    NoConfig,
+    ProgramExit,
+    HotPromptRequested,
+)
+from app.deps.ingestion import IngestionService
 from app.deps.keyboard import KBService
+from app.deps.render import RenderService
+from app.deps.tui import TUIService
 
 class AppEngine:
     def __init__(

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from app.presentation import ActionResult
+from app import ActionResult
 
 class TUIService(ABC):
     @abstractmethod

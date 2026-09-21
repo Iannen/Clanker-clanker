@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from app.entities import Button, Resolver, Render
-from app.presentation import ActionResult
+from app import Button, Resolver, Render, ActionResult
 
 @dataclass
 class RenderContext:

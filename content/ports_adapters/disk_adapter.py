@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
-from ports_adapters.ports import PathTokens, DiskPort, NoSuchFile, AssetExists, FileAccessError, InvalidPathToken
+from ports_adapters.ports import DiskPort, NoSuchFile, AssetExists, FileAccessError, InvalidPathToken
+from app.constants import PathTokens
 
 class LinuxDiskAdapter(DiskPort):
     def __init__(self) -> None:

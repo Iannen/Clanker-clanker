@@ -30,11 +30,6 @@ class AssetExists(Notice): leaf_ex = True
 class FileAccessError(Fatal): leaf_ex = True
 class InvalidPathToken(Fatal): leaf_ex = True
 
-class PathTokens:
-    PUD = "<PUD>"
-    SHARED = "<SHARED>"
-    CONTENT = "content"
-
 class DiskPort(ABC):
     @abstractmethod
     def get_file_contents(self, tokenized_path: str) -> str: ...  # raises: InvalidPathToken, NoSuchFile, FileAccessError

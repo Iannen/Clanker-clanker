@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
-from app.entities import Button, Render, Resolver
-from app.presentation import ActionResult
+from app import Button, Render, Resolver, ActionResult
 
 class Report(ABC):
     @abstractmethod

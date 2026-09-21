@@ -1,13 +1,14 @@
-from ports_adapters.ports import PathTokens
+class PathTokens:
+    PUD = "<PUD>"
+    SHARED = "<SHARED>"
+    CONTENT = "content"
 
-# used in asset_ingestion only
 class CfgFragments:
     PUD_CFG = PathTokens.PUD + "/.clanker/config.yaml"
     SYSTEM_CFG = PathTokens.SHARED + "/content/a_lib/shared-assets/config-fragments/system_cfg.yaml" 
     SHARED_CFG = PathTokens.SHARED + "/content/a_lib/shared-assets/config-fragments/shared_cfg.yaml" 
     TEMPLATE_CFG = PathTokens.SHARED + "/content/a_lib/templates/config.template"
 
-# used in render_pipeline only
 class Layouts:
     UI = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/ui.layout"
     PROMPT = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/prompt.layout"

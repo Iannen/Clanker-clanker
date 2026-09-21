@@ -67,8 +67,8 @@ Backlog tail, Selected item/items:
 
 1. Facade modules for leaner imports
     Phase 1: populate app module with core app members
-    [ ] 'content/app/__init__.py': Create application module facade
+    [x] 'content/app/__init__.py': Create application module facade
         - Star import members from constants, entities, exceptions, and presentation
         - Exclude engine and deps interfaces from root facade
-    [ ] Align imports within 'content/app' and its subdirectories to use the new facade
+    [x] Align imports within 'content/app' and its subdirectories to use the new facade
 

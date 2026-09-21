@@ -1,7 +1,14 @@
 from abc import ABC, abstractmethod
-from app.entities import Render
-from app.presentation import ActionResult
+from app import Render, ActionResult
 from app.deps.keyboard import RenderContext, UIRenderContext
+
+class RenderService(ABC):
+    @abstractmethod
+    def set_ui_render(self, ui_render: Render) -> None: ...
+    @abstractmethod
+    def render_ui(self, ctx: UIRenderContext, msg: ActionResult) -> str: ...
+    @abstractmethod
+    def render_prompt(self, ctx: RenderContext) -> str: ...
 
 class RenderService(ABC):
     @abstractmethod

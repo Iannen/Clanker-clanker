@@ -11,10 +11,8 @@ from expectance_impls import (
     Result
 )
 
-from app.presentation import ActionResult
-from app.exceptions import TestSequenceEnded, WorkspaceAlreadyInitialized
-from ports_adapters.ports import IOControl, PathTokens
-from app.constants import RepoContract
+from ports_adapters.ports import IOControl
+from app import RepoContract, TestSequenceEnded, WorkspaceAlreadyInitialized, ActionResult, PathTokens
 
 @shadow_of(ExitMsgImpl)
 class ExitMsg:
