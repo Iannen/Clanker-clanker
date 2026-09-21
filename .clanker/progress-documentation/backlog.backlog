@@ -7,25 +7,8 @@ I. Ideas, complaints and non-critical bugs:
     - ez fix is to adjust template.
     - rabbithole solution is to have app write template to rowspec
 
-- bootstrap / repo init
-    - if 'content' dir is empty, then it doesnt get recognized (if a fileset wants it)
-    - bootstrap validation does not understand the '.' to mean 'the whole repo', but think there is a dir named '.' that must exist
-        '[shared] asset include '.' (<domain=debloat, prompt=debloat, resolver=RepoContentResolver, include=.>) was not found in pud'
-    - the repo init must also create the 'content' dir, to fulfill contract
-
 
 A. Deprioritized / Housekeeping
-
-2. Non IDE / linter import strats: 
-    - import statements are huge blocks - big token waste (?)
-    - goals:
-        - We dont have huge import blocks in all the numerous files, eating up precious llm context
-        - all types used in a file are always imported (explicitly or via kleene)
-            - this goes for typehints too
-        - the inverse. no dangling imports allowed
-            - but what abt * imports?
-    - something about python v 3.14 vs older versions - a clue!
-    - i added instruction to prune in the do-mode.md file, so it gets done bit by bit at least
 
 3. Mull 'ExceptionPolicy'
     (this too nice but not mission critical)
@@ -36,11 +19,6 @@ A. Deprioritized / Housekeeping
         - perhaps it all goes to main? 
 
 B. Ingestion, Validation & Complaints
-
-4. we have a Repocontract class in constants. The system should align to this.
-    (yes)
-    - the initialize_workspace method uses the repo contract over old system
-    - on boot validation that pud fulfills contract, else complain
     
 7. Landingzone for Validation / complaint ideas
     - manifest resolver must check if fileset is declared in pud_cfg with fallback to shared_cfg
@@ -63,9 +41,34 @@ B. Ingestion, Validation & Complaints
         - append a trailing 'Next item numeral: <FOLLOWING_ROMAN_NUMERAL>' marker to history output instructions
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 
+[TESTING]: 
+Assert type tests:
+needs happy path testing
+- ensure 'the buttons work', so dogfooding can continue (even if minor regressions)
+needs to provide security from destructive actions the app may take
+- ensure clankerize fails in all situations where there is a whiff of 'something we would create exists'
+DX for test writing
+- the class/method/atomic tests system is just nametagging the atomic test
+- this is fine, but perhaps it can be less 'involved'? or it could be like it is (but then need to prevent test classes with same name overwriting)
+- just better fluent api of the shadowed things.
+- the UI report should be more to the point, while the json report contain the full info (no ui dumps in console, but in the report)
 
+Implement AST import verification test suite (req's as bullets is fine)
+    the policy works on a file basis, and verifies
+    - all referenced symbols (type hints and usages) are imported across src ASTs
+    - all imported symbols are used as typehints or proper usages with zero dangling imports
+    - all imports originate with __init__ declared modules
+    - produce json report per scanned file
+        - full file content
+        - list of todos
+        - so i can drop off with a clanker 4 ez
 
 Backlog tail, Selected item/items:
-    
 
+1. Facade modules for leaner imports
+    Phase 1: populate app module with core app members
+    [ ] 'content/app/__init__.py': Create application module facade
+        - Star import members from constants, entities, exceptions, and presentation
+        - Exclude engine and deps interfaces from root facade
+    [ ] Align imports within 'content/app' and its subdirectories to use the new facade
 

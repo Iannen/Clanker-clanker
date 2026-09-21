@@ -1,11 +1,12 @@
 from abc import ABC, abstractmethod
 from app.entities import Button, Render, Resolver
+from app.presentation import ActionResult
 
 class Report(ABC):
     @abstractmethod
     def get_complaints(self) -> list[str]: ...
 
-from app.presentation import ActionResult
+
 
 class IngestionService(ABC): 
     @abstractmethod

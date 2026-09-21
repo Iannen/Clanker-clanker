@@ -12,7 +12,7 @@ from expectance_impls import (
 )
 
 from app.presentation import ActionResult
-from app.exceptions import TestSequenceEnded
+from app.exceptions import TestSequenceEnded, WorkspaceAlreadyInitialized
 from ports_adapters.ports import IOControl, PathTokens
 from app.constants import RepoContract
 
@@ -94,3 +94,12 @@ class EmptyRepoTests(BaseFixtureTest):
                 )
             )
         return ats
+
+class CorruptRepoTests(BaseFixtureTest):
+    TEMPLATE_FIXTURE_NAME = "with_nonempty_content_dir"
+
+    def assert_clankerize_fail(self) -> AtomicTest:
+        return AtomicTest(
+            sequence=["yes", IOControl.ACCEPT_KEY, "asd"],
+            expects=ExitMsg.contains(WorkspaceAlreadyInitialized.__name__)
+        )
