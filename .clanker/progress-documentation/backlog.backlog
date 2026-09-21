@@ -71,13 +71,21 @@ Backlog tail, Selected item/items:
         - Star import members from constants, entities, exceptions, and presentation
         - Exclude engine and deps interfaces from root facade
     [x] Align imports within 'content/app' and its subdirectories to use the new facade
-
     Phase 2: populate asset_ingestion module with core members
     [x] 'content/asset_ingestion/__init__.py': Create asset_ingestion module facade
         - Star import members from commons, parsers, extractors, assemblers, and validators
         - Order imports (commons -> parsers -> extractors -> assemblers -> validators) to prevent circular imports
         - Exclude ingestion_service from root facade
     [x] Align imports within 'content/asset_ingestion' and its subdirectories to use the new facade
-
-(old 'wa' 43263)
-(new 'wa' 41850)
+    Phase 3: populate app.deps module with dependency interfaces
+    [ ] 'content/app/deps/__init__.py': Create app.deps facade
+    Phase 4: populate keyboard module
+    [ ] 'content/keyboard/__init__.py': Create keyboard facade
+    Phase 5: populate render_pipeline module
+    [ ] 'content/render_pipeline/__init__.py': Create render_pipeline facade
+    Phase 6: populate tui module
+    [ ] 'content/tui/__init__.py': Create tui facade
+    Phase 7: populate ports_adapters module with core ports and adapters
+    [ ] 'content/ports_adapters/__init__.py': Create ports_adapters module facade
+    Phase 8: optional stdlib facade (governance / capability boundary)
+    [ ] 'content/std.py': Create standard library allowlist facade
