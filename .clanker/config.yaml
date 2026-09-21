@@ -4,13 +4,7 @@ filesets:
     content/clanker.py,
     content/test/assert_classes.py]}
 
-  asset_ingestion: {includes: [
-    content/app/deps/ingestion.py,
-    content/app/engine.py,
-    content/app/entities.py,
-    content/asset_ingestion/assemblers/rtc.py,
-    content/asset_ingestion/commons/error_collector.py,
-    content/asset_ingestion/extractors/ui_render.py]}
+  asset_ingestion: {includes: [content/asset_ingestion]}
 
   cfg_validation: {includes: [
     content/app/entities.py,  

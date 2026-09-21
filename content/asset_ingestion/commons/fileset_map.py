@@ -1,6 +1,6 @@
 from typing import Generic, TypeVar
-from app.entities import FileSet, Filelist
-from asset_ingestion.commons.error_collector import ErrorCollector
+from app import FileSet, Filelist
+from asset_ingestion import ErrorCollector
 
 T = TypeVar("T")
 

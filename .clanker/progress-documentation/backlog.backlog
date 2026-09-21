@@ -72,3 +72,12 @@ Backlog tail, Selected item/items:
         - Exclude engine and deps interfaces from root facade
     [x] Align imports within 'content/app' and its subdirectories to use the new facade
 
+    Phase 2: populate asset_ingestion module with core members
+    [x] 'content/asset_ingestion/__init__.py': Create asset_ingestion module facade
+        - Star import members from commons, parsers, extractors, assemblers, and validators
+        - Order imports (commons -> parsers -> extractors -> assemblers -> validators) to prevent circular imports
+        - Exclude ingestion_service from root facade
+    [x] Align imports within 'content/asset_ingestion' and its subdirectories to use the new facade
+
+(old 'wa' 43263)
+(new 'wa' 41850)

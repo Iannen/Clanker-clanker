@@ -1,6 +1,6 @@
-from app.deps.ingestion import Report
 from contextlib import contextmanager
 from typing import Generator
+from app.deps.ingestion import Report
 
 class ErrorCollector(Report):
     def __init__(self) -> None:

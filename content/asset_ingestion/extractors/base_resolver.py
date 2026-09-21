@@ -1,8 +1,6 @@
 from typing import Any
-from app.entities import MultiDocResolver
-from asset_ingestion.commons.error_collector import ErrorCollector
-from asset_ingestion.commons.value_extractor import ValueExtractor
-from asset_ingestion.parsers.resolver import ResolverParser
+from app import MultiDocResolver, Resolver
+from asset_ingestion import ErrorCollector, ValueExtractor, ResolverParser
 
 
 class BaseResolversExtractor:

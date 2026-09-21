@@ -1,8 +1,6 @@
 from typing import Any
-from app.entities import FileSet
-from asset_ingestion.commons.error_collector import ErrorCollector
-from asset_ingestion.commons.fileset_map import FilesetMap
-from asset_ingestion.commons.value_extractor import ValueExtractor
+from app import FileSet
+from asset_ingestion import ErrorCollector, FilesetMap, ValueExtractor
 
 
 class FilesetParser:

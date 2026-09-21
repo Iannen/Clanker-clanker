@@ -1,6 +1,5 @@
 from collections import defaultdict
-from app.entities import Domain, File, MultiDocResolver
-from app.constants import PathTokens
+from app import Domain, File, MultiDocResolver, PathTokens
 
 class FilelistValidator:
     def validate(

@@ -1,10 +1,13 @@
 from typing import Any
-from app.entities import Domain, Prompt, Resolver
-from asset_ingestion.commons.error_collector import ErrorCollector
-from asset_ingestion.commons.fileset_map import FilesetMap, FilelistMap
-from asset_ingestion.commons.value_extractor import ValueExtractor
-from asset_ingestion.parsers.resolver import ResolverParser
-from asset_ingestion.parsers.render import RenderParser
+from app import Domain, Prompt, Resolver
+from asset_ingestion import (
+    ErrorCollector,
+    FilesetMap,
+    FilelistMap,
+    ValueExtractor,
+    ResolverParser,
+    RenderParser,
+)
 
 
 class DomainsExtractor:

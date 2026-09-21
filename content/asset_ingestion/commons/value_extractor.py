@@ -1,4 +1,6 @@
-# fix imports pls
+from typing import Any
+from app import ConfigAssembly
+
 class ValueExtractor:
     def _req(
         self, data: Any, path: list[str], target_type: type | tuple[type, ...], default: Any = None

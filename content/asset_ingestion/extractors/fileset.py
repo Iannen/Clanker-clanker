@@ -1,8 +1,5 @@
 from typing import Any
-from asset_ingestion.commons.error_collector import ErrorCollector
-from asset_ingestion.commons.fileset_map import FilesetMap
-from asset_ingestion.commons.value_extractor import ValueExtractor
-from asset_ingestion.parsers.fileset import FilesetParser
+from asset_ingestion import ErrorCollector, FilesetMap, ValueExtractor, FilesetParser
 
 class FilesetExtractor:
     def extract(

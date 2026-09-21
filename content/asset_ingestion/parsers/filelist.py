@@ -1,8 +1,6 @@
 from typing import Any
-from app.entities import File, Filelist, TruncationSpec
-from asset_ingestion.commons.error_collector import ErrorCollector
-from asset_ingestion.commons.fileset_map import FilelistMap
-from asset_ingestion.commons.value_extractor import ValueExtractor
+from app import File, Filelist, TruncationSpec
+from asset_ingestion import ErrorCollector, FilelistMap, ValueExtractor
 
 
 class FilelistParser:

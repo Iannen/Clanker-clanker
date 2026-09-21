@@ -1,11 +1,24 @@
 from typing import Any
-from app.entities import File, MultiDocResolver, Filelist, KBStateResolver, RepoContentResolver, TruncationSpec, ManifestResolver, Resolver, FileSet
-from app.exceptions import ConfigAssembly
-from asset_ingestion.commons.error_collector import ErrorCollector
-from asset_ingestion.commons.fileset_map import FilesetMap, FilelistMap
-from asset_ingestion.commons.value_extractor import ValueExtractor
-from asset_ingestion.parsers.fileset import FilesetParser
-from asset_ingestion.parsers.filelist import FilelistParser
+from app import (
+    File,
+    MultiDocResolver,
+    Filelist,
+    KBStateResolver,
+    RepoContentResolver,
+    TruncationSpec,
+    ManifestResolver,
+    Resolver,
+    FileSet,
+    ConfigAssembly,
+)
+from asset_ingestion import (
+    ErrorCollector,
+    FilesetMap,
+    FilelistMap,
+    ValueExtractor,
+    FilesetParser,
+    FilelistParser,
+)
 
 
 class ResolverParser:
