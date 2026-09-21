@@ -808,3 +808,13 @@ CXV: CENTRALIZED TEST HARNESS & SHADOW EXPECTANCE FRAMEWORK
     - Implemented `GateInspector` in `content/test/reporter.py` to output formatted PASS/FAIL summaries and persistent JSON reports.
     - Built the `ship_gate.py` CLI runner to validate execution context, manage sandbox fixture duplication, and emit gate process exit status.
     Reflection: Significantly improves test authoring ergonomics by centralizing test declarations, though fluent API constructors require further simplification to eliminate parameter ambiguity, and additional fixture suites are needed for dirty/existing repositories and self-referential execution.
+
+CXVI: STATIC IMPORT VERIFICATION & AST ANALYSIS HARNESS
+    Purpose: Implement a static analysis pre-flight gate to enforce import health and symbol resolution across codebase modules prior to dynamic fixture execution.
+    - Legacy harness relied purely on dynamic sandbox execution, missing broken internal references, dangling unused imports, and non-whitelisted dependencies at build time.
+    Actions:
+    - Created `ImportVerifier` in `content/test/import_checker.py` using Python's `ast` module to perform single-pass analysis across defined `REL_ROOTS`.
+    - Enforced a 3-part verification policy: validating all referenced symbols against imported/local scope, detecting unused dangling imports, and restricting imports to `MODULE_WHITELIST` sources.
+    - Wired `check_imports(context)` into `content/test/ship_gate.py` as a pre-flight stage running ahead of sandbox setup.
+    - Updated `GateInspector` in `content/test/reporter.py` to ingest static analysis results, emit structured file-level JSON reports (`import_verification.json`), and integrate AST violations into stdout logs and exit status verdicts.
+    Reflection: Establishes fast pre-flight code analysis for automated remediation, though AST visitor logic requires further tuning for exception handler variables (`ex`), `__init__.py` re-exports, and overall test harness structural refactoring.

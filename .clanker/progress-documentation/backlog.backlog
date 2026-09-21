@@ -7,8 +7,7 @@ I. Ideas, complaints and non-critical bugs:
     - ez fix is to adjust template.
     - rabbithole solution is to have app write template to rowspec
 
-
-A. Deprioritized / Housekeeping
+II. The pile
 
 3. Mull 'ExceptionPolicy'
     (this too nice but not mission critical)
@@ -17,9 +16,7 @@ A. Deprioritized / Housekeeping
     - 'protection' must be done up in main
     - while formatting via method is in appengine (it receives the ex)
         - perhaps it all goes to main? 
-
-B. Ingestion, Validation & Complaints
-    
+   
 7. Landingzone for Validation / complaint ideas
     - manifest resolver must check if fileset is declared in pud_cfg with fallback to shared_cfg
         - so shared_cfg can declare defaults for it, which the pud_cfg can override
@@ -53,19 +50,11 @@ DX for test writing
 - just better fluent api of the shadowed things.
 - the UI report should be more to the point, while the json report contain the full info (no ui dumps in console, but in the report)
 
-Implement AST import verification test suite (req's as bullets is fine)
-    the policy works on a file basis, and verifies
-    - all referenced symbols (type hints and usages) are imported across src ASTs
-    - all imported symbols are used as typehints or proper usages with zero dangling imports
-    - all imports originate with __init__ declared modules
-    - produce json report per scanned file
-        - full file content
-        - list of todos
-        - so i can drop off with a clanker 4 ez
-
 Backlog tail, Selected item/items:
 
-1. Facade modules for leaner imports
+
+
+1. Facade modules for leaner imports & expression of architecture
     Phase 1: populate app module with core app members
     [x] 'content/app/__init__.py': Create application module facade
         - Star import members from constants, entities, exceptions, and presentation
@@ -89,3 +78,4 @@ Backlog tail, Selected item/items:
     [ ] 'content/ports_adapters/__init__.py': Create ports_adapters module facade
     Phase 8: optional stdlib facade (governance / capability boundary)
     [ ] 'content/std.py': Create standard library allowlist facade
+

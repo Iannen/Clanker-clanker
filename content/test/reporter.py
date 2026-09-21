@@ -4,20 +4,23 @@ from base_classes import BaseFixtureTest
 from expectance_impls import Result
 
 class GateInspector:
-    def __init__(self, test_instances: list["BaseFixtureTest"], reports_dir: Path) -> None:
+    def __init__(self, import_checker, test_instances, reports_dir: Path) -> None:
+        self.import_checker = import_checker
         self.test_instances = test_instances
         self.reports_dir = reports_dir
 
     def evaluate_and_report(self) -> bool:
         self.reports_dir.mkdir(parents=True, exist_ok=True)
 
-        all_passed = True
-        total_assertions = 0
-        failed_assertions = 0
-
         print("\n" + "=" * 60)
         print(" SHIP GATE EVALUATION REPORT")
         print("=" * 60)
+
+        import_passed = self._evaluate_import_checker()
+
+        all_passed = import_passed
+        total_assertions = 0
+        failed_assertions = 0
 
         for instance in self.test_instances:
             cls_name = instance.__class__.__name__
@@ -69,3 +72,33 @@ class GateInspector:
         print("=" * 60 + "\n")
 
         return all_passed
+
+    def _evaluate_import_checker(self) -> bool:
+        import_report_path = self.reports_dir / "import_verification.json"
+        
+        # Write report JSON file
+        import_report_path.write_text(
+            json.dumps(self.import_checker.report, indent=2), encoding="utf-8"
+        )
+
+        total_violations = sum(
+            len(entry["violations"]["non_whitelisted_imports"])
+            + len(entry["violations"]["dangling_imports"])
+            + len(entry["violations"]["missing_imports"])
+            for entry in self.import_checker.report
+        )
+
+        print(f"\n[SUITE] ImportVerifier")
+        if total_violations == 0:
+            print(f"  - [PASS] Static import analysis ({len(self.import_checker.report)} files clean)")
+            print("  Summary: PASSED")
+            return True
+        else:
+            print(f"  - [FAIL] Static import analysis ({total_violations} violations found)")
+            for entry in self.import_checker.report:
+                file_path = entry["file"]
+                for rule_name, violations in entry["violations"].items():
+                    for v in violations:
+                        print(f"      [{file_path}] {rule_name}: {v}")
+            print("  Summary: FAILED")
+            return False

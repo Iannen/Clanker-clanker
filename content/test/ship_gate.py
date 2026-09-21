@@ -13,6 +13,7 @@ if str(content_dir) not in sys.path:
 from base_classes import BaseFixtureTest
 from reporter import GateInspector
 import assert_classes
+from import_checker import ImportVerifier
 
 
 
@@ -20,8 +21,9 @@ def main() -> None:
     context = verify_execution_context()
     test_instances = instantiate_test_classes(context)
     setup_sandboxes_and_reports(context, test_instances)
+    import_checker = check_imports(context)
     run_tests(test_instances)
-    evaluate_tests(test_instances, context)
+    evaluate_tests(import_checker, test_instances, context)
 
 
 def verify_execution_context() -> dict[str, Path]:
@@ -44,10 +46,12 @@ def verify_execution_context() -> dict[str, Path]:
         )
         sys.exit(1)
 
-    test_root = repo_root / "content" / "test"
+    content_path = repo_root / "content"
+    test_root = content_path / "test"
     return {
         "repo_root": repo_root,
-        "clanker_path": clanker_path,  # <-- ADD THIS LINE
+        "content_dir": content_path,
+        "clanker_path": clanker_path,
         "test_root": test_root,
         "fixtures_dir": test_root / "test_repos",
         "sandboxes_dir": test_root / "sandboxes",
@@ -91,15 +95,17 @@ def setup_sandboxes_and_reports(context: dict[str, Path], test_instances) -> Non
         fixture_path = context["fixtures_dir"] / instance.TEMPLATE_FIXTURE_NAME
         shutil.copytree(fixture_path, instance.sandbox_dir)
 
+def check_imports(context: dict[str, Path]) -> ImportVerifier:
+    return ImportVerifier(context["content_dir"])
 
 def run_tests(test_instances) -> None:
     for instance in test_instances:
         instance.run_tests()
 
 
-def evaluate_tests(test_instances, context) -> None:
+def evaluate_tests(import_checker, test_instances, context) -> None:
 
-    interpreter = GateInspector(test_instances, context["reports_dir"])
+    interpreter = GateInspector(import_checker, test_instances, context["reports_dir"])
     success = interpreter.evaluate_and_report()
 
     if success:
