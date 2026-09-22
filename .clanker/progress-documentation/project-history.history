@@ -828,3 +828,14 @@ CXVII: RETIREMENT OF EXCEPTION POLICY ABSTRACTION
     - Shifted uncaught error presentation and traceback formatting entirely to the outer entrypoint (`clanker.py`) as a simple, high-level safety guard.
     Reflection:
     - Reaching across layer boundaries to wrap standard exceptions in artificial policy classes added unnecessary complexity; placing top-level error formatting directly at the application entrypoint keeps the core lean and clean.
+
+CXVIII: AUTOMATED REPOSITORY STATE PERSISTENCE SCRIPT
+    Purpose: Establish a single-command repository persistence tool ("save button") that enforces a non-negotiable test gate, prevents broken or diverged remote pushes, and operates consistently across project repositories.
+    - Repeated manual testing, staging, and push workflows across repositories introduced friction and increased the risk of pushing broken code or creating dirty merge commits.
+    Actions:
+    - Built `content/test/save.py` to automate a two-phase save protocol: Phase 1 verifies repository pre-flight safety (unresolved conflicts, detached HEAD, active rebase/merge states) and performs a silent `git fetch` with divergence verification; Phase 2 stages changes, commits, executes fast-forward merges, and pushes to remote.
+    - Implemented a flexible test gate resolution order that checks CLI overrides (`--test_command`, `--no_test`) before falling back to `system.test_command` in `.clanker/config.yaml` using `ruamel.yaml`.
+    - Configured unbuffered stdout streaming for the test suite while keeping internal Git inspections silent, terminating with concise `[git]` lifecycle logs and a single deterministic verdict line (`Save complete.` or `Save aborted: <reason>`).
+    - Added the top-level `system.test_command` configuration key to `.clanker/config.yaml`.
+    Reflection:
+    - Shifting divergence checks and test execution ahead of local commit/push operations eliminates accidental merge markers and guarantees that only verified, clean state reaches upstream remotes.

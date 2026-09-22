@@ -53,13 +53,3 @@ Import verification
 
 Backlog tail, Selected item/items:
 
-1. Replace shell ship script with Python save script and remove deprecated ship references
-    [ ] 'content/test/save.py': Create safe, rational save workflow script
-        - Verify execution context is repository root
-        - Execute content/test/ship_gate.py quality gate prior to any Git operations
-        - Perform pre-flight checks (Git repo, active merge/rebase status, upstream branch)
-        - Fetch remote and perform fast-forward pull iff local is a direct ancestor of remote; abort pull safely if diverged
-        - Stage changes, commit with 'save' message, and push to upstream
-        - Implement soft-reset rollback on push failure to protect working tree state
-    [ ] 'ship.sh': Remove root shell script
-    [ ] 'content/test/ship.sh': Remove internal test shell script
