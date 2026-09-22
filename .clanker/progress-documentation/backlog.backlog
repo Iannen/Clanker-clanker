@@ -53,3 +53,18 @@ Import verification
 
 Backlog tail, Selected item/items:
 
+Testsystem razzia: 
+[x] 'save.py': the gitops save button! runs ship gate for its signal, and then does gitops (or not)
+    - recently created, considered kosher
+[x] 'ship_gate.py'
+    - pretty nice overall
+    - must revisit when 'ImportVerifier' and 'BaseFixtureTest' are are aligned to new ways:
+        - no longer carry results on self (one type each).
+        - return typed result object via run_test()
+[ ] 'import_checker.py'
+    - must be refactored to run its test in separate method to init
+    - the method returns a typed object, representing a result
+
+
+[ ] 'reporter.py'
+    - needs alignment to not receive the test classes, but typed objects 
