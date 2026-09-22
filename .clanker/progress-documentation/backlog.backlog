@@ -82,4 +82,66 @@ n. Align fixture runner state and simplify expectance assertions
     - Refactor expectance implementations to evaluate directly against ExecutionSnapshot fields
     - Remove fluent builder/mutation pattern on expectance classes in favor of direct constructor initialization (e.g. ExitMsg(msg) instead of ExitMsg.contains(msg))
     - Ensure expectance classes in assert_classes.py are fully typed, self-documenting, and directly mirror underlying evaluation logic
+'''envisioned fluid type test scenario
+scenario()
+    .pass(Test.Startapp, "yes", IOControl.ACCEPT_KEY)
+    .last_write_has(ActionResult.something)
+    .filesExist(fresh_init_content)
+    .pass('1q')
+    .clipboard_has(some part of a prompt)
+    .clipboard_lines(numeric predicated)
+    .pass(Test.Endapp)
+    .mkfile(thepath)
+    .mkdir(adir)
+    .filesExist([thepath, adir])
+'''
 
+n. refactor assert prong of test system to scenario based fluid api style
+    [ ] 'assert_classes.py'
+        - declare Scenario(ABC)
+        - let all public methods of assert classes receive a fresh Scenario in param
+        - use fluid api to build it in method
+        - then return it to baseclass
+    [ ] 'base_classes.py'
+        - declare ScenarioImpl(Scenario)
+        - when iterating over self public members, instantiate and pass a scenario
+        - collect scenarios, then handle them somehow, producing a report.
+    [ ] Frames
+        - a frame is a snapshot of all things observable following an event.
+'''
+class ExecutionFrame:
+    exit_code: Optional[int] = None     
+    stdout: Optional[str] = None        
+    stderr: Optional[str] = None        
+    latest_write: Optional[str] = None  
+    latest_clipboard: Optional[str] = None 
+    latest_input: Optional[str] = None  
+    disk_paths: list[Path] = field(default_factory=list) 
+'''
+    [ ] Scenario specification
+        - has frame generator methods. 
+            - startapp() -> starts the app. generates a single frame
+            - stopapp() -> when received by adapter, causes raise (deprecating played out sequence detection) to end app, produces a frame
+            - input("yes", "1", "q") -> converted to list of chars, each one producing a frame
+        - has assert methods, to check something about last frame
+            - last_write_has
+            - clipboard_has
+            - clipboard_lines
+
+'''draft 
+def assertclass(assertclassBaseclass):
+    test_repo_name = asbefore
+
+    def method(self, scenario: ScenarioABC): #or static who cares
+    return scenario
+        .pass(Test.Startapp, "yes", IOControl.ACCEPT_KEY)
+        .last_write_has(ActionResult.something)
+        .filesExist(fresh_init_content)
+        .pass('1q')
+        .clipboard_has(some part of a prompt)
+        .clipboard_lines(numeric predicated)
+        .pass(Test.Endapp)
+        .mkfile(thepath)
+        .mkdir(adir)
+        .filesExist([thepath, adir])
+'''
