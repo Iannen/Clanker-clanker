@@ -10,7 +10,7 @@ content_dir = Path(__file__).resolve().parent.parent
 if str(content_dir) not in sys.path:
     sys.path.insert(0, str(content_dir))
 
-from base_classes import BaseFixtureTest
+from base_classes import BaseFixtureTest, TestSuiteResult
 from reporter import GateInspector
 import assert_classes
 from import_checker import ImportPolicySuite, ImportReports
@@ -19,13 +19,13 @@ from import_checker import ImportPolicySuite, ImportReports
 def main() -> None:
     paths = verify_execution_context()
     reset_working_directories(paths["sandboxes_dir"], paths["reports_dir"])
-    test_instances = prepare_and_run_test_suites(
+    test_results = prepare_and_run_test_suites(
         paths["fixtures_dir"],
         paths["sandboxes_dir"],
         paths["clanker_path"]
     )
     import_reports = run_import_policy_suite(paths["content_dir"])
-    success = evaluate_and_report_results(import_reports, test_instances, paths["reports_dir"])
+    success = evaluate_and_report_results(import_reports, test_results, paths["reports_dir"])
     
     status = "✅ SUCCESS" if success else "❌ FAILED"
     print(f"Result: {status}")
@@ -70,7 +70,7 @@ def reset_working_directories(sandboxes_dir: Path, reports_dir: Path) -> None:
         target_dir.mkdir(parents=True, exist_ok=True)
 
 
-def prepare_and_run_test_suites(fixtures_dir: Path, sandboxes_dir: Path, clanker_path: Path) -> list[BaseFixtureTest]:
+def prepare_and_run_test_suites(fixtures_dir: Path, sandboxes_dir: Path, clanker_path: Path) -> list[TestSuiteResult]:
     discovered_classes = [
         cls
         for name, cls in inspect.getmembers(assert_classes, inspect.isclass)
@@ -81,7 +81,7 @@ def prepare_and_run_test_suites(fixtures_dir: Path, sandboxes_dir: Path, clanker
         sys.stderr.write("Error: No test classes found in assert_classes.py\n")
         sys.exit(1)
 
-    instances = []
+    results = []
     for cls in discovered_classes:
         snake_name = re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__name__).lower()
         sandbox_path = sandboxes_dir / f"active_sandbox_{snake_name}"
@@ -90,10 +90,10 @@ def prepare_and_run_test_suites(fixtures_dir: Path, sandboxes_dir: Path, clanker
         shutil.copytree(fixture_path, sandbox_path)
 
         instance = cls(sandbox_path, clanker_path)
-        instance.run_tests()
-        instances.append(instance)
+        suite_result = instance.run_tests()
+        results.append(suite_result)
 
-    return instances
+    return results
 
 
 def run_import_policy_suite(content_dir: Path) -> ImportReports:
@@ -101,8 +101,8 @@ def run_import_policy_suite(content_dir: Path) -> ImportReports:
     return suite.run_tests()
 
 
-def evaluate_and_report_results(import_reports: ImportReports, test_instances: list[BaseFixtureTest], reports_dir: Path) -> bool:
-    inspector = GateInspector(import_reports, test_instances, reports_dir)
+def evaluate_and_report_results(import_reports: ImportReports, test_results: list[TestSuiteResult], reports_dir: Path) -> bool:
+    inspector = GateInspector(import_reports, test_results, reports_dir)
     return inspector.evaluate_and_report()
 
 

@@ -2,8 +2,20 @@
 import json
 import sys
 import subprocess
+from dataclasses import dataclass, field
 from pathlib import Path
 from expectance_impls import Result, AtomicTest
+
+
+@dataclass
+class TestSuiteResult:
+    suite_name: str
+    results: list[Result] = field(default_factory=list)
+
+    @property
+    def passed(self) -> bool:
+        return all(r.passed for r in self.results)
+
 
 class BaseFixtureTest:
     TEMPLATE_FIXTURE_NAME: str = ""
@@ -12,22 +24,22 @@ class BaseFixtureTest:
         self.sandbox_dir = sandbox_dir
         self.clanker_path = clanker_path
         self.report_path = self.sandbox_dir / "latest_run.json"
-        self.results: list[Result] = []
         self._replay_seq: list[str] = []
 
-    def run_tests(self) -> None:
+    def run_tests(self) -> TestSuiteResult:
         tests = self._get_tests()
+        suite_result = TestSuiteResult(suite_name=self.__class__.__name__)
         for test in tests:
-            self._run_test(test)
-        pass
+            suite_result.results.extend(self._run_test(test))
+        return suite_result
 
-    def _run_test(self, test: AtomicTest): 
+    def _run_test(self, test: AtomicTest) -> list[Result]:
         self._replay_seq = self._replay_seq + test.sequence
         run_state = self._run_put()
-        for expectance in test.expects:
-            self.results.append(expectance.to_result(run_state))
+        results = [expectance.to_result(run_state) for expectance in test.expects]
         if test.reset_sequence:
             self._replay_seq = []
+        return results
 
     def _run_put(self) -> dict:
         cmd = [

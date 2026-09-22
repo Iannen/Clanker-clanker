@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from base_classes import BaseFixtureTest
+from base_classes import TestSuiteResult
 from import_checker import ImportReports
 
 
@@ -8,11 +8,11 @@ class GateInspector:
     def __init__(
         self,
         import_reports: ImportReports,
-        test_instances: list[BaseFixtureTest],
+        test_results: list[TestSuiteResult],
         reports_dir: Path,
     ) -> None:
         self.import_reports = import_reports
-        self.test_instances = test_instances
+        self.test_results = test_results
         self.reports_dir = reports_dir
 
     def evaluate_and_report(self) -> bool:
@@ -24,8 +24,8 @@ class GateInspector:
         tests_pass = self._report_fixture_tests()
 
         all_assertions = []
-        for instance in self.test_instances:
-            all_assertions.extend(instance.results)
+        for suite in self.test_results:
+            all_assertions.extend(suite.results)
 
         total_count = len(all_assertions)
         passed_count = sum(1 for r in all_assertions if r.passed)
@@ -64,16 +64,14 @@ class GateInspector:
 
     def _report_fixture_tests(self) -> bool:
         all_passed = True
-        for instance in self.test_instances:
-            suite_name = instance.__class__.__name__
-            print(f"\n[SUITE] {suite_name}")
-            suite_passed = True
+        for suite in self.test_results:
+            print(f"\n[SUITE] {suite.suite_name}")
+            suite_passed = suite.passed
 
-            for res in instance.results:
+            for res in suite.results:
                 status = "PASS" if res.passed else "FAIL"
                 print(f"  - [{status}] {res.assertion}")
                 if not res.passed:
-                    suite_passed = False
                     if res.details:
                         print(f"      Details: {res.details}")
 
@@ -103,11 +101,10 @@ class GateInspector:
             json.dump(import_data, f, indent=2)
 
         test_data = []
-        for instance in self.test_instances:
-            suite_name = instance.__class__.__name__
-            suite_results = [r.to_dict() for r in instance.results]
+        for suite in self.test_results:
+            suite_results = [r.to_dict() for r in suite.results]
             test_data.append(
-                {"suite": suite_name, "results": suite_results}
+                {"suite": suite.suite_name, "results": suite_results}
             )
 
         with open(
