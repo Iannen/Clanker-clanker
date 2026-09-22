@@ -2,7 +2,6 @@
 from core import (
     ActionResult,
     UserQuestions,
-    ExceptionPolicy,
     UserDecline,
     NoConfig,
     ProgramExit,
@@ -35,10 +34,6 @@ class AppEngine:
                 action_res = self._bootstrap()
             except UserDecline:
                 return ActionResult.MSG_DECLINED_INIT
-            except Exception as other_ex:
-                return ExceptionPolicy.interpret_as_fatal(other_ex)
-        except Exception as other_ex:
-            return ExceptionPolicy.interpret_as_fatal(other_ex)
 
         try:
             while True:
@@ -60,8 +55,6 @@ class AppEngine:
                         action_res = self.io.to_clipboard(rendered_text)
         except ProgramExit:
             return ActionResult.MSG_DEFAULT
-        except Exception as other_ex:
-            return ExceptionPolicy.interpret_as_fatal(other_ex)
 
     def _bootstrap(self) -> ActionResult:
         action_res, report, btn_map, ui_render, base_resolvers = self.session.get_runtime_config()

@@ -1,5 +1,4 @@
 #!/usr/bin/env -S python3 -B
-from core import ExceptionPolicy # le smell
 from core.engine import AppEngine
 from adapters import LinuxDiskAdapter, LinuxTerminalAdapter, ScriptedTeminalAdapter, RuamelYamlParserAdapter
 from modules import TUIServiceImpl, RenderServiceImpl, KBServiceImpl, IngestionServiceImpl
@@ -20,16 +19,14 @@ def main():
     args = parser.parse_args()
 
     try:
-        files_adapter = ExceptionPolicy.protect_adapter(LinuxDiskAdapter())
+        files_adapter = LinuxDiskAdapter()
  
         if args.test:
-            io_adapter = ExceptionPolicy.protect_adapter(
-                ScriptedTeminalAdapter(input_sequence=args.input_script, report_path=args.report_path)
-            )
+            io_adapter = ScriptedTeminalAdapter(input_sequence=args.input_script, report_path=args.report_path)
         else:
-            io_adapter = ExceptionPolicy.protect_adapter(LinuxTerminalAdapter())
+            io_adapter = LinuxTerminalAdapter()
             
-        cfg_ingestor = ExceptionPolicy.protect_adapter(RuamelYamlParserAdapter())
+        cfg_ingestor = RuamelYamlParserAdapter()
 
         ingestion = IngestionServiceImpl(files=files_adapter, cfg_ingestor=cfg_ingestor)
         renderer = RenderServiceImpl(files=files_adapter)

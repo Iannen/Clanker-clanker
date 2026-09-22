@@ -818,3 +818,13 @@ CXVI: STATIC IMPORT VERIFICATION & AST ANALYSIS HARNESS
     - Wired `check_imports(context)` into `content/test/ship_gate.py` as a pre-flight stage running ahead of sandbox setup.
     - Updated `GateInspector` in `content/test/reporter.py` to ingest static analysis results, emit structured file-level JSON reports (`import_verification.json`), and integrate AST violations into stdout logs and exit status verdicts.
     Reflection: Establishes fast pre-flight code analysis for automated remediation, though AST visitor logic requires further tuning for exception handler variables (`ex`), `__init__.py` re-exports, and overall test harness structural refactoring.
+
+CXVII: RETIREMENT OF EXCEPTION POLICY ABSTRACTION
+    Purpose: Eliminate the 'ExceptionPolicy' abstraction to streamline exception handling, remove awkward module dependencies, and simplify top-level failure reporting.
+    - Early architectural iterations attempted to structure exception classification via a dedicated policy abstraction, but this introduced tight coupling and awkward imports with minimal runtime value.
+    Actions:
+    - Removed `ExceptionPolicy` from core modules and stripped wrapped exception logic from the application core.
+    - Simplified `AppEngine.run()` to catch expected core control-flow exceptions (`UserDecline`, `NoConfig`, `ProgramExit`) and convert them directly into structured `ActionResult` exit strings.
+    - Shifted uncaught error presentation and traceback formatting entirely to the outer entrypoint (`clanker.py`) as a simple, high-level safety guard.
+    Reflection:
+    - Reaching across layer boundaries to wrap standard exceptions in artificial policy classes added unnecessary complexity; placing top-level error formatting directly at the application entrypoint keeps the core lean and clean.

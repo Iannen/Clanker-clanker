@@ -8,14 +8,6 @@ I. Ideas, complaints and non-critical bugs:
     - rabbithole solution is to have app write template to rowspec
 
 II. The pile
-
-3. Mull 'ExceptionPolicy'
-    (this too nice but not mission critical)
-    - its purpose is essentially to classify ex that core does not deal with
-    - and to format the msgs that get printed in main
-    - 'protection' must be done up in main
-    - while formatting via method is in appengine (it receives the ex)
-        - perhaps it all goes to main? 
    
 7. Landingzone for Validation / complaint ideas
     - manifest resolver must check if fileset is declared in pud_cfg with fallback to shared_cfg
@@ -56,6 +48,8 @@ Import verification
 - needs to not gaf about ex 
 - needs to also work the bottom level files
 - output format too, but less important
+
+
 
 Backlog tail, Selected item/items:
 

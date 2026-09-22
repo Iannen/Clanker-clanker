@@ -54,7 +54,7 @@ class EmptyRepoTests(BaseFixtureTest):
         ]
 
     def assert_end_of_sequence_terminates_properly(self) -> list[AtomicTest]:
-        return AtomicTest(sequence=[],expects=ExitMsg.contains(TestSequenceEnded.__name__))
+        return AtomicTest(sequence=[],expects=StderrContains.contains(TestSequenceEnded.__name__))
 
     def assert_clankerize_repo_contract(self) -> AtomicTest:
         return AtomicTest(
@@ -99,5 +99,5 @@ class CorruptRepoTests(BaseFixtureTest):
     def assert_clankerize_fail(self) -> AtomicTest:
         return AtomicTest(
             sequence=["yes", IOControl.ACCEPT_KEY, "asd"],
-            expects=ExitMsg.contains(WorkspaceAlreadyInitialized.__name__)
+            expects=StderrContains.contains(WorkspaceAlreadyInitialized.__name__)
         )
