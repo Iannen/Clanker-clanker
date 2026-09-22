@@ -1,5 +1,6 @@
 #!/usr/bin/env -S python3 -B
 import argparse
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -73,6 +74,7 @@ def main() -> None:
         if (git_dir / state_file).exists():
             fail(f"git operation in progress: {state_file}.")
 
+    print("[git] Checking remote...")
     fetch_res = run_cmd(["git", "fetch"])
     if fetch_res.returncode != 0:
         fail(f"remote fetch failed: {fetch_res.stderr.strip()}")
@@ -88,26 +90,36 @@ def main() -> None:
         if ancestor_res.returncode != 0:
             fail("local and remote branches have diverged.")
 
+    print("[git] Synced with remote.")
+
     res_diff_head = run_cmd(["git", "diff", "--quiet", "HEAD"])
     res_untracked = run_cmd(["git", "ls-files", "--others", "--exclude-standard"])
-    if res_diff_head.returncode == 0 and not res_untracked.stdout.strip() and behind_count == 0:
-        fail("nothing to save (no modified or untracked files found, and not behind remote).")
+    has_local_changes = res_diff_head.returncode != 0 or bool(res_untracked.stdout.strip())
 
-    add_res = run_cmd(["git", "add", "-A"])
-    if add_res.returncode != 0:
-        fail(f"failed to stage changes: {add_res.stderr.strip()}")
+    if not has_local_changes and behind_count == 0 and ahead_count == 0:
+        fail("nothing to save (no modified or untracked files found, and fully up to date with remote).")
 
-    if res_diff_head.returncode != 0 or res_untracked.stdout.strip():
+    stats_summary = ""
+    if has_local_changes:
+        add_res = run_cmd(["git", "add", "-A"])
+        if add_res.returncode != 0:
+            fail(f"failed to stage changes: {add_res.stderr.strip()}")
+
         commit_res = run_cmd(["git", "commit", "-m", "save"])
         if commit_res.returncode != 0:
             run_cmd(["git", "reset"])
             fail(f"commit failed: {commit_res.stderr.strip()}")
+
+        match = re.search(r"(\d+ files? changed(?:, \d+ insertions?\(\+\))?(?:, \d+ deletions?\(\-\))?)", commit_res.stdout)
+        if match:
+            stats_summary = f" ({match.group(1)})"
 
     if behind_count > 0:
         pull_res = run_cmd(["git", "merge", "--ff-only", "@{u}"])
         if pull_res.returncode != 0:
             fail(f"fast-forward merge failed: {pull_res.stderr.strip()}")
 
+    print(f"[git] Pushing to remote{stats_summary}")
     push_res = run_cmd(["git", "push"])
     if push_res.returncode != 0:
         fail(f"push failed: {push_res.stderr.strip()}")
