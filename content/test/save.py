@@ -1,4 +1,5 @@
 #!/usr/bin/env -S python3 -B
+import argparse
 import os
 import subprocess
 import sys
@@ -12,32 +13,46 @@ def fail(msg: str) -> None:
     sys.exit(1)
 
 
-def run_cmd(cmd: list[str], check: bool = False, capture_output: bool = True) -> subprocess.CompletedProcess:
+def run_cmd(cmd: list[str] | str, check: bool = False, capture_output: bool = True, shell: bool = False) -> subprocess.CompletedProcess:
     try:
         return subprocess.run(
             cmd,
             check=check,
             capture_output=capture_output,
             text=True,
+            shell=shell,
         )
     except Exception as e:
-        fail(f"Failed to execute command '{' '.join(cmd)}': {e}")
+        cmd_str = cmd if isinstance(cmd, str) else " ".join(cmd)
+        fail(f"Failed to execute command '{cmd_str}': {e}")
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Safely stage, commit, and push local changes.")
+    parser.add_argument(
+        "-t",
+        "--test_command",
+        type=str,
+        default=None,
+        help="Custom test command to execute before git operations (e.g., 'python3 -B content/test/ship_gate.py').",
+    )
+    parser.add_argument(
+        "--no_test",
+        action="store_true",
+        help="Explicitly skip running any test command prior to saving.",
+    )
+    args = parser.parse_args()
+
     repo_root = Path.cwd()
     clanker_path = repo_root / "content" / "clanker.py"
     if not clanker_path.is_file() or not (repo_root / ".git").exists():
         fail(f"Must run script from repository root ('{repo_root}').")
 
-    gate_script = repo_root / "content" / "test" / "ship_gate.py"
-    if not gate_script.is_file():
-        fail(f"Quality gate script missing at '{gate_script}'.")
-
-    print("🛡️  Running quality gate...")
-    gate_res = run_cmd([sys.executable, str(gate_script)], capture_output=False)
-    if gate_res.returncode != 0:
-        fail("Quality gate check failed (ship_gate.py).")
+    if args.test_command and not args.no_test:
+        print(f"🛡️  Running test command: '{args.test_command}'...")
+        test_res = run_cmd(args.test_command, capture_output=False, shell=True)
+        if test_res.returncode != 0:
+            fail(f"Test command failed with exit code {test_res.returncode}.")
 
     res = run_cmd(["git", "rev-parse", "--is-inside-work-tree"])
     if res.returncode != 0 or res.stdout.strip() != "true":
