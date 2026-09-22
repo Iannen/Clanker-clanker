@@ -41,7 +41,7 @@ def main() -> None:
         fail(f"must run script from repository root ('{repo_root}').")
 
     if args.test_command:
-        test_res = run_cmd(args.test_command, shell=True)
+        test_res = run_cmd(args.test_command, shell=True, capture_output=False)
         if test_res.returncode != 0:
             fail(f"test command failed with exit code {test_res.returncode}.")
 
