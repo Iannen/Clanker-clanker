@@ -5,13 +5,65 @@ import json
 from pathlib import Path
    
 """
-all files in expanded REL_ROOTS are subject to verification:
-1. all imports must be sourced from whitelist
-2. no dangling imports
-3. all referenced symbols must be imported
-
-the class aggregates on self a list of tuples of (path, violations)
+stdlib module: aggregates stdlib imports used in core
+core, dead things: entities, pathconstants, presentation msgs, exception taxonomy, dto
+core.engine_deps, interfaces relied upon by engine, fulfiled by modules. interfaces relied upon by modules, fulfilled by adapters
+app.engine, the root orchestrator
+any module: only from stdlib, app and app.deps (so not engine)
+any adapter: only from app, app.deps or anything not from above
 """
+module_list = ["stdlib", "core", "engine_deps", "modules", "asset_ingestion", "keyboard", "render_pipeline", "tui", "adapters"]
+
+policy = [
+    {
+        "dir": "app/core",
+        "allowed_imps": ["stdlib"]
+    },
+    {
+        "dir": "app/engine_deps",
+        "allowed_imps": ["stdlib", "core"]
+    },
+    {
+        "dir": "app/engine.py",
+        "allowed_imps": ["stdlib", "core", "engine_deps"]
+    },
+    {
+        "dir": "modules/asset_ingestion",
+        "allowed_imps": ["stdlib", "core", "engine_deps", "asset_ingestion"]
+    },
+    {
+        "dir": "modules/keyboard",
+        "allowed_imps": ["stdlib", "core", "engine_deps", "keyboard"]
+    },
+    {
+        "dir": "modules/render_pipeline",
+        "allowed_imps": ["stdlib", "core", "engine_deps", "render_pipeline"]
+    },
+    {
+        "dir": "modules/tui",
+        "allowed_imps": ["stdlib", "core", "engine_deps", "tui"]
+    },
+    {
+        "dir": "adapters",
+        "allowed_imps": ["core", "engine_deps"],
+        "outside_module_list": "allowed"
+    },
+    {
+        "dir": "test",
+        "allowed_imps": ["all"],
+        "outside_module_list": "allowed"
+    },
+    {
+        "dir": "clanker.py",
+        "allowed_imps": ["core.engine", "adapters", "modules"],
+        "outside_module_list": "allowed"
+    },
+    {
+        "dir": "stdlib.py",
+        "outside_module_list": "allowed"
+    },
+]
+
 
 class ImportVerifier:
     MODULE_WHITELIST = {"app", "app/deps", "asset_ingestion", "keyboard", "ports_adapters", "render_pipeline", "tui", "stdlib"}

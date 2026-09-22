@@ -1,27 +1,27 @@
 filesets:
   core: {includes: [
-    content/app,
+    content/core,
     content/clanker.py]}
 
-  asset_ingestion: {includes: [content/asset_ingestion]}
+  asset_ingestion: {includes: [content/modules/asset_ingestion]}
 
   cfg_validation: {includes: [
-    content/app/entities.py,  
+    content/core/entities.py,  
     content/a_lib/shared-assets/config-fragments, 
     .clanker/config.yaml]}
 
   presentation: {includes: [
-    content/app,
+    content/core,
     content/clanker.py]}
 
   ports_adapters: {includes: [
     content/ports_adapters]}
 
   test_cover: {includes: [
-    content/app/engine.py,
-    content/app/constants.py,
-    content/app/exceptions.py,
-    content/app/presentation.py,
+    content/core/engine.py,
+    content/core/constants.py,
+    content/core/exceptions.py,
+    content/core/presentation.py,
     content/clanker.py,
     content/ports_adapters/terminal/scripted_terminal_adapter.py,
     content/test], excludes: [

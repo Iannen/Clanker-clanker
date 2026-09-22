@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 import base64
 import collections
 from collections import defaultdict
 from contextlib import contextmanager
-from dataclasses import dataclass, field
 import json
 import os
 from pathlib import Path

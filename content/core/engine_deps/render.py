@@ -1,0 +1,19 @@
+from stdlib import ABC, abstractmethod
+from core import Render, ActionResult
+from core.engine_deps import RenderContext, UIRenderContext
+
+class RenderService(ABC):
+    @abstractmethod
+    def set_ui_render(self, ui_render: Render) -> None: ...
+    @abstractmethod
+    def render_ui(self, ctx: UIRenderContext, msg: ActionResult) -> str: ...
+    @abstractmethod
+    def render_prompt(self, ctx: RenderContext) -> str: ...
+
+class RenderService(ABC):
+    @abstractmethod
+    def set_ui_render(self, ui_render: Render) -> None: ...
+    @abstractmethod
+    def render_ui(self, ctx: UIRenderContext, msg: ActionResult) -> str: ...
+    @abstractmethod
+    def render_prompt(self, ctx: RenderContext) -> str: ...

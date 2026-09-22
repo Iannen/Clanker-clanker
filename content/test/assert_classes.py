@@ -11,8 +11,8 @@ from expectance_impls import (
     Result
 )
 
-from ports_adapters.ports import IOControl
-from app import RepoContract, TestSequenceEnded, WorkspaceAlreadyInitialized, ActionResult, PathTokens
+from core.engine_deps import IOControl
+from core import RepoContract, TestSequenceEnded, WorkspaceAlreadyInitialized, ActionResult, PathTokens
 
 @shadow_of(ExitMsgImpl)
 class ExitMsg:

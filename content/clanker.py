@@ -1,13 +1,8 @@
 #!/usr/bin/env -S python3 -B
-from ports_adapters.disk_adapter import LinuxDiskAdapter
-from ports_adapters.terminal.linux import LinuxTerminalAdapter
-from ports_adapters.terminal.scripted_terminal_adapter import ScriptedTeminalAdapter
-from ports_adapters.yaml_parser import RuamelYamlParserAdapter
-from app import AppEngine, ExceptionPolicy
-from render_pipeline import RenderServiceImpl
-from asset_ingestion import IngestionServiceImpl
-from keyboard import KBServiceImpl
-from tui import TUIServiceImpl
+from core import ExceptionPolicy # le smell
+from core.engine import AppEngine
+from adapters import LinuxDiskAdapter, LinuxTerminalAdapter, ScriptedTeminalAdapter, RuamelYamlParserAdapter
+from modules import TUIServiceImpl, RenderServiceImpl, KBServiceImpl, IngestionServiceImpl
 import sys
 import traceback
 import argparse
