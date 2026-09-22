@@ -4,6 +4,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from ruamel.yaml import YAML
 
 
 def fail(msg: str) -> None:
@@ -24,6 +25,22 @@ def run_cmd(cmd: list[str] | str, shell: bool = False, capture_output: bool = Tr
         fail(f"failed to execute command '{cmd_str}': {e}")
 
 
+def load_configured_test_cmd(repo_root: Path) -> str | None:
+    cfg_file = repo_root / ".clanker" / "config.yaml"
+    if not cfg_file.is_file():
+        return None
+    try:
+        yaml = YAML(typ="safe")
+        data = yaml.load(cfg_file)
+        if isinstance(data, dict):
+            system_cfg = data.get("system")
+            if isinstance(system_cfg, dict):
+                return system_cfg.get("test_command")
+    except Exception as e:
+        fail(f"failed to parse config at '{cfg_file}': {e}")
+    return None
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Safely stage, commit, and push local changes.")
     parser.add_argument("--test_command", type=str, default=None)
@@ -33,16 +50,20 @@ def main() -> None:
     if args.test_command and args.no_test:
         fail("cannot specify both --test_command and --no_test.")
 
-    if not args.test_command and not args.no_test:
-        fail("explicit flag required: must provide either --test_command <cmd> or --no_test.")
-
     repo_root = Path.cwd()
-    clanker_path = repo_root / "content" / "clanker.py"
-    if not clanker_path.is_file() or not (repo_root / ".git").exists():
+    if not (repo_root / ".git").exists():
         fail(f"must run script from repository root ('{repo_root}').")
 
+    test_cmd = None
     if args.test_command:
-        test_res = run_cmd(args.test_command, shell=True, capture_output=False)
+        test_cmd = args.test_command
+    elif not args.no_test:
+        test_cmd = load_configured_test_cmd(repo_root)
+        if not test_cmd:
+            fail("no test command provided via CLI and none configured in .clanker/config.yaml.")
+
+    if test_cmd:
+        test_res = run_cmd(test_cmd, shell=True, capture_output=False)
         if test_res.returncode != 0:
             fail(f"test command failed with exit code {test_res.returncode}.")
 

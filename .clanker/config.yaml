@@ -1,3 +1,6 @@
+system:
+  test_command: "python3 -B content/test/ship_gate.py"
+
 filesets:
   core: {includes: [
     content/core,
