@@ -149,7 +149,6 @@ class UIRenderImpl(Expectance):
         details = ""
 
         if passed and match:
-            # Evaluate fluent .where() validators if any exist
             for field, predicate in self.validators.items():
                 val = match.group(field)
                 if not predicate(val):

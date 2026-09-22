@@ -14,7 +14,7 @@ from app import (
     Resolver,
     ConfigAssembly
 )
-from app.deps.render import RenderService, RenderContext, UIRenderContext
+from app.deps import RenderService, RenderContext, UIRenderContext
 from ports_adapters.ports import DiskPort, NoSuchFile
 from render_pipeline.content_shaper import ContentShaper
 

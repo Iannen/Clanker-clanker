@@ -3,12 +3,11 @@ from ports_adapters.disk_adapter import LinuxDiskAdapter
 from ports_adapters.terminal.linux import LinuxTerminalAdapter
 from ports_adapters.terminal.scripted_terminal_adapter import ScriptedTeminalAdapter
 from ports_adapters.yaml_parser import RuamelYamlParserAdapter
-from app.engine import AppEngine
-from app.exceptions import ExceptionPolicy
-from render_pipeline.render_service import RenderServiceImpl
-from asset_ingestion.ingestion_service import IngestionServiceImpl
-from keyboard.keyboard_service import KBServiceImpl
-from tui.tui_service import TUIServiceImpl
+from app import AppEngine, ExceptionPolicy
+from render_pipeline import RenderServiceImpl
+from asset_ingestion import IngestionServiceImpl
+from keyboard import KBServiceImpl
+from tui import TUIServiceImpl
 import sys
 import traceback
 import argparse
@@ -27,8 +26,7 @@ def main():
 
     try:
         files_adapter = ExceptionPolicy.protect_adapter(LinuxDiskAdapter())
-        
-        # Select IO bridge based on test mode flag
+ 
         if args.test:
             io_adapter = ExceptionPolicy.protect_adapter(
                 ScriptedTeminalAdapter(input_sequence=args.input_script, report_path=args.report_path)

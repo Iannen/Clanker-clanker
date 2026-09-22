@@ -1,6 +1,6 @@
 from stdlib import json, os
 from ports_adapters.ports import TerminalPort, IOControl, TerminalFailure
-from app.exceptions import TestSequenceEnded
+from app import TestSequenceEnded
 
 class ScriptedTeminalAdapter(TerminalPort):
     def __init__(self, input_sequence: list[str], report_path: str):
@@ -42,7 +42,7 @@ class ScriptedTeminalAdapter(TerminalPort):
             raise TerminalFailure from ex
 
     def get_acceptance(self, required_phrase: str | None) -> tuple[str, str]:
-        # Reuses the standard interaction pattern driven by read_char()
+
         if required_phrase is None:
             while True:
                 ch = self.read_char()

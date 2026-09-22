@@ -1,6 +1,6 @@
 from stdlib import ABC, abstractmethod
 from app import Render, ActionResult
-from app.deps.keyboard import RenderContext, UIRenderContext
+from app.deps import RenderContext, UIRenderContext
 
 class RenderService(ABC):
     @abstractmethod

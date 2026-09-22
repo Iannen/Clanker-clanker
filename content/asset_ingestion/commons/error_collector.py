@@ -1,5 +1,5 @@
 from stdlib import contextmanager, Generator
-from app.deps.ingestion import Report
+from app.deps import Report
 
 class ErrorCollector(Report):
     def __init__(self) -> None:

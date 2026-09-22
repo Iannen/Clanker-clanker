@@ -8,10 +8,7 @@ from app import (
     ProgramExit,
     HotPromptRequested,
 )
-from app.deps.ingestion import IngestionService
-from app.deps.keyboard import KBService
-from app.deps.render import RenderService
-from app.deps.tui import TUIService
+from app.deps import IngestionService, KBService, RenderService, TUIService
 
 class AppEngine:
     def __init__(

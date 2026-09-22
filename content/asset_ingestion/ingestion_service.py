@@ -11,7 +11,8 @@ from app import (
     Render,
     Resolver,
 )
-from app.deps.ingestion import IngestionService, Report
+from app.deps import IngestionService, Report
+
 from ports_adapters.ports import NoSuchFile, AssetExists, DiskPort, ConfigParseError, ConfigParserPort
 from asset_ingestion import (
     ErrorCollector,

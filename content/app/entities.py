@@ -1,6 +1,5 @@
 from stdlib import dataclass, field, ClassVar, Callable
 
-#eliminate all default assignments
 @dataclass
 class TruncationSpec:
     TYPE_TAIL: ClassVar[str] = "tail"

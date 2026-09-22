@@ -8,7 +8,7 @@ from app import (
     Render,
     Resolver,
 )
-from app.deps.keyboard import KBService, RenderContext, UIRenderContext
+from app.deps import KBService, RenderContext, UIRenderContext
 
 class KBServiceImpl(KBService):
     def setup(self, btn_map: dict[str, Button], base_resolvers: list[Resolver]) -> None:

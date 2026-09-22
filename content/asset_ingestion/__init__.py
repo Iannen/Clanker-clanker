@@ -17,3 +17,5 @@ from .assemblers.rtc import *
 
 from .validators.assets import *
 from .validators.file_list import *
+
+from .ingestion_service import *

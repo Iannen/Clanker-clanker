@@ -1,5 +1,5 @@
 from app import ActionResult, ProgramExit, UserDecline, UserQuestions
-from app.deps.tui import TUIService
+from app.deps import TUIService
 from ports_adapters.ports import IOControl, TerminalPort
 
 class TUIServiceImpl(TUIService):

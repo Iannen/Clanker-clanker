@@ -1,5 +1,5 @@
 from stdlib import ABC, abstractmethod
-from app.exceptions import Notice, Fatal
+from app import Notice, Fatal
 
 class IOControl:
     ACCEPTED = "accepted"
