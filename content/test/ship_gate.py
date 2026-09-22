@@ -28,7 +28,7 @@ def main() -> None:
     success = evaluate_and_report_results(import_checker, test_instances, paths["reports_dir"])
 
     status = "✅ SUCCESS" if success else "❌ FAILED"
-    print(f"Result: {status}")
+    print(f"Accumulated test result: {status}")
     sys.exit(0 if success else 1)
 
 
