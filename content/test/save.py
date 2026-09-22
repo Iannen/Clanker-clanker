@@ -1,6 +1,5 @@
 #!/usr/bin/env -S python3 -B
 import argparse
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -30,11 +29,10 @@ def run_cmd(cmd: list[str] | str, check: bool = False, capture_output: bool = Tr
 def main() -> None:
     parser = argparse.ArgumentParser(description="Safely stage, commit, and push local changes.")
     parser.add_argument(
-        "-t",
         "--test_command",
         type=str,
         default=None,
-        help="Custom test command to execute before git operations (e.g., 'python3 -B content/test/ship_gate.py').",
+        help="Custom test command to execute before git operations.",
     )
     parser.add_argument(
         "--no_test",
@@ -43,12 +41,18 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    if args.test_command and args.no_test:
+        fail("Cannot specify both --test_command and --no_test.")
+
+    if not args.test_command and not args.no_test:
+        fail("Explicit flag required: must provide either --test_command <cmd> or --no_test.")
+
     repo_root = Path.cwd()
     clanker_path = repo_root / "content" / "clanker.py"
     if not clanker_path.is_file() or not (repo_root / ".git").exists():
         fail(f"Must run script from repository root ('{repo_root}').")
 
-    if args.test_command and not args.no_test:
+    if args.test_command:
         print(f"🛡️  Running test command: '{args.test_command}'...")
         test_res = run_cmd(args.test_command, capture_output=False, shell=True)
         if test_res.returncode != 0:
