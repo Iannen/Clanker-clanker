@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-from base_classes import BaseFixtureTest
 from expectance_impls import Result
 
 class GateInspector:
@@ -74,31 +73,43 @@ class GateInspector:
         return all_passed
 
     def _evaluate_import_checker(self) -> bool:
+        from dataclasses import asdict
+
         import_report_path = self.reports_dir / "import_verification.json"
-        
+
+        reports_dicts = [asdict(rep) for rep in self.import_checker.reports]
+
         # Write report JSON file
         import_report_path.write_text(
-            json.dumps(self.import_checker.report, indent=2), encoding="utf-8"
+            json.dumps(reports_dicts, indent=2), encoding="utf-8"
         )
 
         total_violations = sum(
-            len(entry["violations"]["non_whitelisted_imports"])
-            + len(entry["violations"]["dangling_imports"])
-            + len(entry["violations"]["missing_imports"])
-            for entry in self.import_checker.report
+            len(rep.forbidden_import_statements)
+            + len(rep.dangling_imports)
+            + len(rep.undeclared_imports)
+            for rep in self.import_checker.reports
         )
 
         print(f"\n[SUITE] ImportVerifier")
         if total_violations == 0:
-            print(f"  - [PASS] Static import analysis ({len(self.import_checker.report)} files clean)")
+            print(
+                f"  - [PASS] Static import analysis ({len(self.import_checker.reports)} files clean)"
+            )
             print("  Summary: PASSED")
             return True
         else:
-            print(f"  - [FAIL] Static import analysis ({total_violations} violations found)")
-            for entry in self.import_checker.report:
-                file_path = entry["file"]
-                for rule_name, violations in entry["violations"].items():
+            print(
+                f"  - [FAIL] Static import analysis ({total_violations} violations found)"
+            )
+            for rep in self.import_checker.reports:
+                categories = [
+                    ("forbidden_imports", rep.forbidden_import_statements),
+                    ("dangling_imports", rep.dangling_imports),
+                    ("undeclared_imports", rep.undeclared_imports),
+                ]
+                for cat_name, violations in categories:
                     for v in violations:
-                        print(f"      [{file_path}] {rule_name}: {v}")
+                        print(f"      [{rep.rel_path}] {cat_name}: {v}")
             print("  Summary: FAILED")
             return False

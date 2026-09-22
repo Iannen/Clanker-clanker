@@ -1,159 +1,185 @@
 #!/usr/bin/env -S python3 -B
 import ast
 import builtins
-import json
+from dataclasses import dataclass, field
 from pathlib import Path
-   
-"""
-stdlib module: aggregates stdlib imports used in core
-core, dead things: entities, pathconstants, presentation msgs, exception taxonomy, dto
-core.engine_deps, interfaces relied upon by engine, fulfiled by modules. interfaces relied upon by modules, fulfilled by adapters
-app.engine, the root orchestrator
-any module: only from stdlib, app and app.deps (so not engine)
-any adapter: only from app, app.deps or anything not from above
-"""
-module_list = ["stdlib", "core", "engine_deps", "modules", "asset_ingestion", "keyboard", "render_pipeline", "tui", "adapters"]
+
+module_list = ["stdlib", "core", "core.engine", "core.engine_deps", "modules", "asset_ingestion", "keyboard", "render_pipeline", "tui", "adapters"]
+
+@dataclass
+class PolicyRule:
+    dir: str
+    allowed_imps: list[str] = field(default_factory=list)
+    outside_module_list: bool = False
 
 policy = [
-    {
-        "dir": "app/core",
-        "allowed_imps": ["stdlib"]
-    },
-    {
-        "dir": "app/engine_deps",
-        "allowed_imps": ["stdlib", "core"]
-    },
-    {
-        "dir": "app/engine.py",
-        "allowed_imps": ["stdlib", "core", "engine_deps"]
-    },
-    {
-        "dir": "modules/asset_ingestion",
-        "allowed_imps": ["stdlib", "core", "engine_deps", "asset_ingestion"]
-    },
-    {
-        "dir": "modules/keyboard",
-        "allowed_imps": ["stdlib", "core", "engine_deps", "keyboard"]
-    },
-    {
-        "dir": "modules/render_pipeline",
-        "allowed_imps": ["stdlib", "core", "engine_deps", "render_pipeline"]
-    },
-    {
-        "dir": "modules/tui",
-        "allowed_imps": ["stdlib", "core", "engine_deps", "tui"]
-    },
-    {
-        "dir": "adapters",
-        "allowed_imps": ["core", "engine_deps"],
-        "outside_module_list": "allowed"
-    },
-    {
-        "dir": "test",
-        "allowed_imps": ["all"],
-        "outside_module_list": "allowed"
-    },
-    {
-        "dir": "clanker.py",
-        "allowed_imps": ["core.engine", "adapters", "modules"],
-        "outside_module_list": "allowed"
-    },
-    {
-        "dir": "stdlib.py",
-        "outside_module_list": "allowed"
-    },
+    PolicyRule(
+        dir="core/core",
+        allowed_imps=["stdlib"],
+    ),
+    PolicyRule(
+        dir="core/engine_deps",
+        allowed_imps=["stdlib", "core"],
+    ),
+    PolicyRule(
+        dir="core/engine.py",
+        allowed_imps=["stdlib", "core", "core.engine_deps"],
+    ),
+    PolicyRule(
+        dir="modules/asset_ingestion",
+        allowed_imps=["stdlib", "core", "core.engine_deps", "asset_ingestion"],
+    ),
+    PolicyRule(
+        dir="modules/keyboard",
+        allowed_imps=["stdlib", "core", "core.engine_deps", "keyboard"],
+    ),
+    PolicyRule(
+        dir="modules/render_pipeline",
+        allowed_imps=["stdlib", "core", "core.engine_deps", "render_pipeline"],
+    ),
+    PolicyRule(
+        dir="modules/tui",
+        allowed_imps=["stdlib", "core", "core.engine_deps", "tui"],
+    ),
+    PolicyRule(
+        dir="adapters",
+        allowed_imps=["core", "core.engine_deps"],
+        outside_module_list=True,
+    ),
+    PolicyRule(
+        dir="test",
+        allowed_imps=["all"],
+        outside_module_list=True,
+    ),
+    PolicyRule(
+        dir="clanker.py",
+        allowed_imps=["core.engine", "adapters", "modules"],
+        outside_module_list=True,
+    ),
+    PolicyRule(
+        dir="stdlib.py",
+        outside_module_list=True,
+    ),
 ]
+
+@dataclass
+class FileReport:
+    rel_path: str
+    forbidden_import_statements: list[str] = field(default_factory=list)
+    dangling_imports: list[str] = field(default_factory=list)
+    undeclared_imports: list[str] = field(default_factory=list)
 
 
 class ImportVerifier:
-    MODULE_WHITELIST = {"app", "app/deps", "asset_ingestion", "keyboard", "ports_adapters", "render_pipeline", "tui", "stdlib"}
-    REL_ROOTS = {"app", "asset_ingestion", "keyboard", "ports_adapters", "render_pipeline", "tui", "stdlib", "content/clanker.py"}
-
     def __init__(self, content_dir: Path) -> None:
         self._content_dir = content_dir
-        self.report: list[dict] = []
-        
-        path_content_tuples = self._process_roots()
-        self._analyze_files(path_content_tuples)
+        self.reports: list[FileReport] = []
 
-    def _process_roots(self) -> list[tuple[Path, str]]:
-        path_content_tuples: list[tuple[Path, str]] = []
-        for rel_path_str in self.REL_ROOTS:
-            target_path = self._content_dir / rel_path_str
+        self._verify_policies()
 
-            if target_path.is_file() and target_path.suffix == ".py":
-                content = target_path.read_text(encoding="utf-8")
-                path_content_tuples.append((target_path, content))
+    def _verify_policies(self) -> None:
+        for rule in policy:
+            paths = self._resolve_rule_paths(rule)
+            self._apply_policy_to_paths(paths, rule)
 
-            elif target_path.is_dir():
-                for py_file in target_path.rglob("*.py"):
-                    content = py_file.read_text(encoding="utf-8")
-                    path_content_tuples.append((py_file, content))
+    def _resolve_rule_paths(self, rule: PolicyRule) -> list[Path]:
+        target = self._content_dir / rule.dir
+        if target.is_file():
+            return (
+                [target]
+                if target.name not in ("__init__.py", "stdlib.py")
+                else []
+            )
+        if target.is_dir():
+            return [
+                p
+                for p in target.rglob("*.py")
+                if p.name not in ("__init__.py", "stdlib.py")
+            ]
+        return []
 
-        return path_content_tuples
+    def _apply_policy_to_paths(
+        self, paths: list[Path], rule: PolicyRule
+    ) -> None:
+        for file_path in paths:
+            report = self._analyze_file(file_path, rule)
+            self.reports.append(report)
 
-    def _analyze_files(self, path_content_tuples: list[tuple[Path, str]]) -> None:
-        for file_path, content in path_content_tuples:
-            self.report.append(self._analyze_file(file_path, content))
-
-    def _analyze_file(self, file_path: Path, content: str) -> dict:
-        relative_path = f"{self._content_dir.name}/{file_path.relative_to(self._content_dir)}"
-
+    def _analyze_file(self, file_path: Path, rule: PolicyRule) -> FileReport:
+        relative_path = file_path.relative_to(self._content_dir).as_posix()
+        content = file_path.read_text(encoding="utf-8")
         tree = ast.parse(content)
 
-        imports: dict[str, str] = {}  # bound_name -> module/symbol source
-        non_whitelisted_imports: list[str] = []
+        imports: dict[str, str] = {}
+        forbidden_imports: list[str] = []
         referenced_symbols: set[str] = set()
         local_declarations: set[str] = set()
 
+        allowed_imps = rule.allowed_imps
+        allow_outside = rule.outside_module_list
+
         for node in ast.walk(tree):
-            # 1. Collect Imports & Whitelist Check
             if isinstance(node, ast.Import):
                 for alias in node.names:
-                    root_module = alias.name.split(".")[0]
-                    bound_name = alias.asname or alias.name.split(".")[0]
-                    imports[bound_name] = alias.name
+                    full_module = alias.name
+                    root_module = full_module.split(".")[0]
+                    bound_name = alias.asname or root_module
+                    imports[bound_name] = f"import {alias.name}"
 
-                    if root_module not in self.MODULE_WHITELIST:
-                        non_whitelisted_imports.append(
-                            f"Line {getattr(node, 'lineno', '?')}: import '{alias.name}' not in MODULE_WHITELIST"
+                    if not self._is_import_permitted(
+                        full_module, allowed_imps, allow_outside
+                    ):
+                        forbidden_imports.append(
+                            f"Line {getattr(node, 'lineno', '?')}: import '{alias.name}' is forbidden for '{relative_path}'"
                         )
 
             elif isinstance(node, ast.ImportFrom):
-                module_name = node.module or ""
-                root_module = module_name.split(".")[0] if module_name else ""
+                full_module = node.module or ""
 
-                if root_module and root_module not in self.MODULE_WHITELIST:
-                    non_whitelisted_imports.append(
-                        f"Line {getattr(node, 'lineno', '?')}: from '{module_name}' not in MODULE_WHITELIST"
+                if full_module and not self._is_import_permitted(
+                    full_module, allowed_imps, allow_outside
+                ):
+                    forbidden_imports.append(
+                        f"Line {getattr(node, 'lineno', '?')}: from '{full_module}' is forbidden for '{relative_path}'"
                     )
 
                 for alias in node.names:
                     bound_name = alias.asname or alias.name
-                    imports[bound_name] = f"{module_name}.{alias.name}" if module_name else alias.name
+                    full_src = (
+                        f"from {full_module} import {alias.name}"
+                        if full_module
+                        else f"import {alias.name}"
+                    )
+                    imports[bound_name] = full_src
 
-            # 2. Local Scope Declarations
-            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            elif isinstance(
+                node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+            ):
                 local_declarations.add(node.name)
             elif isinstance(node, ast.arg):
                 local_declarations.add(node.arg)
+            elif isinstance(node, ast.ExceptHandler) and node.name:
+                local_declarations.add(node.name)
             elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
                 local_declarations.add(node.id)
-
-            # 3. Referenced Symbols
             elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
                 referenced_symbols.add(node.id)
 
-        # Rule 2: Dangling Imports
         dangling_imports = [
             f"Unused import '{bound}' ({src})"
             for bound, src in imports.items()
             if bound not in referenced_symbols
         ]
 
-        # Rule 3: Missing Imports
-        builtin_names = set(dir(builtins))
-        missing_imports = [
+        builtin_names = set(dir(builtins)) | {
+            "__name__",
+            "__file__",
+            "__doc__",
+            "__package__",
+            "__spec__",
+            "__annotations__",
+        }
+        undeclared_imports = [
             f"Unresolved symbol '{symbol}'"
             for symbol in referenced_symbols
             if (
@@ -163,11 +189,24 @@ class ImportVerifier:
             )
         ]
 
-        return {
-            "file": relative_path,
-            "violations": {
-                "non_whitelisted_imports": non_whitelisted_imports,
-                "dangling_imports": dangling_imports,
-                "missing_imports": missing_imports,
-            },
-        }
+        return FileReport(
+            rel_path=relative_path,
+            forbidden_import_statements=forbidden_imports,
+            dangling_imports=dangling_imports,
+            undeclared_imports=undeclared_imports,
+        )
+    def _is_import_permitted(
+        self, full_module: str, allowed_imps: list[str], allow_outside: bool
+    ) -> bool:
+        if "all" in allowed_imps:
+            return True
+
+        root_module = full_module.split(".")[0]
+
+        if full_module in allowed_imps or root_module in allowed_imps:
+            return True
+
+        if allow_outside and root_module not in module_list:
+            return True
+
+        return False

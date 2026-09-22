@@ -12,7 +12,7 @@ from expectance_impls import (
 )
 
 from core.engine_deps import IOControl
-from core import RepoContract, TestSequenceEnded, WorkspaceAlreadyInitialized, ActionResult, PathTokens
+from core import RepoContract, TestSequenceEnded, WorkspaceAlreadyInitialized, ActionResult
 
 @shadow_of(ExitMsgImpl)
 class ExitMsg:

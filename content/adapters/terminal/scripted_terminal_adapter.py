@@ -1,4 +1,5 @@
-from stdlib import json, os
+import json
+import os
 from core.engine_deps import TerminalPort, IOControl, TerminalFailure
 from core import TestSequenceEnded
 

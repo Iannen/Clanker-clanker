@@ -1,4 +1,5 @@
-from stdlib import os, Path
+import os
+from pathlib import Path
 from core.engine_deps import DiskPort, NoSuchFile, AssetExists, FileAccessError, InvalidPathToken
 from core import PathTokens
 

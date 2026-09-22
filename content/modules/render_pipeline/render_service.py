@@ -15,7 +15,7 @@ from core import (
     ConfigAssembly
 )
 from core.engine_deps import RenderService, RenderContext, UIRenderContext, DiskPort, NoSuchFile
-from .content_shaper import ContentShaper
+from . import ContentShaper
 
 class RenderServiceImpl(RenderService):
     def __init__(self, files: DiskPort) -> None:

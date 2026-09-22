@@ -1,4 +1,8 @@
-from stdlib import base64, os, sys, termios, tty
+import base64
+import os
+import sys
+import termios
+import tty
 from core.engine_deps import TerminalPort, IOControl, TerminalFailure
 
 class LinuxTerminalAdapter(TerminalPort):

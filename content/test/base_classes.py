@@ -3,9 +3,7 @@ import json
 import sys
 import subprocess
 from pathlib import Path
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-import re
+from expectance_impls import Result, AtomicTest
 
 class BaseFixtureTest:
     TEMPLATE_FIXTURE_NAME: str = ""
