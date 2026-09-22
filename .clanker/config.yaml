@@ -36,11 +36,14 @@ filesets:
     ]}
 
   test_harness: {includes: [
+    content/clanker.py,
+    content/adapters/terminal/scripted_terminal_adapter.py,
     content/test], excludes: [
       content/test/reports,
       content/test/sandboxes,
       content/test/test_repos,
-      content/test/expectance_impls.py
+      content/test/save.py,
+      content/test/import_checker.py
     ]}
 
 domains:

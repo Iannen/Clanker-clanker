@@ -67,9 +67,19 @@ Testsystem razzia:
 [x] 'ship_gate.py'
     - aligned orchestration to run_import_policy_suite() -> ImportReports
     - added clean result summary before exit
-[ ] 'BaseFixtureTest' & Assert Prong Alignment
+[x] 'BaseFixtureTest' & Assert Prong Alignment
     - Define 'TestSuiteResult' dataclass in base_classes.py
     - Update BaseFixtureTest.run_tests() -> TestSuiteResult (no longer mutates self.results)
     - Update 'ship_gate.py' to collect list[TestSuiteResult]
     - Update 'reporter.py' to accept and format list[TestSuiteResult]
+
+Testsystem assert thoughts
+n. Align fixture runner state and simplify expectance assertions
+    - Introduce an ExecutionSnapshot data structure to replace raw run_state dictionary
+    - Capture immediate point-in-time metrics per AtomicTest step instead of accumulating event history lists
+    - Metrics structure: exit_code, stdout, stderr, latest_write, latest_clipboard, latest_input, disk_paths
+    - Reset step-specific metrics (e.g. latest_clipboard, latest_input) to None when the step action produces no corresponding output
+    - Refactor expectance implementations to evaluate directly against ExecutionSnapshot fields
+    - Remove fluent builder/mutation pattern on expectance classes in favor of direct constructor initialization (e.g. ExitMsg(msg) instead of ExitMsg.contains(msg))
+    - Ensure expectance classes in assert_classes.py are fully typed, self-documenting, and directly mirror underlying evaluation logic
 
