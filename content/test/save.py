@@ -10,11 +10,11 @@ def fail(msg: str) -> None:
     sys.exit(1)
 
 
-def run_cmd(cmd: list[str] | str, shell: bool = False) -> subprocess.CompletedProcess:
+def run_cmd(cmd: list[str] | str, shell: bool = False, capture_output: bool = True) -> subprocess.CompletedProcess:
     try:
         return subprocess.run(
             cmd,
-            capture_output=True,
+            capture_output=capture_output,
             text=True,
             shell=shell,
         )
