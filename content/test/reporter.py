@@ -1,115 +1,116 @@
 import json
 from pathlib import Path
-from expectance_impls import Result
+from base_classes import BaseFixtureTest
+from import_checker import ImportReports
+
 
 class GateInspector:
-    def __init__(self, import_checker, test_instances, reports_dir: Path) -> None:
-        self.import_checker = import_checker
+    def __init__(
+        self,
+        import_reports: ImportReports,
+        test_instances: list[BaseFixtureTest],
+        reports_dir: Path,
+    ) -> None:
+        self.import_reports = import_reports
         self.test_instances = test_instances
         self.reports_dir = reports_dir
 
     def evaluate_and_report(self) -> bool:
-        self.reports_dir.mkdir(parents=True, exist_ok=True)
-
-        print("\n" + "=" * 60)
+        print("\n============================================================")
         print(" SHIP GATE EVALUATION REPORT")
-        print("=" * 60)
+        print("============================================================")
 
-        import_passed = self._evaluate_import_checker()
+        import_pass = self._report_import_verification()
+        tests_pass = self._report_fixture_tests()
 
-        all_passed = import_passed
-        total_assertions = 0
-        failed_assertions = 0
-
+        all_assertions = []
         for instance in self.test_instances:
-            cls_name = instance.__class__.__name__
-            report_file = self.reports_dir / f"{cls_name.lower()}.json"
+            all_assertions.extend(instance.results)
 
-            results_dicts = [
-                res.to_dict() if isinstance(res, Result) else res
-                for res in instance.results
-            ]
+        total_count = len(all_assertions)
+        passed_count = sum(1 for r in all_assertions if r.passed)
+        failed_count = total_count - passed_count
 
-            payload = {
-                "test_class": cls_name,
-                "fixture_used": instance.TEMPLATE_FIXTURE_NAME,
-                "sandbox_dir": str(instance.sandbox_dir),
-                "results": results_dicts,
-            }
-
-            report_file.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-
-            instance_passed = True
-            print(f"\n[SUITE] {cls_name}")
-
-            for res in results_dicts:
-                total_assertions += 1
-                passed = res.get("passed", False)
-                assertion = res.get("assertion", "")
-                details = res.get("details", "")
-
-                status = "PASS" if passed else "FAIL"
-
-                if not passed:
-                    instance_passed = False
-                    all_passed = False
-                    failed_assertions += 1
-
-                print(f"  - [{status}] {assertion}")
-                if not passed and details:
-                    print(f"      Details: {details}")
-
-            suite_status = "PASSED" if instance_passed else "FAILED"
-            print(f"  Summary: {suite_status}")
-
-        print("\n" + "-" * 60)
+        print("\n------------------------------------------------------------")
         print(
-            f"TOTAL: {total_assertions} assertions | "
-            f"PASSED: {total_assertions - failed_assertions} | "
-            f"FAILED: {failed_assertions}"
+            f"TOTAL: {total_count} assertions | PASSED: {passed_count} | FAILED: {failed_count}"
         )
-        print("=" * 60 + "\n")
+        print("============================================================\n")
 
-        return all_passed
+        self._write_json_reports()
 
-    def _evaluate_import_checker(self) -> bool:
-        from dataclasses import asdict
+        return import_pass and tests_pass
 
-        import_report_path = self.reports_dir / "import_verification.json"
-
-        reports_dicts = [asdict(rep) for rep in self.import_checker.reports]
-
-        # Write report JSON file
-        import_report_path.write_text(
-            json.dumps(reports_dicts, indent=2), encoding="utf-8"
-        )
-
-        total_violations = sum(
-            len(rep.forbidden_import_statements)
-            + len(rep.dangling_imports)
-            + len(rep.undeclared_imports)
-            for rep in self.import_checker.reports
-        )
-
-        print(f"\n[SUITE] ImportVerifier")
-        if total_violations == 0:
+    def _report_import_verification(self) -> bool:
+        print("\n[SUITE] ImportPolicySuite")
+        if self.import_reports.is_clean:
             print(
-                f"  - [PASS] Static import analysis ({len(self.import_checker.reports)} files clean)"
+                f"  - [PASS] Static import analysis ({self.import_reports.total_files_checked} files clean)"
             )
             print("  Summary: PASSED")
             return True
-        else:
-            print(
-                f"  - [FAIL] Static import analysis ({total_violations} violations found)"
+
+        for report in self.import_reports.reports:
+            if not report.is_clean:
+                print(f"  - [FAIL] {report.rel_path}")
+                for err in (
+                    report.forbidden_import_statements
+                    + report.dangling_imports
+                    + report.undeclared_imports
+                ):
+                    print(f"      * {err}")
+        print("  Summary: FAILED")
+        return False
+
+    def _report_fixture_tests(self) -> bool:
+        all_passed = True
+        for instance in self.test_instances:
+            suite_name = instance.__class__.__name__
+            print(f"\n[SUITE] {suite_name}")
+            suite_passed = True
+
+            for res in instance.results:
+                status = "PASS" if res.passed else "FAIL"
+                print(f"  - [{status}] {res.assertion}")
+                if not res.passed:
+                    suite_passed = False
+                    if res.details:
+                        print(f"      Details: {res.details}")
+
+            if not suite_passed:
+                all_passed = False
+
+            summary = "PASSED" if suite_passed else "FAILED"
+            print(f"  Summary: {summary}")
+
+        return all_passed
+
+    def _write_json_reports(self) -> None:
+        import_data = [
+            {
+                "rel_path": r.rel_path,
+                "forbidden_import_statements": r.forbidden_import_statements,
+                "dangling_imports": r.dangling_imports,
+                "undeclared_imports": r.undeclared_imports,
+            }
+            for r in self.import_reports.reports
+        ]
+        with open(
+            self.reports_dir / "import_verification.json",
+            "w",
+            encoding="utf-8",
+        ) as f:
+            json.dump(import_data, f, indent=2)
+
+        test_data = []
+        for instance in self.test_instances:
+            suite_name = instance.__class__.__name__
+            suite_results = [r.to_dict() for r in instance.results]
+            test_data.append(
+                {"suite": suite_name, "results": suite_results}
             )
-            for rep in self.import_checker.reports:
-                categories = [
-                    ("forbidden_imports", rep.forbidden_import_statements),
-                    ("dangling_imports", rep.dangling_imports),
-                    ("undeclared_imports", rep.undeclared_imports),
-                ]
-                for cat_name, violations in categories:
-                    for v in violations:
-                        print(f"      [{rep.rel_path}] {cat_name}: {v}")
-            print("  Summary: FAILED")
-            return False
+
+        with open(
+            self.reports_dir / "latest_run.json", "w", encoding="utf-8"
+        ) as f:
+            json.dump(test_data, f, indent=2)

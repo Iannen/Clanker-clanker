@@ -13,7 +13,7 @@ if str(content_dir) not in sys.path:
 from base_classes import BaseFixtureTest
 from reporter import GateInspector
 import assert_classes
-from import_checker import ImportVerifier
+from import_checker import ImportPolicySuite, ImportReports
 
 
 def main() -> None:
@@ -24,11 +24,11 @@ def main() -> None:
         paths["sandboxes_dir"],
         paths["clanker_path"]
     )
-    import_checker = run_import_verifier(paths["content_dir"])
-    success = evaluate_and_report_results(import_checker, test_instances, paths["reports_dir"])
-
+    import_reports = run_import_policy_suite(paths["content_dir"])
+    success = evaluate_and_report_results(import_reports, test_instances, paths["reports_dir"])
+    
     status = "✅ SUCCESS" if success else "❌ FAILED"
-    print(f"Accumulated test result: {status}")
+    print(f"Result: {status}")
     sys.exit(0 if success else 1)
 
 
@@ -96,12 +96,13 @@ def prepare_and_run_test_suites(fixtures_dir: Path, sandboxes_dir: Path, clanker
     return instances
 
 
-def run_import_verifier(content_dir: Path) -> ImportVerifier:
-    return ImportVerifier(content_dir)
+def run_import_policy_suite(content_dir: Path) -> ImportReports:
+    suite = ImportPolicySuite(content_dir)
+    return suite.run_tests()
 
 
-def evaluate_and_report_results(import_checker: ImportVerifier, test_instances: list[BaseFixtureTest], reports_dir: Path) -> bool:
-    inspector = GateInspector(import_checker, test_instances, reports_dir)
+def evaluate_and_report_results(import_reports: ImportReports, test_instances: list[BaseFixtureTest], reports_dir: Path) -> bool:
+    inspector = GateInspector(import_reports, test_instances, reports_dir)
     return inspector.evaluate_and_report()
 
 

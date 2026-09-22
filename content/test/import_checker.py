@@ -4,13 +4,26 @@ import builtins
 from dataclasses import dataclass, field
 from pathlib import Path
 
-module_list = ["stdlib", "core", "core.engine", "core.engine_deps", "modules", "asset_ingestion", "keyboard", "render_pipeline", "tui", "adapters"]
+module_list = [
+    "stdlib",
+    "core",
+    "core.engine",
+    "core.engine_deps",
+    "modules",
+    "asset_ingestion",
+    "keyboard",
+    "render_pipeline",
+    "tui",
+    "adapters",
+]
+
 
 @dataclass
 class PolicyRule:
     dir: str
     allowed_imps: list[str] = field(default_factory=list)
     outside_module_list: bool = False
+
 
 policy = [
     PolicyRule(
@@ -62,6 +75,7 @@ policy = [
     ),
 ]
 
+
 @dataclass
 class FileReport:
     rel_path: str
@@ -69,18 +83,49 @@ class FileReport:
     dangling_imports: list[str] = field(default_factory=list)
     undeclared_imports: list[str] = field(default_factory=list)
 
+    @property
+    def is_clean(self) -> bool:
+        return not (
+            self.forbidden_import_statements
+            or self.dangling_imports
+            or self.undeclared_imports
+        )
 
-class ImportVerifier:
+
+@dataclass
+class ImportReports:
+    reports: list[FileReport] = field(default_factory=list)
+
+    @property
+    def is_clean(self) -> bool:
+        return all(r.is_clean for r in self.reports)
+
+    @property
+    def total_files_checked(self) -> int:
+        return len(self.reports)
+
+    @property
+    def total_violations(self) -> int:
+        return sum(
+            len(r.forbidden_import_statements)
+            + len(r.dangling_imports)
+            + len(r.undeclared_imports)
+            for r in self.reports
+        )
+
+
+class ImportPolicySuite:
     def __init__(self, content_dir: Path) -> None:
         self._content_dir = content_dir
-        self.reports: list[FileReport] = []
 
-        self._verify_policies()
-
-    def _verify_policies(self) -> None:
+    def run_tests(self) -> ImportReports:
+        aggregated_reports = ImportReports()
         for rule in policy:
             paths = self._resolve_rule_paths(rule)
-            self._apply_policy_to_paths(paths, rule)
+            for file_path in paths:
+                report = self._analyze_file(file_path, rule)
+                aggregated_reports.reports.append(report)
+        return aggregated_reports
 
     def _resolve_rule_paths(self, rule: PolicyRule) -> list[Path]:
         target = self._content_dir / rule.dir
@@ -97,13 +142,6 @@ class ImportVerifier:
                 if p.name not in ("__init__.py", "stdlib.py")
             ]
         return []
-
-    def _apply_policy_to_paths(
-        self, paths: list[Path], rule: PolicyRule
-    ) -> None:
-        for file_path in paths:
-            report = self._analyze_file(file_path, rule)
-            self.reports.append(report)
 
     def _analyze_file(self, file_path: Path, rule: PolicyRule) -> FileReport:
         relative_path = file_path.relative_to(self._content_dir).as_posix()
@@ -195,6 +233,7 @@ class ImportVerifier:
             dangling_imports=dangling_imports,
             undeclared_imports=undeclared_imports,
         )
+
     def _is_import_permitted(
         self, full_module: str, allowed_imps: list[str], allow_outside: bool
     ) -> bool:
