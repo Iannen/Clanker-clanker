@@ -13,6 +13,8 @@ from expectance_impls import (
 
 from core.engine_deps import IOControl
 from core import RepoContract, TestSequenceEnded, WorkspaceAlreadyInitialized, ActionResult
+from adapters.terminal.scripted_terminal_adapter import ScriptedTerminalAdapter
+
 
 @shadow_of(ExitMsgImpl)
 class ExitMsg:
@@ -40,13 +42,15 @@ class UIRender:
     def where(self, field: str, predicate: callable) -> "UIRender": pass
     def to_result(self, run_state: dict) -> Result: pass
 
+END_APP = ScriptedTerminalAdapter.END_APP_EVENT
+
 class EmptyRepoTests(BaseFixtureTest):
     TEMPLATE_FIXTURE_NAME = "empty_repo"
 
     def assert_abort_keys_decline_init(self) -> list[AtomicTest]:
         return [
             AtomicTest(
-                sequence=[key],
+                sequence=[key, END_APP],
                 expects=ExitMsg.contains(ActionResult.MSG_DECLINED_INIT),
                 reset_sequence=True,
             )
@@ -54,16 +58,19 @@ class EmptyRepoTests(BaseFixtureTest):
         ]
 
     def assert_end_of_sequence_terminates_properly(self) -> list[AtomicTest]:
-        return AtomicTest(sequence=[],expects=StderrContains.contains(TestSequenceEnded.__name__))
+        return AtomicTest(sequence=[END_APP],expects=StderrContains.contains(TestSequenceEnded.__name__))
 
-    def assert_clankerize_repo_contract(self) -> AtomicTest:
-        return AtomicTest(
-            sequence=["yes", IOControl.ACCEPT_KEY],
-            expects=[
-                DiskState.has(RepoContract.get_all_target_paths()),
-                UIRender.contains(ActionResult.BOOTSTRAP_SUCCESS)
-            ],
-        )
+    def assert_clankerize_repo_contract(self) -> list[AtomicTest]:
+        return [
+            AtomicTest(
+                sequence=["yes", IOControl.ACCEPT_KEY],
+                expects=UIRender.contains(ActionResult.BOOTSTRAP_SUCCESS)
+            ),
+            AtomicTest(
+                sequence=[END_APP],
+                expects=DiskState.has(RepoContract.get_all_target_paths()),
+            ),
+        ]
 
     def navigate_ui_and_copy_prompts(self) -> list[AtomicTest]:
         ats = []
@@ -98,6 +105,6 @@ class CorruptRepoTests(BaseFixtureTest):
 
     def assert_clankerize_fail(self) -> AtomicTest:
         return AtomicTest(
-            sequence=["yes", IOControl.ACCEPT_KEY, "asd"],
+            sequence=["yes", IOControl.ACCEPT_KEY, "asd", END_APP],
             expects=StderrContains.contains(WorkspaceAlreadyInitialized.__name__)
         )

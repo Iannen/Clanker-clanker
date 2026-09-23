@@ -1,6 +1,9 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 import re
+from typing import Callable, Optional
+from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
+from typing import Union
 
 import functools
 
@@ -51,7 +54,7 @@ def shadow_of(impl_class):
 
 class Expectance(ABC):
     @abstractmethod
-    def to_result(self, run_state: dict) -> Result:
+    def to_result(self, frame: ExecutionFrame) -> "Result":
         pass
 
 class ExitMsgImpl(Expectance):
@@ -62,18 +65,12 @@ class ExitMsgImpl(Expectance):
         self.expected_msg = expected_msg
         return self
 
-    def to_result(self, run_state: dict) -> Result:
-        actual = run_state.get("exit_msg")
+    def to_result(self, frame: ExecutionFrame) -> "Result":
+        actual = frame.stdout
         passed = self.expected_msg in actual
-
         assertion = f"ExitMsg contains '{self.expected_msg}'"
-        
-        details = "" if passed else f"Expected exit_msg '{self.expected_msg}', got '{actual}'"
-        return Result(
-            assertion=assertion,
-            passed=passed,
-            details=details,
-        )
+        details = "" if passed else f"Expected stdout/exit_msg '{self.expected_msg}', got '{actual}'"
+        return Result(assertion=assertion, passed=passed, details=details)
 
 class StderrContainsImpl(Expectance):
     def __init__(self) -> None:
@@ -83,23 +80,22 @@ class StderrContainsImpl(Expectance):
         self.expected_text = expected_text
         return self
 
-    def to_result(self, run_state: dict) -> Result:
-        actual = run_state.get("stderr", "")
+    def to_result(self, frame: ExecutionFrame) -> "Result":
+        actual = frame.stderr or ""
         passed = self.expected_text in actual
         details = "" if passed else f"Expected stderr to contain '{self.expected_text}', got '{actual}'"
         return Result(assertion=f"Stderr contains '{self.expected_text}'", passed=passed, details=details)
 
 class DiskStateImpl(Expectance):
     def __init__(self) -> None:
-        self.expected_paths = []
+        self.expected_paths: list[str] = []
 
     def has(self, expected_paths: list[str] | set[str]) -> "DiskStateImpl":
         self.expected_paths = list(expected_paths)
         return self
 
-    def to_result(self, run_state: dict) -> Result:
-        actual_paths = set(run_state.get("disk_paths"))
-        
+    def to_result(self, frame: ExecutionFrame) -> "Result":
+        actual_paths = set(frame.disk_paths)
         missing = []
         for expected in self.expected_paths:
             rel_path = expected
@@ -110,35 +106,41 @@ class DiskStateImpl(Expectance):
 
         passed = len(missing) == 0
         assertion = "Disk state matches expected repository contract paths"
-        details = "" if passed else f"Missing expected paths on disk: {missing}"
+        
+        if passed:
+            details = ""
+        else:
+            expected_formatted = ",\n".join(f"'{p}'" for p in self.expected_paths)
+            actual_formatted = "\n".join(f"'{p}'" for p in frame.disk_paths) if frame.disk_paths else "(empty)"
+            details = (
+                f"Missing expected paths on disk:\n"
+                f"expected:\n{expected_formatted}\n"
+                f"actual:\n{actual_formatted}"
+            )
+
         return Result(assertion=assertion, passed=passed, details=details)
 
 class UIRenderImpl(Expectance):
     def __init__(self) -> None:
         self.template = ""
-        self.validators: dict[str, callable] = {}
+        self.validators: dict[str, Callable[[str], bool]] = {}
 
     def contains(self, template: str) -> "UIRenderImpl":
         self.template = template
         return self
 
-    def where(self, field: str, predicate: callable) -> "UIRenderImpl":
+    def where(self, field: str, predicate: Callable[[str], bool]) -> "UIRenderImpl":
         self.validators[field] = predicate
         return self
 
-    def to_result(self, run_state: dict) -> Result:
-        ui_frames = run_state.get("ui_frames", [])
-        latest_frame = ui_frames[-1] if ui_frames else "(No UI frames captured)"
-
-        regex_pattern = re.sub(r"\{(\w+)\}", r"(?P<\1>.+?)", re.escape(self.template))
+    def to_result(self, frame: ExecutionFrame) -> "Result":
+        latest_frame = frame.latest_write or "(No UI render captured)"
 
         parts = []
         last_idx = 0
-        field_names = []
         for match in re.finditer(r"\{(\w+)\}", self.template):
             parts.append(re.escape(self.template[last_idx:match.start()]))
             field_name = match.group(1)
-            field_names.append(field_name)
             parts.append(f"(?P<{field_name}>.+?)")
             last_idx = match.end()
         parts.append(re.escape(self.template[last_idx:]))
@@ -164,7 +166,7 @@ class UIRenderImpl(Expectance):
 class PromptRenderImpl(Expectance):
     def __init__(self) -> None:
         self.expected_prompt = ""
-        self.minimum_lines = None
+        self.minimum_lines: Optional[int] = None
 
     def contains(self, expected_prompt: str) -> "PromptRenderImpl":
         self.expected_prompt = expected_prompt
@@ -174,10 +176,8 @@ class PromptRenderImpl(Expectance):
         self.minimum_lines = count
         return self
 
-    def to_result(self, run_state: dict) -> Result:
-        rendered_prompts = run_state.get("rendered_prompts", [])
-        latest_prompt = rendered_prompts[-1] if rendered_prompts else ""
-
+    def to_result(self, frame: ExecutionFrame) -> "Result":
+        latest_prompt = frame.latest_clipboard or ""
         passed = True
         failures = []
 
@@ -189,9 +189,7 @@ class PromptRenderImpl(Expectance):
             line_count = len(latest_prompt.splitlines()) if latest_prompt else 0
             if line_count < self.minimum_lines:
                 passed = False
-                failures.append(
-                    f"Expected at least {self.minimum_lines} lines, got {line_count}."
-                )
+                failures.append(f"Expected at least {self.minimum_lines} lines, got {line_count}.")
 
         assertion_parts = []
         if self.expected_prompt:
@@ -206,13 +204,16 @@ class PromptRenderImpl(Expectance):
 @dataclass
 class AtomicTest:
     sequence: list[str]
-    expects: list[Expectance] | Expectance
+    expects: Union[Expectance, list[Expectance]]
     name: str = ""
     reset_sequence: bool = False
 
     def __post_init__(self) -> None:
         if not isinstance(self.expects, list):
             self.expects = [self.expects]
+
+    def evaluate(self, frame: ExecutionFrame) -> list[Result]:
+        return [expectance.to_result(frame) for expectance in self.expects]
 
 @dataclass
 class Result:

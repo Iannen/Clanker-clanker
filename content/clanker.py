@@ -1,6 +1,6 @@
 #!/usr/bin/env -S python3 -B
 from core.engine import AppEngine
-from adapters import LinuxDiskAdapter, LinuxTerminalAdapter, ScriptedTeminalAdapter, RuamelYamlParserAdapter
+from adapters import LinuxDiskAdapter, LinuxTerminalAdapter, ScriptedTerminalAdapter, RuamelYamlParserAdapter
 from modules import TUIServiceImpl, RenderServiceImpl, KBServiceImpl, IngestionServiceImpl
 import sys
 import traceback
@@ -22,7 +22,7 @@ def main():
         files_adapter = LinuxDiskAdapter()
  
         if args.test:
-            io_adapter = ScriptedTeminalAdapter(input_sequence=args.input_script, report_path=args.report_path)
+            io_adapter = ScriptedTerminalAdapter(args.input_script, args.report_path)
         else:
             io_adapter = LinuxTerminalAdapter()
             

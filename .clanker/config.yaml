@@ -43,7 +43,9 @@ filesets:
       content/test/sandboxes,
       content/test/test_repos,
       content/test/save.py,
-      content/test/import_checker.py
+      content/test/import_checker.py,
+      content/test/reporter.py,
+      content/test/ship_gate.py
     ]}
 
 domains:
