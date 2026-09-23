@@ -66,14 +66,7 @@ class EmptyRepoTests(BaseFixtureTest):
 
     def assert_end_of_sequence_terminates_properly(self) -> list[AtomicTest]:
         return AtomicTest(sequence=[],expects=StderrContains.contains(TestSequenceEnded.__name__),reset_sequence=True)
-    """
-    def assert_clankerize_repo_contract(self) -> list[AtomicTest]:
-        return AtomicTest(
-                sequence=["yes", IOControl.ACCEPT_KEY],
-                expects=UIRender.contains(ActionResult.BOOTSTRAP_SUCCESS)
-            )
 
-    """
     def assert_clankerize_repo_contract(self) -> list[AtomicTest]:
         return [
             AtomicTest(
