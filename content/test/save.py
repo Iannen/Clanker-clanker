@@ -6,7 +6,6 @@ import sys
 from pathlib import Path
 from ruamel.yaml import YAML
 
-
 def fail(msg: str) -> None:
     print(f"Save aborted: {msg}", file=sys.stderr)
     sys.exit(1)
