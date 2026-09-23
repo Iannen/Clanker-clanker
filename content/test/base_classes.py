@@ -5,7 +5,7 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 from expectance_impls import Result, AtomicTest
-from adapters.terminal.scripted_terminal_adapter import ExecutionFrame, ScriptedTerminalAdapter
+from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
 
 
 @dataclass
@@ -24,7 +24,7 @@ class BaseFixtureTest:
     def __init__(self, sandbox_dir: Path, clanker_path: Path) -> None:
         self.sandbox_dir = sandbox_dir
         self.clanker_path = clanker_path
-        self.report_path = self.sandbox_dir / "latest_run.json"
+        self.report_path = self.sandbox_dir / "records.json"
         self._replay_seq: list[str] = []
 
     def run_tests(self) -> TestSuiteResult:
@@ -38,15 +38,15 @@ class BaseFixtureTest:
         self._replay_seq.extend(test.sequence)
         frames = self._run_put()
 
-        target_frame = frames[-1]
-        results = test.evaluate(target_frame)
+        #target_frame = frames[-1]
+        results = test.evaluate(frames)
         
         if test.reset_sequence:
             self._replay_seq = []
         return results
 
     def _run_put(self) -> list[ExecutionFrame]:
-        clean_replay_seq = [s for s in self._replay_seq if s != "__END_APP__"]
+        clean_replay_seq = self._replay_seq
 
         cmd = [
             sys.executable,
@@ -56,7 +56,7 @@ class BaseFixtureTest:
             "--input-script",
             *clean_replay_seq,
             "--report-path",
-            str(self.report_path),
+            str(self.sandbox_dir),
         ]
 
         try:
@@ -81,34 +81,10 @@ class BaseFixtureTest:
             try:
                 with open(self.report_path, "r", encoding="utf-8") as f:
                     report_data = json.load(f)
-                    raw_records = report_data.get("records", [])
-                    for record in raw_records:
-                        frames.append(
-                            ExecutionFrame(
-                                latest_input=record.get("latest_input"),
-                                latest_write=record.get("latest_write"),
-                                latest_clipboard=record.get("latest_clipboard"),
-                                disk_paths=record.get("disk_paths", []),
-                            )
-                        )
-            except Exception:
-                pass
-
-        final_disk_paths = []
-        if self.sandbox_dir.is_dir():
-            for path in sorted(self.sandbox_dir.rglob("*")):
-                final_disk_paths.append(str(path.relative_to(self.sandbox_dir)))
-
-        if self._replay_seq and self._replay_seq[-1] == ScriptedTerminalAdapter.END_APP_EVENT:
-            frames.append(
-                ExecutionFrame(
-                    latest_input=ScriptedTerminalAdapter.END_APP_EVENT,
-                    exit_code=exit_code,
-                    stdout=stdout,
-                    stderr=stderr,
-                    disk_paths=final_disk_paths,
-                )
-            )
+                    frames = [ExecutionFrame(**r) for r in report_data.get("records")]
+            except Exception as ex:
+                print(ex)
+                
         return frames
 
     def _get_tests(self) -> list[AtomicTest]:

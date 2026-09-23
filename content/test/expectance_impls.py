@@ -4,7 +4,7 @@ import re
 from typing import Callable, Optional
 from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
 from typing import Union
-
+from core import PathTokens
 import functools
 
 def shadow_of(impl_class):
@@ -54,7 +54,7 @@ def shadow_of(impl_class):
 
 class Expectance(ABC):
     @abstractmethod
-    def to_result(self, frame: ExecutionFrame) -> "Result":
+    def to_result(self, frames: list[ExecutionFrame]) -> "Result":
         pass
 
 class ExitMsgImpl(Expectance):
@@ -65,7 +65,9 @@ class ExitMsgImpl(Expectance):
         self.expected_msg = expected_msg
         return self
 
-    def to_result(self, frame: ExecutionFrame) -> "Result":
+    def to_result(self, frames: list[ExecutionFrame]) -> "Result":
+        
+        frame = frames[-1]
         actual = frame.stdout
         passed = self.expected_msg in actual
         assertion = f"ExitMsg contains '{self.expected_msg}'"
@@ -73,6 +75,7 @@ class ExitMsgImpl(Expectance):
         return Result(assertion=assertion, passed=passed, details=details)
 
 class StderrContainsImpl(Expectance):
+
     def __init__(self) -> None:
         self.expected_text = ""
 
@@ -80,7 +83,8 @@ class StderrContainsImpl(Expectance):
         self.expected_text = expected_text
         return self
 
-    def to_result(self, frame: ExecutionFrame) -> "Result":
+    def to_result(self, frames: list[ExecutionFrame]) -> "Result":
+        frame = frames[-1]
         actual = frame.stderr or ""
         passed = self.expected_text in actual
         details = "" if passed else f"Expected stderr to contain '{self.expected_text}', got '{actual}'"
@@ -91,10 +95,18 @@ class DiskStateImpl(Expectance):
         self.expected_paths: list[str] = []
 
     def has(self, expected_paths: list[str] | set[str]) -> "DiskStateImpl":
-        self.expected_paths = list(expected_paths)
+        sanitized = []
+        for path in expected_paths:
+            p = str(path)
+            if p.startswith(PathTokens.PUD):
+                p = p[len(PathTokens.PUD):].lstrip("/\\")
+            sanitized.append(p)
+            
+        self.expected_paths = sanitized
         return self
 
-    def to_result(self, frame: ExecutionFrame) -> "Result":
+    def to_result(self, frames: list[ExecutionFrame]) -> "Result":
+        frame = frames[-2]
         actual_paths = set(frame.disk_paths)
         missing = []
         for expected in self.expected_paths:
@@ -133,7 +145,8 @@ class UIRenderImpl(Expectance):
         self.validators[field] = predicate
         return self
 
-    def to_result(self, frame: ExecutionFrame) -> "Result":
+    def to_result(self, frames: list[ExecutionFrame]) -> "Result":
+        frame = frames[-2]
         latest_frame = frame.latest_write or "(No UI render captured)"
 
         parts = []
@@ -176,7 +189,8 @@ class PromptRenderImpl(Expectance):
         self.minimum_lines = count
         return self
 
-    def to_result(self, frame: ExecutionFrame) -> "Result":
+    def to_result(self, frames: list[ExecutionFrame]) -> "Result":
+        frame = frames[-2]
         latest_prompt = frame.latest_clipboard or ""
         passed = True
         failures = []
@@ -212,8 +226,8 @@ class AtomicTest:
         if not isinstance(self.expects, list):
             self.expects = [self.expects]
 
-    def evaluate(self, frame: ExecutionFrame) -> list[Result]:
-        return [expectance.to_result(frame) for expectance in self.expects]
+    def evaluate(self, frames: list[ExecutionFrame]) -> list[Result]:
+        return [expectance.to_result(frames) for expectance in self.expects]
 
 @dataclass
 class Result:

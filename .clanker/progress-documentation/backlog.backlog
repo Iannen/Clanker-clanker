@@ -145,3 +145,7 @@ def assertclass(assertclassBaseclass):
         .mkdir(adir)
         .filesExist([thepath, adir])
 '''
+
+But next up: making reports unique, so they dont get overwritten
+- we name them from method name + index
+- we should pass the sandbox root dir AND the name of the report to the adapter
