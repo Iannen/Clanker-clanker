@@ -58,7 +58,6 @@ class EmptyRepoTests(BaseFixtureTest):
             AtomicTest(
                 sequence=[key],
                 expects=ExitMsg.contains(ActionResult.MSG_DECLINED_INIT),
-                reset_sequence=True,
             )
             for key in IOControl.ABORT_KEYS
         ]
@@ -71,20 +70,21 @@ class EmptyRepoTests(BaseFixtureTest):
                     UIRender.contains(ActionResult.BOOTSTRAP_SUCCESS),
                     DiskState.has(RepoContract.get_all_target_paths())
                 ],  
-                reset_sequence=True,
             ),
         ]
 
     def navigate_ui_and_copy_prompts(self) -> list[AtomicTest]:
         ats = []
+        prefix = ["1"]
         ats.append(AtomicTest(
-                sequence=["1"],
+                sequence=list(prefix),
                 expects=UIRender.contains("Domain 'manifest-analysis' on key '1' selected"),
             ))
         for c in "as":
+            prefix.append(c)
             ats.append(
                 AtomicTest(
-                    sequence=[c],
+                    sequence=list(prefix),
                     expects=[
                         UIRender.contains(ActionResult.COPIED_TO_CLIPBOARD)
                             .where("lines", lambda l: int(l) > 100)
@@ -94,9 +94,10 @@ class EmptyRepoTests(BaseFixtureTest):
                 )
             )
         for c in "df":
+            prefix.append(c)
             ats.append(
                 AtomicTest(
-                    sequence=[c],
+                    sequence=list(prefix),
                     expects = UIRender.contains(ActionResult.UNBOUND_KEY)
                         .where("key", lambda k, target=c: str(k) == target)
                 )
@@ -116,7 +117,6 @@ class CorruptRepoTests(BaseFixtureTest):
             AtomicTest(
                 sequence=["yes", IOControl.ACCEPT_KEY],
                 expects=UIRender.contains(ActionResult.BOOTSTRAP_SUCCESS),
-                reset_sequence=True,
             ),
             SandboxOperations().rm(*all_targets),
         ]
@@ -127,7 +127,6 @@ class CorruptRepoTests(BaseFixtureTest):
                 AtomicTest(
                     sequence=["yes", IOControl.ACCEPT_KEY],
                     expects=StderrContains.contains(WorkspaceAlreadyInitialized.__name__),
-                    reset_sequence=True,
                 ),
                 SandboxOperations().rm(dir_path),
             ])
@@ -138,7 +137,6 @@ class CorruptRepoTests(BaseFixtureTest):
                 AtomicTest(
                     sequence=["yes", IOControl.ACCEPT_KEY],
                     expects=StderrContains.contains(WorkspaceAlreadyInitialized.__name__),
-                    reset_sequence=True,
                 ),
                 SandboxOperations().rm(file_path),
             ])

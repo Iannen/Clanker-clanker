@@ -24,7 +24,6 @@ class BaseFixtureTest:
     def __init__(self, sandbox_dir: Path, clanker_path: Path) -> None:
         self.sandbox_dir = sandbox_dir
         self.clanker_path = clanker_path
-        self._replay_seq: list[str] = []
 
     def run_tests(self) -> TestSuiteResult:
         actions = self._get_actions()
@@ -37,24 +36,18 @@ class BaseFixtureTest:
         return suite_result
 
     def _run_test(self, test: AtomicTest) -> list[Result]:
-        self._replay_seq.extend(test.sequence)
         framedump_path = self.sandbox_dir / "framedumps" / test.frames_filename
-        frames = self._run_put(framedump_path)
+        frames = self._run_put(test.sequence, framedump_path)
+        return test.evaluate(frames)
 
-        results = test.evaluate(frames)
-        
-        if test.reset_sequence:
-            self._replay_seq = []
-        return results
-
-    def _run_put(self, framedump_path: Path) -> list[ExecutionFrame]:
+    def _run_put(self, sequence: list[str], framedump_path: Path) -> list[ExecutionFrame]:
         cmd = [
             sys.executable,
             "-B",
             str(self.clanker_path),
             "--test",
             "--input-script",
-            *self._replay_seq,
+            *sequence,
             "--framedump-path",
             str(framedump_path),
         ]

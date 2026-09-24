@@ -49,7 +49,8 @@ Import verification
 - needs to also work the bottom level files
 - output format too, but less important
 
-Backlog tail, Selected item/items:
+
+
 goals (sticky)
 1. all classes instantiated in assert methods should have a shadow, so the reader can work in that file without investigating the other files of test system
 2. the console output should not be verbose, dropping big complaints on the user. instead the reports should contain the 'visibility' stuff (complete ui render | list of observed paths, etc)
@@ -58,16 +59,16 @@ goals (sticky)
 Plan: 3 phases
 
 1. Phase 1: Eliminate input sequence accumulation from the test runner system
-    [ ] 'content/test/expectance_impls.py': Strip reset_sequence field from AtomicTest dataclass
+    [x] 'content/test/expectance_impls.py': Strip reset_sequence field from AtomicTest dataclass
         - remove reset_sequence: bool = False field definition from AtomicTest
-    [ ] 'content/test/base_classes.py': Remove input sequence accumulation from BaseFixtureTest
+    [x] 'content/test/base_classes.py': Remove input sequence accumulation from BaseFixtureTest
         - remove self._replay_seq state tracking from __init__
         - pass test.sequence directly to _run_put instead of appending to accumulated state
         - remove reset_sequence checking and clearing logic in _run_test
-    [ ] 'content/test/assert_classes.py': Explicitize input sequences across assert methods
+    [x] 'content/test/assert_classes.py': Explicitize input sequences across assert methods
         - remove all reset_sequence=True keyword arguments from AtomicTest instantiations
         - update chained test sequences in navigate_ui_and_copy_prompts to include complete prefix inputs from app startup
-Backlog tail end
+Backlog tail, Selected item/items:
 Phase 2. make test system all about exit 0 scenarios. exit 1 is a true failure case, not part of normal ops
 - ExecutionFrame: delete 'stdout', replace with 'exit_msg'
 - 'StderrContainsImpl' delete. replace its usages with 'ExitMsgImpl'
@@ -94,7 +95,7 @@ Phase 2. make test system all about exit 0 scenarios. exit 1 is a true failure c
         -end method as normal
     - in '_run_test' prior to sending frames to test:
         - check if final frame is exit 1. if it is, then the result is a failure of the atomic test with stderr of last frame as detail, helping us see what went down inside the subprocess
-
+Backlog tail end
 Phase 3: Expectance classes / shadow classes revamp
     - only one expectance class. its job is to evaluate the frames resulting from a sequence.
         - it evaluates second to last frame for info about

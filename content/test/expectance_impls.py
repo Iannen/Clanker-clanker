@@ -277,7 +277,6 @@ class AtomicTest:
     sequence: list[str]
     expects: Union[Expectance, list[Expectance]]
     name: str = ""
-    reset_sequence: bool = False
 
     def __post_init__(self) -> None:
         if not isinstance(self.expects, list):
