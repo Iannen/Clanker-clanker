@@ -1,5 +1,4 @@
 from base_classes import BaseFixtureTest
-
 from expectance_impls import (
     shadow_of,
     DiskStateImpl,
