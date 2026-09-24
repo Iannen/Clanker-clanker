@@ -4,7 +4,7 @@ import sys
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
-from expectance_impls import Result, AtomicTest
+from expectance_impls import Result, AtomicTest, SandboxOperations
 from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
 
 
@@ -27,10 +27,13 @@ class BaseFixtureTest:
         self._replay_seq: list[str] = []
 
     def run_tests(self) -> TestSuiteResult:
-        tests = self._get_tests()
+        actions = self._get_actions()
         suite_result = TestSuiteResult(suite_name=self.__class__.__name__)
-        for test in tests:
-            suite_result.results.extend(self._run_test(test))
+        for action in actions:
+            if isinstance(action, SandboxOperations):
+                action.execute(self.sandbox_dir)
+            elif isinstance(action, AtomicTest):
+                suite_result.results.extend(self._run_test(action))
         return suite_result
 
     def _run_test(self, test: AtomicTest) -> list[Result]:
@@ -71,28 +74,30 @@ class BaseFixtureTest:
             report_data = json.load(f)
             return [ExecutionFrame(**r) for r in report_data["records"]]
 
-    def _get_tests(self) -> list[AtomicTest]:
+    def _get_actions(self) -> list[AtomicTest | SandboxOperations]:
         assert_methods = [
             attr_name
             for attr_name in self.__class__.__dict__.keys()
             if not attr_name.startswith("_") and callable(getattr(self, attr_name))
         ]
 
-        atomic_tests: list[AtomicTest] = []
+        actions: list[AtomicTest | SandboxOperations] = []
 
         for method_name in assert_methods:
             method = getattr(self, method_name)
-            tests = method()
+            items = method()
 
-            if isinstance(tests, list):
-                for index, test in enumerate(tests, start=1):
-                    test.name = f"{method_name} #{index}"
-                    test.frames_filename = f"{method_name}_{index}.framedump"
-                    atomic_tests.append(test)
-            elif tests is not None:
-                test = tests
-                test.name = method_name
-                test.frames_filename = f"{method_name}.framedump"
-                atomic_tests.append(tests)
+            if not isinstance(items, list):
+                items = [items] if items is not None else []
 
-        return atomic_tests
+            atomic_idx = 1
+            for item in items:
+                if isinstance(item, AtomicTest):
+                    item.name = f"{method_name} #{atomic_idx}"
+                    item.frames_filename = f"{method_name}_{atomic_idx}.framedump"
+                    atomic_idx += 1
+                    actions.append(item)
+                elif isinstance(item, SandboxOperations):
+                    actions.append(item)
+
+        return actions

@@ -6,6 +6,8 @@ from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
 from typing import Union
 from core import PathTokens
 import functools
+import shutil
+from pathlib import Path
 
 def shadow_of(impl_class):
     def decorator(cls):
@@ -214,6 +216,61 @@ class PromptRenderImpl(Expectance):
         assertion = f"Prompt render check ({', '.join(assertion_parts)})"
         details = "\n".join(failures) if not passed else ""
         return Result(assertion=assertion, passed=passed, details=details)
+
+class SandboxOperations:
+    def __init__(self) -> None:
+        self._actions: list[Callable[[Path], None]] = []
+
+    def _sanitize_path(self, raw_path: str) -> str:
+        p = str(raw_path)
+        if p.startswith(PathTokens.PUD):
+            p = p[len(PathTokens.PUD):].lstrip("/\\")
+        elif p.startswith("<PUD>"):
+            p = p[len("<PUD>"):].lstrip("/\\")
+        return p
+
+    def create_dirs(self, *paths: str) -> "SandboxOperations":
+        sanitized = [self._sanitize_path(p) for p in paths]
+        def action(sandbox_dir: Path) -> None:
+            for p in sanitized:
+                (sandbox_dir / p).mkdir(parents=True, exist_ok=True)
+        self._actions.append(action)
+        return self
+
+    def create_file(self, path: str, content: str = "") -> "SandboxOperations":
+        sanitized = self._sanitize_path(path)
+        def action(sandbox_dir: Path) -> None:
+            target = sandbox_dir / sanitized
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+        self._actions.append(action)
+        return self
+
+    def edit_file(self, path: str, old: str, new: str) -> "SandboxOperations":
+        sanitized = self._sanitize_path(path)
+        def action(sandbox_dir: Path) -> None:
+            target = sandbox_dir / sanitized
+            text = target.read_text(encoding="utf-8")
+            updated = text.replace(old, new)
+            target.write_text(updated, encoding="utf-8")
+        self._actions.append(action)
+        return self
+
+    def rm(self, *paths: str) -> "SandboxOperations":
+        sanitized = [self._sanitize_path(p) for p in paths]
+        def action(sandbox_dir: Path) -> None:
+            for p in sanitized:
+                target = sandbox_dir / p
+                if target.is_dir() and not target.is_symlink():
+                    shutil.rmtree(target, ignore_errors=True)
+                else:
+                    target.unlink(missing_ok=True)
+        self._actions.append(action)
+        return self
+
+    def execute(self, sandbox_dir: Path) -> None:
+        for action in self._actions:
+            action(sandbox_dir)
 
 @dataclass
 class AtomicTest:

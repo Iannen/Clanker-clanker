@@ -7,6 +7,7 @@ from expectance_impls import (
     StderrContainsImpl,
     UIRenderImpl,
     AtomicTest,
+    SandboxOperations,
     Result
 )
 
@@ -109,10 +110,42 @@ class EmptyRepoTests(BaseFixtureTest):
 
 
 class CorruptRepoTests(BaseFixtureTest):
-    TEMPLATE_FIXTURE_NAME = "with_nonempty_content_dir"
+    TEMPLATE_FIXTURE_NAME = "empty_repo"
 
-    def assert_clankerize_fail(self) -> AtomicTest:
-        return AtomicTest(
-            sequence=["yes", IOControl.ACCEPT_KEY, "asd"],
-            expects=StderrContains.contains(WorkspaceAlreadyInitialized.__name__)
-        )
+    def assert_clankerize_fail(self) -> list[AtomicTest | SandboxOperations]:
+        all_targets = list(RepoContract.get_all_target_paths())
+        dir_targets = list(RepoContract.DIRS_TO_CREATE)
+        file_targets = [dst for _, dst in RepoContract.MAPPINGS]
+
+        actions: list[AtomicTest | SandboxOperations] = [
+            AtomicTest(
+                sequence=["yes", IOControl.ACCEPT_KEY],
+                expects=UIRender.contains(ActionResult.BOOTSTRAP_SUCCESS),
+                reset_sequence=True,
+            ),
+            SandboxOperations().rm(*all_targets),
+        ]
+
+        for dir_path in dir_targets:
+            actions.extend([
+                SandboxOperations().create_dirs(dir_path),
+                AtomicTest(
+                    sequence=["yes", IOControl.ACCEPT_KEY],
+                    expects=StderrContains.contains(WorkspaceAlreadyInitialized.__name__),
+                    reset_sequence=True,
+                ),
+                SandboxOperations().rm(dir_path),
+            ])
+
+        for file_path in file_targets:
+            actions.extend([
+                SandboxOperations().create_file(file_path, content="blocking content"),
+                AtomicTest(
+                    sequence=["yes", IOControl.ACCEPT_KEY],
+                    expects=StderrContains.contains(WorkspaceAlreadyInitialized.__name__),
+                    reset_sequence=True,
+                ),
+                SandboxOperations().rm(file_path),
+            ])
+
+        return actions
