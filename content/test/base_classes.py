@@ -5,7 +5,7 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 from expectance_impls import Result, AtomicTest, SandboxOperations
-from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
+from adapters.terminal.scripted_terminal_adapter import ExecutionFrame, ScriptedTerminalAdapter
 
 
 @dataclass
@@ -38,6 +38,16 @@ class BaseFixtureTest:
     def _run_test(self, test: AtomicTest) -> list[Result]:
         framedump_path = self.sandbox_dir / "framedumps" / test.frames_filename
         frames = self._run_put(test.sequence, framedump_path)
+        
+        if frames and frames[-1].exit_code == 1:
+            return [
+                Result(
+                    assertion=f"The subprocess crashed",
+                    passed=False,
+                    details=f"Unexpected crash (exit code 1):\n{frames[-1].stderr or ''}"
+                )
+            ]
+
         return test.evaluate(frames)
 
     def _run_put(self, sequence: list[str], framedump_path: Path) -> list[ExecutionFrame]:
@@ -52,20 +62,42 @@ class BaseFixtureTest:
             str(framedump_path),
         ]
 
+        exit_code = 0
+        stderr_output = ""
+
         try:
-            subprocess.run(
+            proc = subprocess.run(
                 cmd,
                 cwd=self.sandbox_dir,
                 capture_output=True,
                 text=True,
                 timeout=10.0,
             )
+            exit_code = proc.returncode
+            stderr_output = proc.stderr
         except Exception as ex:
-            print(ex)
+            exit_code = 1
+            stderr_output = str(ex)
 
-        with open(framedump_path, "r", encoding="utf-8") as f:
-            report_data = json.load(f)
-            return [ExecutionFrame(**r) for r in report_data["records"]]
+        existing_frames = []
+        if framedump_path.exists():
+            try:
+                with open(framedump_path, "r", encoding="utf-8") as f:
+                    report_data = json.load(f)
+                    existing_frames = [ExecutionFrame(**r) for r in report_data["records"]]
+            except Exception:
+                pass
+
+        if exit_code == 0:
+            return existing_frames
+
+        crash_frame = ExecutionFrame(
+            latest_input=ScriptedTerminalAdapter.END_APP_EVENT,
+            exit_code=1,
+            stderr=stderr_output,
+        )
+        existing_frames.append(crash_frame)
+        return existing_frames
 
     def _get_actions(self) -> list[AtomicTest | SandboxOperations]:
         assert_methods = [

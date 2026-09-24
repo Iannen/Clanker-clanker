@@ -50,15 +50,15 @@ Import verification
 - output format too, but less important
 
 
+Backlog tail, Selected item/items:
 
+*Test system improvements*
 goals (sticky)
 1. all classes instantiated in assert methods should have a shadow, so the reader can work in that file without investigating the other files of test system
 2. the console output should not be verbose, dropping big complaints on the user. instead the reports should contain the 'visibility' stuff (complete ui render | list of observed paths, etc)
 3. the reports should do a great job in laying out the case, they dont quite do that now
 
-Plan: 3 phases
-
-1. Phase 1: Eliminate input sequence accumulation from the test runner system
+Phase 1: Eliminate input sequence accumulation from the test runner system
     [x] 'content/test/expectance_impls.py': Strip reset_sequence field from AtomicTest dataclass
         - remove reset_sequence: bool = False field definition from AtomicTest
     [x] 'content/test/base_classes.py': Remove input sequence accumulation from BaseFixtureTest
@@ -68,35 +68,34 @@ Plan: 3 phases
     [x] 'content/test/assert_classes.py': Explicitize input sequences across assert methods
         - remove all reset_sequence=True keyword arguments from AtomicTest instantiations
         - update chained test sequences in navigate_ui_and_copy_prompts to include complete prefix inputs from app startup
-Backlog tail, Selected item/items:
-Phase 2. make test system all about exit 0 scenarios. exit 1 is a true failure case, not part of normal ops
-- ExecutionFrame: delete 'stdout', replace with 'exit_msg'
-- 'StderrContainsImpl' delete. replace its usages with 'ExitMsgImpl'
-- adapter flush_report -> rename 'end_test', accepting exit_msg:str. produces final frame, then writes file
-- tail of clanker.py. refactor like so
-'''
-    try: 
-        exit_msg = engine.run()
-        exit_code = 0
-        if is_test:
-            io_adapter.end_test(exit_msg) 
-        else:
-            print(exit_msg)
-    except TestSequenceEnded: pass
-        # we simply let the app end
-    except Exception as ex:
-        # full traceback burger per standard python idioms, to stderr. 
-'''
-- 'base_classes.py': if subprocess exists 0, then we expect at least two frames. if not, then we expect last frame not to have been written by adapter, so we write it.
-    - capture exit code (0 or 1) from subprocess. if 0, then proceed as normal
-    - if 1, then test crashed unexpectedly. 
-        -produce the final frame, injecting exit code and stderr into it. store in var in method scope for use later.
-        -grab framedump file from sandbox, create the list of frames, then add the created frame to end
-        -end method as normal
-    - in '_run_test' prior to sending frames to test:
-        - check if final frame is exit 1. if it is, then the result is a failure of the atomic test with stderr of last frame as detail, helping us see what went down inside the subprocess
-Backlog tail end
-Phase 3: Expectance classes / shadow classes revamp
+
+Phase 2: Refactor test runner and execution frames around exit 0 operational model
+    [x] 'content/adapters/terminal/scripted_terminal_adapter.py': Update ExecutionFrame model and terminal adapter
+        - Remove 'stdout' field from ExecutionFrame and add 'exit_msg: Optional[str] = None'
+        - Rename 'flush_report' method to 'end_test' taking parameter 'exit_msg: str'
+        - Ensure 'end_test' constructs the final ExecutionFrame using 'exit_msg' and persists framedump
+    [x] 'content/clanker.py': Align CLI engine runner with exit message output and exception handling
+        - Refactor execution flow in main() to capture exit_msg from engine.run()
+        - Call io_adapter.end_test(exit_msg) when running under test mode
+        - Catch TestSequenceEnded explicitly to allow normal process termination on exit code 0
+        - Catch general Exception, print traceback to stderr, and exit with code 1
+    [x] 'content/test/expectance_impls.py': Remove StderrContainsImpl and adjust ExitMsgImpl
+        - Remove StderrContainsImpl class definition
+        - Update ExitMsgImpl.to_result to evaluate frame.exit_msg instead of frame.stdout
+    [x] 'content/test/assert_classes.py': Update assertions to use ExitMsg instead of StderrContains
+        - Remove StderrContains import and shadow class definition
+        - Update EmptyRepoTests and CorruptRepoTests to assert expected exit messages using ExitMsg
+    [x] 'content/test/base_classes.py': Handle subprocess exit codes and short-circuit test evaluation on crash
+        - Capture subprocess return code in _run_put
+        - If return code is 1, append synthetic final frame containing exit_code=1 and captured stderr to framedump
+        - In _run_test, check if final frame has exit_code == 1; if so, short-circuit and return a failing Result with stderr details
+
+Phase 3: console output & suite report. what goes where
+- the console should not receive the details. those belong in the report.
+- we should make use of contextual stuff where appropriate. the assert class name, the assert method name, then the index of the atomic test.
+
+
+Phase 4: Expectance classes / shadow classes revamp
     - only one expectance class. its job is to evaluate the frames resulting from a sequence.
         - it evaluates second to last frame for info about
             - clipboard
@@ -150,3 +149,4 @@ class MyTestClass(BaseFixtureTest):
                     .exit_msg_is("user exited")
             ),
 '''
+Backlog tail end

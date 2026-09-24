@@ -6,6 +6,7 @@ import sys
 import traceback
 import argparse
 from pathlib import Path
+from core import TestSequenceEnded
 
 def _bootstrap_io_adapter():
     is_test_mode = "--test" in sys.argv
@@ -53,18 +54,18 @@ def main():
         kb_service=kb_service
     )
     try: 
-        output = engine.run()
-        exit_code = 0
+        exit_msg = engine.run()
         if is_test:
-            io_adapter.flush_report(exit_code=0, stdout=output)
+            io_adapter.end_test(exit_msg)
         else:
-            sys.stdout.write(f"{output}\n")
-
-    except Exception as ex:
-        output = "".join(traceback.format_exception(type(ex), ex, ex.__traceback__))
+            print(exit_msg)
+            
+    except TestSequenceEnded as ex:
         if is_test:
-            io_adapter.flush_report(exit_code=1, stderr=output)
-        sys.stderr.write(output)
+            io_adapter.end_test(ex.__class__.__name__)
+    except Exception as ex:
+        sys.stderr.write("".join(traceback.format_exception(type(ex), ex, ex.__traceback__)))
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

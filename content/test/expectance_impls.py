@@ -68,29 +68,12 @@ class ExitMsgImpl(Expectance):
         return self
 
     def to_result(self, frames: list[ExecutionFrame]) -> "Result":
-        
         frame = frames[-1]
-        actual = frame.stdout
+        actual = frame.exit_msg or ""
         passed = self.expected_msg in actual
         assertion = f"ExitMsg contains '{self.expected_msg}'"
-        details = "" if passed else f"Expected stdout/exit_msg '{self.expected_msg}', got '{actual}'"
+        details = "" if passed else f"Expected exit_msg '{self.expected_msg}', got '{actual}'"
         return Result(assertion=assertion, passed=passed, details=details)
-
-class StderrContainsImpl(Expectance):
-
-    def __init__(self) -> None:
-        self.expected_text = ""
-
-    def contains(self, expected_text: str) -> "StderrContainsImpl":
-        self.expected_text = expected_text
-        return self
-
-    def to_result(self, frames: list[ExecutionFrame]) -> "Result":
-        frame = frames[-1]
-        actual = frame.stderr or ""
-        passed = self.expected_text in actual
-        details = "" if passed else f"Expected stderr to contain '{self.expected_text}', got '{actual}'"
-        return Result(assertion=f"Stderr contains '{self.expected_text}'", passed=passed, details=details)
 
 class DiskStateImpl(Expectance):
     def __init__(self) -> None:

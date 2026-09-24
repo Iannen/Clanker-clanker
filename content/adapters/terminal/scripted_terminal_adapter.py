@@ -12,7 +12,7 @@ class ExecutionFrame:
     latest_write: Optional[str] = None
     latest_clipboard: Optional[str] = None
     exit_code: Optional[int] = None
-    stdout: Optional[str] = None
+    exit_msg: Optional[str] = None
     stderr: Optional[str] = None
     disk_paths: list[str] = field(default_factory=list)
 
@@ -88,20 +88,14 @@ class ScriptedTerminalAdapter(TerminalPort):
             elif ch.isprintable():
                 buffer += ch
 
-    def flush_report(
-        self, 
-        exit_code: Optional[int] = None, 
-        stdout: Optional[str] = None, 
-        stderr: Optional[str] = None
-    ) -> None:
+    def end_test(self, exit_msg: str) -> None:
         try:
             self.frames.append(ExecutionFrame(
                 latest_input=self.END_APP_EVENT,
                 latest_write=self.last_write,
                 latest_clipboard=self.last_cp,
-                exit_code=exit_code,
-                stdout=stdout,
-                stderr=stderr,
+                exit_code=0,
+                exit_msg=exit_msg,
                 disk_paths=self._get_disk_paths()
             ))
             self.last_write = self.last_cp = None

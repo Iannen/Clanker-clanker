@@ -4,7 +4,6 @@ from expectance_impls import (
     DiskStateImpl,
     ExitMsgImpl,
     PromptRenderImpl,
-    StderrContainsImpl,
     UIRenderImpl,
     AtomicTest,
     SandboxOperations,
@@ -19,11 +18,6 @@ from adapters.terminal.scripted_terminal_adapter import ScriptedTerminalAdapter
 @shadow_of(ExitMsgImpl)
 class ExitMsg:
     def contains(self, expected_msg: str) -> "ExitMsg": pass
-    def to_result(self, run_state: dict) -> Result: pass
-
-@shadow_of(StderrContainsImpl)
-class StderrContains:
-    def contains(self, expected_text: str) -> "StderrContains": pass
     def to_result(self, run_state: dict) -> Result: pass
 
 @shadow_of(DiskStateImpl)
@@ -50,7 +44,7 @@ class EmptyRepoTests(BaseFixtureTest):
     def assert_end_of_sequence_terminates_properly(self) -> list[AtomicTest]:
         return AtomicTest(
             sequence=[],
-            expects=StderrContains.contains(TestSequenceEnded.__name__),
+            expects=ExitMsg.contains(TestSequenceEnded.__name__),
             )
 
     def assert_abort_keys_decline_init(self) -> list[AtomicTest]:
@@ -126,7 +120,7 @@ class CorruptRepoTests(BaseFixtureTest):
                 SandboxOperations().create_dirs(dir_path),
                 AtomicTest(
                     sequence=["yes", IOControl.ACCEPT_KEY],
-                    expects=StderrContains.contains(WorkspaceAlreadyInitialized.__name__),
+                    expects=ExitMsg.contains(WorkspaceAlreadyInitialized.__name__),
                 ),
                 SandboxOperations().rm(dir_path),
             ])
@@ -136,9 +130,8 @@ class CorruptRepoTests(BaseFixtureTest):
                 SandboxOperations().create_file(file_path, content="blocking content"),
                 AtomicTest(
                     sequence=["yes", IOControl.ACCEPT_KEY],
-                    expects=StderrContains.contains(WorkspaceAlreadyInitialized.__name__),
+                    expects=ExitMsg.contains(WorkspaceAlreadyInitialized.__name__),
                 ),
                 SandboxOperations().rm(file_path),
             ])
-
         return actions
