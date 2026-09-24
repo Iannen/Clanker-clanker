@@ -851,3 +851,14 @@ CXIX: TESTSYSTEM ALIGNMENT AND FRAMEDUMP ISOLATION
     - Isolated frame dump artifacts into a dedicated `framedumps/` sandbox subdirectory by routing `--framedump-path` from `BaseFixtureTest` down to `clanker.py` and `ScriptedTerminalAdapter`, ensuring automatic directory creation and excluding framedump files from disk state assertions.
     Reflection:
     - Incremental refinement through focused codebase churn improved code clarity, eliminated fragile state mutations, and prevented diagnostic artifacts from polluting test sandboxes.
+    
+CXX: SANDBOX OPERATIONS AND FIXTURE LIFECYCLE EXTENSION
+    Purpose: Enable fluent, stateful filesystem manipulations within test fixture lifecycles to support automated corrupt repo and contract edge-case testing.
+    - Testing complex workspace states previously lacked a clean, declarative mechanism to manipulate sandbox directories and files between atomic test runs.
+    Actions:
+    - Implemented `SandboxOperations` in `expectance_impls.py` supporting chainable filesystem mutations (`create_dirs`, `create_file`, `edit_file`, and `rm`) with built-in path sanitization for `<PUD>` tokens.
+    - Updated `BaseFixtureTest` in `base_classes.py` to replace `_get_tests` with `_get_actions`, allowing the runner loop to execute interleaved `SandboxOperations` mutations and evaluate `AtomicTest` assertions sequentially.
+    - Refactored `CorruptRepoTests` in `assert_classes.py` to use the `empty_repo` fixture, executing an initial bootstrap, tearing down created assets, and iterating systematically across all `RepoContract` directory and file targets to verify `WorkspaceAlreadyInitialized` enforcement.
+    Reflection:
+    - Interleaving atomic filesystem mutations directly into the fixture lifecycle provides robust validation for partial or corrupt workspace states.
+    - The expanded test assertions successfully exposed subtle fragilities in the program under test's startup sequence, specifically where runtime configuration assembly precedes workspace initialization guard checks when partial artifact structures exist.

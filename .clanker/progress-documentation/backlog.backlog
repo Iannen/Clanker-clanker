@@ -49,17 +49,64 @@ Import verification
 - needs to also work the bottom level files
 - output format too, but less important
 
-
-
 Backlog tail, Selected item/items:
-1. Add sandbox directory and file manipulation capability to test fixture framework
-    [ ] 'content/test/expectance_impls.py': Implement SandboxOperations class alongside AtomicTest
-        - add SandboxOperations class with chainable methods: create_dirs(*paths), create_file(path, content=""), edit_file(path, old, new), and rm(*paths)
-        - add execute(sandbox_dir: Path) method to run queued filesystem mutations in order
-        - implement rm to automatically remove directories via rmtree or files via unlink
-    [ ] 'content/test/base_classes.py': Update test execution loop to support SandboxOperations
-        - replace _get_tests with _get_actions returning list[AtomicTest | SandboxOperations]
-        - update run_tests loop to invoke execute on SandboxOperations and evaluate AtomicTest items
-    [ ] 'content/test/assert_classes.py': Update CorruptRepoTests to test repo contract teardown and conflict
-        - update TEMPLATE_FIXTURE_NAME to 'empty_repo'
-        - add sequence initializing workspace successfully, nuking created assets via SandboxOperations, re-creating contract item 3, and verifying WorkspaceAlreadyInitialized exception on re-initialization
+
+goals (sticky)
+1. all classes instantiated in assert methods should have a shadow, so the reader can work in that file without investigating the other files of test system
+2. the console output should not be verbose, dropping big complaints on the user. instead the reports should contain the 'visibility' stuff (complete ui render | list of observed paths, etc)
+3. the reports should do a great job in laying out the case, they dont quite do that now
+
+Expectance classes / shadow classes: le revamp
+    - only one expectance class. its job is to evaluate the frames resulting from a sequence.
+        - it evaluates second to last frame for info about
+            - clipboard
+            - ui 
+            - disk state
+        - it evaluates latest frame for info about exit msg
+    - all sequences produce an initial frame, not resuling from a member of the sequence, and a final frame, also not resulting from the sequence
+    - in case of exit 0, the adapter produces the final frame.
+    - in case of exit 1, the runner (baseclass) produces the final frame.
+'''
+class MyTestClass(BaseFixtureTest):
+    TEMPLATE_FIXTURE_NAME = "empty_repo"
+    def some_assert_scenario(self) -> list[AtomicTest]:
+        return [
+            AtomicTest(
+                sequence=[],
+                expects=Expect()
+                    .ui_contains("do u wish to clankerize") # targets the second to last frame, which happens to be the initial frame because no inputs given
+                    .exit_msg_is("ranouttaframes!") # our termination mechanism
+            ),
+            AtomicTest(
+                sequence=["yes", "accept_key"],
+                expects=Expect()
+                    .ui_contains("bootstrap success / welcome to app or whatever") 
+                    .disk_has(repocontract.getmembers)
+                reset: True # subsequent reboots will go straight to UI, so we cannot reuse this sequence
+            ),
+            AtomicTest(
+                sequence=["1"],
+                expects=Expect()
+                    .ui_contains("domain suchand so selected") 
+                reset: False # but now we can reuse the keys. it defaults to false, but i supply so i can write comment here
+            ),
+            AtomicTest(
+                sequence=["a"],
+                expects=Expect()
+                    .ui_contains("prompt suchandso") 
+                    .clipboard_contains("stuff about prompt")
+            ),
+            AtomicTest(
+                sequence=["f"],
+                expects=Expect()
+                    .ui_contains("no prompt on that button!") 
+                    .clipboard_contains("") #isempty
+            ),
+            AtomicTest(
+                sequence=[IOControl.escapebutton],
+                expects=Expect()
+                    .ui_contains("no prompt on that button!") 
+                    .clipboard_contains("") #isempty
+                    .exit_msg_is("user exited")
+            ),
+'''
