@@ -24,7 +24,6 @@ class BaseFixtureTest:
     def __init__(self, sandbox_dir: Path, clanker_path: Path) -> None:
         self.sandbox_dir = sandbox_dir
         self.clanker_path = clanker_path
-        self.report_path = self.sandbox_dir / "records.json"
         self._replay_seq: list[str] = []
 
     def run_tests(self) -> TestSuiteResult:
@@ -36,56 +35,41 @@ class BaseFixtureTest:
 
     def _run_test(self, test: AtomicTest) -> list[Result]:
         self._replay_seq.extend(test.sequence)
-        frames = self._run_put()
+        framedump_path = self.sandbox_dir / "framedumps" / test.frames_filename
+        frames = self._run_put(framedump_path)
 
-        #target_frame = frames[-1]
         results = test.evaluate(frames)
         
         if test.reset_sequence:
             self._replay_seq = []
         return results
 
-    def _run_put(self) -> list[ExecutionFrame]:
-        clean_replay_seq = self._replay_seq
-
+    def _run_put(self, framedump_path: Path) -> list[ExecutionFrame]:
         cmd = [
             sys.executable,
             "-B",
             str(self.clanker_path),
             "--test",
             "--input-script",
-            *clean_replay_seq,
-            "--report-path",
-            str(self.sandbox_dir),
+            *self._replay_seq,
+            "--framedump-path",
+            str(framedump_path),
         ]
 
         try:
-            completed = subprocess.run(
+            subprocess.run(
                 cmd,
                 cwd=self.sandbox_dir,
                 capture_output=True,
                 text=True,
                 timeout=10.0,
             )
-            exit_code = completed.returncode
-            stdout = completed.stdout.strip()
-            stderr = completed.stderr
-        except subprocess.TimeoutExpired as ex:
-            exit_code = -1
-            stdout = ex.stdout.decode("utf-8").strip() if ex.stdout else ""
-            stderr = "Execution timed out"
+        except Exception as ex:
+            print(ex)
 
-        frames: list[ExecutionFrame] = []
-
-        if self.report_path.is_file():
-            try:
-                with open(self.report_path, "r", encoding="utf-8") as f:
-                    report_data = json.load(f)
-                    frames = [ExecutionFrame(**r) for r in report_data.get("records")]
-            except Exception as ex:
-                print(ex)
-                
-        return frames
+        with open(framedump_path, "r", encoding="utf-8") as f:
+            report_data = json.load(f)
+            return [ExecutionFrame(**r) for r in report_data["records"]]
 
     def _get_tests(self) -> list[AtomicTest]:
         assert_methods = [
@@ -98,14 +82,17 @@ class BaseFixtureTest:
 
         for method_name in assert_methods:
             method = getattr(self, method_name)
-            result = method()
+            tests = method()
 
-            if isinstance(result, list):
-                for index, test in enumerate(result, start=1):
+            if isinstance(tests, list):
+                for index, test in enumerate(tests, start=1):
                     test.name = f"{method_name} #{index}"
+                    test.frames_filename = f"{method_name}_{index}.framedump"
                     atomic_tests.append(test)
-            elif result is not None:
-                result.name = method_name
-                atomic_tests.append(result)
+            elif tests is not None:
+                test = tests
+                test.name = method_name
+                test.frames_filename = f"{method_name}.framedump"
+                atomic_tests.append(tests)
 
         return atomic_tests

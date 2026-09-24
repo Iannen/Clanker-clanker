@@ -839,3 +839,15 @@ CXVIII: AUTOMATED REPOSITORY STATE PERSISTENCE SCRIPT
     - Added the top-level `system.test_command` configuration key to `.clanker/config.yaml`.
     Reflection:
     - Shifting divergence checks and test execution ahead of local commit/push operations eliminates accidental merge markers and guarantees that only verified, clean state reaches upstream remotes.
+
+CXIX: TESTSYSTEM ALIGNMENT AND FRAMEDUMP ISOLATION
+    Purpose: Execute incremental refactorings and structural cleanup across the test suite to improve maintainability, strengthen result reporting, and isolate execution artifacts.
+    - Ongoing evolution of test adapters and gate verification led to fragmented data structures, implicit result mutation, and cluttered sandbox root directories.
+    Actions:
+    - Updated `save.py` to act as a GitOps save button, integrating ship gate execution as a prerequisite for staging and pushing.
+    - Refactored `import_checker.py`, renaming `ImportVerifier` to `ImportPolicySuite`, introducing `ImportReports` result containers, and moving execution into an explicit `run_tests()` interface.
+    - Updated `reporter.py` and `ship_gate.py` to consume typed `ImportReports` and collect structured `TestSuiteResult` instances instead of mutating state in place.
+    - Introduced an `ExecutionSnapshot` data structure to replace the unstructured `run_state` dictionary across the scripted adapter and expectance checks.
+    - Isolated frame dump artifacts into a dedicated `framedumps/` sandbox subdirectory by routing `--framedump-path` from `BaseFixtureTest` down to `clanker.py` and `ScriptedTerminalAdapter`, ensuring automatic directory creation and excluding framedump files from disk state assertions.
+    Reflection:
+    - Incremental refinement through focused codebase churn improved code clarity, eliminated fragile state mutations, and prevented diagnostic artifacts from polluting test sandboxes.

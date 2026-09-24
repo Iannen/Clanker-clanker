@@ -5,27 +5,31 @@ from modules import TUIServiceImpl, RenderServiceImpl, KBServiceImpl, IngestionS
 import sys
 import traceback
 import argparse
+from pathlib import Path
 
 def _bootstrap_io_adapter():
+    is_test_mode = "--test" in sys.argv
+
     parser = argparse.ArgumentParser(description="Clanker TUI Engine")
     parser.add_argument("--test", action="store_true", help="Run in headless test mode")
     parser.add_argument(
         "--input-script",
         nargs="*",
-        default=[],
+        required=is_test_mode,
         help="Pre-recorded key sequence for test mode",
     )
     parser.add_argument(
-        "--report-path", 
-        default="content/test/reports/latest_run.json", 
-        help="Path to output test report"
+        "--framedump-path",
+        type=str,
+        required=is_test_mode,
+        help="Target filepath for execution frames report",
     )
     args = parser.parse_args()
 
     if args.test:
         adapter = ScriptedTerminalAdapter(
             input_sequence=args.input_script,
-            sandbox_dir=args.report_path
+            framedump_path=Path(args.framedump_path),
         )
         return True, adapter
 
@@ -48,36 +52,19 @@ def main():
         renderer=renderer,
         kb_service=kb_service
     )
+    try: 
+        output = engine.run()
+        exit_code = 0
+        if is_test:
+            io_adapter.flush_report(exit_code=0, stdout=output)
+        else:
+            sys.stdout.write(f"{output}\n")
 
-    if not is_test:
-        try:
-            exit_msg = engine.run()
-            if exit_msg:
-                print(exit_msg)
-        except Exception as ex:
-            sys.stderr.write("\n[CRITICAL FAILURE] The ex architecture has failed: \n\n")
-            traceback.print_exception(type(ex), ex, ex.__traceback__, file=sys.stderr)
-    else:
-        try:
-            exit_msg = engine.run()
-            io_adapter.flush_report(
-                exit_code=0,
-                stdout=exit_msg,
-                stderr=None
-            )
-        #except TestSequenceEnded as test_end:
-            #io_adapter.flush_report(
-                #exit_code=0,
-                #stdout= None, 
-                #stderr=TestSequenceEnded.__name__
-            #)
-        except Exception as ex:
-            tb_str = "".join(traceback.format_exception(type(ex), ex, ex.__traceback__))
-            io_adapter.flush_report(
-                exit_code=1,
-                stdout=None,
-                stderr=f"{ex}\n\nTraceback:\n{tb_str}"
-            )
+    except Exception as ex:
+        output = "".join(traceback.format_exception(type(ex), ex, ex.__traceback__))
+        if is_test:
+            io_adapter.flush_report(exit_code=1, stderr=output)
+        sys.stderr.write(output)
 
 if __name__ == "__main__":
     main()

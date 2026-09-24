@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field, asdict
 from typing import Optional
+from pathlib import Path
 import json
 import os
 from core.engine_deps import TerminalPort, IOControl, TerminalFailure
@@ -19,8 +20,9 @@ class ScriptedTerminalAdapter(TerminalPort):
     START_APP_EVENT = "__START_APP__"
     END_APP_EVENT = "__END_APP__"
 
-    def __init__(self, input_sequence: list[str], sandbox_dir: Optional[str]):
-        self.sandbox_dir = sandbox_dir
+    def __init__(self, input_sequence: list[str], framedump_path: Path):
+        self.sandbox_dir = os.getcwd()
+        self.framedump_path = framedump_path
         self.input_sequence = self._flatten_sequence(input_sequence)
         self.frames = []
         self.input_index = 0
@@ -107,12 +109,9 @@ class ScriptedTerminalAdapter(TerminalPort):
             report = {
                 "records": [asdict(r) for r in self.frames]
             }
-            
-            target_dir = os.path.abspath(self.sandbox_dir)
-            target_path = os.path.join(target_dir, "records.json")
-            
-            os.makedirs(target_dir, exist_ok=True)
-            with open(target_path, "w", encoding="utf-8") as f:
+
+            self.framedump_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.framedump_path, "w", encoding="utf-8") as f:
                 json.dump(report, f, indent=2)
         except (OSError, UnicodeError, TypeError) as ex:
             raise TerminalFailure from ex
@@ -121,21 +120,10 @@ class ScriptedTerminalAdapter(TerminalPort):
         if not self.sandbox_dir or not os.path.isdir(self.sandbox_dir):
             return []
 
-        paths = []
-        root_path = os.path.abspath(self.sandbox_dir)
-
-        for current_root, dirnames, filenames in os.walk(root_path):
-            # Collect directory paths relative to root_path
-            for dirname in dirnames:
-                rel_dir = os.path.relpath(os.path.join(current_root, dirname), root_path)
-                paths.append(rel_dir)
-
-            # Collect file paths relative to root_path
-            for filename in filenames:
-                if filename == "records.json":
-                    continue
-                full_path = os.path.join(current_root, filename)
-                rel_path = os.path.relpath(full_path, root_path)
-                paths.append(rel_path)
-
+        root = Path(self.sandbox_dir)
+        paths = [
+            str(p.relative_to(root))
+            for p in root.rglob("*")
+            if p.relative_to(root).parts[0] != "framedumps"
+        ]
         return sorted(paths)

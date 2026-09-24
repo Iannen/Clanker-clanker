@@ -52,35 +52,3 @@ Import verification
 
 
 Backlog tail, Selected item/items:
-
-Testsystem razzia: 
-[x] 'save.py': the gitops save button! runs ship gate for its signal, and then does gitops (or not)
-    - reads the config to find a test command to run
-    - if test returns 0 -> we can do gitops, else we cant
-[x] 'import_checker.py'
-    - renamed 'ImportVerifier' to 'ImportPolicySuite'
-    - kept 'FileReport' name for single item results
-    - added 'ImportReports' container
-    - moved execution out of __init__ into run_tests() -> ImportReports
-[x] 'reporter.py'
-    - aligned GateInspector to expect new typed ImportReports
-    - mapped Result fields accurately (.assertion, .details, .to_dict())
-[x] 'ship_gate.py'
-    - aligned orchestration to run_import_policy_suite() -> ImportReports
-    - added clean result summary before exit
-[x] 'BaseFixtureTest' & Assert Prong Alignment
-    - Define 'TestSuiteResult' dataclass in base_classes.py
-    - Update BaseFixtureTest.run_tests() -> TestSuiteResult (no longer mutates self.results)
-    - Update 'ship_gate.py' to collect list[TestSuiteResult]
-    - Update 'reporter.py' to accept and format list[TestSuiteResult]
-[x] Introduce an ExecutionSnapshot data structure to replace raw run_state dictionary
-    - refactored scripted adapter to produce a list of snapshots
-    - kinda events based. do event -> observe & assert (sort of)
-
-Testsystem final round
-next up: making reports unique, so they dont get overwritten
-- we name them from method name + index
-- we should pass the sandbox root dir AND the name of the report to the adapter
-Add ways to create / destroy stuff
-- files 
-- directories
