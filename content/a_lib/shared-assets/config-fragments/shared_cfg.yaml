@@ -13,7 +13,7 @@ filelists:
   plan_mode_instructions: [plan-mode.mode_instruction, backlog-output-instructions.output_instruction]
   do_mode_instructions: [do-mode.mode_instruction, code-output-instruction.output_instruction]
   doc_management_mode_instructions: [doc-management-mode.mode_instruction, {file: project-history.history, tail_lines: 16}, history-output-instructions.output_instruction]
-  backlog_at_consultant: [{file: backlog.backlog, from_line: 'Backlog tail, Selected item/items:'}]
+  backlog_at_consultant: [{file: backlog.backlog, from_line: 'Backlog tail, Selected item/items:', up_to: 'Backlog tail end'}]
             
 domains:
   - name: manifest-analysis

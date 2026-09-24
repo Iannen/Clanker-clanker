@@ -51,7 +51,6 @@ class EmptyRepoTests(BaseFixtureTest):
         return AtomicTest(
             sequence=[],
             expects=StderrContains.contains(TestSequenceEnded.__name__),
-            #reset_sequence=True
             )
 
     def assert_abort_keys_decline_init(self) -> list[AtomicTest]:
@@ -64,21 +63,17 @@ class EmptyRepoTests(BaseFixtureTest):
             for key in IOControl.ABORT_KEYS
         ]
 
-    def assert_end_of_sequence_terminates_properly(self) -> list[AtomicTest]:
-        return AtomicTest(sequence=[],expects=StderrContains.contains(TestSequenceEnded.__name__),reset_sequence=True)
-
     def assert_clankerize_repo_contract(self) -> list[AtomicTest]:
         return [
             AtomicTest(
                 sequence=["yes", IOControl.ACCEPT_KEY],
-                expects=UIRender.contains(ActionResult.BOOTSTRAP_SUCCESS)
-            ),
-            AtomicTest(
-                sequence=[],
-                expects=DiskState.has(RepoContract.get_all_target_paths()),
+                expects = [
+                    UIRender.contains(ActionResult.BOOTSTRAP_SUCCESS),
+                    DiskState.has(RepoContract.get_all_target_paths())
+                ],  
+                reset_sequence=True,
             ),
         ]
-    
 
     def navigate_ui_and_copy_prompts(self) -> list[AtomicTest]:
         ats = []
