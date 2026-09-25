@@ -5,7 +5,7 @@ from core import (
     CorruptClanker,
     Domain,
     KBStateResolver,
-    Layouts,
+    ClankerAssets,
     ManifestResolver,
     MultiDocResolver,
     PathTokens,
@@ -46,9 +46,9 @@ class RenderServiceImpl(RenderService):
         try:
             match render.template:
                 case "prompt_template":
-                    return self.files.read_asset(Layouts.PROMPT)
+                    return self.files.read_asset(ClankerAssets.PROMPT)
                 case "ui_template":
-                    return self.files.read_asset(Layouts.UI)
+                    return self.files.read_asset(ClankerAssets.UI)
         except NoSuchFile as ex:
             raise CorruptClanker(f"Error loading template for '{render.template}': {ex}") from ex
 
@@ -139,9 +139,9 @@ class RenderServiceImpl(RenderService):
         if not btn_map:
             return {}
 
-        btn_hl = self.files.read_asset(Layouts.BTN_HL)
-        btn_active = self.files.read_asset(Layouts.BTN_ACTIVE)
-        btn_inactive = self.files.read_asset(Layouts.BTN_INACTIVE)
+        btn_hl = self.files.read_asset(ClankerAssets.BTN_HL)
+        btn_active = self.files.read_asset(ClankerAssets.BTN_ACTIVE)
+        btn_inactive = self.files.read_asset(ClankerAssets.BTN_INACTIVE)
 
         repl_map = {}
         unique_buttons = {btn.key: btn for btn in btn_map.values()}.values()

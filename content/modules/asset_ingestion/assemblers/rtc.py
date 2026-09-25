@@ -1,6 +1,6 @@
 from stdlib import Any
 from ...asset_ingestion import ErrorCollector, ValueExtractor
-from core import CfgFragments, Button, Domain
+from core import ClankerAssets, PudAssets, Button, Domain
 
 class RtcAssembler:
     def assemble(
@@ -18,14 +18,14 @@ class RtcAssembler:
             row_keys=extractor.req_str(sys_cfg, ["button_rows", "shared_domains_row"]),
             domains=shared_doms,
             sys_cfg_name="shared_domains_row",
-            cfg_filename=CfgFragments.SHARED_CFG,
+            cfg_filename=ClankerAssets.SHARED_CFG,
         )
 
         self._populate_domain_buttons(
             row_keys=extractor.req_str(sys_cfg, ["button_rows", "pud_domains_row"]),
             domains=pud_doms,
             sys_cfg_name="pud_domains_row",
-            cfg_filename=CfgFragments.PUD_CFG,
+            cfg_filename=PudAssets.PUD_CFG,
         )
 
         for key_char in extractor.req_str(sys_cfg, ["button_rows", "prompts_row"]):

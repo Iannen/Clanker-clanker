@@ -3,7 +3,8 @@ from core import (
     ConfigAssembly,
     CorruptClanker,
     WorkspaceAlreadyInitialized,
-    CfgFragments,
+    ClankerAssets,
+    PudAssets,
     PathTokens,
     RepoContract,
     ActionResult,
@@ -37,12 +38,12 @@ class IngestionServiceImpl(IngestionService):
     def get_runtime_config(self) -> tuple[ActionResult, Report, dict[str, Button], Render, list[Resolver]]:
         collector = ErrorCollector() 
         try:
-            pud_cfg = self._get_validated_cfg_fragment(CfgFragments.PUD_CFG)
+            pud_cfg = self._get_validated_cfg_fragment(PudAssets.PUD_CFG)
         except NoSuchFile:
             raise NoConfig
         try:
-            sys_cfg = self._get_validated_cfg_fragment(CfgFragments.SYSTEM_CFG)
-            shared_cfg = self._get_validated_cfg_fragment(CfgFragments.SHARED_CFG)
+            sys_cfg = self._get_validated_cfg_fragment(ClankerAssets.SYSTEM_CFG)
+            shared_cfg = self._get_validated_cfg_fragment(ClankerAssets.SHARED_CFG)
         except NoSuchFile as ex:
             raise ConfigAssembly(f"Missing configuration fragment: {ex}") from ex
 
