@@ -105,6 +105,23 @@ goals (sticky)
 2. the console output should not be verbose, dropping big complaints on the user. instead the reports should contain the 'visibility' stuff (complete ui render | list of observed paths, etc)
 3. the reports should do a great job in laying out the case, they dont quite do that now
 
+expectance & expectance impl classes
+- currently the classes use an implicit builder method pattern, where the method receives data as well as instaniates and returns self
+- i want to change this so that the must be instantiated via Class()
+- only after instantiation does one use the methods
+- the 'interface' of the shadow classes need not expose the toresult method to assert_classes file.
+
+1. Refactor expectance and shadow classes to require explicit instantiation
+    [ ] 'content/test/expectance_impls.py': Update shadow_of decorator and AtomicTest execution logic
+        - require explicit Class() instantiation for shadow wrappers
+        - route fluent interface builder calls on shadow instances to internal _impl and return shadow self
+        - unwrap shadow instances to call _impl.to_result inside AtomicTest.to_result
+        - check that shadow classes expose only fluent builder methods and exclude to_result from public API check
+    [ ] 'content/test/assert_classes.py': Update shadow class declarations and test methods
+        - remove to_result method declarations from shadow classes
+        - update all expectance usage across test methods from implicit Class.method() to explicit Class().method()
+
+
 Backlog tail end
 
 def run_tests(self) -> TestSuiteResult:

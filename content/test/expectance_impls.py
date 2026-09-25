@@ -12,43 +12,34 @@ from reporter import ExpectanceResult, SandboxOperationsResult, AtomicTestResult
 
 def shadow_of(impl_class):
     def decorator(cls):
-        @functools.wraps(impl_class.__init__ if hasattr(impl_class, "__init__") and impl_class.__init__ is not object.__init__ else lambda self, *a, **kw: None)
+        real_methods = {
+            m for m in dir(impl_class)
+            if not m.startswith("_") and m != "to_result"
+        }
+        shadow_methods = {m for m in dir(cls) if not m.startswith("_")}
+        missing = real_methods - shadow_methods
+        if missing:
+            raise TypeError(f"{cls.__name__} out of sync. Missing: {missing}")
+
+        orig_init = getattr(cls, "__init__", None)
+
         def new_init(self, *args, **kwargs):
             self._impl = impl_class(*args, **kwargs)
-            real_methods = {m for m in dir(impl_class) if not m.startswith("_")}
-            shadow_methods = {m for m in dir(cls) if not m.startswith("_")}
-            missing = real_methods - shadow_methods
-            if missing:
-                raise TypeError(f"{cls.__name__} out of sync. Missing: {missing}")
+            if orig_init and orig_init is not object.__init__:
+                orig_init(self, *args, **kwargs)
 
         cls.__init__ = new_init
 
-        real_methods = [m for m in dir(impl_class) if not m.startswith("_")]
         for method_name in real_methods:
-            def make_delegated(name):
-                def class_delegated(cls_target, *args, **kwargs):
-                    instance = cls_target()
-                    res = getattr(instance._impl, name)(*args, **kwargs)
-                    if res is instance._impl:
-                        return instance
+            def make_forwarder(name):
+                def forwarder(self, *args, **kwargs):
+                    res = getattr(self._impl, name)(*args, **kwargs)
+                    if res is self._impl:
+                        return self
                     return res
+                return forwarder
 
-                def instance_delegated(self_target, *args, **kwargs):
-                    res = getattr(self_target._impl, name)(*args, **kwargs)
-                    if res is self_target._impl:
-                        return self_target
-                    return res
-
-                class DualMethod:
-                    def __get__(self, instance, owner):
-                        if instance is None:
-                            return lambda *a, **kw: class_delegated(owner, *a, **kw)
-                        else:
-                            return lambda *a, **kw: instance_delegated(instance, *a, **kw)
-
-                return DualMethod()
-
-            setattr(cls, method_name, make_delegated(method_name))
+            setattr(cls, method_name, make_forwarder(method_name))
 
         return cls
     return decorator
@@ -280,7 +271,9 @@ class AtomicTest:
                 crash_message=crash_msg,
             )
 
-        expectance_results = [exp.to_result(frames) for exp in self.expects]
+        expectance_results = [
+            getattr(exp, "_impl", exp).to_result(frames) for exp in self.expects
+        ]
         return AtomicTestResult(
             test_number=test_number,
             name=self.name,

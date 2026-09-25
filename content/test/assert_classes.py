@@ -17,25 +17,20 @@ from adapters.terminal.scripted_terminal_adapter import ScriptedTerminalAdapter
 @shadow_of(ExitMsgImpl)
 class ExitMsg:
     def contains(self, expected_msg: str) -> "ExitMsg": pass
-    def to_result(self, run_state: dict) -> ExpectanceResult: pass
 
 @shadow_of(DiskStateImpl)
 class DiskState:
     def has(self, expected_paths: list[str] | set[str]) -> "DiskState": pass
-    def to_result(self, run_state: dict) -> ExpectanceResult: pass
 
 @shadow_of(PromptRenderImpl)
 class PromptRender:
     def contains(self, expected_prompt: str) -> "PromptRender": pass
-    def to_result(self, run_state: dict) -> ExpectanceResult: pass
+    def min_lines(self, count: int) -> "PromptRender": pass
 
 @shadow_of(UIRenderImpl)
 class UIRender:
     def contains(self, template: str) -> "UIRender": pass
     def where(self, field: str, predicate: callable) -> "UIRender": pass
-    def to_result(self, run_state: dict) -> ExpectanceResult: pass
-
-END_APP = ScriptedTerminalAdapter.END_APP_EVENT
 
 class EmptyRepoTests(BaseFixtureTest):
     TEMPLATE_FIXTURE_NAME = "empty_repo"
@@ -43,14 +38,14 @@ class EmptyRepoTests(BaseFixtureTest):
     def assert_end_of_sequence_terminates_properly(self) -> list[AtomicTest]:
         return AtomicTest(
             sequence=[],
-            expects=ExitMsg.contains(TestSequenceEnded.__name__),
+            expects=ExitMsg().contains(TestSequenceEnded.__name__),
             )
 
     def assert_abort_keys_decline_init(self) -> list[AtomicTest]:
         return [
             AtomicTest(
                 sequence=[key],
-                expects=ExitMsg.contains(ActionResult.MSG_DECLINED_INIT),
+                expects=ExitMsg().contains(ActionResult.MSG_DECLINED_INIT),
             )
             for key in IOControl.ABORT_KEYS
         ]
@@ -60,8 +55,8 @@ class EmptyRepoTests(BaseFixtureTest):
             AtomicTest(
                 sequence=["yes", IOControl.ACCEPT_KEY],
                 expects = [
-                    UIRender.contains(ActionResult.BOOTSTRAP_SUCCESS),
-                    DiskState.has(RepoContract.get_all_target_paths())
+                    UIRender().contains(ActionResult.BOOTSTRAP_SUCCESS),
+                    DiskState().has(RepoContract.get_all_target_paths())
                 ],  
             ),
         ]
@@ -71,7 +66,7 @@ class EmptyRepoTests(BaseFixtureTest):
         prefix = ["1"]
         ats.append(AtomicTest(
                 sequence=list(prefix),
-                expects=UIRender.contains("Domain 'manifest-analysis' on key '1' selected"),
+                expects=UIRender().contains("Domain 'manifest-analysis' on key '1' selected"),
             ))
         for c in "as":
             prefix.append(c)
@@ -79,10 +74,10 @@ class EmptyRepoTests(BaseFixtureTest):
                 AtomicTest(
                     sequence=list(prefix),
                     expects=[
-                        UIRender.contains(ActionResult.COPIED_TO_CLIPBOARD)
+                        UIRender().contains(ActionResult.COPIED_TO_CLIPBOARD)
                             .where("lines", lambda l: int(l) > 100)
                             .where("chars", lambda c: int(c) > 3000),
-                        PromptRender.min_lines(50),
+                        PromptRender().min_lines(50),
                     ]    
                 )
             )
@@ -91,7 +86,7 @@ class EmptyRepoTests(BaseFixtureTest):
             ats.append(
                 AtomicTest(
                     sequence=list(prefix),
-                    expects = UIRender.contains(ActionResult.UNBOUND_KEY)
+                    expects = UIRender().contains(ActionResult.UNBOUND_KEY)
                         .where("key", lambda k, target=c: str(k) == target)
                 )
             )
@@ -109,7 +104,7 @@ class CorruptRepoTests(BaseFixtureTest):
         actions: list[AtomicTest | SandboxOperations] = [
             AtomicTest(
                 sequence=["yes", IOControl.ACCEPT_KEY],
-                expects=UIRender.contains(ActionResult.BOOTSTRAP_SUCCESS),
+                expects=UIRender().contains(ActionResult.BOOTSTRAP_SUCCESS),
             ),
             SandboxOperations().rm(*all_targets),
         ]
@@ -119,7 +114,7 @@ class CorruptRepoTests(BaseFixtureTest):
                 SandboxOperations().create_dirs(dir_path),
                 AtomicTest(
                     sequence=["yes", IOControl.ACCEPT_KEY],
-                    expects=ExitMsg.contains(WorkspaceAlreadyInitialized.__name__),
+                    expects=ExitMsg().contains(WorkspaceAlreadyInitialized.__name__),
                 ),
                 SandboxOperations().rm(dir_path),
             ])
@@ -129,7 +124,7 @@ class CorruptRepoTests(BaseFixtureTest):
                 SandboxOperations().create_file(file_path, content="blocking content"),
                 AtomicTest(
                     sequence=["yes", IOControl.ACCEPT_KEY],
-                    expects=ExitMsg.contains(WorkspaceAlreadyInitialized.__name__),
+                    expects=ExitMsg().contains(WorkspaceAlreadyInitialized.__name__),
                 ),
                 SandboxOperations().rm(file_path),
             ])
