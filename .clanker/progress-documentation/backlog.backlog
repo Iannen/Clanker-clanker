@@ -107,20 +107,27 @@ goals (sticky)
 2. the console output should not be verbose, dropping big complaints on the user. instead the reports should contain the 'visibility' stuff (complete ui render | list of observed paths, etc)
 3. the reports should do a great job in laying out the case, they dont quite do that now
 
-Phase 6: Refactor test system assertions to use ABC inheritance and scenario builder DI
-    [ ] 'content/test/assert_classes.py': Define test system ABC contracts and update test methods
-        - add scenario builder ABC (`ScenarioBuilderABC` or similar) with `.run_app()` and `.sandbox()` methods
-        - define abstract interfaces for atomic test execution and sandbox operations
-        - update all assert methods across test classes to receive the scenario builder instance
-        - remove remaining direct usages/imports of shadow classes
-    [ ] 'content/test/expectance_impls.py': Inherit from abstract interfaces and remove shadow decorator
-        - update concrete `AtomicTest` and `SandboxOperations` classes to inherit from ABC interfaces
-        - delete `@shadow_of` decorator and dynamic method forwarding logic
-        - implement concrete `ScenarioBuilder` factory class returning concrete instances
-    [ ] 'content/test/base_classes.py': Inject scenario builder instance during test execution
-        - update `BaseFixtureTest.run_tests` to instantiate and pass the concrete scenario builder into test method calls
+Phase 6: Refactor test system assertions to use ABC inheritance and ActionsFactory DI. Remove assert class inheritance of fixture
+    [x] 'content/test/assert_classes.py': Define test system ABC contracts and update test methods
+        - add `ActionsFactory`, `Execution`, and `Sandbox` abstract base classes
+        - define `@property @abstractmethod def sandbox(self) -> Sandbox` on `ActionsFactory`
+        - update all assert methods across test classes to accept `actions: ActionsFactory`
+        - replace direct class instantiations with `actions.run_app(...)` and `actions.sandbox.rm(...)`
+    [x] 'content/test/expectance_impls.py': Inherit from ABCs and remove dynamic shadow system
+        - make concrete classes inherit from `Execution` and `Sandbox`
+        - implement concrete `ActionsFactoryImpl` (with `@property def sandbox`)
+        - delete `@shadow_of` decorator and forwarder metaprogramming entirely
+    [x] 'content/test/base_classes.py': Inject ActionsFactory during test execution
+        - update `BaseFixtureTest.run_tests` to pass `ActionsFactoryImpl()` into assert methods
+    [x] 'content/test/assert_classes.py': Remove BaseFixtureTest inheritance
+        - remove BaseFixtureTest import and class inheritance from EmptyRepoTests and CorruptRepoTests
+    [x] 'content/test/base_classes.py': Inject test suite targets into BaseFixtureTest
+        - accept test suite instance or class in BaseFixtureTest.__init__
+        - update method discovery and execution logic to inspect and call methods on injected target instead of self
+    [x] 'content/test/ship_gate.py': Wrap test suite classes in BaseFixtureTest fixture runner
+        - filter out abstract base classes in assert_classes using inspect.isabstract
+        - instantiate BaseFixtureTest with discovered test classes and execute run_tests
 
-Let us discuss the wisdom of this approach.
 Backlog tail end
 
 def run_tests(self) -> TestSuiteResult:

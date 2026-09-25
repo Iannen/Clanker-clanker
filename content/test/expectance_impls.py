@@ -1,45 +1,12 @@
 from pathlib import Path
 import re
 import shutil
-from typing import Callable, Optional
+from typing import Callable, Optional, Self
 
 from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
+from assert_classes import ActionsFactory, Execution, Sandbox
 from core import PathTokens
 from reporter import ExpectanceResult, SandboxOperationsResult, AtomicTestResult
-
-def shadow_of(impl_class):
-    def decorator(cls):
-        real_methods = {
-            m for m in dir(impl_class)
-            if not m.startswith("_") and m != "to_result"
-        }
-        shadow_methods = {m for m in dir(cls) if not m.startswith("_")}
-        missing = real_methods - shadow_methods
-        if missing:
-            raise TypeError(f"{cls.__name__} out of sync. Missing: {missing}")
-
-        orig_init = getattr(cls, "__init__", None)
-
-        def new_init(self, *args, **kwargs):
-            self._impl = impl_class(*args, **kwargs)
-            if orig_init and orig_init is not object.__init__:
-                orig_init(self, *args, **kwargs)
-
-        cls.__init__ = new_init
-
-        for method_name in real_methods:
-            def make_forwarder(name):
-                def forwarder(self, *args, **kwargs):
-                    res = getattr(self._impl, name)(*args, **kwargs)
-                    if res is self._impl:
-                        return self
-                    return res
-                return forwarder
-
-            setattr(cls, method_name, make_forwarder(method_name))
-
-        return cls
-    return decorator
 
 
 class ExpectanceCheck:
@@ -179,7 +146,7 @@ class PromptRenderCheck(ExpectanceCheck):
         return ExpectanceResult(assertion=assertion, passed=passed, details=details)
 
 
-class SandboxOperations:
+class SandboxImpl(Sandbox):
     def __init__(self) -> None:
         self._actions: list[tuple[str, str, Callable[[Path], None]]] = []
 
@@ -191,7 +158,7 @@ class SandboxOperations:
             p = p[len("<PUD>"):].lstrip("/\\")
         return p
 
-    def create_dirs(self, *paths: str) -> "SandboxOperations":
+    def create_dirs(self, *paths: str) -> Self:
         sanitized = [self._sanitize_path(p) for p in paths]
         def action(sandbox_dir: Path) -> None:
             for p in sanitized:
@@ -199,7 +166,7 @@ class SandboxOperations:
         self._actions.append(("create_dirs", f"create_dirs: {', '.join(sanitized)}", action))
         return self
 
-    def create_file(self, path: str, content: str = "") -> "SandboxOperations":
+    def create_file(self, path: str, content: str = "") -> Self:
         sanitized = self._sanitize_path(path)
         def action(sandbox_dir: Path) -> None:
             target = sandbox_dir / sanitized
@@ -208,7 +175,7 @@ class SandboxOperations:
         self._actions.append(("create_file", f"create_file: {sanitized}", action))
         return self
 
-    def edit_file(self, path: str, old: str, new: str) -> "SandboxOperations":
+    def edit_file(self, path: str, old: str, new: str) -> Self:
         sanitized = self._sanitize_path(path)
         def action(sandbox_dir: Path) -> None:
             target = sandbox_dir / sanitized
@@ -218,7 +185,7 @@ class SandboxOperations:
         self._actions.append(("edit_file", f"edit_file: {sanitized}", action))
         return self
 
-    def rm(self, *paths: str) -> "SandboxOperations":
+    def rm(self, *paths: str) -> Self:
         sanitized = [self._sanitize_path(p) for p in paths]
         def action(sandbox_dir: Path) -> None:
             for p in sanitized:
@@ -238,32 +205,32 @@ class SandboxOperations:
         return results
 
 
-class AtomicTestImpl:
+class ExecutionImpl(Execution):
     def __init__(self, sequence: list[str]) -> None:
         self.sequence = sequence
         self.name: str = ""
         self.frames_filename: str = ""
         self._checks: list[ExpectanceCheck] = []
 
-    def expect_exit_msg(self, expected_msg: str) -> "AtomicTestImpl":
+    def expect_exit_msg(self, expected_msg: str) -> Self:
         self._checks.append(ExitMsgCheck(expected_msg))
         return self
 
-    def expect_disk_has(self, expected_paths: list[str] | set[str]) -> "AtomicTestImpl":
+    def expect_disk_has(self, expected_paths: list[str] | set[str]) -> Self:
         self._checks.append(DiskStateCheck(expected_paths))
         return self
 
-    def expect_ui_contains(self, template: str) -> "AtomicTestImpl":
+    def expect_ui_contains(self, template: str) -> Self:
         check = UIRenderCheck(template)
         self._checks.append(check)
         return self
 
-    def where(self, field: str, predicate: Callable[[str], bool]) -> "AtomicTestImpl":
+    def where(self, field: str, predicate: Callable[[str], bool]) -> Self:
         if self._checks and isinstance(self._checks[-1], UIRenderCheck):
             self._checks[-1].where(field, predicate)
         return self
 
-    def expect_prompt_contains(self, expected_prompt: str) -> "AtomicTestImpl":
+    def expect_prompt_contains(self, expected_prompt: str) -> Self:
         if self._checks and isinstance(self._checks[-1], PromptRenderCheck):
             check = self._checks[-1]
         else:
@@ -272,7 +239,7 @@ class AtomicTestImpl:
         check.contains(expected_prompt)
         return self
 
-    def expect_prompt_min_lines(self, count: int) -> "AtomicTestImpl":
+    def expect_prompt_min_lines(self, count: int) -> Self:
         if self._checks and isinstance(self._checks[-1], PromptRenderCheck):
             check = self._checks[-1]
         else:
@@ -306,4 +273,13 @@ class AtomicTestImpl:
         )
 
 
-AtomicTest = AtomicTestImpl
+class ActionsFactoryImpl(ActionsFactory):
+    def __init__(self) -> None:
+        self._sandbox = SandboxImpl()
+
+    @property
+    def sandbox(self) -> Sandbox:
+        return self._sandbox
+
+    def run_app(self, sequence: list[str]) -> Execution:
+        return ExecutionImpl(sequence)

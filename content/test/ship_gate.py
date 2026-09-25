@@ -74,7 +74,7 @@ def prepare_and_run_test_suites(fixtures_dir: Path, sandboxes_dir: Path, clanker
     discovered_classes = [
         cls
         for name, cls in inspect.getmembers(assert_classes, inspect.isclass)
-        if cls.__module__ == "assert_classes" and issubclass(cls, BaseFixtureTest)
+        if cls.__module__ == "assert_classes" and not inspect.isabstract(cls)
     ]
 
     if not discovered_classes:
@@ -89,8 +89,8 @@ def prepare_and_run_test_suites(fixtures_dir: Path, sandboxes_dir: Path, clanker
 
         shutil.copytree(fixture_path, sandbox_path)
 
-        instance = cls(sandbox_path, clanker_path)
-        suite_result = instance.run_tests()
+        fixture = BaseFixtureTest(cls, sandbox_path, clanker_path)
+        suite_result = fixture.run_tests()
         results.append(suite_result)
 
     return results
