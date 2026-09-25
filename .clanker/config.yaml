@@ -4,7 +4,9 @@ system:
 filesets:
   core: {includes: [
     content/core,
-    content/clanker.py]}
+    content/clanker.py,
+    content/modules/asset_ingestion/ingestion_service.py,
+    content/modules/asset_ingestion/commons/error_collector.py]}
 
   asset_ingestion: {includes: [content/modules/asset_ingestion]}
 

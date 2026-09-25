@@ -862,3 +862,16 @@ CXX: SANDBOX OPERATIONS AND FIXTURE LIFECYCLE EXTENSION
     Reflection:
     - Interleaving atomic filesystem mutations directly into the fixture lifecycle provides robust validation for partial or corrupt workspace states.
     - The expanded test assertions successfully exposed subtle fragilities in the program under test's startup sequence, specifically where runtime configuration assembly precedes workspace initialization guard checks when partial artifact structures exist.
+
+CXXI: TEST SUITE ISOLATION AND FLUENT ABC FRAMEWORK REFACTORING
+    Purpose: Modernize the test suite architecture by eliminating implicit state accumulation, standardizing process exit contracts, and establishing an explicit ABC-driven execution pipeline.
+    - Test execution previously suffered from implicit input sequence accumulation across atomic runs, fragile terminal output checks, and tightly coupled shadow class metaprogramming.
+    Actions:
+    - Flattened input sequences per test execution by eliminating `_replay_seq` tracking in `BaseFixtureTest` and explicitly declaring full startup key sequences across all `assert_classes` test methods.
+    - Standardized process lifecycle modeling around Exit Code 0 contracts by adding `exit_msg` to `ExecutionFrame`, updating `ScriptedTerminalAdapter.end_test` and `clanker.py` CLI exception handling, and handling subprocess crashes (Exit Code 1) with synthetic stderr frames in `BaseFixtureTest`.
+    - Restructured test reporting into a hierarchical result domain (`TestSuiteResult`, `MethodResult`, `AtomicTestResult`, `SandboxOperationsResult`, and `ExpectanceResult`) and introduced structured file and console reporting in `reporter.py`.
+    - Replaced dynamic `@shadow_of` metaprogramming and static method calls with explicit abstract base interfaces (`ActionsFactory`, `Execution`, and `Sandbox`) injected into test methods, enabling fluent expectation chaining directly on `ExecutionImpl`.
+    - Decoupled test classes (`EmptyRepoTests`, `CorruptRepoTests`) from fixture runner inheritance and refactored `BaseFixtureTest` and `ship_gate.py` to inspect and execute test targets via dependency injection.
+    Reflection:
+    - Transitioning from dynamic dynamic wrappers and accumulated state to explicit ABC interfaces and isolated process runs dramatically improved test determinism and isolation.
+    - The fluent expectation builder provides a declarative, contract-first assertion DSL that makes test logic far easier to read, maintain, and extend.

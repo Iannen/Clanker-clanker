@@ -30,161 +30,31 @@ II. The pile
         - append a trailing 'Next item numeral: <FOLLOWING_ROMAN_NUMERAL>' marker to history output instructions
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 
-Phase 1: Eliminate input sequence accumulation from the test runner system
-    [x] 'content/test/expectance_impls.py': Strip reset_sequence field from AtomicTest dataclass
-        - remove reset_sequence: bool = False field definition from AtomicTest
-    [x] 'content/test/base_classes.py': Remove input sequence accumulation from BaseFixtureTest
-        - remove self._replay_seq state tracking from __init__
-        - pass test.sequence directly to _run_put instead of appending to accumulated state
-        - remove reset_sequence checking and clearing logic in _run_test
-    [x] 'content/test/assert_classes.py': Explicitize input sequences across assert methods
-        - remove all reset_sequence=True keyword arguments from AtomicTest instantiations
-        - update chained test sequences in navigate_ui_and_copy_prompts to include complete prefix inputs from app startup
-
-Phase 2: Refactor test runner and execution frames around exit 0 operational model
-    [x] 'content/adapters/terminal/scripted_terminal_adapter.py': Update ExecutionFrame model and terminal adapter
-        - Remove 'stdout' field from ExecutionFrame and add 'exit_msg: Optional[str] = None'
-        - Rename 'flush_report' method to 'end_test' taking parameter 'exit_msg: str'
-        - Ensure 'end_test' constructs the final ExecutionFrame using 'exit_msg' and persists framedump
-    [x] 'content/clanker.py': Align CLI engine runner with exit message output and exception handling
-        - Refactor execution flow in main() to capture exit_msg from engine.run()
-        - Call io_adapter.end_test(exit_msg) when running under test mode
-        - Catch TestSequenceEnded explicitly to allow normal process termination on exit code 0
-        - Catch general Exception, print traceback to stderr, and exit with code 1
-    [x] 'content/test/expectance_impls.py': Remove StderrContainsImpl and adjust ExitMsgImpl
-        - Remove StderrContainsImpl class definition
-        - Update ExitMsgImpl.to_result to evaluate frame.exit_msg instead of frame.stdout
-    [x] 'content/test/assert_classes.py': Update assertions to use ExitMsg instead of StderrContains
-        - Remove StderrContains import and shadow class definition
-        - Update EmptyRepoTests and CorruptRepoTests to assert expected exit messages using ExitMsg
-    [x] 'content/test/base_classes.py': Handle subprocess exit codes and short-circuit test evaluation on crash
-        - Capture subprocess return code in _run_put
-        - If return code is 1, append synthetic final frame containing exit_code=1 and captured stderr to framedump
-        - In _run_test, check if final frame has exit_code == 1; if so, short-circuit and return a failing Result with stderr details
-
-Phase 3: Hierarchy clarification, console output improvement
-    [x] 'content/test/expectance_impls.py': Rebrand Result and define leaf results
-        - rename Result to ExpectanceResult
-        - create SandboxOperationsResult to track sandbox execution steps
-    [x] 'content/test/base_classes.py': Update test result data hierarchy
-        - define AtomicTestResult holding frames and list of ExpectanceResult
-        - define MethodResult retaining ordered list of AtomicTestResult and SandboxOperationsResult
-        - refactor TestSuiteResult to contain MethodResult instances and track suite metrics
-        - update BaseFixtureTest.run_tests to construct hierarchical results preserving action order
-    [x] 'content/test/reporter.py': Implement structured file and console reporting
-        - create reporter module with orchestrator evaluate_and_report
-        - implement write_file_reports writing JSON reports per assert class and import checker
-        - implement write_console_report matching tree output format and total summary counters
-        - relocated all result type classes to this file
-
-Phase 4: Refactor expectance and shadow classes to require explicit instantiation
-[x] 'content/test/expectance_impls.py': Update shadow_of decorator and AtomicTest execution logic
-    - require explicit Class() instantiation for shadow wrappers
-    - route fluent interface builder calls on shadow instances to internal _impl and return shadow self
-    - unwrap shadow instances to call _impl.to_result inside AtomicTest.to_result
-    - check that shadow classes expose only fluent builder methods and exclude to_result from public API check
-[x] 'content/test/assert_classes.py': Update shadow class declarations and test methods
-    - remove to_result method declarations from shadow classes
-    - update all expectance usage across test methods from implicit Class.method() to explicit Class().method()
-
-Phase 5: Refactor expectation system into a fluent AtomicTest interface
-
-[x] 'content/test/expectance_impls.py': Implement fluent AtomicTestImpl and internalize expectation evaluations
-    - add fluent builder methods on AtomicTestImpl (expect_exit_msg, expect_disk_has, expect_ui_contains, where, expect_prompt_contains, expect_prompt_min_lines)
-    - accumulate expectation checks (ExpectanceCheck subclasses) internally and evaluate them within to_result(frames)
-    - remove stand-alone Expectance base class and public expectation implementations (ExitMsgImpl, DiskStateImpl, UIRenderImpl, PromptRenderImpl)
-
-[x] 'content/test/assert_classes.py': Simplify assertion declarations with fluent AtomicTest
-    - remove ExitMsg, DiskState, PromptRender, and UIRender shadow classes
-    - export and use AtomicTest directly from expectance_impls.py so runner isinstance checks remain valid
-    - update test methods in EmptyRepoTests and CorruptRepoTests to chain expectations directly on AtomicTest instances
-
-Phase 6: Refactor test system assertions to use ABC inheritance and ActionsFactory DI. Remove assert class inheritance of fixture
-    [x] 'content/test/assert_classes.py': Define test system ABC contracts and update test methods
-        - add `ActionsFactory`, `Execution`, and `Sandbox` abstract base classes
-        - define `@property @abstractmethod def sandbox(self) -> Sandbox` on `ActionsFactory`
-        - update all assert methods across test classes to accept `actions: ActionsFactory`
-        - replace direct class instantiations with `actions.run_app(...)` and `actions.sandbox.rm(...)`
-    [x] 'content/test/expectance_impls.py': Inherit from ABCs and remove dynamic shadow system
-        - make concrete classes inherit from `Execution` and `Sandbox`
-        - implement concrete `ActionsFactoryImpl` (with `@property def sandbox`)
-        - delete `@shadow_of` decorator and forwarder metaprogramming entirely
-    [x] 'content/test/base_classes.py': Inject ActionsFactory during test execution
-        - update `BaseFixtureTest.run_tests` to pass `ActionsFactoryImpl()` into assert methods
-    [x] 'content/test/assert_classes.py': Remove BaseFixtureTest inheritance
-        - remove BaseFixtureTest import and class inheritance from EmptyRepoTests and CorruptRepoTests
-    [x] 'content/test/base_classes.py': Inject test suite targets into BaseFixtureTest
-        - accept test suite instance or class in BaseFixtureTest.__init__
-        - update method discovery and execution logic to inspect and call methods on injected target instead of self
-    [x] 'content/test/ship_gate.py': Wrap test suite classes in BaseFixtureTest fixture runner
-        - filter out abstract base classes in assert_classes using inspect.isabstract
-        - instantiate BaseFixtureTest with discovered test classes and execute run_tests
 Backlog tail, Selected item/items:
 
-there is an issue where the 'corrupt_repo_tests.json' contains 225 operations of type 'sandbox_operation'
+1. Contract verification and critical complaints support during bootstrap
+    [ ] 'content/core/engine_deps/ingestion.py':
+        - add BootstrapOutcome class with outcomes (NO_COMPLAINTS, NON_CRITICAL_ONLY, CRITICAL_BLOCKERS, CLANKERIZE_READY)
+        - expand Report abstract interface with add_critical_complaint, get_critical_complaints, and get_outcome methods
+    [ ] 'content/modules/asset_ingestion/commons/error_collector.py':
+        - update ErrorCollector to store critical complaints alongside non-critical complaints
+        - implement get_outcome logic evaluating presence of complaints and complete contract absence for CLANKERIZE_READY
+    [ ] 'content/modules/asset_ingestion/ingestion_service.py':
+        - update get_runtime_config signature to return 4-tuple (report, button_map, ui_render, base_resolvers)
+        - remove NoConfig / ConfigAssembly exception raises from get_runtime_config and _get_validated_cfg_fragment
+        - verify CfgFragments presence and YAML parsing; record critical complaints on failure and fallback to empty dicts
+        - verify RepoContract members presence on disk; record critical complaints for missing elements
+        - attempt execution of extractors, assemblers, and validators to amass non-critical complaints
+    [ ] 'content/core/core/presentation.py':
+        - add presentation formatter/helper to convert Report outcome and complaints into ActionResult or prompt string
+        - support formatting CRITICAL_BLOCKERS into dual sections displaying both critical and non-critical complaints
+    [ ] 'content/core/engine.py':
+        - remove _bootstrap method and fold bootstrap state handling directly into run()
+        - delegate Report handling to presentation formatter to produce initial ActionResult or prompt
+        - execute control flow based on BootstrapOutcome state:
+            * NO_COMPLAINTS: assign services and enter main TUI loop
+            * NON_CRITICAL_ONLY: prompt user for confirmation before entering TUI loop
+            * CRITICAL_BLOCKERS: return formatted failure ActionResult to exit application
+            * CLANKERIZE_READY: prompt user for initialization confirmation, call initialize_workspace, and re-run ingestion
 
 Backlog tail end
-
-def run_tests(self) -> TestSuiteResult:
-    suite_result = TestSuiteResult(suite_name=self.__class__.__name__)
-
-    for method_name, actions in self._parse_self_methods():
-        suite_result.method_results[method_name] = []
-
-        for action in actions:
-            if isinstance(action, SetupBeforeClass):
-                action.execute()
-            elif isinstance(action, AtomicTest):
-                # Run the atomic test and collect its result
-                test_result = self._run_test(action)
-                suite_result.method_results[method_name].append(test_result)
-
-    return suite_result
-'''
-
-
-
-'''
-class MyTestClass(BaseFixtureTest):
-    TEMPLATE_FIXTURE_NAME = "empty_repo"
-    def some_assert_scenario(self) -> list[AtomicTest]:
-        return [
-            AtomicTest(
-                sequence=[],
-                expects=Expect()
-                    .ui_contains("do u wish to clankerize") # targets the second to last frame, which happens to be the initial frame because no inputs given
-                    .exit_msg_is("ranouttaframes!") # our termination mechanism
-            ),
-            AtomicTest(
-                sequence=["yes", "accept_key"],
-                expects=Expect()
-                    .ui_contains("bootstrap success / welcome to app or whatever") 
-                    .disk_has(repocontract.getmembers)
-                reset: True # subsequent reboots will go straight to UI, so we cannot reuse this sequence
-            ),
-            AtomicTest(
-                sequence=["1"],
-                expects=Expect()
-                    .ui_contains("domain suchand so selected") 
-                reset: False # but now we can reuse the keys. it defaults to false, but i supply so i can write comment here
-            ),
-            AtomicTest(
-                sequence=["a"],
-                expects=Expect()
-                    .ui_contains("prompt suchandso") 
-                    .clipboard_contains("stuff about prompt")
-            ),
-            AtomicTest(
-                sequence=["f"],
-                expects=Expect()
-                    .ui_contains("no prompt on that button!") 
-                    .clipboard_contains("") #isempty
-            ),
-            AtomicTest(
-                sequence=[IOControl.escapebutton],
-                expects=Expect()
-                    .ui_contains("no prompt on that button!") 
-                    .clipboard_contains("") #isempty
-                    .exit_msg_is("user exited")
-            ),
-'''
