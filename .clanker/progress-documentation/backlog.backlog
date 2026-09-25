@@ -99,14 +99,6 @@ Phase 5: Refactor expectation system into a fluent AtomicTest interface
     - export and use AtomicTest directly from expectance_impls.py so runner isinstance checks remain valid
     - update test methods in EmptyRepoTests and CorruptRepoTests to chain expectations directly on AtomicTest instances
 
-Backlog tail, Selected item/items:
-
-*Test system improvements*
-goals (sticky)
-1. all classes instantiated in assert methods should have a shadow, so the reader can work in that file without investigating the other files of test system
-2. the console output should not be verbose, dropping big complaints on the user. instead the reports should contain the 'visibility' stuff (complete ui render | list of observed paths, etc)
-3. the reports should do a great job in laying out the case, they dont quite do that now
-
 Phase 6: Refactor test system assertions to use ABC inheritance and ActionsFactory DI. Remove assert class inheritance of fixture
     [x] 'content/test/assert_classes.py': Define test system ABC contracts and update test methods
         - add `ActionsFactory`, `Execution`, and `Sandbox` abstract base classes
@@ -127,6 +119,9 @@ Phase 6: Refactor test system assertions to use ABC inheritance and ActionsFacto
     [x] 'content/test/ship_gate.py': Wrap test suite classes in BaseFixtureTest fixture runner
         - filter out abstract base classes in assert_classes using inspect.isabstract
         - instantiate BaseFixtureTest with discovered test classes and execute run_tests
+Backlog tail, Selected item/items:
+
+there is an issue where the 'corrupt_repo_tests.json' contains 225 operations of type 'sandbox_operation'
 
 Backlog tail end
 

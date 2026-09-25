@@ -274,12 +274,9 @@ class ExecutionImpl(Execution):
 
 
 class ActionsFactoryImpl(ActionsFactory):
-    def __init__(self) -> None:
-        self._sandbox = SandboxImpl()
-
     @property
     def sandbox(self) -> Sandbox:
-        return self._sandbox
+        return SandboxImpl()
 
     def run_app(self, sequence: list[str]) -> Execution:
         return ExecutionImpl(sequence)
