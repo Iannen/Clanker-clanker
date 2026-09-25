@@ -30,9 +30,33 @@ II. The pile
         - append a trailing 'Next item numeral: <FOLLOWING_ROMAN_NUMERAL>' marker to history output instructions
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 
-Backlog tail, Selected item/items:
+2. Contract verification and critical complaints support during bootstrap
+'''
+we define two asset buckets that have states, which we represent them with
 
-1. Contract verification and critical complaints support during bootstrap
+clanker assets: [system cfg, shared cfg, all templates, all layouts]
+clanker assets states: 
+    clank-ok:
+        all assets exits, config assets are convertible
+    clank-bad
+        any assets missing or non-convertible
+
+pud assets: [config.yaml, all prog docs, the readme, and content dir]
+pud assets states: 
+    pud-ok: 
+        all assets exits, config assets are convertible
+    pud-empty: no pud assets exist
+    pud-bad: : some but not all pud assets exist
+
+we get matrix, which i flatten
+
+co-po: offer bootstrap
+co-pe: offer clankerize
+co-pb: complain critically -> list pud crits, all soft complaints
+cb-po: complain critically, list clanker crits, all soft complaints
+cb-pe: complain critically, list clanker crits, all soft complaints
+cb-pb: complain critically, list clanker crits, pud crits (from po perspective) all soft complaints
+'''
     [ ] 'content/core/engine_deps/ingestion.py':
         - add BootstrapOutcome class with outcomes (NO_COMPLAINTS, NON_CRITICAL_ONLY, CRITICAL_BLOCKERS, CLANKERIZE_READY)
         - expand Report abstract interface with add_critical_complaint, get_critical_complaints, and get_outcome methods
@@ -45,16 +69,39 @@ Backlog tail, Selected item/items:
         - verify CfgFragments presence and YAML parsing; record critical complaints on failure and fallback to empty dicts
         - verify RepoContract members presence on disk; record critical complaints for missing elements
         - attempt execution of extractors, assemblers, and validators to amass non-critical complaints
-    [ ] 'content/core/core/presentation.py':
-        - add presentation formatter/helper to convert Report outcome and complaints into ActionResult or prompt string
-        - support formatting CRITICAL_BLOCKERS into dual sections displaying both critical and non-critical complaints
     [ ] 'content/core/engine.py':
         - remove _bootstrap method and fold bootstrap state handling directly into run()
-        - delegate Report handling to presentation formatter to produce initial ActionResult or prompt
+        - delegate Report handling to new engine formatter helper method, to produce initial ActionResult or prompt
         - execute control flow based on BootstrapOutcome state:
             * NO_COMPLAINTS: assign services and enter main TUI loop
             * NON_CRITICAL_ONLY: prompt user for confirmation before entering TUI loop
             * CRITICAL_BLOCKERS: return formatted failure ActionResult to exit application
             * CLANKERIZE_READY: prompt user for initialization confirmation, call initialize_workspace, and re-run ingestion
+
+Backlog tail, Selected item/items:
+
+1. Rearrange pathconstants
+[ ] 'content/core/core/constants.py'
+    [ ] class PathTokens
+        - remove 'contents'
+    [ ] class ClankerAssets
+        - layouts
+        - templates
+        - system and shared config
+    [ ] class PudAssets    
+        - pud config
+        - prog docs
+        - readme
+        - contents dir
+    [ ] class RepoContract
+        - maps clankerassets to pud assets
+        - also contains 'contents' -> the pud must have a contents dir
+        - so IngestionService can iterate over them when initializing workspace
+[ ] 'content/modules/asset_ingestion/ingestion_service.py'
+    - align usages
+[ ] 'content/modules/asset_ingestion/assemblers/rtc.py'
+    - align usages
+[ ] 'content/modules/render_pipeline/render_service.py'
+    - align usages
 
 Backlog tail end

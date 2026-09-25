@@ -22,21 +22,6 @@ filesets:
   ports_adapters: {includes: [
     content/ports_adapters]}
 
-  test_cover: {includes: [
-    content/core/engine.py,
-    content/core/constants.py,
-    content/core/exceptions.py,
-    content/core/presentation.py,
-    content/clanker.py,
-    content/ports_adapters/terminal/scripted_terminal_adapter.py,
-    content/test], excludes: [
-      content/test/reports,
-      content/test/sandboxes,
-      content/test/test_repos,
-      content/test/reporter.py,
-      content/test/ship_gate.py,
-    ]}
-
   test_harness: {includes: [
     content/clanker.py,
     content/adapters/terminal/scripted_terminal_adapter.py,
@@ -50,10 +35,16 @@ filesets:
       content/test/ship_gate.py
     ]}
 
+  path_fix: {includes: [
+    content/core/core/constants.py,
+    content/modules/asset_ingestion/ingestion_service.py,
+    content/modules/asset_ingestion/assemblers/rtc.py,
+    content/modules/render_pipeline/render_service.py]}
+
 domains:
 - name: core
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: core } 
+    - { id: repo_content, type: repo_content, fileset: path_fix } 
 
   prompts:
     - name: plan
