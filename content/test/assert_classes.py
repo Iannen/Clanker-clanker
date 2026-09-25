@@ -7,7 +7,6 @@ from expectance_impls import (
     UIRenderImpl,
     AtomicTest,
     SandboxOperations,
-    Result
 )
 
 from core.engine_deps import IOControl
@@ -18,23 +17,23 @@ from adapters.terminal.scripted_terminal_adapter import ScriptedTerminalAdapter
 @shadow_of(ExitMsgImpl)
 class ExitMsg:
     def contains(self, expected_msg: str) -> "ExitMsg": pass
-    def to_result(self, run_state: dict) -> Result: pass
+    def to_result(self, run_state: dict) -> ExpectanceResult: pass
 
 @shadow_of(DiskStateImpl)
 class DiskState:
     def has(self, expected_paths: list[str] | set[str]) -> "DiskState": pass
-    def to_result(self, run_state: dict) -> Result: pass
+    def to_result(self, run_state: dict) -> ExpectanceResult: pass
 
 @shadow_of(PromptRenderImpl)
 class PromptRender:
     def contains(self, expected_prompt: str) -> "PromptRender": pass
-    def to_result(self, run_state: dict) -> Result: pass
+    def to_result(self, run_state: dict) -> ExpectanceResult: pass
 
 @shadow_of(UIRenderImpl)
 class UIRender:
     def contains(self, template: str) -> "UIRender": pass
     def where(self, field: str, predicate: callable) -> "UIRender": pass
-    def to_result(self, run_state: dict) -> Result: pass
+    def to_result(self, run_state: dict) -> ExpectanceResult: pass
 
 END_APP = ScriptedTerminalAdapter.END_APP_EVENT
 

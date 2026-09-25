@@ -1,13 +1,14 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-import re
-from typing import Callable, Optional
-from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
-from typing import Union
-from core import PathTokens
 import functools
-import shutil
 from pathlib import Path
+import re
+import shutil
+from typing import Callable, Optional, Union
+
+from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
+from core import PathTokens
+from reporter import ExpectanceResult, SandboxOperationsResult, AtomicTestResult
 
 def shadow_of(impl_class):
     def decorator(cls):
@@ -25,8 +26,6 @@ def shadow_of(impl_class):
         real_methods = [m for m in dir(impl_class) if not m.startswith("_")]
         for method_name in real_methods:
             def make_delegated(name):
-                original_method = getattr(impl_class, name)
-                
                 def class_delegated(cls_target, *args, **kwargs):
                     instance = cls_target()
                     res = getattr(instance._impl, name)(*args, **kwargs)
@@ -56,7 +55,7 @@ def shadow_of(impl_class):
 
 class Expectance(ABC):
     @abstractmethod
-    def to_result(self, frames: list[ExecutionFrame]) -> "Result":
+    def to_result(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
         pass
 
 class ExitMsgImpl(Expectance):
@@ -67,13 +66,13 @@ class ExitMsgImpl(Expectance):
         self.expected_msg = expected_msg
         return self
 
-    def to_result(self, frames: list[ExecutionFrame]) -> "Result":
+    def to_result(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
         frame = frames[-1]
         actual = frame.exit_msg or ""
         passed = self.expected_msg in actual
         assertion = f"ExitMsg contains '{self.expected_msg}'"
         details = "" if passed else f"Expected exit_msg '{self.expected_msg}', got '{actual}'"
-        return Result(assertion=assertion, passed=passed, details=details)
+        return ExpectanceResult(assertion=assertion, passed=passed, details=details)
 
 class DiskStateImpl(Expectance):
     def __init__(self) -> None:
@@ -90,7 +89,7 @@ class DiskStateImpl(Expectance):
         self.expected_paths = sanitized
         return self
 
-    def to_result(self, frames: list[ExecutionFrame]) -> "Result":
+    def to_result(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
         frame = frames[-2]
         actual_paths = set(frame.disk_paths)
         missing = []
@@ -115,7 +114,7 @@ class DiskStateImpl(Expectance):
                 f"actual:\n{actual_formatted}"
             )
 
-        return Result(assertion=assertion, passed=passed, details=details)
+        return ExpectanceResult(assertion=assertion, passed=passed, details=details)
 
 class UIRenderImpl(Expectance):
     def __init__(self) -> None:
@@ -130,7 +129,7 @@ class UIRenderImpl(Expectance):
         self.validators[field] = predicate
         return self
 
-    def to_result(self, frames: list[ExecutionFrame]) -> "Result":
+    def to_result(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
         frame = frames[-2]
         latest_frame = frame.latest_write or "(No UI render captured)"
 
@@ -159,7 +158,7 @@ class UIRenderImpl(Expectance):
             details = f"Expected UI pattern not found: '{self.template}'\n\n--- Latest UI Render ---\n{latest_frame}"
 
         assertion = f"Latest UI render matches template: '{self.template}'"
-        return Result(assertion=assertion, passed=passed, details=details)
+        return ExpectanceResult(assertion=assertion, passed=passed, details=details)
 
 class PromptRenderImpl(Expectance):
     def __init__(self) -> None:
@@ -174,7 +173,7 @@ class PromptRenderImpl(Expectance):
         self.minimum_lines = count
         return self
 
-    def to_result(self, frames: list[ExecutionFrame]) -> "Result":
+    def to_result(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
         frame = frames[-2]
         latest_prompt = frame.latest_clipboard or ""
         passed = True
@@ -198,11 +197,11 @@ class PromptRenderImpl(Expectance):
 
         assertion = f"Prompt render check ({', '.join(assertion_parts)})"
         details = "\n".join(failures) if not passed else ""
-        return Result(assertion=assertion, passed=passed, details=details)
+        return ExpectanceResult(assertion=assertion, passed=passed, details=details)
 
 class SandboxOperations:
     def __init__(self) -> None:
-        self._actions: list[Callable[[Path], None]] = []
+        self._actions: list[tuple[str, str, Callable[[Path], None]]] = []
 
     def _sanitize_path(self, raw_path: str) -> str:
         p = str(raw_path)
@@ -217,7 +216,7 @@ class SandboxOperations:
         def action(sandbox_dir: Path) -> None:
             for p in sanitized:
                 (sandbox_dir / p).mkdir(parents=True, exist_ok=True)
-        self._actions.append(action)
+        self._actions.append(("create_dirs", f"create_dirs: {', '.join(sanitized)}", action))
         return self
 
     def create_file(self, path: str, content: str = "") -> "SandboxOperations":
@@ -226,7 +225,7 @@ class SandboxOperations:
             target = sandbox_dir / sanitized
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(content, encoding="utf-8")
-        self._actions.append(action)
+        self._actions.append(("create_file", f"create_file: {sanitized}", action))
         return self
 
     def edit_file(self, path: str, old: str, new: str) -> "SandboxOperations":
@@ -236,7 +235,7 @@ class SandboxOperations:
             text = target.read_text(encoding="utf-8")
             updated = text.replace(old, new)
             target.write_text(updated, encoding="utf-8")
-        self._actions.append(action)
+        self._actions.append(("edit_file", f"edit_file: {sanitized}", action))
         return self
 
     def rm(self, *paths: str) -> "SandboxOperations":
@@ -248,37 +247,45 @@ class SandboxOperations:
                     shutil.rmtree(target, ignore_errors=True)
                 else:
                     target.unlink(missing_ok=True)
-        self._actions.append(action)
+        self._actions.append(("rm", f"rm: {', '.join(sanitized)}", action))
         return self
 
-    def execute(self, sandbox_dir: Path) -> None:
-        for action in self._actions:
+    def execute(self, sandbox_dir: Path) -> list[SandboxOperationsResult]:
+        results = []
+        for op_type, desc, action in self._actions:
             action(sandbox_dir)
+            results.append(SandboxOperationsResult(operation_type=op_type, description=desc, passed=True))
+        return results
 
 @dataclass
 class AtomicTest:
     sequence: list[str]
     expects: Union[Expectance, list[Expectance]]
     name: str = ""
+    frames_filename: str = ""
 
     def __post_init__(self) -> None:
         if not isinstance(self.expects, list):
             self.expects = [self.expects]
 
-    def evaluate(self, frames: list[ExecutionFrame]) -> list[Result]:
-        return [expectance.to_result(frames) for expectance in self.expects]
+    def to_result(self, frames: list[ExecutionFrame], test_number: int) -> AtomicTestResult:
+        if frames and frames[-1].exit_code == 1:
+            crash_msg = f"Unexpected crash (exit code 1):\n{frames[-1].stderr or ''}"
+            return AtomicTestResult(
+                test_number=test_number,
+                name=self.name,
+                expectance_results=[],
+                frames=frames,
+                crashed=True,
+                crash_message=crash_msg,
+            )
 
-@dataclass
-class Result:
-    assertion: str = ""
-    passed: bool = False
-    details: str = ""
-
-    def to_dict(self) -> dict:
-        res = {
-            "assertion": self.assertion,
-            "passed": self.passed,
-        }
-        if self.details:
-            res["details"] = self.details
-        return res
+        expectance_results = [exp.to_result(frames) for exp in self.expects]
+        return AtomicTestResult(
+            test_number=test_number,
+            name=self.name,
+            expectance_results=expectance_results,
+            frames=frames,
+            crashed=False,
+            crash_message=None,
+        )

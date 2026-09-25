@@ -50,14 +50,6 @@ Import verification
 - output format too, but less important
 
 
-Backlog tail, Selected item/items:
-
-*Test system improvements*
-goals (sticky)
-1. all classes instantiated in assert methods should have a shadow, so the reader can work in that file without investigating the other files of test system
-2. the console output should not be verbose, dropping big complaints on the user. instead the reports should contain the 'visibility' stuff (complete ui render | list of observed paths, etc)
-3. the reports should do a great job in laying out the case, they dont quite do that now
-
 Phase 1: Eliminate input sequence accumulation from the test runner system
     [x] 'content/test/expectance_impls.py': Strip reset_sequence field from AtomicTest dataclass
         - remove reset_sequence: bool = False field definition from AtomicTest
@@ -90,9 +82,47 @@ Phase 2: Refactor test runner and execution frames around exit 0 operational mod
         - If return code is 1, append synthetic final frame containing exit_code=1 and captured stderr to framedump
         - In _run_test, check if final frame has exit_code == 1; if so, short-circuit and return a failing Result with stderr details
 
-Phase 3: console output & suite report. what goes where
-- the console should not receive the details. those belong in the report.
-- we should make use of contextual stuff where appropriate. the assert class name, the assert method name, then the index of the atomic test.
+Phase 3: Hierarchy clarification, console output improvement
+    [x] 'content/test/expectance_impls.py': Rebrand Result and define leaf results
+        - rename Result to ExpectanceResult
+        - create SandboxOperationsResult to track sandbox execution steps
+    [x] 'content/test/base_classes.py': Update test result data hierarchy
+        - define AtomicTestResult holding frames and list of ExpectanceResult
+        - define MethodResult retaining ordered list of AtomicTestResult and SandboxOperationsResult
+        - refactor TestSuiteResult to contain MethodResult instances and track suite metrics
+        - update BaseFixtureTest.run_tests to construct hierarchical results preserving action order
+    [x] 'content/test/reporter.py': Implement structured file and console reporting
+        - create reporter module with orchestrator evaluate_and_report
+        - implement write_file_reports writing JSON reports per assert class and import checker
+        - implement write_console_report matching tree output format and total summary counters
+        - relocated all result type classes to this file
+
+Backlog tail, Selected item/items:
+
+*Test system improvements*
+goals (sticky)
+1. all classes instantiated in assert methods should have a shadow, so the reader can work in that file without investigating the other files of test system
+2. the console output should not be verbose, dropping big complaints on the user. instead the reports should contain the 'visibility' stuff (complete ui render | list of observed paths, etc)
+3. the reports should do a great job in laying out the case, they dont quite do that now
+
+Backlog tail end
+
+def run_tests(self) -> TestSuiteResult:
+    suite_result = TestSuiteResult(suite_name=self.__class__.__name__)
+
+    for method_name, actions in self._parse_self_methods():
+        suite_result.method_results[method_name] = []
+
+        for action in actions:
+            if isinstance(action, SetupBeforeClass):
+                action.execute()
+            elif isinstance(action, AtomicTest):
+                # Run the atomic test and collect its result
+                test_result = self._run_test(action)
+                suite_result.method_results[method_name].append(test_result)
+
+    return suite_result
+'''
 
 
 Phase 4: Expectance classes / shadow classes revamp
@@ -149,4 +179,3 @@ class MyTestClass(BaseFixtureTest):
                     .exit_msg_is("user exited")
             ),
 '''
-Backlog tail end

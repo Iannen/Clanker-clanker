@@ -3,6 +3,7 @@ import ast
 import builtins
 from dataclasses import dataclass, field
 from pathlib import Path
+from reporter import ImportReports
 
 module_list = [
     "stdlib",
@@ -75,7 +76,6 @@ policy = [
     ),
 ]
 
-
 @dataclass
 class FileReport:
     rel_path: str
@@ -90,29 +90,6 @@ class FileReport:
             or self.dangling_imports
             or self.undeclared_imports
         )
-
-
-@dataclass
-class ImportReports:
-    reports: list[FileReport] = field(default_factory=list)
-
-    @property
-    def is_clean(self) -> bool:
-        return all(r.is_clean for r in self.reports)
-
-    @property
-    def total_files_checked(self) -> int:
-        return len(self.reports)
-
-    @property
-    def total_violations(self) -> int:
-        return sum(
-            len(r.forbidden_import_statements)
-            + len(r.dangling_imports)
-            + len(r.undeclared_imports)
-            for r in self.reports
-        )
-
 
 class ImportPolicySuite:
     def __init__(self, content_dir: Path) -> None:
