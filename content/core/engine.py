@@ -6,6 +6,7 @@ from core import (
     NoConfig,
     ProgramExit,
     HotPromptRequested,
+    DoBootstrap
 )
 from core.engine_deps import IngestionService, KBService, RenderService, TUIService
 
@@ -23,17 +24,63 @@ class AppEngine:
         self.kb_service = kb_service
 
     def run(self) -> str:
-        try:
-            action_res = self._bootstrap()
-        except UserDecline:
-            return ActionResult.MSG_DECLINED_BOOTSTRAP        
-        except NoConfig:
-            try:
-                self.io.get_confirmation(UserQuestions.INIT_REPO, UserQuestions.REQUIRED_PHRASE)
-                self.session.initialize_workspace()
-                action_res = self._bootstrap()
-            except UserDecline:
-                return ActionResult.MSG_DECLINED_INIT
+        action_res, report, btn_map, ui_render, base_resolvers = self.session.get_runtime_config()
+
+        match action_res:
+            case DoBootstrap():
+                self.renderer.set_ui_render(ui_render)
+                self.kb_service.setup(btn_map, base_resolvers)
+                action_res = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)
+
+            case OfferBootstrapWithComplaints():
+                try:
+                    self.io.get_confirmation(
+                        UserQuestions.complaints_proceed(report.get_complaints()),
+                        UserQuestions.REQUIRED_PHRASE,
+                    )
+                except UserDecline:
+                    return ActionResult.MSG_DECLINED_BOOTSTRAP
+                self.renderer.set_ui_render(ui_render)
+                self.kb_service.setup(btn_map, base_resolvers)
+                action_res = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)
+
+            case OfferClankerize():
+                try:
+                    self.io.get_confirmation(
+                        UserQuestions.INIT_REPO, UserQuestions.REQUIRED_PHRASE
+                    )
+                    self.session.initialize_workspace()
+                    action_res, report, btn_map, ui_render, base_resolvers = self.session.get_runtime_config()
+                    self.renderer.set_ui_render(ui_render)
+                    self.kb_service.setup(btn_map, base_resolvers)
+                    action_res = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)
+                except UserDecline:
+                    return ActionResult.MSG_DECLINED_INIT
+
+            case OfferClankerizeWithComplaints():
+                try:
+                    self.io.get_confirmation(
+                        UserQuestions.complaints_proceed(report.get_complaints()),
+                        UserQuestions.REQUIRED_PHRASE,
+                    )
+                    self.io.get_confirmation(
+                        UserQuestions.INIT_REPO, UserQuestions.REQUIRED_PHRASE
+                    )
+                    self.session.initialize_workspace()
+                    action_res, report, btn_map, ui_render, base_resolvers = self.session.get_runtime_config()
+                    self.renderer.set_ui_render(ui_render)
+                    self.kb_service.setup(btn_map, base_resolvers)
+                    action_res = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)
+                except UserDecline:
+                    return ActionResult.MSG_DECLINED_INIT
+
+            case TerminateGracefully():
+                all_crits = report.get_critical_complaints()
+                all_softs = report.get_complaints()
+                msg = "Critical errors:\n" + "\n".join(all_crits)
+                if all_softs:
+                    msg += "\nSoft complaints:\n" + "\n".join(all_softs)
+                return msg
 
         try:
             while True:
@@ -55,15 +102,3 @@ class AppEngine:
                         action_res = self.io.to_clipboard(rendered_text)
         except ProgramExit:
             return ActionResult.MSG_DEFAULT
-
-    def _bootstrap(self) -> ActionResult:
-        action_res, report, btn_map, ui_render, base_resolvers = self.session.get_runtime_config()
-        self.renderer.set_ui_render(ui_render)
-        self.kb_service.setup(btn_map, base_resolvers)
-        complaints = report.get_complaints()
-        if complaints:
-            self.io.get_confirmation(
-                UserQuestions.complaints_proceed(complaints),
-                UserQuestions.REQUIRED_PHRASE
-            )
-        return action_res

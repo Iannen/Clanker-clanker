@@ -44,7 +44,7 @@ filesets:
 domains:
 - name: core
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: path_fix } 
+    - { id: repo_content, type: repo_content, fileset: core } 
 
   prompts:
     - name: plan

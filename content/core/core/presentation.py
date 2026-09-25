@@ -12,6 +12,31 @@ class ActionResult:
 
     def __init__(self, message: str):
         self.message = message
+
+
+class DoBootstrap(ActionResult):
+    def __init__(self, message: str = ActionResult.BOOTSTRAP_SUCCESS):
+        super().__init__(message)
+
+
+class OfferBootstrapWithComplaints(ActionResult):
+    def __init__(self, message: str = ActionResult.BOOTSTRAP_SUCCESS):
+        super().__init__(message)
+
+
+class OfferClankerize(ActionResult):
+    def __init__(self, message: str = ActionResult.MSG_DECLINED_INIT):
+        super().__init__(message)
+
+
+class OfferClankerizeWithComplaints(ActionResult):
+    def __init__(self, message: str = ActionResult.MSG_DECLINED_INIT):
+        super().__init__(message)
+
+
+class TerminateGracefully(ActionResult):
+    def __init__(self, message: str = ActionResult.MSG_DEFAULT):
+        super().__init__(message)
         
 class UserQuestions:
     REQUIRED_PHRASE = "yes"

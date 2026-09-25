@@ -5,7 +5,8 @@ class Report(ABC):
     @abstractmethod
     def get_complaints(self) -> list[str]: ...
 
-
+    @abstractmethod
+    def get_critical_complaints(self) -> list[str]: ...
 
 class IngestionService(ABC): 
     @abstractmethod
