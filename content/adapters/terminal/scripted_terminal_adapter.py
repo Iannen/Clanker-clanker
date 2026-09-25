@@ -4,8 +4,9 @@ from pathlib import Path
 import json
 import os
 from core.engine_deps import TerminalPort, IOControl, TerminalFailure
-from core import TestSequenceEnded
+from core import Fatal
 
+class TestSequenceEnded(Fatal): leaf_ex = True
 @dataclass
 class ExecutionFrame:
     latest_input: Optional[str] = None

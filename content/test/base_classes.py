@@ -1,11 +1,10 @@
 #!/usr/bin/env -S python3 -B
-from dataclasses import dataclass, field
 from reporter import TestSuiteResult, MethodResult, AtomicTestResult
 import json
 from pathlib import Path
 import subprocess
 import sys
-from typing import Any, Optional
+from typing import Any
 
 from adapters.terminal.scripted_terminal_adapter import ExecutionFrame, ScriptedTerminalAdapter
 

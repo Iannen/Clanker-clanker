@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Callable, Self, Union
 
 from core.engine_deps import IOControl
-from core import RepoContract, TestSequenceEnded, WorkspaceAlreadyInitialized, ActionResult
-
+from core import RepoContract, WorkspaceAlreadyInitialized, ActionResult
+from adapters.terminal.scripted_terminal_adapter import TestSequenceEnded
 
 class Sandbox(ABC):
     @abstractmethod
@@ -100,7 +100,7 @@ class CorruptRepoTests:
         dir_targets = list(RepoContract.DIRS_TO_CREATE)
         file_targets = [dst for _, dst in RepoContract.MAPPINGS]
 
-        items: list[Union[Execution, Sandbox]] = [
+        items = [
             actions.run_app(["yes", IOControl.ACCEPT_KEY])
                 .expect_ui_contains(ActionResult.BOOTSTRAP_SUCCESS),
             actions.sandbox.rm(*all_targets),

@@ -1,12 +1,11 @@
 #!/usr/bin/env -S python3 -B
 from core.engine import AppEngine
-from adapters import LinuxDiskAdapter, LinuxTerminalAdapter, ScriptedTerminalAdapter, RuamelYamlParserAdapter
+from adapters import LinuxDiskAdapter, LinuxTerminalAdapter, ScriptedTerminalAdapter, RuamelYamlParserAdapter, TestSequenceEnded
 from modules import TUIServiceImpl, RenderServiceImpl, KBServiceImpl, IngestionServiceImpl
 import sys
 import traceback
 import argparse
 from pathlib import Path
-from core import TestSequenceEnded
 
 def _bootstrap_io_adapter():
     is_test_mode = "--test" in sys.argv

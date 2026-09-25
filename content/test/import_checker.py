@@ -3,7 +3,7 @@ import ast
 import builtins
 from dataclasses import dataclass, field
 from pathlib import Path
-from reporter import ImportReports
+from reporter import ImportReports, FileReport
 
 module_list = [
     "stdlib",
@@ -75,21 +75,6 @@ policy = [
         outside_module_list=True,
     ),
 ]
-
-@dataclass
-class FileReport:
-    rel_path: str
-    forbidden_import_statements: list[str] = field(default_factory=list)
-    dangling_imports: list[str] = field(default_factory=list)
-    undeclared_imports: list[str] = field(default_factory=list)
-
-    @property
-    def is_clean(self) -> bool:
-        return not (
-            self.forbidden_import_statements
-            or self.dangling_imports
-            or self.undeclared_imports
-        )
 
 class ImportPolicySuite:
     def __init__(self, content_dir: Path) -> None:

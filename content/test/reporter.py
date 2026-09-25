@@ -1,7 +1,9 @@
 import json
 from pathlib import Path
+from typing import Optional
 import re
 from dataclasses import dataclass, field
+from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
 
 class GateInspector:
     def __init__(
@@ -260,4 +262,19 @@ class ImportReports:
             + len(r.dangling_imports)
             + len(r.undeclared_imports)
             for r in self.reports
+        )
+
+@dataclass
+class FileReport:
+    rel_path: str
+    forbidden_import_statements: list[str] = field(default_factory=list)
+    dangling_imports: list[str] = field(default_factory=list)
+    undeclared_imports: list[str] = field(default_factory=list)
+
+    @property
+    def is_clean(self) -> bool:
+        return not (
+            self.forbidden_import_statements
+            or self.dangling_imports
+            or self.undeclared_imports
         )
