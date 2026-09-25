@@ -30,26 +30,6 @@ II. The pile
         - append a trailing 'Next item numeral: <FOLLOWING_ROMAN_NUMERAL>' marker to history output instructions
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 
-[TESTING]: 
-Assert type tests:
-needs happy path testing
-- ensure 'the buttons work', so dogfooding can continue (even if minor regressions)
-needs to provide security from destructive actions the app may take
-- ensure clankerize fails in all situations where there is a whiff of 'something we would create exists'
-DX for test writing
-- the class/method/atomic tests system is just nametagging the atomic test
-- this is fine, but perhaps it can be less 'involved'? or it could be like it is (but then need to prevent test classes with same name overwriting)
-- just better fluent api of the shadowed things.
-- the UI report should be more to the point, while the json report contain the full info (no ui dumps in console, but in the report)
-Import verification
-- thinks 'from app.xxx import yyy' is equal to 'from app import yyy'
-- needs to ban adapters from using the stdlib import, so mandate them having free reins
-- needs to treat all __init__ files differently, validating that they are economical (not from bottom)
-- needs to not gaf about ex 
-- needs to also work the bottom level files
-- output format too, but less important
-
-
 Phase 1: Eliminate input sequence accumulation from the test runner system
     [x] 'content/test/expectance_impls.py': Strip reset_sequence field from AtomicTest dataclass
         - remove reset_sequence: bool = False field definition from AtomicTest
@@ -97,6 +77,28 @@ Phase 3: Hierarchy clarification, console output improvement
         - implement write_console_report matching tree output format and total summary counters
         - relocated all result type classes to this file
 
+Phase 4: Refactor expectance and shadow classes to require explicit instantiation
+[x] 'content/test/expectance_impls.py': Update shadow_of decorator and AtomicTest execution logic
+    - require explicit Class() instantiation for shadow wrappers
+    - route fluent interface builder calls on shadow instances to internal _impl and return shadow self
+    - unwrap shadow instances to call _impl.to_result inside AtomicTest.to_result
+    - check that shadow classes expose only fluent builder methods and exclude to_result from public API check
+[x] 'content/test/assert_classes.py': Update shadow class declarations and test methods
+    - remove to_result method declarations from shadow classes
+    - update all expectance usage across test methods from implicit Class.method() to explicit Class().method()
+
+Phase 5: Refactor expectation system into a fluent AtomicTest interface
+
+[x] 'content/test/expectance_impls.py': Implement fluent AtomicTestImpl and internalize expectation evaluations
+    - add fluent builder methods on AtomicTestImpl (expect_exit_msg, expect_disk_has, expect_ui_contains, where, expect_prompt_contains, expect_prompt_min_lines)
+    - accumulate expectation checks (ExpectanceCheck subclasses) internally and evaluate them within to_result(frames)
+    - remove stand-alone Expectance base class and public expectation implementations (ExitMsgImpl, DiskStateImpl, UIRenderImpl, PromptRenderImpl)
+
+[x] 'content/test/assert_classes.py': Simplify assertion declarations with fluent AtomicTest
+    - remove ExitMsg, DiskState, PromptRender, and UIRender shadow classes
+    - export and use AtomicTest directly from expectance_impls.py so runner isinstance checks remain valid
+    - update test methods in EmptyRepoTests and CorruptRepoTests to chain expectations directly on AtomicTest instances
+
 Backlog tail, Selected item/items:
 
 *Test system improvements*
@@ -105,23 +107,20 @@ goals (sticky)
 2. the console output should not be verbose, dropping big complaints on the user. instead the reports should contain the 'visibility' stuff (complete ui render | list of observed paths, etc)
 3. the reports should do a great job in laying out the case, they dont quite do that now
 
-expectance & expectance impl classes
-- currently the classes use an implicit builder method pattern, where the method receives data as well as instaniates and returns self
-- i want to change this so that the must be instantiated via Class()
-- only after instantiation does one use the methods
-- the 'interface' of the shadow classes need not expose the toresult method to assert_classes file.
+Phase 6: Refactor test system assertions to use ABC inheritance and scenario builder DI
+    [ ] 'content/test/assert_classes.py': Define test system ABC contracts and update test methods
+        - add scenario builder ABC (`ScenarioBuilderABC` or similar) with `.run_app()` and `.sandbox()` methods
+        - define abstract interfaces for atomic test execution and sandbox operations
+        - update all assert methods across test classes to receive the scenario builder instance
+        - remove remaining direct usages/imports of shadow classes
+    [ ] 'content/test/expectance_impls.py': Inherit from abstract interfaces and remove shadow decorator
+        - update concrete `AtomicTest` and `SandboxOperations` classes to inherit from ABC interfaces
+        - delete `@shadow_of` decorator and dynamic method forwarding logic
+        - implement concrete `ScenarioBuilder` factory class returning concrete instances
+    [ ] 'content/test/base_classes.py': Inject scenario builder instance during test execution
+        - update `BaseFixtureTest.run_tests` to instantiate and pass the concrete scenario builder into test method calls
 
-1. Refactor expectance and shadow classes to require explicit instantiation
-    [ ] 'content/test/expectance_impls.py': Update shadow_of decorator and AtomicTest execution logic
-        - require explicit Class() instantiation for shadow wrappers
-        - route fluent interface builder calls on shadow instances to internal _impl and return shadow self
-        - unwrap shadow instances to call _impl.to_result inside AtomicTest.to_result
-        - check that shadow classes expose only fluent builder methods and exclude to_result from public API check
-    [ ] 'content/test/assert_classes.py': Update shadow class declarations and test methods
-        - remove to_result method declarations from shadow classes
-        - update all expectance usage across test methods from implicit Class.method() to explicit Class().method()
-
-
+Let us discuss the wisdom of this approach.
 Backlog tail end
 
 def run_tests(self) -> TestSuiteResult:
@@ -142,16 +141,7 @@ def run_tests(self) -> TestSuiteResult:
 '''
 
 
-Phase 4: Expectance classes / shadow classes revamp
-    - only one expectance class. its job is to evaluate the frames resulting from a sequence.
-        - it evaluates second to last frame for info about
-            - clipboard
-            - ui 
-            - disk state
-        - it evaluates latest frame for info about exit msg
-    - all sequences produce an initial frame, not resuling from a member of the sequence, and a final frame, also not resulting from the sequence
-    - in case of exit 0, the adapter produces the final frame.
-    - in case of exit 1, the runner (baseclass) produces the final frame.
+
 '''
 class MyTestClass(BaseFixtureTest):
     TEMPLATE_FIXTURE_NAME = "empty_repo"

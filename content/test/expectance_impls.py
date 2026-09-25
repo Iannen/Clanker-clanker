@@ -1,10 +1,7 @@
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-import functools
 from pathlib import Path
 import re
 import shutil
-from typing import Callable, Optional, Union
+from typing import Callable, Optional
 
 from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
 from core import PathTokens
@@ -44,20 +41,17 @@ def shadow_of(impl_class):
         return cls
     return decorator
 
-class Expectance(ABC):
-    @abstractmethod
-    def to_result(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
-        pass
 
-class ExitMsgImpl(Expectance):
-    def __init__(self) -> None:
-        self.expected_msg = ""
+class ExpectanceCheck:
+    def evaluate(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
+        raise NotImplementedError
 
-    def contains(self, expected_msg: str) -> "ExitMsgImpl":
+
+class ExitMsgCheck(ExpectanceCheck):
+    def __init__(self, expected_msg: str) -> None:
         self.expected_msg = expected_msg
-        return self
 
-    def to_result(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
+    def evaluate(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
         frame = frames[-1]
         actual = frame.exit_msg or ""
         passed = self.expected_msg in actual
@@ -65,22 +59,18 @@ class ExitMsgImpl(Expectance):
         details = "" if passed else f"Expected exit_msg '{self.expected_msg}', got '{actual}'"
         return ExpectanceResult(assertion=assertion, passed=passed, details=details)
 
-class DiskStateImpl(Expectance):
-    def __init__(self) -> None:
-        self.expected_paths: list[str] = []
 
-    def has(self, expected_paths: list[str] | set[str]) -> "DiskStateImpl":
+class DiskStateCheck(ExpectanceCheck):
+    def __init__(self, expected_paths: list[str] | set[str]) -> None:
         sanitized = []
         for path in expected_paths:
             p = str(path)
             if p.startswith(PathTokens.PUD):
                 p = p[len(PathTokens.PUD):].lstrip("/\\")
             sanitized.append(p)
-            
         self.expected_paths = sanitized
-        return self
 
-    def to_result(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
+    def evaluate(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
         frame = frames[-2]
         actual_paths = set(frame.disk_paths)
         missing = []
@@ -93,7 +83,7 @@ class DiskStateImpl(Expectance):
 
         passed = len(missing) == 0
         assertion = "Disk state matches expected repository contract paths"
-        
+
         if passed:
             details = ""
         else:
@@ -107,20 +97,17 @@ class DiskStateImpl(Expectance):
 
         return ExpectanceResult(assertion=assertion, passed=passed, details=details)
 
-class UIRenderImpl(Expectance):
-    def __init__(self) -> None:
-        self.template = ""
+
+class UIRenderCheck(ExpectanceCheck):
+    def __init__(self, template: str) -> None:
+        self.template = template
         self.validators: dict[str, Callable[[str], bool]] = {}
 
-    def contains(self, template: str) -> "UIRenderImpl":
-        self.template = template
-        return self
-
-    def where(self, field: str, predicate: Callable[[str], bool]) -> "UIRenderImpl":
+    def where(self, field: str, predicate: Callable[[str], bool]) -> "UIRenderCheck":
         self.validators[field] = predicate
         return self
 
-    def to_result(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
+    def evaluate(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
         frame = frames[-2]
         latest_frame = frame.latest_write or "(No UI render captured)"
 
@@ -139,11 +126,11 @@ class UIRenderImpl(Expectance):
         details = ""
 
         if passed and match:
-            for field, predicate in self.validators.items():
-                val = match.group(field)
+            for field_name, predicate in self.validators.items():
+                val = match.group(field_name)
                 if not predicate(val):
                     passed = False
-                    details = f"Validation failed for field '{field}' with value '{val}'"
+                    details = f"Validation failed for field '{field_name}' with value '{val}'"
                     break
         elif not passed:
             details = f"Expected UI pattern not found: '{self.template}'\n\n--- Latest UI Render ---\n{latest_frame}"
@@ -151,20 +138,21 @@ class UIRenderImpl(Expectance):
         assertion = f"Latest UI render matches template: '{self.template}'"
         return ExpectanceResult(assertion=assertion, passed=passed, details=details)
 
-class PromptRenderImpl(Expectance):
+
+class PromptRenderCheck(ExpectanceCheck):
     def __init__(self) -> None:
         self.expected_prompt = ""
         self.minimum_lines: Optional[int] = None
 
-    def contains(self, expected_prompt: str) -> "PromptRenderImpl":
+    def contains(self, expected_prompt: str) -> "PromptRenderCheck":
         self.expected_prompt = expected_prompt
         return self
 
-    def min_lines(self, count: int) -> "PromptRenderImpl":
+    def min_lines(self, count: int) -> "PromptRenderCheck":
         self.minimum_lines = count
         return self
 
-    def to_result(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
+    def evaluate(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
         frame = frames[-2]
         latest_prompt = frame.latest_clipboard or ""
         passed = True
@@ -189,6 +177,7 @@ class PromptRenderImpl(Expectance):
         assertion = f"Prompt render check ({', '.join(assertion_parts)})"
         details = "\n".join(failures) if not passed else ""
         return ExpectanceResult(assertion=assertion, passed=passed, details=details)
+
 
 class SandboxOperations:
     def __init__(self) -> None:
@@ -248,16 +237,49 @@ class SandboxOperations:
             results.append(SandboxOperationsResult(operation_type=op_type, description=desc, passed=True))
         return results
 
-@dataclass
-class AtomicTest:
-    sequence: list[str]
-    expects: Union[Expectance, list[Expectance]]
-    name: str = ""
-    frames_filename: str = ""
 
-    def __post_init__(self) -> None:
-        if not isinstance(self.expects, list):
-            self.expects = [self.expects]
+class AtomicTestImpl:
+    def __init__(self, sequence: list[str]) -> None:
+        self.sequence = sequence
+        self.name: str = ""
+        self.frames_filename: str = ""
+        self._checks: list[ExpectanceCheck] = []
+
+    def expect_exit_msg(self, expected_msg: str) -> "AtomicTestImpl":
+        self._checks.append(ExitMsgCheck(expected_msg))
+        return self
+
+    def expect_disk_has(self, expected_paths: list[str] | set[str]) -> "AtomicTestImpl":
+        self._checks.append(DiskStateCheck(expected_paths))
+        return self
+
+    def expect_ui_contains(self, template: str) -> "AtomicTestImpl":
+        check = UIRenderCheck(template)
+        self._checks.append(check)
+        return self
+
+    def where(self, field: str, predicate: Callable[[str], bool]) -> "AtomicTestImpl":
+        if self._checks and isinstance(self._checks[-1], UIRenderCheck):
+            self._checks[-1].where(field, predicate)
+        return self
+
+    def expect_prompt_contains(self, expected_prompt: str) -> "AtomicTestImpl":
+        if self._checks and isinstance(self._checks[-1], PromptRenderCheck):
+            check = self._checks[-1]
+        else:
+            check = PromptRenderCheck()
+            self._checks.append(check)
+        check.contains(expected_prompt)
+        return self
+
+    def expect_prompt_min_lines(self, count: int) -> "AtomicTestImpl":
+        if self._checks and isinstance(self._checks[-1], PromptRenderCheck):
+            check = self._checks[-1]
+        else:
+            check = PromptRenderCheck()
+            self._checks.append(check)
+        check.min_lines(count)
+        return self
 
     def to_result(self, frames: list[ExecutionFrame], test_number: int) -> AtomicTestResult:
         if frames and frames[-1].exit_code == 1:
@@ -272,7 +294,7 @@ class AtomicTest:
             )
 
         expectance_results = [
-            getattr(exp, "_impl", exp).to_result(frames) for exp in self.expects
+            check.evaluate(frames) for check in self._checks
         ]
         return AtomicTestResult(
             test_number=test_number,
@@ -282,3 +304,6 @@ class AtomicTest:
             crashed=False,
             crash_message=None,
         )
+
+
+AtomicTest = AtomicTestImpl
