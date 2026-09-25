@@ -41,8 +41,8 @@ class IngestionServiceImpl(IngestionService):
         clanker_state = "co"
 
         for fragment_path, name in [
-            (ClankerAssets.SYSTEM_CFG, "system_cfg"),
-            (ClankerAssets.SHARED_CFG, "shared_cfg"),
+            (ClankerAssets.Configs.SYSTEM, "system_cfg"),
+            (ClankerAssets.Configs.SHARED, "shared_cfg"),
         ]:
             try:
                 raw_content = self.files.get_file_contents(fragment_path)
@@ -58,14 +58,11 @@ class IngestionServiceImpl(IngestionService):
                 clanker_state = "cb"
                 collector.add_critical_complaint(f"Failed to convert clanker config: {fragment_path}")
 
-        ignored = {ClankerAssets.SYSTEM_CFG, ClankerAssets.SHARED_CFG}
-        for name, asset_path in vars(ClankerAssets).items():
-            if name.startswith("__") or asset_path in ignored:
-                continue
+        for asset_path in (*ClankerAssets.Templates, *ClankerAssets.Layouts):
             try:
                 self.files.read_asset(asset_path)
             except NoSuchFile:
-                clanker_state = "cb"
+                clanker_state = ClankerAssets.States.BAD
                 collector.add_critical_complaint(f"Missing clanker asset: {asset_path}")
 
         return clanker_state, sys_cfg, shared_cfg
@@ -73,9 +70,10 @@ class IngestionServiceImpl(IngestionService):
     def _resolve_pud_state(self, collector: ErrorCollector) -> tuple[str, dict | None]:
         pud_cfg = None
         pud_assets = [
-            asset_path
-            for name, asset_path in vars(PudAssets).items()
-            if not name.startswith("__")
+            *PudAssets.Configs,
+            *PudAssets.Directories,
+            *PudAssets.Files,
+            *PudAssets.Documentation,
         ]
 
         existing_count = 0
@@ -83,11 +81,11 @@ class IngestionServiceImpl(IngestionService):
 
         for asset_path in pud_assets:
             try:
-                if asset_path == PudAssets.PUD_CFG:
+                if asset_path == PudAssets.Configs.PUD:
                     raw_content = self.files.get_file_contents(asset_path)
                     pud_cfg = self.cfg_ingestor.get_as_dict(raw_content)
                     existing_count += 1
-                elif asset_path == PudAssets.CONTENTS_DIR:
+                elif asset_path == PudAssets.Directories.CONTENTS:
                     self.files.get_dir_manifest(PathTokens.PUD, ["content"])
                     existing_count += 1
                 else:
