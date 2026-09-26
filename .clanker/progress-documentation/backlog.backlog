@@ -10,6 +10,18 @@ I. Ideas, complaints and non-critical bugs:
 II. The pile
    
 7. Landingzone for Validation / complaint ideas
+    complaint categories:
+        1. soft shared
+            - filesets & filelist of shared cfg must be declared in shared cfg
+        2. critical shared
+        3. soft pud
+            - filesets & filelist of pud cfg must be declared in shared or pud cfg
+            - filelist members must be sourcable from pud or shared
+        4. critical pud
+
+    Perhaps I need collector for each of the various complaint paths, then i aggregate them before i return 'true' ec
+        - for instance when i extract domains, it is not known to the extractor if a missing set is a pud or shared complaint
+
     - manifest resolver must check if fileset is declared in pud_cfg with fallback to shared_cfg
         - so shared_cfg can declare defaults for it, which the pud_cfg can override
         - if not present, then complain

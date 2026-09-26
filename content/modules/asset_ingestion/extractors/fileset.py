@@ -1,24 +1,16 @@
-from stdlib import Any
+from stdlib import Any, dataclass
 from ...asset_ingestion import ErrorCollector, FilesetMap, ValueExtractor, FilesetParser
 
+@dataclass
 class FilesetExtractor:
-    def extract(
-        self,
-        pud_cfg: dict[str, Any],
-        shared_cfg: dict[str, Any],
-        collector: ErrorCollector,
-    ) -> FilesetMap:
+    collector: ErrorCollector
+
+    def extract(self, cfg: dict[str, Any]) -> FilesetMap:
         extractor = ValueExtractor()
-        raw_shared = extractor.req_dict(shared_cfg, ["filesets"], default={})
-        shared_result = {}
-        for k, v in raw_shared.items():
-            shared_result[k] = FilesetParser(v, collector).parse()
-        shared_fsm = FilesetMap(data=shared_result, collector=collector)
+        raw_filesets = extractor.req_dict(cfg, ["filesets"], default={})
 
-        raw_pud = extractor.req_dict(pud_cfg, ["filesets"], default={})
-        pud_result = {}
-        for k, v in raw_pud.items():
-            pud_result[k] = FilesetParser(v, collector).parse()
-        pud_fsm = FilesetMap(data=pud_result, collector=collector)
+        result = {}
+        for k, v in raw_filesets.items():
+            result[k] = FilesetParser(v, self.collector).parse()
 
-        return shared_fsm.merge(pud_fsm)
+        return FilesetMap(data=result, collector=self.collector)

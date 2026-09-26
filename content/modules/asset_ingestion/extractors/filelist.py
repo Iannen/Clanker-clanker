@@ -1,30 +1,18 @@
-from stdlib import Any
+from stdlib import Any, dataclass
 from ...asset_ingestion import ErrorCollector, FilelistMap, ValueExtractor, FilelistParser
 
 
+@dataclass
 class FilelistExtractor:
-    def extract(
-        self,
-        pud_cfg: dict[str, Any],
-        shared_cfg: dict[str, Any],
-        collector: ErrorCollector,
-    ) -> FilelistMap:
+    collector: ErrorCollector
+
+    def extract(self, cfg: dict[str, Any]) -> FilelistMap:
         extractor = ValueExtractor()
+        raw_filelists = extractor.req_dict(cfg, ["filelists"], default={})
 
-        with collector.path("shared"):
-            raw_shared = extractor.req_dict(shared_cfg, ["filelists"], default={})
-            shared_result = {}
-            for k, v in raw_shared.items():
-                with collector.path(k):
-                    shared_result[k] = FilelistParser(v, collector).parse()
-            shared_flm = FilelistMap(data=shared_result, collector=collector)
+        result = {}
+        for k, v in raw_filelists.items():
+            with self.collector.path(k):
+                result[k] = FilelistParser(v, self.collector).parse()
 
-        with collector.path("pud"):
-            raw_pud = extractor.req_dict(pud_cfg, ["filelists"], default={})
-            pud_result = {}
-            for k, v in raw_pud.items():
-                with collector.path(k):
-                    pud_result[k] = FilelistParser(v, collector).parse()
-            pud_flm = FilelistMap(data=pud_result, collector=collector)
-
-        return shared_flm.merge(pud_flm)
+        return FilelistMap(data=result, collector=self.collector)

@@ -67,9 +67,6 @@ class AppEngine:
                         UserQuestions.complaints_proceed(report.get_complaints()),
                         UserQuestions.REQUIRED_PHRASE,
                     )
-                    self.io.get_confirmation(
-                        UserQuestions.INIT_REPO, UserQuestions.REQUIRED_PHRASE
-                    )
                     self.session.initialize_workspace()
                     action_res, report, btn_map, ui_render, base_resolvers = self.session.get_runtime_config()
                     self.renderer.set_ui_render(ui_render)

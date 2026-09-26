@@ -28,7 +28,7 @@ domains:
         render:
           resolvers:
             - { id: domain_fragments, type: multi-document-retrieval, files: [config-development-mode.mode_instruction] }
-            - { id: repo_content, type: repo_content, fileset: core }
+            - { id: repo_content, type: repo_content, fileset: content-dir }
 
   - name: readme
     resolvers:
@@ -53,7 +53,7 @@ domains:
         render:
           resolvers:
             - { id: prompt_fragments, type: multi-document-retrieval, files: [north-star-mode.mode_instruction] }
-            - { id: repo_content, type: repo_content, fileset: core }
+            - { id: repo_content, type: repo_content, fileset: content-dir }
 
   - name: config-dev
     resolvers:
@@ -63,7 +63,7 @@ domains:
         render:
           resolvers:
             - { id: prompt_fragments, type: multi-document-retrieval, files: [] }
-            - { id: repo_content, type: repo_content, fileset: core }
+            - { id: repo_content, type: repo_content, fileset: content-dir }
 
   - name: debloat
     resolvers:
@@ -73,7 +73,7 @@ domains:
         render:
           resolvers:
             - { id: prompt_fragments, type: multi-document-retrieval, files: [debloat-instructions.md] }
-            - { id: repo_content, type: repo_content, fileset: core }
+            - { id: repo_content, type: repo_content, fileset: content-dir }
 
   - name: presentation
     resolvers:
