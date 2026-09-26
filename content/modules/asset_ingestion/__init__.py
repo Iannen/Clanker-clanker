@@ -12,11 +12,7 @@ from .extractors.filelist import *
 from .extractors.fileset import *
 from .extractors.base_resolver import *
 from .extractors.domains import *
-from .extractors.unified_filelist import *
-from .extractors.unified_fileset import *
-from .extractors.unified_base_resolver import *
 from .extractors.ui_render import *
-from .extractors.unified_domains import *
 
 from .assemblers.rtc import *
 

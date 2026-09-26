@@ -1,3 +1,4 @@
+from stdlib import dataclass
 from core import (
     CorruptClanker,
     WorkspaceAlreadyInitialized,
@@ -30,6 +31,12 @@ from . import (
     FilesetValidator,
     CollisionDetector,
 )
+@dataclass
+class IngestionContext:
+    sys_cfg: dict | None
+    shared_cfg: dict | None
+    pud_cfg: dict | None
+
 
 class IngestionServiceImpl(IngestionService):
     def __init__(
