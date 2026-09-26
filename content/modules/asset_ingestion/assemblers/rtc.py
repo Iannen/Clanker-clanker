@@ -18,7 +18,7 @@ class RtcAssembler:
             row_keys=extractor.req_str(sys_cfg, ["button_rows", "shared_domains_row"]),
             domains=shared_doms,
             sys_cfg_name="shared_domains_row",
-            cfg_filename=ClankerAssets.Configs.SHARED,
+            cfg_filename=ClankerAssets.Configs.shared_cfg,
         )
 
         self._populate_domain_buttons(

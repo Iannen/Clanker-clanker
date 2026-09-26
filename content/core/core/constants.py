@@ -32,12 +32,11 @@ class PudAssets:
 class ClankerAssets:
     class States(StrEnum):
         OK = "co"     
-        EMPTY = "ce"   
         BAD = "cb"     
 
     class Configs(StrEnum):
-        SYSTEM = PathTokens.SHARED + "/content/a_lib/shared-assets/config-fragments/system_cfg.yaml"
-        SHARED = PathTokens.SHARED + "/content/a_lib/shared-assets/config-fragments/shared_cfg.yaml"
+        sys_cfg = PathTokens.SHARED + "/content/a_lib/shared-assets/config-fragments/system_cfg.yaml"
+        shared_cfg = PathTokens.SHARED + "/content/a_lib/shared-assets/config-fragments/shared_cfg.yaml"
 
     class Templates(StrEnum):
         CFG = PathTokens.SHARED + "/content/a_lib/templates/config.template"
@@ -55,6 +54,11 @@ class ClankerAssets:
         BTN_INACTIVE = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/btn_inactive.layout"
 
 class PudAssets:
+    class States(StrEnum):
+        OK = "po"     
+        EMPTY = "pe"   
+        BAD = "pb"     
+        
     class Configs(StrEnum):
         PUD = PathTokens.PUD + "/.clanker/config.yaml"
 

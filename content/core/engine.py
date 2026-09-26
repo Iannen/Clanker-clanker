@@ -6,7 +6,11 @@ from core import (
     NoConfig,
     ProgramExit,
     HotPromptRequested,
-    DoBootstrap
+    DoBootstrap,
+    OfferBootstrapWithComplaints,
+    OfferClankerize,
+    OfferClankerizeWithComplaints,
+    TerminateGracefully
 )
 from core.engine_deps import IngestionService, KBService, RenderService, TUIService
 

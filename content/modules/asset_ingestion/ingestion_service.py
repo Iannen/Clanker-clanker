@@ -11,7 +11,12 @@ from core import (
     Button,
     Render,
     Resolver,
-    DoBootstrap
+    DoBootstrap,
+    TerminateGracefully,
+    OfferBootstrapWithComplaints,
+    OfferClankerize,
+    OfferClankerizeWithComplaints,
+
 )
 from core.engine_deps import IngestionService, Report, NoSuchFile, AssetExists, DiskPort, ConfigParseError, ConfigParserPort
 
@@ -36,109 +41,89 @@ class IngestionServiceImpl(IngestionService):
         self.files = files
         self.cfg_ingestor = cfg_ingestor
 
-    def _resolve_clanker_state(self, collector: ErrorCollector) -> tuple[str, dict | None, dict | None]:
-        sys_cfg = shared_cfg = None
-        clanker_state = "co"
-
-        for fragment_path, name in [
-            (ClankerAssets.Configs.SYSTEM, "system_cfg"),
-            (ClankerAssets.Configs.SHARED, "shared_cfg"),
-        ]:
+    def _resolve_assets(self, assets: list[StrEnum]) -> tuple[list[StrEnum], list[StrEnum]]:
+        missing = []
+        present = []
+        for asset in assets:
             try:
-                raw_content = self.files.get_file_contents(fragment_path)
-                parsed = self.cfg_ingestor.get_as_dict(raw_content)
-                if name == "system_cfg":
-                    sys_cfg = parsed
-                else:
-                    shared_cfg = parsed
+                self.files.assert_absent(asset)
+                missing.append(asset)
+            except AssetExists:
+                present.append(asset)
+        return present, missing
+
+    def _resolve_configs(self, configs: Iterable[StrEnum]):
+        cfg_dicts = {}
+        missing = []
+        malformed = []
+        for config in configs:
+            try:
+                raw_content = self.files.get_file_contents(config.value)
+                cfg_dict = self.cfg_ingestor.get_as_dict(raw_content)
+                cfg_dict["name"] = config.name
+                cfg_dict["src_path"] = config.value
+                cfg_dicts[config.name] = cfg_dict
             except NoSuchFile:
-                clanker_state = "cb"
-                collector.add_critical_complaint(f"Missing clanker asset: {fragment_path}")
+                missing.append(config)
             except ConfigParseError:
-                clanker_state = "cb"
-                collector.add_critical_complaint(f"Failed to convert clanker config: {fragment_path}")
+                malformed.append(config)
+        return cfg_dicts, missing, malformed
 
-        for asset_path in (*ClankerAssets.Templates, *ClankerAssets.Layouts):
-            try:
-                self.files.read_asset(asset_path)
-            except NoSuchFile:
-                clanker_state = ClankerAssets.States.BAD
-                collector.add_critical_complaint(f"Missing clanker asset: {asset_path}")
-
-        return clanker_state, sys_cfg, shared_cfg
+    def _resolve_clanker_state(self, collector: ErrorCollector) -> tuple[str, dict | None, dict | None]:
+        configs, missing, malformed = self._resolve_configs(ClankerAssets.Configs)
+        present, missing_assets = self._resolve_assets([*ClankerAssets.Templates, *ClankerAssets.Layouts])
+        for cfg in missing: collector.add_critical_complaint(f"Missing clanker asset: {cfg.value}")
+        for cfg in malformed: collector.add_critical_complaint(f"Failed to convert clanker config: {cfg.value}")
+        for asset_path in missing_assets:collector.add_critical_complaint(f"Missing clanker asset: {asset_path}")
+        clanker_state = ClankerAssets.States.BAD if (missing or malformed or missing_assets) else ClankerAssets.States.OK
+        return clanker_state, configs
 
     def _resolve_pud_state(self, collector: ErrorCollector) -> tuple[str, dict | None]:
-        pud_cfg = None
-        pud_assets = [
-            *PudAssets.Configs,
-            *PudAssets.Directories,
-            *PudAssets.Files,
-            *PudAssets.Documentation,
-        ]
-
-        existing_count = 0
-        pud_crit_complaints = []
-
-        for asset_path in pud_assets:
-            try:
-                if asset_path == PudAssets.Configs.PUD:
-                    raw_content = self.files.get_file_contents(asset_path)
-                    pud_cfg = self.cfg_ingestor.get_as_dict(raw_content)
-                    existing_count += 1
-                elif asset_path == PudAssets.Directories.CONTENTS:
-                    self.files.get_dir_manifest(PathTokens.PUD, ["content"])
-                    existing_count += 1
-                else:
-                    self.files.get_file_contents(asset_path)
-                    existing_count += 1
-            except NoSuchFile:
-                pud_crit_complaints.append(f"Missing pud asset: {asset_path}")
-            except ConfigParseError:
-                existing_count += 1
-                pud_crit_complaints.append(f"Non-convertible pud config: {asset_path}")
-
-        if existing_count == len(pud_assets) and not pud_crit_complaints:
-            return "po", pud_cfg
-        elif existing_count == 0:
-            return "pe", pud_cfg
+        configs, missing_cfgs, malformed_cfgs = self._resolve_configs(PudAssets.Configs)
+        present, missing_assets = self._resolve_assets([*PudAssets.Directories, *PudAssets.Files, *PudAssets.Documentation])
+        if not (missing_cfgs or malformed_cfgs or missing_assets): pud_state = PudAssets.States.OK
+        elif not (configs or present): pud_state = PudAssets.States.EMPTY
         else:
-            for complaint in pud_crit_complaints:
-                collector.add_critical_complaint(complaint)
-            return "pb", pud_cfg
+            for asset in missing_cfgs + missing_assets: collector.add_critical_complaint(f"Missing pud asset: {asset.name}")
+            for cfg in malformed_cfgs: collector.add_critical_complaint(f"Non-convertible pud config: {cfg.name}")
+            pud_state = PudAssets.States.BAD
+        return pud_state, configs
 
     def get_runtime_config(self) -> tuple[ActionResult, Report, dict[str, Button], Render, list[Resolver]]:
         collector = ErrorCollector()
 
-        ## TODO: put this behind a helper which returns to us.. 
-        ## repo_states:str, configs: dict[name, config]
-        clanker_state, sys_cfg, shared_cfg = self._resolve_clanker_state(collector)
-        pud_state, pud_cfg = self._resolve_pud_state(collector)
-        repo_state = f"{clanker_state}-{pud_state}"
-        configs = {name: cfg for name, cfg in [("shared", shared_cfg), ("pud", pud_cfg), ("sys_cfg", sys_cfg)]}
+        clanker_state, clank_cfgs = self._resolve_clanker_state(collector)
+        sys_cfg = clank_cfgs.get(ClankerAssets.Configs.sys_cfg.name)
+        shared_cfg = clank_cfgs.get(ClankerAssets.Configs.shared_cfg.name)
 
-        ## make the resolvers accep the configs collection, and deal with the configs perhaps being None
+        pud_state, pud_cfgs = self._resolve_pud_state(collector)
+        pud_cfg = pud_cfgs.get(PudAssets.Configs.PUD.name)
+        repo_state = f"{clanker_state}-{pud_state}"
+
+        configs = {**clank_cfgs, **pud_cfgs}
+
         unified_fsm = FilesetExtractor().extract(pud_cfg, shared_cfg, collector)
         unified_flm = FilelistExtractor().extract(pud_cfg, shared_cfg, collector)
 
-        #this too accept the configs collection -> deal with the configs perhaps being None
         base_resolvers = BaseResolversExtractor().extract(pud_cfg, shared_cfg, collector)
-        #this too
         ui_render = UIRenderExtractor().extract(sys_cfg, collector, unified_fsm, unified_flm)
-        #this too
-        pud_doms, shared_doms = DomainsExtractor().extract(pud_cfg, shared_cfg, collector, unified_fsm, base_resolvers, unified_flm)
-        # this too, perhaps a noop if we didnt have all 3 configs
+        pud_doms, shared_doms = DomainsExtractor(collector, unified_fsm, base_resolvers, unified_flm).extract(configs)
+
         button_map = RtcAssembler().assemble(
             sys_cfg=sys_cfg,
             shared_doms=shared_doms,
             pud_doms=pud_doms,
             collector=collector,
         )
-        # and so on, we try to validate and collect complaints, and just return None if we have to
-        pud_multidoc_assets = self.files.get_dir_manifest(PathTokens.PUD, [".clanker"])
+        pud_multidoc_assets = pud_fileset_assets = []
+        if pud_state is not PudAssets.States.EMPTY:
+            pud_multidoc_assets =self.files.get_dir_manifest(PathTokens.PUD, [".clanker"]) 
+            pud_fileset_assets = self.files.get_dir_manifest(PathTokens.PUD, ["content", ".clanker", "README.md"]) # move reademe and .clanker to call above?
+            
         shared_multidoc_assets = self.files.get_dir_manifest(PathTokens.SHARED, ["content/a_lib"])
         FilelistValidator().validate(pud_multidoc_assets, pud_doms, shared_multidoc_assets, shared_doms, collector)
 
-        pud_fileset_assets = self.files.get_dir_manifest(PathTokens.PUD, ["content", ".clanker", "README.md"])
+        
         shared_fileset_assets = self.files.get_dir_manifest(PathTokens.SHARED, ["content/a_lib"])
 
         FilesetValidator().validate(pud_fileset_assets, pud_doms, shared_fileset_assets, shared_doms, collector)
