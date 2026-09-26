@@ -25,8 +25,8 @@ class ResolverParser:
         self,
         resolver_cfg: dict[str, Any],
         collector: ErrorCollector,
-        fileset_map: FilesetMap | None = None,
-        filelist_map: FilelistMap | None = None,
+        fileset_map: FilesetMap, #| None = None,
+        filelist_map: FilelistMap #| None = None,
     ) -> None:
         self.resolver_cfg = resolver_cfg
         self.collector = collector

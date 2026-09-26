@@ -1,6 +1,4 @@
 from core import (
-    NoConfig,
-    ConfigAssembly,
     CorruptClanker,
     WorkspaceAlreadyInitialized,
     ClankerAssets,
@@ -22,18 +20,15 @@ from core.engine_deps import IngestionService, Report, NoSuchFile, AssetExists, 
 
 from . import (
     ErrorCollector,
-    UnifiedFilesetExtractor,
-    UnifiedFilelistExtractor,
-    UnifiedDomainsExtractor,
     FilelistExtractor,
     FilesetExtractor,
     DomainExtractor,
-    BaseResolversExtractor,
-    UnifiedBaseResolversExtractor,
+    BaseResolverExtractor,
     UIRenderExtractor,
     RtcAssembler,
     FilelistValidator,
     FilesetValidator,
+    CollisionDetector,
 )
 
 class IngestionServiceImpl(IngestionService):
@@ -94,24 +89,34 @@ class IngestionServiceImpl(IngestionService):
         return pud_state, configs
 
     def _validate_clanker(self, collector, cfg, sys_cfg):
-        """ the stuff we get from clanker """
+        # entity retrieval. parsers complain if dicts malformed
+        ui_render = UIRenderExtractor().extract(sys_cfg, collector)
         filelist = FilelistExtractor(collector).extract(cfg)
         fileset = FilesetExtractor(collector).extract(cfg)
+        # entity retrieval. complains if dict malformed or named members cannot be satisfied from maps provided
         doms = DomainExtractor(collector, fileset, filelist).extract(cfg)
-        base_resolvers = BaseResolversExtractor(collector).extract(cfg)
-        ui_render = UIRenderExtractor().extract(sys_cfg, collector, fileset, filelist)
-        return collector, filelist, fileset, doms, base_resolvers, ui_render
+        base_res = BaseResolverExtractor(collector, fileset, filelist).extract(cfg)
+        # collisions of md assets 
+        CollisionDetector(collector).detect(self.files.get_dir_manifest(PathTokens.SHARED, ["content/a_lib"]))
+        # i think that is all we can do with clanker configs alone. i must add presence of asset lib to critical check list
+        return filelist, fileset, doms, base_res, ui_render
     def _validate_pud(self, collector, cfg):
+        # what can we do here? we can get the no-prereq entities, validating their shape.
+        # we dont have an ui render to get, so...
         filelist = FilelistExtractor(collector).extract(cfg)
         fileset = FilesetExtractor(collector).extract(cfg)
-        return collector, filelist, fileset
+        # we cannot get the domains or base_res, because we need unified prereqs to replace named prereqs in dicts
+        #but we can check for collisions of file assets
+        CollisionDetector(collector).detect(self.files.get_dir_manifest(PathTokens.PUD, [".clanker"]))
+        return filelist, fileset
 
     def get_runtime_config(self) -> tuple[ActionResult, Report, dict[str, Button], Render, list[Resolver]]:
-        collector = ErrorCollector()
+        clank_collector = ErrorCollector()
+        pud_collector = ErrorCollector()
 
         #these 4 lines shall become 1, yielding clanker state, pud state and configs. 
-        clanker_state, clank_cfgs = self._resolve_clanker_state(collector)
-        pud_state, pud_cfgs = self._resolve_pud_state(collector)
+        clanker_state, clank_cfgs = self._resolve_clanker_state(clank_collector)
+        pud_state, pud_cfgs = self._resolve_pud_state(clank_collector)
         repo_state = f"{clanker_state}-{pud_state}"
         configs = {**clank_cfgs, **pud_cfgs}
 
@@ -122,87 +127,50 @@ class IngestionServiceImpl(IngestionService):
 
         match (clanker_state, pud_state):
             case (ClankerAssets.States.OK, PudAssets.States.OK):
-                _, shared_flm, shared_fsm, shared_doms, base_resolvers, ui_render = self._validate_clanker(collector, shared_cfg, sys_cfg)
-                _, pud_flm, pud_fsm = self._validate_pud(collector, pud_cfg)
+                shared_flm, shared_fsm, shared_doms, base_resolvers, ui_render = self._validate_clanker(clank_collector, shared_cfg, sys_cfg)
+                pud_flm, pud_fsm = self._validate_pud(clank_collector, pud_cfg)
                 unified_fsm = shared_fsm.merge(pud_fsm)
                 unified_flm = shared_flm.merge(pud_flm)
-                pud_doms = DomainExtractor(collector, unified_fsm, unified_flm).extract(pud_cfg)
+                pud_doms = DomainExtractor(clank_collector, unified_fsm, unified_flm).extract(pud_cfg)
 
+                ## assembly stuff.
                 for dom in pud_doms+shared_doms:
                     dom.resolvers = dom.resolvers + base_resolvers
                 button_map = RtcAssembler().assemble(
                     sys_cfg=sys_cfg,
                     shared_doms=shared_doms,
                     pud_doms=pud_doms,
-                    collector=collector,
+                    collector=clank_collector,
                 )
-                pud_multidoc_assets = pud_fileset_assets = []
                 pud_multidoc_assets =self.files.get_dir_manifest(PathTokens.PUD, [".clanker"]) 
                 pud_fileset_assets = self.files.get_dir_manifest(PathTokens.PUD, ["content", ".clanker", "README.md"])
                 shared_multidoc_assets = self.files.get_dir_manifest(PathTokens.SHARED, ["content/a_lib"])
-                FilelistValidator().validate(pud_multidoc_assets, pud_doms, shared_multidoc_assets, shared_doms, collector)                
                 shared_fileset_assets = self.files.get_dir_manifest(PathTokens.SHARED, ["content/a_lib"])
-                FilesetValidator().validate(pud_fileset_assets, pud_doms, shared_fileset_assets, shared_doms, collector)
 
-                has_soft = bool(collector.get_complaints())
+                FilelistValidator().validate("pud_cfg", pud_doms, pud_multidoc_assets, shared_multidoc_assets, clank_collector) 
+                FilelistValidator().validate("shared_cfg", shared_doms, pud_multidoc_assets, shared_multidoc_assets, clank_collector) 
+
+                FilesetValidator().validate("pud_cfg", pud_doms, pud_fileset_assets, shared_fileset_assets, clank_collector)
+                FilesetValidator().validate("shared_cfg", shared_doms, pud_fileset_assets, shared_fileset_assets, clank_collector)
+
+                has_soft = bool(clank_collector.get_complaints())
                 action_res = OfferBootstrapWithComplaints() if has_soft else DoBootstrap()
-                return action_res, collector, button_map, ui_render, base_resolvers
+                return action_res, clank_collector, button_map, ui_render, base_resolvers
             case (ClankerAssets.States.OK, PudAssets.States.EMPTY):
-                self._validate_clanker(collector, shared_cfg, sys_cfg)
-                has_soft = bool(collector.get_complaints())
+                self._validate_clanker(clank_collector, shared_cfg, sys_cfg)
+                has_soft = bool(clank_collector.get_complaints())
                 action_res = OfferClankerizeWithComplaints() if has_soft else OfferClankerize()
-                return action_res, collector, None, None, None
+                return action_res, clank_collector, None, None, None
             case (ClankerAssets.States.OK, PudAssets.States.BAD):
-                self._validate_clanker(collector)
-                return TerminateGracefully(), collector, None, None, None
+                self._validate_clanker(clank_collector)
+                return TerminateGracefully(), clank_collector, None, None, None
             case (ClankerAssets.States.BAD, PudAssets.States.OK):
-                self._validate_pud(collector)
-                return TerminateGracefully(), collector, None, None, None
+                self._validate_pud(clank_collector)
+                return TerminateGracefully(), clank_collector, None, None, None
             case (ClankerAssets.States.BAD, PudAssets.States.EMPTY):
-                return TerminateGracefully(), collector, None, None, None
+                return TerminateGracefully(), clank_collector, None, None, None
             case (ClankerAssets.States.BAD, PudAssets.States.BAD):
-                return TerminateGracefully(), collector, None, None, None
-                
-
-
-
-        """
-        unified_fsm = FilesetExtractor().extract(pud_cfg, shared_cfg, collector)
-        unified_flm = FilelistExtractor().extract(pud_cfg, shared_cfg, collector)
-
-        base_resolvers = BaseResolversExtractor().extract(pud_cfg, shared_cfg, collector)
-        ui_render = UIRenderExtractor().extract(sys_cfg, collector, unified_fsm, unified_flm)
-        pud_doms, shared_doms = DomainsExtractor(collector, unified_fsm, base_resolvers, unified_flm).extract(configs)
-
-        button_map = RtcAssembler().assemble(
-            sys_cfg=sys_cfg,
-            shared_doms=shared_doms,
-            pud_doms=pud_doms,
-            collector=collector,
-        )
-        pud_multidoc_assets = pud_fileset_assets = []
-        if pud_state is not PudAssets.States.EMPTY:
-            pud_multidoc_assets =self.files.get_dir_manifest(PathTokens.PUD, [".clanker"]) 
-            pud_fileset_assets = self.files.get_dir_manifest(PathTokens.PUD, ["content", ".clanker", "README.md"]) # move reademe and .clanker to call above?
-            
-        shared_multidoc_assets = self.files.get_dir_manifest(PathTokens.SHARED, ["content/a_lib"])
-        FilelistValidator().validate(pud_multidoc_assets, pud_doms, shared_multidoc_assets, shared_doms, collector)
-
-        
-        shared_fileset_assets = self.files.get_dir_manifest(PathTokens.SHARED, ["content/a_lib"])
-
-        FilesetValidator().validate(pud_fileset_assets, pud_doms, shared_fileset_assets, shared_doms, collector)
-
-        has_soft = bool(collector.get_complaints())
-        if repo_state == "co-po":
-            action_res = OfferBootstrapWithComplaints() if has_soft else DoBootstrap()
-        elif repo_state == "co-pe":
-            action_res = OfferClankerizeWithComplaints() if has_soft else OfferClankerize()
-        else:
-            action_res = TerminateGracefully()
-
-        return action_res, collector, button_map, ui_render, base_resolvers
-        """
+                return TerminateGracefully(), clank_collector, None, None, None
 
     def initialize_workspace(self) -> None:
         if self.files.is_cwd_script_dir():

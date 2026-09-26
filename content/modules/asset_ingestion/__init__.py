@@ -22,5 +22,6 @@ from .assemblers.rtc import *
 
 from .validators.assets import *
 from .validators.file_list import *
+from .validators.collision_detector import *
 
 from .ingestion_service import *

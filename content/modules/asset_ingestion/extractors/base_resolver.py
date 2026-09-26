@@ -4,8 +4,10 @@ from ...asset_ingestion import ErrorCollector, ValueExtractor, ResolverParser
 
 
 @dataclass(slots=True, eq=False)
-class BaseResolversExtractor:
+class BaseResolverExtractor:
     collector: ErrorCollector
+    fileset_map: FilesetMap
+    filelist_map: FilelistMap
     extractor: ValueExtractor = field(default_factory=ValueExtractor)
 
     def extract(self, cfg: dict[str, Any]) -> list[Resolver]:
@@ -29,7 +31,7 @@ class BaseResolversExtractor:
                     )
                     continue
 
-                resolver_obj = ResolverParser(r, self.collector).parse()
+                resolver_obj = ResolverParser(r, self.collector, self.filelist_map, self.filelist_map).parse()
                 if isinstance(resolver_obj, MultiDocResolver):
                     extracted.append(resolver_obj)
 
