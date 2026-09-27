@@ -13,3 +13,4 @@ import termios
 import traceback
 import tty
 from typing import Any, Callable, ClassVar, Generator, Generic, TypeVar
+from enum import StrEnum

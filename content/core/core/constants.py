@@ -52,6 +52,7 @@ class ClankerAssets:
         BTN_ACTIVE = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/btn_active.layout"
         BTN_HL = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/btn_hl.layout"
         BTN_INACTIVE = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/btn_inactive.layout"
+    # add A_LIB = PathTokens.SHARED + "/content/a_lib"
 
 class PudAssets:
     class States(StrEnum):

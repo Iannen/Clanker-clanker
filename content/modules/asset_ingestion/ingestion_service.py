@@ -1,4 +1,4 @@
-from stdlib import dataclass
+from stdlib import dataclass, StrEnum
 from core import (
     CorruptClanker,
     WorkspaceAlreadyInitialized,
@@ -31,12 +31,32 @@ from . import (
     FilesetValidator,
     CollisionDetector,
 )
-@dataclass
-class IngestionContext:
-    sys_cfg: dict | None
-    shared_cfg: dict | None
-    pud_cfg: dict | None
+class AuxAssetState(StrEnum):
+    VALID = "ok"
+    EMPTY = "empty"
+    INVALID = "invalid"
 
+@dataclass(slots=True)
+class Config:
+    name: str
+    path: str
+    data: dict | None
+@dataclass
+class AssetPack:
+    name: str
+    roots: list[str]
+    paths: list[str] | None
+@dataclass
+class ClankerCtx:
+    sys_cfg: Config
+    shared_cfg: Config
+    doc_assets: AssetPack
+
+@dataclass
+class PudCtx:
+    pud_cfg: Config
+    doc_assets: AssetPack
+    content_assets: AssetPack
 
 class IngestionServiceImpl(IngestionService):
     def __init__(
@@ -47,6 +67,63 @@ class IngestionServiceImpl(IngestionService):
         self.files = files
         self.cfg_ingestor = cfg_ingestor
 
+    def _ctx_phase_1(self):
+        self.pud_collector = ErrorCollector()
+        self.clank_collector = ErrorCollector()
+        
+        self.clank_ctx = ClankerCtx(
+            sys_cfg = self._resolve_config(ClankerAssets.Configs.sys_cfg, self.clank_collector),
+            shared_cfg = self._resolve_config(ClankerAssets.Configs.shared_cfg, self.clank_collector),
+            doc_assets = self._resolve_asset_pack(PathTokens.SHARED, ["content/a_lib"], self.clank_collector),
+        )
+        self.pud_ctx = PudCtx(
+            pud_cfg = self._resolve_config(PudAssets.Configs.PUD, self.pud_collector),
+            doc_assets = self._resolve_asset_pack(PathTokens.PUD, [".clanker"], self.pud_collector),
+            content_assets = self._resolve_asset_pack(PathTokens.PUD, ["content", "README.md"], self.pud_collector),
+        )
+
+    def _resolve_asset_pack(self,token:str, roots, collector: ErrorCollector) -> AssetPack:
+        # i will change adapter later to aggregate and complain smarter
+        try:
+            return AssetPack(token, roots, self.files.get_dir_manifest(token, roots)) 
+        except NoSuchFile:
+            collector.add_critical_complaint(f"Something missing in '{token}': {roots}")
+            return AssetPack(token, roots, None) 
+
+    def _resolve_config(self, config: StrEnum, collector: ErrorCollector) -> Config:
+        try:
+            raw_content = self.files.get_file_contents(config.value)
+            return Config(config.name, config.value, self.cfg_ingestor.get_as_dict(raw_content))
+        except NoSuchFile:
+            collector.add_critical_complaint(f"'{config.name}' missing. Expected path: {config.value}")
+            return Config(config.name, config.value, None)
+        except ConfigParseError:
+            collector.add_critical_complaint(f"'{config.name}' malformed. Path: {config.value}")
+            return Config(config.name, config.value, None)
+    """
+    these are not in play yet
+    def _get_shared_aux_asset_state(self):
+        present, missing_assets = self._resolve_assets([*ClankerAssets.Templates, *ClankerAssets.Layouts])
+        if missing_assets: return AuxAssetState.INVALID
+        else: return AuxAssetState.VALID
+    def _get_pud_aux_asset_state(self):
+        present_assets, missing_assets = self._resolve_assets([*PudAssets.Directories, *PudAssets.Files, *PudAssets.Documentation])
+        if not missing_assets: return AuxAssetState.VALID
+        elif not present_assets: return AuxAssetState.EMPTY
+        else: return AuxAssetState.INVALID
+
+    def _resolve_assets(self, assets: list[StrEnum]) -> tuple[list[StrEnum], list[StrEnum]]:
+        missing = []
+        present = []
+        for asset in assets:
+            try:
+                self.files.assert_absent(asset)
+                missing.append(asset)
+            except AssetExists:
+                present.append(asset)
+        return present, missing
+    """    
+    # old marker
     def _resolve_assets(self, assets: list[StrEnum]) -> tuple[list[StrEnum], list[StrEnum]]:
         missing = []
         present = []
@@ -75,6 +152,7 @@ class IngestionServiceImpl(IngestionService):
                 malformed.append(config)
         return cfg_dicts, missing, malformed
 
+    
     def _resolve_clanker_state(self, collector: ErrorCollector) -> tuple[str, dict | None, dict | None]:
         configs, missing, malformed = self._resolve_configs(ClankerAssets.Configs)
         present, missing_assets = self._resolve_assets([*ClankerAssets.Templates, *ClankerAssets.Layouts])
@@ -121,6 +199,8 @@ class IngestionServiceImpl(IngestionService):
         clank_collector = ErrorCollector()
         pud_collector = ErrorCollector()
 
+
+
         #these 4 lines shall become 1, yielding clanker state, pud state and configs. 
         clanker_state, clank_cfgs = self._resolve_clanker_state(clank_collector)
         pud_state, pud_cfgs = self._resolve_pud_state(clank_collector)
@@ -152,13 +232,13 @@ class IngestionServiceImpl(IngestionService):
                 pud_multidoc_assets =self.files.get_dir_manifest(PathTokens.PUD, [".clanker"]) 
                 pud_fileset_assets = self.files.get_dir_manifest(PathTokens.PUD, ["content", ".clanker", "README.md"])
                 shared_multidoc_assets = self.files.get_dir_manifest(PathTokens.SHARED, ["content/a_lib"])
-                shared_fileset_assets = self.files.get_dir_manifest(PathTokens.SHARED, ["content/a_lib"])
+                shared_manifest_assets = self.files.get_dir_manifest(PathTokens.SHARED, ["content/a_lib"])
 
                 FilelistValidator().validate("pud_cfg", pud_doms, pud_multidoc_assets, shared_multidoc_assets, clank_collector) 
                 FilelistValidator().validate("shared_cfg", shared_doms, pud_multidoc_assets, shared_multidoc_assets, clank_collector) 
 
-                FilesetValidator().validate("pud_cfg", pud_doms, pud_fileset_assets, shared_fileset_assets, clank_collector)
-                FilesetValidator().validate("shared_cfg", shared_doms, pud_fileset_assets, shared_fileset_assets, clank_collector)
+                FilesetValidator().validate("pud_cfg", pud_doms, pud_fileset_assets, shared_manifest_assets, clank_collector)
+                FilesetValidator().validate("shared_cfg", shared_doms, pud_fileset_assets, shared_manifest_assets, clank_collector)
 
                 has_soft = bool(clank_collector.get_complaints())
                 action_res = OfferBootstrapWithComplaints() if has_soft else DoBootstrap()
