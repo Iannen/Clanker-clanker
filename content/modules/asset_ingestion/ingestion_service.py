@@ -15,7 +15,6 @@ from core import (
     OfferBootstrapWithComplaints,
     OfferClankerize,
     OfferClankerizeWithComplaints,
-
 )
 from core.engine_deps import IngestionService, Report, NoSuchFile, AssetExists, DiskPort, ConfigParseError, ConfigParserPort
 
@@ -28,13 +27,15 @@ from . import (
     UIRenderExtractor,
     RtcAssembler,
     FilelistValidator,
+    FilelistValidatorNew,
     FilesetValidator,
+    FilesetValidatorNew,
     CollisionDetector,
 )
-class AuxAssetState(StrEnum):
-    VALID = "ok"
-    EMPTY = "empty"
-    INVALID = "invalid"
+class BootAction(StrEnum):
+    START = "ok"
+    CLANKERIZE = "empty"
+    NONE = "invalid"
 
 @dataclass(slots=True)
 class Config:
@@ -48,15 +49,49 @@ class AssetPack:
     paths: list[str] | None
 @dataclass
 class ClankerCtx:
+    collector: ErrorCollector
     sys_cfg: Config
     shared_cfg: Config
     doc_assets: AssetPack
+    file_reqs: tuple[list[StrEnum], list[StrEnum]]
+
+    def _determine_action(self):
+        missing, _ = file_reqs 
+        for absentee in missing:
+            collector.add_critical_complaint(f"'{absentee.name}' not found at '{absentee.value}'")
+        self.action = BootAction.START if (not missing and not sys_cfg.data is None and not shared_cfg.data is None) else BootAction.NONE
+
+    def process(self):
+        self.ui_render = UIRenderExtractor(self.collector).extract(self.sys_cfg) if self.sys_cfg.data else None
+        self.filelist = FilelistExtractor(self.collector).extract(self.shared_cfg) if self.shared_cfg.data else None
+        self.fileset = FilesetExtractor(self.collector).extract(self.shared_cfg) if self.shared_cfg.data else None
+        self.doms = DomainExtractor(self.collector, self.fileset, self.filelist).extract(self.shared_cfg) if self.shared_cfg.data else None
+        self.base_res = BaseResolverExtractor(self.collector, self.fileset, self.filelist).extract(self.shared_cfg) if self.shared_cfg.data else None
+        if self.doc_assets.paths: CollisionDetector(self.collector).detect(self.doc_assets)
 
 @dataclass
 class PudCtx:
+    collector: ErrorCollector
     pud_cfg: Config
     doc_assets: AssetPack
     content_assets: AssetPack
+    file_reqs: tuple[list[StrEnum], list[StrEnum]]
+
+    def _determine_action(self):
+        missing, present = file_reqs
+        if not missing and pud_cfg.data:
+            self.action = BootAction.START
+        elif not present and pud_cfg.data is None:
+            self.action = BootAction.CLANKERIZE
+        else:
+            for absentee in missing:
+                collector.add_critical_complaint(f"'{absentee.name}' not found at '{absentee.value}'")
+            self.action = BootAction.NONE
+
+    def process(self):
+        self.filelist = FilelistExtractor(self.collector).extract(self.pud_cfg) if self.pud_cfg.data else None
+        self.fileset = FilesetExtractor(self.collector).extract(self.pud_cfg) if self.pud_cfg.data else None
+        CollisionDetector(self.collector).detect(self.doc_assets)
 
 class IngestionServiceImpl(IngestionService):
     def __init__(
@@ -67,30 +102,34 @@ class IngestionServiceImpl(IngestionService):
         self.files = files
         self.cfg_ingestor = cfg_ingestor
 
-    def _ctx_phase_1(self):
-        self.pud_collector = ErrorCollector()
-        self.clank_collector = ErrorCollector()
-        
-        self.clank_ctx = ClankerCtx(
-            sys_cfg = self._resolve_config(ClankerAssets.Configs.sys_cfg, self.clank_collector),
-            shared_cfg = self._resolve_config(ClankerAssets.Configs.shared_cfg, self.clank_collector),
-            doc_assets = self._resolve_asset_pack(PathTokens.SHARED, ["content/a_lib"], self.clank_collector),
+    def _phase_1_ctx_acquisition(self) -> tuple[ClankerCtx, PudCtx]:
+        clank_collector = ErrorCollector()       
+        self._get_shared_aux_asset_state(clank_collector)
+        clank_ctx = ClankerCtx(
+            collector = clank_collector,
+            sys_cfg = self._get_config(ClankerAssets.Configs.sys_cfg, clank_collector),
+            shared_cfg = self._get_config(ClankerAssets.Configs.shared_cfg, clank_collector),
+            doc_assets = self._get_asset_pack(PathTokens.SHARED, ["content/a_lib"], clank_collector),
+            file_reqs = self._get_file_reqs([*ClankerAssets.Templates, *ClankerAssets.Layouts])
         )
-        self.pud_ctx = PudCtx(
-            pud_cfg = self._resolve_config(PudAssets.Configs.PUD, self.pud_collector),
-            doc_assets = self._resolve_asset_pack(PathTokens.PUD, [".clanker"], self.pud_collector),
-            content_assets = self._resolve_asset_pack(PathTokens.PUD, ["content", "README.md"], self.pud_collector),
+        pud_collector = ErrorCollector()
+        pud_ctx = PudCtx(
+            collector = pud_collector,
+            pud_cfg = self._get_config(PudAssets.Configs.PUD, pud_collector),
+            doc_assets = self._get_asset_pack(PathTokens.PUD, [".clanker"], pud_collector),
+            content_assets = self._get_asset_pack(PathTokens.PUD, ["content", "README.md"], pud_collector),
+            file_reqs = self._get_file_reqs([*PudAssets.Directories, *PudAssets.Files, *PudAssets.Documentation])
         )
+        return clank_ctx, pud_ctx
 
-    def _resolve_asset_pack(self,token:str, roots, collector: ErrorCollector) -> AssetPack:
-        # i will change adapter later to aggregate and complain smarter
+    def _get_asset_pack(self,token:str, roots, collector: ErrorCollector) -> AssetPack:
         try:
             return AssetPack(token, roots, self.files.get_dir_manifest(token, roots)) 
         except NoSuchFile:
             collector.add_critical_complaint(f"Something missing in '{token}': {roots}")
             return AssetPack(token, roots, None) 
 
-    def _resolve_config(self, config: StrEnum, collector: ErrorCollector) -> Config:
+    def _get_config(self, config: StrEnum, collector: ErrorCollector) -> Config:
         try:
             raw_content = self.files.get_file_contents(config.value)
             return Config(config.name, config.value, self.cfg_ingestor.get_as_dict(raw_content))
@@ -100,19 +139,8 @@ class IngestionServiceImpl(IngestionService):
         except ConfigParseError:
             collector.add_critical_complaint(f"'{config.name}' malformed. Path: {config.value}")
             return Config(config.name, config.value, None)
-    """
-    these are not in play yet
-    def _get_shared_aux_asset_state(self):
-        present, missing_assets = self._resolve_assets([*ClankerAssets.Templates, *ClankerAssets.Layouts])
-        if missing_assets: return AuxAssetState.INVALID
-        else: return AuxAssetState.VALID
-    def _get_pud_aux_asset_state(self):
-        present_assets, missing_assets = self._resolve_assets([*PudAssets.Directories, *PudAssets.Files, *PudAssets.Documentation])
-        if not missing_assets: return AuxAssetState.VALID
-        elif not present_assets: return AuxAssetState.EMPTY
-        else: return AuxAssetState.INVALID
-
-    def _resolve_assets(self, assets: list[StrEnum]) -> tuple[list[StrEnum], list[StrEnum]]:
+    
+    def _get_file_reqs(self, assets: list[StrEnum]) -> tuple[list[StrEnum], list[StrEnum]]:
         missing = []
         present = []
         for asset in assets:
@@ -121,8 +149,49 @@ class IngestionServiceImpl(IngestionService):
                 missing.append(asset)
             except AssetExists:
                 present.append(asset)
-        return present, missing
-    """    
+        return missing, present
+
+    def _phase_4_interpretation_assembly_return(self): # the new public member
+        clank_ctx, pud_ctx = self._phase_1_ctx_acquisition()
+        merged_collector = ErrorCollector()
+        merged_collector.set_complaints(clank_ctx.collector.get_complaints() + pud_ctx.collector.get_complaints())
+        merged_collector.set_critical_complaints(clank_ctx.collector.get_critical_complaints() + pud_ctx.collector.get_critical_complaints())
+        match (clank_ctx.action, pud_ctx.action, merged_collector.has_crits()):
+            case (BootAction.START, BootAction.START, False):
+
+                unified_fsm = shared_fsm.merge(pud_fsm)
+                unified_flm = shared_flm.merge(pud_flm)
+                pud_doms = DomainExtractor(clank_collector, unified_fsm, unified_flm).extract(pud_cfg)
+
+                for dom in pud_doms+shared_doms:
+                    dom.resolvers = dom.resolvers + base_resolvers
+                button_map = RtcAssembler().assemble(
+                    sys_cfg=sys_cfg,
+                    shared_doms=shared_doms,
+                    pud_doms=pud_doms,
+                    collector=clank_collector,
+                )
+                (FilelistValidatorNew(pud_ctx.doc_assets, clank_ctx.doc_assets)
+                .validate(pud_ctx.pud_cfg, pud_doms, pud_ctx.collector)
+                .validate(clank_ctx.shared_cfg, shared_doms, clank_ctx.collector))
+                
+                (FilesetValidatorNew(pud_ctx.content_assets, clank_ctx.doc_assets)
+                .validate(pud_ctx.pud_cfg, pud_doms, pud_ctx.collector)
+                .validate(clank_ctx.shared_cfg, shared_doms, clank_ctx.collector))
+
+                has_soft = bool(clank_collector.get_complaints())
+                action_res = OfferBootstrapWithComplaints() if has_soft else DoBootstrap()
+                return action_res, clank_collector, button_map, ui_render, base_resolvers
+
+            case (BootAction.START, BootAction.CLANKERIZE, False):
+                self._validate_clanker(clank_collector, shared_cfg, sys_cfg)
+                has_soft = bool(clank_collector.get_complaints())
+                action_res = OfferClankerizeWithComplaints() if has_soft else OfferClankerize()
+                return action_res, clank_collector, None, None, None
+
+            case (_, _, True):
+                return TerminateGracefully(), clank_collector, None, None, None
+        pass
     # old marker
     def _resolve_assets(self, assets: list[StrEnum]) -> tuple[list[StrEnum], list[StrEnum]]:
         missing = []
@@ -175,7 +244,7 @@ class IngestionServiceImpl(IngestionService):
 
     def _validate_clanker(self, collector, cfg, sys_cfg):
         # entity retrieval. parsers complain if dicts malformed
-        ui_render = UIRenderExtractor().extract(sys_cfg, collector)
+        ui_render = UIRenderExtractor(collector).extract(sys_cfg)
         filelist = FilelistExtractor(collector).extract(cfg)
         fileset = FilesetExtractor(collector).extract(cfg)
         # entity retrieval. complains if dict malformed or named members cannot be satisfied from maps provided

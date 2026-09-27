@@ -12,5 +12,5 @@ import sys
 import termios
 import traceback
 import tty
-from typing import Any, Callable, ClassVar, Generator, Generic, TypeVar
+from typing import Any, Callable, ClassVar, Generator, Generic, TypeVar, Self
 from enum import StrEnum

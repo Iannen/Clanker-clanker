@@ -43,3 +43,6 @@ class ErrorCollector(Report):
 
     def get_critical_complaints(self) -> list[str]:
         return self._critical_complaints
+
+    def has_crits(self) -> bool:
+        return len(self._critical_complaints) > 0
