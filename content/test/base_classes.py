@@ -99,7 +99,7 @@ class BaseFixtureTest:
             return existing_frames
 
         crash_frame = ExecutionFrame(
-            latest_input="Crash event!",
+            latest_input=ScriptedTerminalAdapter.CRASH_EVENT,
             exit_code=1,
             stderr=stderr_output,
         )

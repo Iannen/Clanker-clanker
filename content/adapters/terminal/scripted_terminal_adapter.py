@@ -20,6 +20,7 @@ class ExecutionFrame:
 class ScriptedTerminalAdapter(TerminalPort):
     START_APP_EVENT = "__START_APP__"
     END_APP_EVENT = "__END_APP__"
+    CRASH_EVENT = "__CRASH_EVENT__"
 
     def __init__(self, input_sequence: list[str], framedump_path: Path):
         self.sandbox_dir = os.getcwd()

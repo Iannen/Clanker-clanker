@@ -2,11 +2,7 @@ system:
   test_command: "python3 -B content/test/ship_gate.py"
 
 filesets:
-  core: {includes: [
-    content/core,
-    content/clanker.py,
-    content/modules/asset_ingestion/ingestion_service.py,
-    content/modules/asset_ingestion/commons/error_collector.py]}
+  core: {includes: [content/core]}
 
   asset_ingestion: {includes: [content/modules/asset_ingestion]}
 

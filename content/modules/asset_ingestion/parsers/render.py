@@ -18,11 +18,8 @@ class RenderParser:
         self.extractor = ValueExtractor()
 
     def extract(self) -> Render:
-        #template = self.extractor.req_str(self.render_dict, ["template"], Render.template)
         template = self.extractor.opt_str(self.render_dict, ["template"], Render.template)
-        #inherit_base = self.extractor.req_bool(self.render_dict, ["inherit_base"], Render.inherit_base)
         inherit_base = self.extractor.opt_bool(self.render_dict, ["inherit_base"], Render.inherit_base)
-        #inherit_domain = self.extractor.req_bool(self.render_dict, ["inherit_domain"], Render.inherit_domain)
         inherit_domain = self.extractor.opt_bool(self.render_dict, ["inherit_domain"], Render.inherit_domain)
         raw_resolvers = self.extractor.req_list(self.render_dict, ["resolvers"])
         resolvers = [ResolverParser(r, self.collector, self.fileset_map, self.filelist_map).parse() for r in raw_resolvers]
