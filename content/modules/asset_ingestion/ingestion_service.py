@@ -21,10 +21,13 @@ from core.engine_deps import IngestionService, Report, NoSuchFile, AssetExists, 
 from . import (
     ErrorCollector,
     FilelistExtractor,
+    NewFilelistExtractor,
     FilesetExtractor,
+    NewFilesetExtractor,
     DomainExtractor,
     NewDomainExtractor,
     BaseResolverExtractor,
+    NewBaseResolverExtractor,
     UIRenderExtractor,
     NewUIRenderExtractor,
     RtcAssembler,
@@ -61,11 +64,11 @@ class ClankerCtx:
     def process(self):
         self._determine_action()
         self.ui_render = NewUIRenderExtractor(self.collector).extract(self.sys_cfg) if self.sys_cfg.data else None
-        self.filelist = FilelistExtractor(self.collector).extract(self.shared_cfg) if self.shared_cfg.data else None
-        self.fileset = FilesetExtractor(self.collector).extract(self.shared_cfg) if self.shared_cfg.data else None
+        self.filelist = NewFilelistExtractor(self.collector).extract(self.shared_cfg) if self.shared_cfg.data else None
+        self.fileset = NewFilesetExtractor(self.collector).extract(self.shared_cfg) if self.shared_cfg.data else None
         self.doms = NewDomainExtractor(self.collector, self.fileset, self.filelist).extract(self.shared_cfg) if self.shared_cfg.data else None
-        self.base_res = BaseResolverExtractor(self.collector, self.fileset, self.filelist).extract(self.shared_cfg) if self.shared_cfg.data else None
-        if self.doc_assets.paths: NewCollisionDetector(self.collector).detect(self.doc_assets)
+        self.base_res = NewBaseResolverExtractor(self.collector, self.fileset, self.filelist).extract(self.shared_cfg) if self.shared_cfg.data else None
+        if self.doc_assets.paths: NewCollisionDetector(self.collector).detect(self.doc_assets) 
 
 @dataclass
 class PudCtx:
@@ -88,9 +91,9 @@ class PudCtx:
 
     def process(self):
         self._determine_action()
-        self.filelist = FilelistExtractor(self.collector).extract(self.pud_cfg) if self.pud_cfg.data else None
-        self.fileset = FilesetExtractor(self.collector).extract(self.pud_cfg) if self.pud_cfg.data else None
-        NewCollisionDetector(self.collector).detect(self.doc_assets)
+        self.filelist = NewFilelistExtractor(self.collector).extract(self.pud_cfg) if self.pud_cfg.data else None
+        self.fileset = NewFilesetExtractor(self.collector).extract(self.pud_cfg) if self.pud_cfg.data else None
+        if self.doc_assets.paths: NewCollisionDetector(self.collector).detect(self.doc_assets)
 
 class IngestionServiceImpl(IngestionService):
     def __init__(
@@ -184,13 +187,12 @@ class IngestionServiceImpl(IngestionService):
                 return action_res, merged_collector, button_map, clank_ctx.ui_render, clank_ctx.base_res
 
             case (BootAction.START, BootAction.CLANKERIZE, False):
-                self._validate_clanker(clank_collector, shared_cfg, sys_cfg)
                 has_soft = bool(merged_collector.get_complaints())
                 action_res = OfferClankerizeWithComplaints() if has_soft else OfferClankerize()
                 return action_res, merged_collector, None, None, None
 
             case (_, _, True):
-                return TerminateGracefully(), clank_collector, None, None, None
+                return TerminateGracefully(), merged_collector, None, None, None
         pass
     # old marker
     def _resolve_assets(self, assets: list[StrEnum]) -> tuple[list[StrEnum], list[StrEnum]]:

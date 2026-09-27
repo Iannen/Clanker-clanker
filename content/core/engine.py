@@ -28,8 +28,8 @@ class AppEngine:
         self.kb_service = kb_service
 
     def run(self) -> str:
-        #action_res, report, btn_map, ui_render, base_resolvers = self.session.new_method()
-        action_res, report, btn_map, ui_render, base_resolvers = self.session.get_runtime_config()
+        action_res, report, btn_map, ui_render, base_resolvers = self.session.new_method()
+        #action_res, report, btn_map, ui_render, base_resolvers = self.session.get_runtime_config()
 
         match action_res:
             case DoBootstrap():
@@ -55,8 +55,8 @@ class AppEngine:
                         UserQuestions.INIT_REPO, UserQuestions.REQUIRED_PHRASE
                     )
                     self.session.initialize_workspace()
-                    #action_res, report, btn_map, ui_render, base_resolvers = self.session.new_method()
-                    action_res, report, btn_map, ui_render, base_resolvers = self.session.get_runtime_config()
+                    action_res, report, btn_map, ui_render, base_resolvers = self.session.new_method()
+                    #action_res, report, btn_map, ui_render, base_resolvers = self.session.get_runtime_config()
                     self.renderer.set_ui_render(ui_render)
                     self.kb_service.setup(btn_map, base_resolvers)
                     action_res = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)
@@ -70,8 +70,8 @@ class AppEngine:
                         UserQuestions.REQUIRED_PHRASE,
                     )
                     self.session.initialize_workspace()
-                    #action_res, report, btn_map, ui_render, base_resolvers = self.session.new_method()
-                    action_res, report, btn_map, ui_render, base_resolvers = self.session.get_runtime_config()
+                    action_res, report, btn_map, ui_render, base_resolvers = self.session.new_method()
+                    #action_res, report, btn_map, ui_render, base_resolvers = self.session.get_runtime_config()
                     self.renderer.set_ui_render(ui_render)
                     self.kb_service.setup(btn_map, base_resolvers)
                     action_res = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)
@@ -84,6 +84,7 @@ class AppEngine:
                 msg = "Critical errors:\n" + "\n".join(all_crits)
                 if all_softs:
                     msg += "\nSoft complaints:\n" + "\n".join(all_softs)
+
                 return msg
 
         try:

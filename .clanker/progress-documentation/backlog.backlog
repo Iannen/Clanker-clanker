@@ -8,6 +8,9 @@ I. Ideas, complaints and non-critical bugs:
     - rabbithole solution is to have app write template to rowspec
 
 II. The pile
+
+[BUG] Testsystem does not always produce two frames
+- it depends upon a getchar call to write first frame. 
    
 7. Landingzone for Validation / complaint ideas
     complaint categories:

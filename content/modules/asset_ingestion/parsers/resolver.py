@@ -42,7 +42,8 @@ class ResolverParser:
             if "files" in self.resolver_cfg and isinstance(self.resolver_cfg["files"], str):
                 filelist_val = self.resolver_cfg["files"]
             else:
-                filelist_val = self.extractor.req_list(self.resolver_cfg, ["files"], default=[])
+                #filelist_val = self.extractor.req_list(self.resolver_cfg, ["files"], default=[])
+                filelist_val = self.extractor.opt_list(self.resolver_cfg, ["files"], default=[])
 
             filelist_obj = FilelistParser(filelist_val, self.collector, self.filelist_map).parse()
             return MultiDocResolver(anchor=anchor, files=filelist_obj)
@@ -53,7 +54,8 @@ class ResolverParser:
             else:
                 fileset_val = {
                     "includes": self.extractor.req_list(self.resolver_cfg, ["includes"]),
-                    "excludes": self.extractor.req_list(self.resolver_cfg, ["excludes"], default=[]),
+                    #"excludes": self.extractor.req_list(self.resolver_cfg, ["excludes"], default=[]),
+                    "excludes": self.extractor.opt_list(self.resolver_cfg, ["excludes"], default=[]),
                 }
 
             fileset_obj = FilesetParser(fileset_val, self.collector, self.fileset_map).parse()
@@ -65,8 +67,10 @@ class ResolverParser:
                     f"Manifest resolver '{anchor}' must specify at least 'pud_fileset' or 'shared_fileset'"
                 )
 
-            pud_val = self.extractor.req_str_or_dict(self.resolver_cfg, ["pud_fileset"], default={})
-            shared_val = self.extractor.req_str_or_dict(self.resolver_cfg, ["shared_fileset"], default={})
+            #pud_val = self.extractor.req_str_or_dict(self.resolver_cfg, ["pud_fileset"], default={})
+            pud_val = self.extractor.opt_str_or_dict(self.resolver_cfg, ["pud_fileset"], default={})
+            #shared_val = self.extractor.req_str_or_dict(self.resolver_cfg, ["shared_fileset"], default={})
+            shared_val = self.extractor.opt_str_or_dict(self.resolver_cfg, ["shared_fileset"], default={})
 
             pud_fileset_obj = FilesetParser(pud_val, self.collector, self.fileset_map).parse() if pud_val else FileSet(includes=[], excludes=[])
             shared_fileset_obj = FilesetParser(shared_val, self.collector, self.fileset_map).parse() if shared_val else None

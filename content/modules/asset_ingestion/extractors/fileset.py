@@ -1,5 +1,5 @@
 from stdlib import Any, dataclass
-from ...asset_ingestion import ErrorCollector, FilesetMap, ValueExtractor, FilesetParser
+from ...asset_ingestion import ErrorCollector, FilesetMap, ValueExtractor, FilesetParser, Config
 
 @dataclass
 class FilesetExtractor:
@@ -7,8 +7,23 @@ class FilesetExtractor:
 
     def extract(self, cfg: dict[str, Any]) -> FilesetMap:
         extractor = ValueExtractor()
-        raw_filesets = extractor.req_dict(cfg, ["filesets"], default={})
+        #raw_filesets = extractor.req_dict(cfg, ["filesets"], default={})
+        raw_filesets = extractor.opt_dict(cfg, ["filesets"], default={})
 
+        result = {}
+        for k, v in raw_filesets.items():
+            result[k] = FilesetParser(v, self.collector).parse()
+
+        return FilesetMap(data=result, collector=self.collector)
+
+@dataclass
+class NewFilesetExtractor:
+    collector: ErrorCollector
+
+    def extract(self, cfg: Config) -> FilesetMap:
+        extractor = ValueExtractor()
+        #raw_filesets = extractor.req_dict(cfg.data, ["filesets"], default= {}) 
+        raw_filesets = extractor.opt_dict(cfg.data, ["filesets"], default= {})
         result = {}
         for k, v in raw_filesets.items():
             result[k] = FilesetParser(v, self.collector).parse()

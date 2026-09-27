@@ -48,15 +48,18 @@ class FilelistParser:
             return None
 
         if has_tail:
-            tail_lines = self.extractor.req_int(data, ["tail_lines"], default=None)
+            #tail_lines = self.extractor.req_int(data, ["tail_lines"], default=None)
+            tail_lines = self.extractor.req_int(data, ["tail_lines"])
             if tail_lines is None:
                 self.collector.add_complaint("TruncationSpec error: tail_lines must be an integer")
                 return None
             return TruncationSpec(type=TruncationSpec.TYPE_TAIL, tail_lines=tail_lines)
 
         if has_from or has_upto:
-            from_line = self.extractor.req_str(data, ["from_line"], default=None) if has_from else None
-            up_to = self.extractor.req_str(data, ["up_to"], default=None) if has_upto else None
+            #from_line = self.extractor.req_str(data, ["from_line"], default=None) if has_from else None
+            from_line = self.extractor.req_str(data, ["from_line"]) if has_from else None
+            #up_to = self.extractor.req_str(data, ["up_to"], default=None) if has_upto else None
+            up_to = self.extractor.req_str(data, ["up_to"]) if has_upto else None
             return TruncationSpec(
                 type=TruncationSpec.TYPE_REGEX_RANGE,
                 from_line=from_line,

@@ -25,7 +25,8 @@ class FilesetParser:
 
         if isinstance(self.fileset_cfg, dict):
             includes = self.extractor.req_list(self.fileset_cfg, ["includes"])
-            excludes = self.extractor.req_list(self.fileset_cfg, ["excludes"], default=[])
+            #excludes = self.extractor.req_list(self.fileset_cfg, ["excludes"], default=[])
+            excludes = self.extractor.opt_list(self.fileset_cfg, ["excludes"], default=[])
             return FileSet(includes=includes, excludes=excludes)
 
         return FileSet(includes=[], excludes=[])

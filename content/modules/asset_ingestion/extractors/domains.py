@@ -40,7 +40,8 @@ class DomainExtractor:
         for d in dicts:
             name = self.extractor.req_str(d, ["name"])
             with self.collector.path(name):
-                render_dict = self.extractor.req_dict(d, ["render"], default={})
+                #render_dict = self.extractor.req_dict(d, ["render"], default={})
+                render_dict = self.extractor.opt_dict(d, ["render"], default={})
                 render = RenderParser(
                     render_dict, self.collector, self.fileset_map, self.filelist_map
                 ).extract()
@@ -77,7 +78,8 @@ class NewDomainExtractor:
         for d in dicts:
             name = self.extractor.req_str(d, ["name"])
             with self.collector.path(name):
-                render_dict = self.extractor.req_dict(d, ["render"], default={})
+                #render_dict = self.extractor.req_dict(d, ["render"], default={})
+                render_dict = self.extractor.opt_dict(d, ["render"], default={})
                 render = RenderParser(
                     render_dict, self.collector, self.fileset_map, self.filelist_map
                 ).extract()

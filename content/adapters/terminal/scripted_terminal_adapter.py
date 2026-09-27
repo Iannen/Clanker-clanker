@@ -30,6 +30,15 @@ class ScriptedTerminalAdapter(TerminalPort):
         self.last_write = None
         self.last_cp = None
 
+        self.frames = [
+            ExecutionFrame(
+                latest_input=self.START_APP_EVENT,
+                latest_write=None,
+                latest_clipboard=None,
+                disk_paths=self._get_disk_paths(),
+            )
+        ]
+
     def _flatten_sequence(self, input_sequence: list[str]) -> list[str]:
         flattened = [self.START_APP_EVENT]
         for item in input_sequence:
