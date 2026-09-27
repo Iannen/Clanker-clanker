@@ -56,6 +56,9 @@ class ClankerCtx:
     file_reqs: tuple[list[StrEnum], list[StrEnum]]
 
     def _determine_action(self):
+        if self.sys_cfg.issue: self.collector.add_critical_complaint(self.sys_cfg.issue)
+        if self.shared_cfg.issue: self.collector.add_critical_complaint(self.shared_cfg.issue)
+        if self.doc_assets.issue: self.collector.add_critical_complaint(self.doc_assets.issue)
         missing, _ = self.file_reqs 
         for absentee in missing:
             self.collector.add_critical_complaint(f"'{absentee.name}' not found at '{absentee.value}'")
@@ -85,6 +88,9 @@ class PudCtx:
         elif not present and self.pud_cfg.data is None:
             self.action = BootAction.CLANKERIZE
         else:
+            if self.pud_cfg.issue: self.collector.add_critical_complaint(self.pud_cfg.issue)
+            if self.doc_assets.issue: self.collector.add_critical_complaint(self.doc_assets.issue)
+            if self.content_assets.issue: self.collector.add_critical_complaint(self.content_assets.issue)
             for absentee in missing:
                 self.collector.add_critical_complaint(f"'{absentee.name}' not found at '{absentee.value}'")
             self.action = BootAction.NONE
@@ -108,40 +114,38 @@ class IngestionServiceImpl(IngestionService):
         clank_collector = ErrorCollector()       
         clank_ctx = ClankerCtx(
             collector = clank_collector,
-            sys_cfg = self._get_config(ClankerAssets.Configs.sys_cfg, clank_collector),
-            shared_cfg = self._get_config(ClankerAssets.Configs.shared_cfg, clank_collector),
-            doc_assets = self._get_asset_pack(PathTokens.SHARED, ["content/a_lib"], clank_collector),
+            sys_cfg = self._get_config(ClankerAssets.Configs.sys_cfg),
+            shared_cfg = self._get_config(ClankerAssets.Configs.shared_cfg),
+            doc_assets = self._get_asset_pack(PathTokens.SHARED, ["content/a_lib"]),
             file_reqs = self._get_file_reqs([*ClankerAssets.Templates, *ClankerAssets.Layouts])
         )
         pud_collector = ErrorCollector()
         pud_ctx = PudCtx(
             collector = pud_collector,
-            pud_cfg = self._get_config(PudAssets.Configs.PUD, pud_collector),
-            doc_assets = self._get_asset_pack(PathTokens.PUD, [".clanker"], pud_collector),
-            content_assets = self._get_asset_pack(PathTokens.PUD, ["content", "README.md"], pud_collector),
+            pud_cfg = self._get_config(PudAssets.Configs.PUD),
+            doc_assets = self._get_asset_pack(PathTokens.PUD, [".clanker"]),
+            content_assets = self._get_asset_pack(PathTokens.PUD, ["content", "README.md"]),
             file_reqs = self._get_file_reqs([*PudAssets.Directories, *PudAssets.Files, *PudAssets.Documentation])
         )
         clank_ctx.process()
         pud_ctx.process()
         return clank_ctx, pud_ctx
 
-    def _get_asset_pack(self,token:str, roots, collector: ErrorCollector) -> AssetPack:
+    def _get_asset_pack(self,token:str, roots) -> AssetPack:
         try:
             return AssetPack(token, roots, self.files.get_dir_manifest(token, roots)) 
         except NoSuchFile:
-            collector.add_critical_complaint(f"Something missing in '{token}': {roots}")
-            return AssetPack(token, roots, None) 
+            # perhaps for this one a simple data | None is fine. 
+            return AssetPack(token, roots, None, f"Something missing in '{token}': {roots}") 
 
-    def _get_config(self, config: StrEnum, collector: ErrorCollector) -> Config:
+    def _get_config(self, config: StrEnum) -> Config:
         try:
             raw_content = self.files.get_file_contents(config.value)
             return Config(config.name, config.value, self.cfg_ingestor.get_as_dict(raw_content))
         except NoSuchFile:
-            collector.add_critical_complaint(f"'{config.name}' missing. Expected path: {config.value}")
-            return Config(config.name, config.value, None)
-        except ConfigParseError:
-            collector.add_critical_complaint(f"'{config.name}' malformed. Path: {config.value}")
-            return Config(config.name, config.value, None)
+            return Config(config.name, config.value, None, f"'{config.name}' missing. Expected path: {config.value}")
+        except ConfigParseError: # here we can get the yaml complaint from ruamel, in the future.
+            return Config(config.name, config.value, None, f"'{config.name}' malformed. Path: {config.value}")
     
     def _get_file_reqs(self, assets: list[StrEnum]) -> tuple[list[StrEnum], list[StrEnum]]:
         missing = []

@@ -4,9 +4,12 @@ from stdlib import dataclass
 class Config:
     name: str
     path: str
-    data: dict | None
+    data: dict | None = None
+    issue: str | None = None
+
 @dataclass
 class AssetPack:
     name: str
     roots: list[str]
-    paths: list[str] | None
+    paths: list[str] | None = None
+    issue: str | None = None

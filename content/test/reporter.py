@@ -78,7 +78,7 @@ class GateInspector:
 
                 for test in m.atomic_tests:
                     if test.crashed:
-                        print(f"        ❌ Test #{test.test_number} - Application terminated unexpectedly")
+                        print(f"        💀 Test #{test.test_number} - Application terminated unexpectedly")
                     else:
                         test_icon = "✅" if test.passed else "❌"
                         print(
