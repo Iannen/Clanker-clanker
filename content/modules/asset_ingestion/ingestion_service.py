@@ -23,30 +23,27 @@ from . import (
     FilelistExtractor,
     FilesetExtractor,
     DomainExtractor,
+    NewDomainExtractor,
     BaseResolverExtractor,
     UIRenderExtractor,
+    NewUIRenderExtractor,
     RtcAssembler,
+    NewRtcAssembler,
     FilelistValidator,
     FilelistValidatorNew,
+    FilelistValidatorNew2,
     FilesetValidator,
     FilesetValidatorNew,
     CollisionDetector,
+    NewCollisionDetector,
+    Config,
+    AssetPack
 )
 class BootAction(StrEnum):
     START = "ok"
     CLANKERIZE = "empty"
     NONE = "invalid"
 
-@dataclass(slots=True)
-class Config:
-    name: str
-    path: str
-    data: dict | None
-@dataclass
-class AssetPack:
-    name: str
-    roots: list[str]
-    paths: list[str] | None
 @dataclass
 class ClankerCtx:
     collector: ErrorCollector
@@ -56,18 +53,19 @@ class ClankerCtx:
     file_reqs: tuple[list[StrEnum], list[StrEnum]]
 
     def _determine_action(self):
-        missing, _ = file_reqs 
+        missing, _ = self.file_reqs 
         for absentee in missing:
-            collector.add_critical_complaint(f"'{absentee.name}' not found at '{absentee.value}'")
-        self.action = BootAction.START if (not missing and not sys_cfg.data is None and not shared_cfg.data is None) else BootAction.NONE
+            self.collector.add_critical_complaint(f"'{absentee.name}' not found at '{absentee.value}'")
+        self.action = BootAction.START if (not missing and not self.sys_cfg.data is None and not self.shared_cfg.data is None) else BootAction.NONE
 
     def process(self):
-        self.ui_render = UIRenderExtractor(self.collector).extract(self.sys_cfg) if self.sys_cfg.data else None
+        self._determine_action()
+        self.ui_render = NewUIRenderExtractor(self.collector).extract(self.sys_cfg) if self.sys_cfg.data else None
         self.filelist = FilelistExtractor(self.collector).extract(self.shared_cfg) if self.shared_cfg.data else None
         self.fileset = FilesetExtractor(self.collector).extract(self.shared_cfg) if self.shared_cfg.data else None
-        self.doms = DomainExtractor(self.collector, self.fileset, self.filelist).extract(self.shared_cfg) if self.shared_cfg.data else None
+        self.doms = NewDomainExtractor(self.collector, self.fileset, self.filelist).extract(self.shared_cfg) if self.shared_cfg.data else None
         self.base_res = BaseResolverExtractor(self.collector, self.fileset, self.filelist).extract(self.shared_cfg) if self.shared_cfg.data else None
-        if self.doc_assets.paths: CollisionDetector(self.collector).detect(self.doc_assets)
+        if self.doc_assets.paths: NewCollisionDetector(self.collector).detect(self.doc_assets)
 
 @dataclass
 class PudCtx:
@@ -78,20 +76,21 @@ class PudCtx:
     file_reqs: tuple[list[StrEnum], list[StrEnum]]
 
     def _determine_action(self):
-        missing, present = file_reqs
-        if not missing and pud_cfg.data:
+        missing, present = self.file_reqs
+        if not missing and self.pud_cfg.data:
             self.action = BootAction.START
-        elif not present and pud_cfg.data is None:
+        elif not present and self.pud_cfg.data is None:
             self.action = BootAction.CLANKERIZE
         else:
             for absentee in missing:
-                collector.add_critical_complaint(f"'{absentee.name}' not found at '{absentee.value}'")
+                self.collector.add_critical_complaint(f"'{absentee.name}' not found at '{absentee.value}'")
             self.action = BootAction.NONE
 
     def process(self):
+        self._determine_action()
         self.filelist = FilelistExtractor(self.collector).extract(self.pud_cfg) if self.pud_cfg.data else None
         self.fileset = FilesetExtractor(self.collector).extract(self.pud_cfg) if self.pud_cfg.data else None
-        CollisionDetector(self.collector).detect(self.doc_assets)
+        NewCollisionDetector(self.collector).detect(self.doc_assets)
 
 class IngestionServiceImpl(IngestionService):
     def __init__(
@@ -104,7 +103,6 @@ class IngestionServiceImpl(IngestionService):
 
     def _phase_1_ctx_acquisition(self) -> tuple[ClankerCtx, PudCtx]:
         clank_collector = ErrorCollector()       
-        self._get_shared_aux_asset_state(clank_collector)
         clank_ctx = ClankerCtx(
             collector = clank_collector,
             sys_cfg = self._get_config(ClankerAssets.Configs.sys_cfg, clank_collector),
@@ -120,6 +118,8 @@ class IngestionServiceImpl(IngestionService):
             content_assets = self._get_asset_pack(PathTokens.PUD, ["content", "README.md"], pud_collector),
             file_reqs = self._get_file_reqs([*PudAssets.Directories, *PudAssets.Files, *PudAssets.Documentation])
         )
+        clank_ctx.process()
+        pud_ctx.process()
         return clank_ctx, pud_ctx
 
     def _get_asset_pack(self,token:str, roots, collector: ErrorCollector) -> AssetPack:
@@ -151,7 +151,7 @@ class IngestionServiceImpl(IngestionService):
                 present.append(asset)
         return missing, present
 
-    def _phase_4_interpretation_assembly_return(self): # the new public member
+    def new_method(self): # the new public member
         clank_ctx, pud_ctx = self._phase_1_ctx_acquisition()
         merged_collector = ErrorCollector()
         merged_collector.set_complaints(clank_ctx.collector.get_complaints() + pud_ctx.collector.get_complaints())
@@ -159,35 +159,35 @@ class IngestionServiceImpl(IngestionService):
         match (clank_ctx.action, pud_ctx.action, merged_collector.has_crits()):
             case (BootAction.START, BootAction.START, False):
 
-                unified_fsm = shared_fsm.merge(pud_fsm)
-                unified_flm = shared_flm.merge(pud_flm)
-                pud_doms = DomainExtractor(clank_collector, unified_fsm, unified_flm).extract(pud_cfg)
+                unified_fsm = clank_ctx.fileset.merge(pud_ctx.fileset)
+                unified_flm = clank_ctx.filelist.merge(pud_ctx.filelist)
+                pud_doms = NewDomainExtractor(merged_collector, unified_fsm, unified_flm).extract(pud_ctx.pud_cfg)
 
-                for dom in pud_doms+shared_doms:
-                    dom.resolvers = dom.resolvers + base_resolvers
-                button_map = RtcAssembler().assemble(
-                    sys_cfg=sys_cfg,
-                    shared_doms=shared_doms,
+                for dom in pud_doms+clank_ctx.doms:
+                    dom.resolvers = dom.resolvers + clank_ctx.base_res
+                button_map = NewRtcAssembler().assemble(
+                    sys_cfg=clank_ctx.sys_cfg,
+                    shared_doms=clank_ctx.doms,
                     pud_doms=pud_doms,
-                    collector=clank_collector,
+                    collector=merged_collector,
                 )
-                (FilelistValidatorNew(pud_ctx.doc_assets, clank_ctx.doc_assets)
+                (FilelistValidatorNew2(pud_ctx.doc_assets, clank_ctx.doc_assets)
                 .validate(pud_ctx.pud_cfg, pud_doms, pud_ctx.collector)
-                .validate(clank_ctx.shared_cfg, shared_doms, clank_ctx.collector))
-                
-                (FilesetValidatorNew(pud_ctx.content_assets, clank_ctx.doc_assets)
+                .validate(clank_ctx.shared_cfg, clank_ctx.doms, clank_ctx.collector))
+                """
+                (FilelistValidatorNew(pud_ctx.content_assets, clank_ctx.doc_assets)
                 .validate(pud_ctx.pud_cfg, pud_doms, pud_ctx.collector)
-                .validate(clank_ctx.shared_cfg, shared_doms, clank_ctx.collector))
-
-                has_soft = bool(clank_collector.get_complaints())
+                .validate(clank_ctx.shared_cfg, clank_ctx.doms, clank_ctx.collector))
+                """
+                has_soft = bool(merged_collector.get_complaints())
                 action_res = OfferBootstrapWithComplaints() if has_soft else DoBootstrap()
-                return action_res, clank_collector, button_map, ui_render, base_resolvers
+                return action_res, merged_collector, button_map, clank_ctx.ui_render, clank_ctx.base_res
 
             case (BootAction.START, BootAction.CLANKERIZE, False):
                 self._validate_clanker(clank_collector, shared_cfg, sys_cfg)
-                has_soft = bool(clank_collector.get_complaints())
+                has_soft = bool(merged_collector.get_complaints())
                 action_res = OfferClankerizeWithComplaints() if has_soft else OfferClankerize()
-                return action_res, clank_collector, None, None, None
+                return action_res, merged_collector, None, None, None
 
             case (_, _, True):
                 return TerminateGracefully(), clank_collector, None, None, None

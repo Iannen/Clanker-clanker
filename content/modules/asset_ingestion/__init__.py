@@ -1,6 +1,7 @@
 from .commons.error_collector import *
 from .commons.fileset_map import *
 from .commons.value_extractor import *
+from .commons.newshit import *
 
 from .parsers.filelist import *
 from .parsers.fileset import *

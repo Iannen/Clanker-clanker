@@ -1,5 +1,5 @@
 from stdlib import Any, dataclass, field, defaultdict
-from ...asset_ingestion import ErrorCollector
+from ...asset_ingestion import ErrorCollector, AssetPack
 
 @dataclass(slots=True, eq=False)
 class CollisionDetector:
@@ -9,6 +9,25 @@ class CollisionDetector:
         filename_to_paths: dict[str, list[str]] = defaultdict(list)
 
         for path_str in file_paths:
+            filename = path_str.rsplit("/", 1)[-1]
+            filename_to_paths[filename].append(path_str)
+
+        with self.collector.path(""):
+            for filename, paths in filename_to_paths.items():
+                if len(paths) > 1:
+                    formatted_paths = ", ".join(f"'{p}'" for p in sorted(paths))
+                    self.collector.add_complaint(
+                        f"Filename collision detected for '{filename}'. Coexisting paths: {formatted_paths}"
+                    )
+
+@dataclass(slots=True, eq=False)
+class NewCollisionDetector:
+    collector: ErrorCollector
+
+    def detect(self, file_paths: AssetPack) -> None:
+        filename_to_paths: dict[str, list[str]] = defaultdict(list)
+
+        for path_str in file_paths.paths:
             filename = path_str.rsplit("/", 1)[-1]
             filename_to_paths[filename].append(path_str)
 
