@@ -83,6 +83,11 @@ Backlog tail, Selected item/items:
         - Implement `status` as a purely computed `@property` on parent containers (`ContainerResult`, `MethodResult`, `TestSuiteResult`) that dynamically returns the highest-severity status of its children
         - Refactor `GateInspector` console reporting and tallies to count and display icons directly from `TestStatus`
 
+1. Delegate console report formatting recursively across result domain models
+    [x] 'adapters/terminal/gate_inspector.py': Implement recursive string-returning console formatting on result classes
+        - Add `to_console()` methods to `ImportReports`, `TestSuiteResult`, `MethodResult`, and `AtomicTestResult` that return formatted string blocks up the hierarchy
+        - Keep printing and global tally aggregation inside `GateInspector.write_console_report()`
+
 
 Backlog tail end
 

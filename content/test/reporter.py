@@ -5,7 +5,6 @@ import re
 from dataclasses import dataclass, field
 from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
 
-
 @dataclass(slots=True)
 class FileReport:
     rel_path: str
@@ -28,6 +27,16 @@ class FileReport:
             "dangling_imports": self.dangling_imports,
             "undeclared_imports": self.undeclared_imports,
         }
+
+    def to_console(self) -> list[str]:
+        lines = [f"    ❌ {self.rel_path}"]
+        for err in (
+            self.forbidden_import_statements
+            + self.dangling_imports
+            + self.undeclared_imports
+        ):
+            lines.append(f"        * {err}")
+        return lines
 
 
 @dataclass(slots=True)
@@ -53,6 +62,20 @@ class ImportReports:
 
     def to_dict(self) -> list[dict]:
         return [r.to_dict() for r in self.reports]
+
+    def to_console(self) -> str:
+        if self.is_clean:
+            lines = [
+                f"✅ Import Checker - {self.total_files_checked} files clean",
+                "    Report: import_checker.json",
+            ]
+        else:
+            lines = ["❌ Import Checker"]
+            for r in self.reports:
+                if not r.is_clean:
+                    lines.extend(r.to_console())
+            lines.append("    Report: import_checker.json")
+        return "\n".join(lines)
 
 
 @dataclass(slots=True)
@@ -130,6 +153,15 @@ class AtomicTestResult:
             "frames": [frame.__dict__ for frame in self.frames],
         }
 
+    def to_console(self) -> str:
+        if self.crashed:
+            return f"        💀 Test #{self.test_number} - Application terminated unexpectedly"
+        test_icon = "✅" if self.passed else "❌"
+        return (
+            f"        {test_icon} Test #{self.test_number} - "
+            f"{self.passed_expectances}/{self.total_expectances} expectances"
+        )
+
 
 @dataclass(slots=True)
 class ContainerResult:
@@ -171,6 +203,13 @@ class MethodResult:
             "passed": self.passed,
             "container_results": [c.to_dict() for c in self.container_results],
         }
+
+    def to_console(self) -> str:
+        method_icon = "✅" if self.passed else "❌"
+        lines = [f"    {method_icon} {self.method_name}"]
+        for test in self.atomic_tests:
+            lines.append(test.to_console())
+        return "\n".join(lines)
 
 
 @dataclass(slots=True)
@@ -215,6 +254,14 @@ class TestSuiteResult:
             "methods": [m.to_dict() for m in self.method_results],
         }
 
+    def to_console(self) -> str:
+        class_icon = "✅" if self.passed else "❌"
+        lines = [f"\n{class_icon} {self.suite_name}"]
+        for m in self.method_results:
+            lines.append(m.to_console())
+        lines.append(f"    Report: {self.report_filename}")
+        return "\n".join(lines)
+
 
 @dataclass(slots=True)
 class GateInspector:
@@ -249,9 +296,10 @@ class GateInspector:
         print("Test results")
         print("============================================================")
 
-        import_pass = self._report_import_verification()
-        tests_pass = True
+        import_pass = self.import_reports.is_clean
+        print(self.import_reports.to_console())
 
+        tests_pass = True
         total_tests = 0
         passed_tests = 0
         failed_tests = 0
@@ -266,24 +314,7 @@ class GateInspector:
             failed_tests += suite.failed_tests
             crashed_tests += suite.crashed_tests
 
-            class_icon = "✅" if suite.passed else "❌"
-            print(f"\n{class_icon} {suite.suite_name}")
-
-            for m in suite.method_results:
-                method_icon = "✅" if m.passed else "❌"
-                print(f"    {method_icon} {m.method_name}")
-
-                for test in m.atomic_tests:
-                    if test.crashed:
-                        print(f"        💀 Test #{test.test_number} - Application terminated unexpectedly")
-                    else:
-                        test_icon = "✅" if test.passed else "❌"
-                        print(
-                            f"        {test_icon} Test #{test.test_number} - "
-                            f"{test.passed_expectances}/{test.total_expectances} expectances"
-                        )
-
-            print(f"    Report: {suite.report_filename}")
+            print(suite.to_console())
 
         print("\n------------------------------------------------------------")
         print(
@@ -293,22 +324,3 @@ class GateInspector:
         print("============================================================")
 
         return import_pass and tests_pass
-
-    def _report_import_verification(self) -> bool:
-        if self.import_reports.is_clean:
-            print(f"✅ Import Checker - {self.import_reports.total_files_checked} files clean")
-            print("    Report: import_checker.json")
-            return True
-
-        print("❌ Import Checker")
-        for report in self.import_reports.reports:
-            if not report.is_clean:
-                print(f"    ❌ {report.rel_path}")
-                for err in (
-                    report.forbidden_import_statements
-                    + report.dangling_imports
-                    + report.undeclared_imports
-                ):
-                    print(f"        * {err}")
-        print("    Report: import_checker.json")
-        return False
