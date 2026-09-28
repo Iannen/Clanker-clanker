@@ -12,7 +12,8 @@ if str(content_dir) not in sys.path:
     sys.path.insert(0, str(content_dir))
 
 from base_classes import BaseFixtureTest
-from reporter import GateInspector, TestSuiteResult, ImportReports
+from reporter import GateInspector
+from results import TestSuiteResult, ImportReports
 import assert_classes
 from import_checker import ImportPolicySuite
 

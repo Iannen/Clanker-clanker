@@ -1,5 +1,5 @@
 #!/usr/bin/env -S python3 -B
-from reporter import TestSuiteResult, MethodResult
+from results import TestSuiteResult, MethodResult
 from pathlib import Path
 from typing import Any
 from expectance_impls import ActionsFactoryImpl

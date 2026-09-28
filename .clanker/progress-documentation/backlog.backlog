@@ -73,20 +73,13 @@ II. The pile
 Backlog tail, Selected item/items:
 
 1. Refactor gate inspector data models for complete serialization, slotted performance, and TestStatus domain enum
-    [x] 'adapters/terminal/gate_inspector.py': Optimize data model performance and complete serialization coverage
-        - Add `slots=True` to all dataclasses in the module to reduce memory overhead during large test runs
-        - Implement `to_dict()` methods on `FileReport` and `ImportReports` to provide complete serialization coverage, using string representations for enums in JSON output
-        - Update `GateInspector._write_file_reports()` to delegate serialization to `ImportReports.to_dict()`
     [ ] 'adapters/terminal/gate_inspector.py': Implement system-wide TestStatus enum and update result reporting
         - Define a `TestStatus` enum with severe ordering (`PASSED` < `FAILED` < `CRASHED`) and icon mapping
         - Replace boolean `passed` and `crashed` fields with explicit `status: TestStatus` on leaf models (`ExpectanceResult`, `SandboxOperationsResult`, `AtomicTestResult`)
         - Implement `status` as a purely computed `@property` on parent containers (`ContainerResult`, `MethodResult`, `TestSuiteResult`) that dynamically returns the highest-severity status of its children
         - Refactor `GateInspector` console reporting and tallies to count and display icons directly from `TestStatus`
 
-1. Delegate console report formatting recursively across result domain models
-    [x] 'adapters/terminal/gate_inspector.py': Implement recursive string-returning console formatting on result classes
-        - Add `to_console()` methods to `ImportReports`, `TestSuiteResult`, `MethodResult`, and `AtomicTestResult` that return formatted string blocks up the hierarchy
-        - Keep printing and global tally aggregation inside `GateInspector.write_console_report()`
+
 
 
 Backlog tail end
@@ -150,3 +143,15 @@ Backlog tail end
         - update TestContainerImpl.run to check for at least 2 frames and successful exit code before delegating to ExpectationBuilder.evaluate
         - construct AtomicTestResult with crashed=True directly in TestContainerImpl.run on sad path
         - remove crash and exit_code check from ExpectationBuilder.evaluate
+
+6. Refactor gate inspector data models for complete serialization, slotted performance, and TestStatus domain enum
+    [x] 'adapters/terminal/gate_inspector.py': Optimize data model performance and complete serialization coverage
+        - Add `slots=True` to all dataclasses in the module to reduce memory overhead during large test runs
+        - Implement `to_dict()` methods on `FileReport` and `ImportReports` to provide complete serialization coverage, using string representations for enums in JSON output
+        - Update `GateInspector._write_file_reports()` to delegate serialization to `ImportReports.to_dict()`
+
+7. Delegate console report formatting recursively across result domain models
+    [x] 'adapters/terminal/gate_inspector.py': Implement recursive string-returning console formatting on result classes
+        - Add `to_console()` methods to `ImportReports`, `TestSuiteResult`, `MethodResult`, and `AtomicTestResult` that return formatted string blocks up the hierarchy
+        - Keep printing and global tally aggregation inside `GateInspector.write_console_report()`
+    [x] Moved all result types to results.py file

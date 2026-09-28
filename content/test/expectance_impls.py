@@ -8,11 +8,10 @@ from typing import Callable, Optional, Self
 from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
 from assert_classes import ActionsFactory, Execution, Sandbox, TestContainer
 from core import PathTokens
-from reporter import ExpectanceResult, SandboxOperationsResult, AtomicTestResult
+from results import ExpectanceResult, SandboxOperationsResult, AtomicTestResult, ContainerResult
 import json
 import subprocess
 import sys
-from reporter import ContainerResult
 
 class ExpectanceCheck:
     def evaluate(self, frames: list[ExecutionFrame]) -> ExpectanceResult:

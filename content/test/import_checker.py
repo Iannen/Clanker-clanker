@@ -3,7 +3,7 @@ import ast
 import builtins
 from dataclasses import dataclass, field
 from pathlib import Path
-from reporter import ImportReports, FileReport
+from results import ImportReports, FileReport
 
 module_list = [
     "stdlib",
