@@ -13,10 +13,10 @@ class GateInspector:
     reports_dir: Path
 
     def evaluate_and_report(self) -> bool:
-        self.write_file_reports()
+        self._write_file_reports()
         return self.write_console_report()
 
-    def write_file_reports(self) -> None:
+    def _write_file_reports(self) -> None:
         self.reports_dir.mkdir(parents=True, exist_ok=True)
 
         import_data = [

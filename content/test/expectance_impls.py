@@ -346,11 +346,9 @@ class SandboxImpl(Sandbox):
             ops.append((op_type, desc, passed))
         return SandboxOperationsResult(ops, get_disk_state(sandbox_dir))
 
-
 class ActionsFactoryImpl(ActionsFactory):
     def create_test(self, sequence: list[str], name: str = "") -> TestContainer:
         return TestContainerImpl(sequence, name)
-
 
 def remove_token(raw_path: str | list[str]) -> str | list[str]:
     if isinstance(raw_path, str):

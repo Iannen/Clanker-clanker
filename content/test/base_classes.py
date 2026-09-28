@@ -1,13 +1,8 @@
 #!/usr/bin/env -S python3 -B
-from reporter import TestSuiteResult, MethodResult, AtomicTestResult, ContainerResult
-import json
+from reporter import TestSuiteResult, MethodResult
 from pathlib import Path
-import subprocess
-import sys
 from typing import Any
 from expectance_impls import ActionsFactoryImpl
-from adapters.terminal.scripted_terminal_adapter import ExecutionFrame, ScriptedTerminalAdapter
-
 
 class BaseFixtureTest:
     def __init__(self, suite_target: Any, sandbox_dir: Path, clanker_path: Path) -> None:

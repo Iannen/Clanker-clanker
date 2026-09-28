@@ -72,6 +72,7 @@ II. The pile
 
 Backlog tail, Selected item/items:
 
+I think that it should not be the job 'ExpectationBuilder' to deal with exit 1 cases, but that should be the job of the containerclass
 
 
 Backlog tail end
