@@ -46,39 +46,25 @@ II. The pile
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 
 
-1. Rearrange pathconstants
-[ ] 'content/core/core/constants.py'
-    [x] class PathTokens
-        - remove 'contents'
-    [x] class ClankerAssets
-        - layouts
-        - templates
-        - system and shared config
-    [x] class PudAssets    
-        - pud config
-        - prog docs
-        - readme
-        - contents dir
-    [x] class RepoContract
-        - maps clankerassets to pud assets
-        - also contains 'contents' -> the pud must have a contents dir
-        - so IngestionService can iterate over them when initializing workspace
-[x] 'content/modules/asset_ingestion/ingestion_service.py'
-    - align usages
-[x] 'content/modules/asset_ingestion/assemblers/rtc.py'
-    - align usages
-[x] 'content/modules/render_pipeline/render_service.py'
-    - align usages
 
-1. Refactor gate inspector data models for complete serialization, slotted performance, and TestStatus domain enum (parked)
-    [ ] 'adapters/terminal/gate_inspector.py': Implement system-wide TestStatus enum and update result reporting
-        - Define a `TestStatus` enum with severe ordering (`PASSED` < `FAILED` < `CRASHED`) and icon mapping
-        - Replace boolean `passed` and `crashed` fields with explicit `status: TestStatus` on leaf models (`ExpectanceResult`, `SandboxOperationsResult`, `AtomicTestResult`)
-        - Implement `status` as a purely computed `@property` on parent containers (`ContainerResult`, `MethodResult`, `TestSuiteResult`) that dynamically returns the highest-severity status of its children
-        - Refactor `GateInspector` console reporting and tallies to count and display icons directly from `TestStatus`
+
+1. Implement a base class for result type classes to absorb common behavior, reduce boilerplate, and standardize result objects
+    [ ] 'domain/results.py': Extract common visitor acceptance behavior into a base class
+        - Standardize the double-dispatch visitor signature across all result models
+        - Subclasses currently duplicate identical visitor delegation methods
+        - Handle `slots=True` inheritance constraints or slot removal across dataclasses
+    [ ] 'domain/results.py': Introduce a standard outcome enum and base class outcome field
+        - Replace binary boolean flags (`passed`, `is_clean`) with a unified three-state enum (`PASS`, `FAIL`, `CRASH`)
+        - Support an optional/nullable outcome field on the base class to allow explicit instantiation overrides
+        - Handle initial leaf outcome mappings where status originates directly from raw execution data or flags
+    [ ] 'domain/results.py': Implement automatic outcome resolution in base class post-init
+        - Inspect child fields dynamically (single result nodes or collections) during post-init when no explicit outcome is provided
+        - Implement precedence hierarchy rollup (`CRASH` > `FAIL` > `PASS`) across nested result structures
+        - Ensure compatibility with dataclass post-init hooks and field order across composite subclasses
+
+
 Backlog tail, Selected item/items:
 
-Backlog tail end
 
 1. Establish 4-entity Test container and namespace-based fluent builders
     [x] 'content/test/assert_classes.py': Update factory interface and test suite class declarations
@@ -101,6 +87,7 @@ Backlog tail end
         - Update CorruptRepoTests setup/cleanup routines to use .preop.create_file/create_dirs and .postop.rm
         - use '\' to chain calls
 
+
 2. Expose TestContainer ABC and align implementations in assert_classes and expectance_impls
     [x] 'content/test/assert_classes.py': Declare TestContainer ABC and update ActionsFactory signature
         - Add TestContainer(ABC) declaring sequence, name, and abstract preop, expect, postop properties
@@ -111,6 +98,8 @@ Backlog tail end
         - Update ActionsFactoryImpl.create_test to return initialized TestContainerImpl instance
     [x] 'content/test/base_classes.py': Update type annotations
         - Align type annotations to reference TestContainer interface where applicable
+
+Backlog tail end
 
 3. Introduce ContainerResult and refactor MethodResult data structure
     [x] 'content/test/reporter.py': Add ContainerResult dataclass and update MethodResult to use container_results
@@ -166,3 +155,29 @@ Backlog tail end
             - instantiates ImportPolicySuite to produce a 'ImportReports'
             - aggregate 'TestSuiteResult' in list for each ABC implementor in assert_classes
         - returns to caller tuple[ImportReports, list[TestSuiteResult]]
+
+9. Separate data models from presentation and serialization using the Visitor Pattern
+
+   Separate the shit from the cinnamon: data model classes previously mixed state representation with console formatting (`to_console`) and JSON serialization (`to_dict`). Refactored the result hierarchy to accept visitors so presentation and serialization live in dedicated, decoupled components.
+
+   [x] 'content/test/results.py': Add Visitor dispatch methods to result model classes
+       - Removed `to_dict` and `to_console` methods from domain models (`RunResult`, `AssertSuiteResult`, `MethodResult`, `ContainerResult`, `AtomicTestResult`, `FileAnalysisResults`, `FileReport`, `ExpectanceResult`, `SandboxOperationsResult`)
+       - Implemented `accept(self, visitor)` on each result node to support double-dispatch traversal across the result tree
+
+   [x] 'content/test/console_visitor.py': Implement ConsoleReportVisitor for terminal presentation
+       - Created `ConsoleReportVisitor` to walk the result tree and accumulate formatted string output for terminal display
+       - Replicated per-suite summaries, total/passed/failed/crashed test counts, import check results, and status icons
+       - Formatted `RunResult` header by stripping `Run<` and `>` wrappers for clean execution labels (e.g., `Test results - YYYY.MM.DD.HH.MM`)
+
+   [x] 'content/test/json_visitor.py': Implement JsonSerializerVisitor for dict and report serialization
+       - Created `JsonSerializerVisitor` to recursively transform the result node tree into serializable dictionaries
+       - Preserved exact field mappings and dictionary key structures required for downstream report file storage
+
+   [x] 'content/test/html_visitor.py': Implement HtmlReportVisitor for interactive dashboard generation
+       - Created `HtmlReportVisitor` to generate a self-contained, interactive single-file HTML report with embedded CSS styling and light JS interactivity
+       - Added header stat boxes (Total, Passed, Failed, Crashed, Import Errors), quick filter toggles ("All Results" / "Failures & Crashes Only"), and collapsible suite and test sections
+       - Built detail views for test expectances, execution frames (shell commands + exit codes), pre-/post-sandbox operations, and crash stack messages
+
+   [x] 'content/test/orchestrators.py': Update GateInspector to delegate to visitors
+       - Updated `GateInspector._write_report_file` to generate and persist both JSON (`.json`) and interactive HTML (`.html`) reports via `run_result.accept()`
+       - Updated `GateInspector.write_console_report` to utilize `ConsoleReportVisitor` via `run_result.accept()` for terminal output

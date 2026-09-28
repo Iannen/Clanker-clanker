@@ -18,7 +18,9 @@ from base_classes import AssertSuite
 from expectance_impls import ActionsFactoryImpl
 from import_checker import FileAnalysisSuite
 from results import FileAnalysisResults, MethodResult, AssertSuiteResult, RunResult
-
+from visitors.dict_visitor import JsonSerializerVisitor
+from visitors.console_visitor import ConsoleReportVisitor
+from visitors.html_visitor import HtmlReportVisitor
 class TestSuitesRunner:
     def __init__(
         self,
@@ -81,10 +83,15 @@ class GateInspector:
         return self.run_result.passed
 
     def _write_report_file(self) -> None:
-        # Save unified report under the run's timestamped name (e.g., Run<2026.09.28.18.15>.json)
         report_file = self.reports_dir / f"{self.run_result.name}.json"
+        serialized_data = self.run_result.accept(JsonSerializerVisitor())
         with open(report_file, "w", encoding="utf-8") as f:
-            json.dump(self.run_result.to_dict(), f, indent=2)
+            json.dump(serialized_data, f, indent=2)
+
+        html_report_file = self.reports_dir / f"{self.run_result.name}.html"
+        html_content = self.run_result.accept(HtmlReportVisitor())
+        with open(html_report_file, "w", encoding="utf-8") as f:
+            f.write(html_content)
 
     def write_console_report(self) -> None:
-        print(self.run_result.to_console())
+        print(self.run_result.accept(ConsoleReportVisitor()))
