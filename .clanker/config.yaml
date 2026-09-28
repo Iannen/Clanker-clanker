@@ -28,7 +28,8 @@ filesets:
       content/test/save.py,
       content/test/import_checker.py,
       content/test/reporter.py,
-      content/test/ship_gate.py
+      content/test/ship_gate.py,
+      content/test/results.py,
     ]}
 
   path_fix: {includes: [

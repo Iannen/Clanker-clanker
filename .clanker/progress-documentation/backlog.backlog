@@ -70,17 +70,28 @@ II. The pile
 [x] 'content/modules/render_pipeline/render_service.py'
     - align usages
 
-Backlog tail, Selected item/items:
-
-1. Refactor gate inspector data models for complete serialization, slotted performance, and TestStatus domain enum
+1. Refactor gate inspector data models for complete serialization, slotted performance, and TestStatus domain enum (parked)
     [ ] 'adapters/terminal/gate_inspector.py': Implement system-wide TestStatus enum and update result reporting
         - Define a `TestStatus` enum with severe ordering (`PASSED` < `FAILED` < `CRASHED`) and icon mapping
         - Replace boolean `passed` and `crashed` fields with explicit `status: TestStatus` on leaf models (`ExpectanceResult`, `SandboxOperationsResult`, `AtomicTestResult`)
         - Implement `status` as a purely computed `@property` on parent containers (`ContainerResult`, `MethodResult`, `TestSuiteResult`) that dynamically returns the highest-severity status of its children
         - Refactor `GateInspector` console reporting and tallies to count and display icons directly from `TestStatus`
+Backlog tail, Selected item/items:
 
-
-
+2. Refactor test discovery into TestSuiteRunner and produce per-file TestSuiteResults
+    [ ] 'adapters/terminal/ship_gate.py': Simplify gate orchestration
+        - Delegate test discovery and execution to TestSuiteRunner
+        - pass result directly to GateInspector instance
+        - Exit with process code 0 or 1 based on overall GateInspector evaluation
+    [ ] 'content/test/base_classes.py': Rename BaseFixtureTest to TestSuiteRunner with path injection and automated discovery
+        - Rename `BaseFixtureTest` to `TestSuiteRunner`
+        - Accept `fixtures_dir`, `sandboxes_dir`, and `clanker_path` via `__init__` 
+        - imports 'from import_checker import ImportPolicySuite' 
+        - imports assert class module via 'import assert_classes' 
+        - on call to 'run_tests'
+            - instantiates ImportPolicySuite to produce a 'ImportReports'
+            - aggregate 'TestSuiteResult' in list for each ABC implementor in assert_classes
+        - returns to caller tuple[ImportReports, list[TestSuiteResult]]
 
 Backlog tail end
 

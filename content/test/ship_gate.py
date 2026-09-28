@@ -26,9 +26,9 @@ def main() -> None:
         paths["sandboxes_dir"],
         paths["clanker_path"]
     )
-    import_reports = run_import_policy_suite(paths["content_dir"])
-    success = evaluate_and_report_results(import_reports, test_results, paths["reports_dir"])
-    
+
+    import_reports = ImportPolicySuite(paths["content_dir"]).run_tests()
+    success = GateInspector(import_reports, test_results, paths["reports_dir"]).evaluate_and_report()   
     status = "✅ SUCCESS" if success else "❌ FAILED"
     print(f"Result: {status}")
     sys.exit(0 if success else 1)
@@ -78,7 +78,7 @@ def prepare_and_run_test_suites(fixtures_dir: Path, sandboxes_dir: Path, clanker
         for _, cls in inspect.getmembers(assert_classes, inspect.isclass)
         if cls.__module__ == "assert_classes" and not issubclass(cls, ABC)
     ]
-    
+
     if not discovered_classes:
         sys.stderr.write("Error: No test classes found in assert_classes.py\n")
         sys.exit(1)
@@ -96,17 +96,6 @@ def prepare_and_run_test_suites(fixtures_dir: Path, sandboxes_dir: Path, clanker
         results.append(suite_result)
 
     return results
-
-
-def run_import_policy_suite(content_dir: Path) -> ImportReports:
-    suite = ImportPolicySuite(content_dir)
-    return suite.run_tests()
-
-
-def evaluate_and_report_results(import_reports: ImportReports, test_results: list[TestSuiteResult], reports_dir: Path) -> bool:
-    inspector = GateInspector(import_reports, test_results, reports_dir)
-    return inspector.evaluate_and_report()
-
 
 if __name__ == "__main__":
     main()
