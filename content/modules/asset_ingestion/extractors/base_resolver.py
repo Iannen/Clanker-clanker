@@ -5,12 +5,14 @@ from ...asset_ingestion import ErrorCollector, ValueExtractor, ResolverParser, C
 @dataclass(slots=True, eq=False)
 class BaseResolverExtractor:
     collector: ErrorCollector
-    fileset_map: FilesetMap
+    fileset_map: FilesetMap # TODO: discard - md resolver dont care about fileset
     filelist_map: FilelistMap
     extractor: ValueExtractor = field(default_factory=ValueExtractor)
 
     def extract(self, cfg: Config) -> list[Resolver]:
         with self.collector.path("base_resolvers"):
+            #TODO: make this req 1 or 0 resolvers dict from 'base_resolver'. it must be md
+            # perhaps make it deal with more, saying overflow discarded
             raw_resolvers = self.extractor.req_list(cfg.data, ["base_resolvers"])
             extracted: list[MultiDocResolver] = []
 

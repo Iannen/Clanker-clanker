@@ -1,18 +1,12 @@
 from stdlib import dataclass, StrEnum, field
 from core import (
     CorruptClanker,
-    WorkspaceAlreadyInitialized,
     ClankerAssets,
     PudAssets,
     PathTokens,
     RepoContract,
-    DoBootstrap,
-    TerminateGracefully,
-    OfferBootstrapWithComplaints,
-    OfferClankerize,
-    OfferClankerizeWithComplaints,
 )
-from core.engine_deps import IngestionService, NoSuchFile, AssetExists, DiskPort, ConfigParseError, ConfigParserPort
+from core.engine_deps import IngestionService, NoSuchFile, AssetExists, DiskPort, ConfigParseError, ConfigParserPort, StartResult, ClankerizeResult, TerminateResult
 
 from . import (
     ErrorCollector,
@@ -145,8 +139,12 @@ class IngestionServiceImpl(IngestionService):
                 unified_flm = clank_ctx.filelist.merge(pud_ctx.filelist)
                 pud_doms = DomainExtractor(merged_collector, unified_fsm, unified_flm).extract(pud_ctx.pud_cfg)
 
+                # TODO: try to extract a single resolver from both pud and shared.
+                # if any of them supply more than one, softcomplain and pick one. 
+                # then here, pick pud over shared and use that
                 for dom in pud_doms+clank_ctx.doms:
                     dom.resolvers = dom.resolvers + clank_ctx.base_res
+                # TODO the buttons should be dealt with by the clankerctx at this point
                 button_map = RtcAssembler().assemble(
                     sys_cfg=clank_ctx.sys_cfg,
                     shared_doms=clank_ctx.doms,
@@ -164,30 +162,19 @@ class IngestionServiceImpl(IngestionService):
                 .validate(pud_ctx.pud_cfg, pud_doms, pud_ctx.collector)
                 .validate(clank_ctx.shared_cfg, clank_ctx.doms, clank_ctx.collector))
                 """
-                has_soft = bool(merged_collector.get_complaints())
-                action_res = OfferBootstrapWithComplaints() if has_soft else DoBootstrap()
-                return action_res, merged_collector, button_map, clank_ctx.ui_render, clank_ctx.base_res
+                return StartResult(merged_collector, button_map, clank_ctx.ui_render, clank_ctx.base_res)
 
             case (BootAction.START, BootAction.CLANKERIZE, False):
-                has_soft = bool(merged_collector.get_complaints())
-                action_res = OfferClankerizeWithComplaints() if has_soft else OfferClankerize()
-                return action_res, merged_collector, None, None, None
-
+                return ClankerizeResult(merged_collector)
             case (_, _, True):
-                return TerminateGracefully(), merged_collector, None, None, None
+                return TerminateResult(merged_collector)
     
-    def initialize_workspace(self) -> None:
+    def initialize_workspace(self):
         if self.files.is_cwd_script_dir():
             raise CorruptClanker("Clanker repository initialized is beyond scope of app.")
-
-        try:
-            for path in RepoContract.get_all_target_paths():
-                self.files.assert_absent(path)
-        except AssetExists as ex:
-            raise WorkspaceAlreadyInitialized from ex
-
         for dir_path in RepoContract.DIRS_TO_CREATE:
             self.files.create_dir(dir_path)
 
         for from_path, to_path in RepoContract.MAPPINGS:
             self.files.copy_file(from_path=from_path, to_path=to_path)
+        return self.get_runtime_config()

@@ -19,6 +19,7 @@ class DomainExtractor:
 
     def extract(self, cfg: Config) -> list[Domain]:
         domains = []
+        #TODO create domainparser
         for d in self.extractor.req_list(cfg.data, ["domains"]):
             name = self.extractor.req_str(d, ["name"])
             with self.collector.path(name):
@@ -36,6 +37,7 @@ class DomainExtractor:
         return domains
 
     def _build_prompts(self, dicts: list[dict[str, Any]]) -> list[Prompt]:
+        #TODO: create promptparser
         prompts = []
         for d in dicts:
             name = self.extractor.req_str(d, ["name"])

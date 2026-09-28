@@ -1,87 +1,56 @@
 #!/usr/bin/env -S python3 -B
+from stdlib import dataclass
 from core import (
     ActionResult,
     UserQuestions,
     UserDecline,
     ProgramExit,
     HotPromptRequested,
-    DoBootstrap,
-    OfferBootstrapWithComplaints,
-    OfferClankerize,
-    OfferClankerizeWithComplaints,
-    TerminateGracefully
 )
-from core.engine_deps import IngestionService, KBService, RenderService, TUIService
+from core.engine_deps import IngestionService, KBService, RenderService, TUIService, StartResult, ClankerizeResult, TerminateResult
 
+@dataclass(slots=True)
 class AppEngine:
-    def __init__(
-        self, 
-        io: TUIService, 
-        session: IngestionService, 
-        renderer: RenderService,
-        kb_service: KBService
-    ) -> None:
-        self.io = io
-        self.session = session
-        self.renderer = renderer
-        self.kb_service = kb_service
+    io: TUIService
+    session: IngestionService
+    renderer: RenderService
+    kb_service: KBService
 
-    def run(self) -> str:
-        action_res, report, btn_map, ui_render, base_resolvers = self.session.get_runtime_config()
+    def run(self) -> str:       
+        """
+        Have to deal with report.
+        I think I send it to io, and receive in return 
 
-        match action_res:
-            case DoBootstrap():
-                self.renderer.set_ui_render(ui_render)
-                self.kb_service.setup(btn_map, base_resolvers)
-                action_res = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)
-
-            case OfferBootstrapWithComplaints():
-                try:
-                    self.io.get_confirmation(
-                        UserQuestions.complaints_proceed(report.get_complaints()),
-                        UserQuestions.REQUIRED_PHRASE,
-                    )
-                except UserDecline:
-                    return ActionResult.MSG_DECLINED_BOOTSTRAP
-                self.renderer.set_ui_render(ui_render)
-                self.kb_service.setup(btn_map, base_resolvers)
-                action_res = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)
-
-            case OfferClankerize():
+        Also I think actionresult becomes a dto baseclass, for when services get back to engine about something. 
+        """
+        res = self.session.get_runtime_config()
+        match res:
+            case StartResult(): 
+                #send report to io.confirmboot(), get actionresult to match on for run scope storage or str extraction if user declines.
+                #it doesnt bother user if report is all clear, only translates into proper actionresult
+                pass 
+            case ClankerizeResult():
+                # pass report to io.confirmclankerize, who asks user if he wants to clankerize if complaints
+                # returns an actionresult for each of (yes/nocomplaint) or no
                 try:
                     self.io.get_confirmation(
                         UserQuestions.INIT_REPO, UserQuestions.REQUIRED_PHRASE
                     )
-                    self.session.initialize_workspace()
-                    action_res, report, btn_map, ui_render, base_resolvers = self.session.get_runtime_config()
-                    self.renderer.set_ui_render(ui_render)
-                    self.kb_service.setup(btn_map, base_resolvers)
-                    action_res = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)
                 except UserDecline:
                     return ActionResult.MSG_DECLINED_INIT
-
-            case OfferClankerizeWithComplaints():
-                try:
-                    self.io.get_confirmation(
-                        UserQuestions.complaints_proceed(report.get_complaints()),
-                        UserQuestions.REQUIRED_PHRASE,
-                    )
-                    self.session.initialize_workspace()
-                    action_res, report, btn_map, ui_render, base_resolvers = self.session.get_runtime_config()
-                    self.renderer.set_ui_render(ui_render)
-                    self.kb_service.setup(btn_map, base_resolvers)
-                    action_res = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)
-                except UserDecline:
-                    return ActionResult.MSG_DECLINED_INIT
-
-            case TerminateGracefully():
-                all_crits = report.get_critical_complaints()
-                all_softs = report.get_complaints()
+                res = self.session.initialize_workspace()
+            case TerminateResult():
+                # so it becomes a 'tell the user this shit' method on io, returning only a single actionresult
+                all_crits = res.report.get_critical_complaints()
+                all_softs = res.report.get_complaints()
                 msg = "Critical errors:\n" + "\n".join(all_crits)
                 if all_softs:
                     msg += "\nSoft complaints:\n" + "\n".join(all_softs)
+                return msg                
 
-                return msg
+        self.renderer.set_ui_render(res.ui_render)
+        self.kb_service.setup(res.btn_map, res.base_resolvers)
+        action_res = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)            
 
         try:
             while True:
