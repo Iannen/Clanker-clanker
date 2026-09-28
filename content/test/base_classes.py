@@ -5,7 +5,7 @@ from pathlib import Path
 import subprocess
 import sys
 from typing import Any
-from expectance_impls import ActionsFactoryImpl, ExecutionImpl, SandboxImpl
+from expectance_impls import ActionsFactoryImpl
 from adapters.terminal.scripted_terminal_adapter import ExecutionFrame, ScriptedTerminalAdapter
 
 
@@ -17,26 +17,32 @@ class BaseFixtureTest:
         self.TEMPLATE_FIXTURE_NAME: str = getattr(self.suite_target, "TEMPLATE_FIXTURE_NAME", "")
 
     def run_tests(self) -> TestSuiteResult:
-        method_results = []       
+        method_results = []        
         assert_methods = [
             (name, getattr(self.suite_target, name))
             for name, attr in self.suite_target.__class__.__dict__.items()
             if not name.startswith("_") and callable(getattr(self.suite_target, name))
         ]
-        for method_name, method in assert_methods:
-            actions = method(ActionsFactoryImpl())
-            if not isinstance(actions, list): actions = [actions]
+        for method_name, method in assert_methods: #TODO: clean
+            tests = method(ActionsFactoryImpl())
+            if not isinstance(tests, list): tests = [tests]
 
             action_results = []
             idx = 1
-            for action in actions:
-                if isinstance(action, SandboxImpl):
-                    action_results.append(action.execute(self.sandbox_dir))
-                elif isinstance(action, ExecutionImpl):
-                    framedump_path = self.sandbox_dir / "framedumps" / f"{method_name}_{idx}.framedump"
-                    frames = self._run_put(action.sequence, framedump_path)
-                    action_results.append(action.to_result(frames, test_number=idx))
-                    idx += 1
+            for test in tests:
+                preop_res = test.preop.execute(self.sandbox_dir)
+                if preop_res.operations:
+                    action_results.append(preop_res)
+
+                framedump_path = self.sandbox_dir / "framedumps" / f"{method_name}_{idx}.framedump"
+                frames = self._run_put(test.sequence, framedump_path)
+                action_results.append(test.expect.evaluate(frames, name=test.name, test_number=idx))
+
+                postop_res = test.postop.execute(self.sandbox_dir)
+                if postop_res.operations:
+                    action_results.append(postop_res)
+
+                idx += 1
             method_results.append(MethodResult(method_name, action_results))
 
         return TestSuiteResult(self.suite_target.__class__.__name__, "", method_results)

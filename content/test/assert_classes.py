@@ -39,55 +39,55 @@ class Execution(ABC):
     def expect_prompt_min_lines(self, count: int) -> Self: ...
 
 class ActionsFactory(ABC):
-    @property
     @abstractmethod
-    def sandbox(self) -> Sandbox: ...
-
-    @abstractmethod
-    def run_app(self, sequence: list[str]) -> Execution: ...
+    def create_test(self, sequence: list[str], name: str = "") -> "TestContainer": ...
 
 
 class EmptyRepoTests:
     TEMPLATE_FIXTURE_NAME = "empty_repo"
 
-    def assert_end_of_sequence_terminates_properly(self, actions: ActionsFactory) -> Execution:
-        return actions.run_app([]).expect_exit_msg(TestSequenceEnded.__name__)
-
-    def assert_abort_keys_decline_init(self, actions: ActionsFactory) -> list[Execution]:
+    def assert_end_of_sequence_terminates_properly(self, actions: ActionsFactory) -> list["TestContainer"]:
         return [
-            actions.run_app([key]).expect_exit_msg(ActionResult.MSG_DECLINED_INIT)
+            actions.create_test([]) \
+                .expect.expect_exit_msg(TestSequenceEnded.__name__)
+        ]
+
+    def assert_abort_keys_decline_init(self, actions: ActionsFactory) -> list["TestContainer"]:
+        return [
+            actions.create_test([key]) \
+                .expect.expect_exit_msg(ActionResult.MSG_DECLINED_INIT)
             for key in IOControl.ABORT_KEYS
         ]
 
-    def assert_clankerize_repo_contract(self, actions: ActionsFactory) -> list[Execution]:
+    def assert_clankerize_repo_contract(self, actions: ActionsFactory) -> list["TestContainer"]:
         return [
-            actions.run_app(["yes", IOControl.ACCEPT_KEY])
-                .expect_ui_contains(ActionResult.BOOTSTRAP_SUCCESS)
-                .expect_disk_has(RepoContract.get_all_target_paths()),
+            actions.create_test(["yes", IOControl.ACCEPT_KEY]) \
+                .expect.expect_ui_contains(ActionResult.BOOTSTRAP_SUCCESS) \
+                .expect.expect_disk_has(RepoContract.get_all_target_paths()),
         ]
 
-    def navigate_ui_and_copy_prompts(self, actions: ActionsFactory) -> list[Execution]:
+    def navigate_ui_and_copy_prompts(self, actions: ActionsFactory) -> list["TestContainer"]:
         ats = []
         prefix = ["1"]
         ats.append(
-            actions.run_app(list(prefix))
-                .expect_ui_contains("Domain 'manifest-analysis' on key '1' selected")
+            actions.create_test(list(prefix)) \
+                .expect.expect_ui_contains("Domain 'manifest-analysis' on key '1' selected")
         )
         for c in "as":
             prefix.append(c)
             ats.append(
-                actions.run_app(list(prefix))
-                    .expect_ui_contains(ActionResult.COPIED_TO_CLIPBOARD)
-                    .where("lines", lambda l: int(l) > 100)
-                    .where("chars", lambda c: int(c) > 3000)
-                    .expect_prompt_min_lines(50)
+                actions.create_test(list(prefix)) \
+                    .expect.expect_ui_contains(ActionResult.COPIED_TO_CLIPBOARD) \
+                    .expect.where("lines", lambda l: int(l) > 100) \
+                    .expect.where("chars", lambda c: int(c) > 3000) \
+                    .expect.expect_prompt_min_lines(50)
             )
         for c in "df":
             prefix.append(c)
             ats.append(
-                actions.run_app(list(prefix))
-                    .expect_ui_contains(ActionResult.UNBOUND_KEY)
-                    .where("key", lambda k, target=c: str(k) == target)
+                actions.create_test(list(prefix)) \
+                    .expect.expect_ui_contains(ActionResult.UNBOUND_KEY) \
+                    .expect.where("key", lambda k, target=c: str(k) == target)
             )
         return ats
 
@@ -95,30 +95,30 @@ class EmptyRepoTests:
 class CorruptRepoTests:
     TEMPLATE_FIXTURE_NAME = "empty_repo"
 
-    def assert_clankerize_fail(self, actions: ActionsFactory) -> list[Union[Execution, Sandbox]]:
+    def assert_clankerize_fail(self, actions: ActionsFactory) -> list["TestContainer"]:
         all_targets = list(RepoContract.get_all_target_paths())
         dir_targets = list(RepoContract.DIRS_TO_CREATE)
         file_targets = [dst for _, dst in RepoContract.MAPPINGS]
 
         items = [
-            actions.run_app(["yes", IOControl.ACCEPT_KEY])
-                .expect_ui_contains(ActionResult.BOOTSTRAP_SUCCESS),
-            actions.sandbox.rm(*all_targets),
+            actions.create_test(["yes", IOControl.ACCEPT_KEY]) \
+                .expect.expect_ui_contains(ActionResult.BOOTSTRAP_SUCCESS) \
+                .postop.rm(*all_targets)
         ]
 
         for dir_path in dir_targets:
-            items.extend([
-                actions.sandbox.create_dirs(dir_path),
-                actions.run_app(["yes", IOControl.ACCEPT_KEY])
-                    .expect_exit_msg(WorkspaceAlreadyInitialized.__name__),
-                actions.sandbox.rm(dir_path),
-            ])
+            items.append(
+                actions.create_test(["yes", IOControl.ACCEPT_KEY]) \
+                    .preop.create_dirs(dir_path) \
+                    .expect.expect_exit_msg(WorkspaceAlreadyInitialized.__name__) \
+                    .postop.rm(dir_path)
+            )
 
         for file_path in file_targets:
-            items.extend([
-                actions.sandbox.create_file(file_path, content="blocking content"),
-                actions.run_app(["yes", IOControl.ACCEPT_KEY])
-                    .expect_exit_msg(WorkspaceAlreadyInitialized.__name__),
-                actions.sandbox.rm(file_path),
-            ])
+            items.append(
+                actions.create_test(["yes", IOControl.ACCEPT_KEY]) \
+                    .preop.create_file(file_path, content="blocking content") \
+                    .expect.expect_exit_msg(WorkspaceAlreadyInitialized.__name__) \
+                    .postop.rm(file_path)
+            )
         return items

@@ -74,27 +74,36 @@ Backlog tail, Selected item/items:
 
 lets work on this. we have a current set of impls - what can we reuse? do we just alter existing, or add one more?
 
+2. Expose TestContainer ABC and align implementations in assert_classes and expectance_impls
+    [ ] 'content/test/assert_classes.py': Declare TestContainer ABC and update ActionsFactory signature
+        - Add TestContainer(ABC) declaring sequence, name, and abstract preop, expect, postop properties
+        - Ensure preop and postop return Sandbox, expect returns Execution
+    [ ] 'content/test/expectance_impls.py': Rename concrete container and inherit from TestContainer ABC
+        - Import TestContainer from assert_classes
+        - Rename TestContainer class to TestContainerImpl inheriting from TestContainer(ABC)
+        - Update ActionsFactoryImpl.create_test to return initialized TestContainerImpl instance
+    [ ] 'content/test/base_classes.py': Update type annotations
+        - Align type annotations to reference TestContainer interface where applicable
+
+Backlog tail end
+
 1. Establish 4-entity Test container and namespace-based fluent builders
-    [ ] 'content/test/assert_classes.py': Update factory interface and test suite class declarations
+    [x] 'content/test/assert_classes.py': Update factory interface and test suite class declarations
         - Remove standalone sandbox and run_app methods from ActionsFactory interface
         - Add create_test(sequence, name) entry point to ActionsFactory
         - Update test suite return signatures to return list[TestContainer]
-    [ ] 'content/test/expectance_impls.py': Implement Test container and sub-builders with parent references
+    [x] 'content/test/expectance_impls.py': Implement Test container and sub-builders with parent references
         - Add 'from __future__ import annotations' at module top for clean type hints
         - Implement Test container class holding sequence, name, preop, expect, and postop members
-        - Implement PreOpSandbox and PostOpSandbox builders where all mutation methods return self._parent
+        - Implement SandboxImpl taking optional parent reference where mutation methods return parent if set
         - Implement ExpectationBuilder where all assertion methods return self._parent
         - Implement ActionsFactoryImpl to return initialized Test instances
-    [ ] 'content/test/base_classes.py': Simplify runner loop to uniform 3-stage lifecycle
+    [x] 'content/test/base_classes.py': Simplify runner loop to uniform 3-stage lifecycle
         - Remove top-level isinstance checks for standalone SandboxImpl instances
         - Execute preop sandbox actions before app execution
         - Execute postop sandbox actions after app execution
         - Evaluate expect checks on execution frames and record test results
-
-2. Refactor existing test suites to the namespace chaining syntax
-    [ ] 'content/test/assert_classes.py': Migrate test assertions in EmptyRepoTests and CorruptRepoTests
+    [x] 'content/test/assert_classes.py': Migrate test assertions in EmptyRepoTests and CorruptRepoTests
         - Update EmptyRepoTests to use factory.create_test(...).expect...
         - Update CorruptRepoTests setup/cleanup routines to use .preop.create_file/create_dirs and .postop.rm
-        - Ensure parent-returning chaining syntax is used without backslashes or mode toggles
-
-Backlog tail end
+        - use '\' to chain calls

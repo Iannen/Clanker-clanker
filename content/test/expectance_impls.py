@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 import re
 import shutil
@@ -12,7 +14,6 @@ from reporter import ExpectanceResult, SandboxOperationsResult, AtomicTestResult
 class ExpectanceCheck:
     def evaluate(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
         raise NotImplementedError
-
 
 class ExitMsgCheck(ExpectanceCheck):
     def __init__(self, expected_msg: str) -> None:
@@ -139,29 +140,103 @@ class PromptRenderCheck(ExpectanceCheck):
         details = "\n".join(failures) if not passed else ""
         return ExpectanceResult(assertion=assertion, passed=passed, details=details)
 
+class ExpectationBuilder(Execution):
+    def __init__(self, parent: TestContainer) -> None:
+        self._parent = parent
+        self._checks: list[ExpectanceCheck] = []
+
+    def expect_exit_msg(self, expected_msg: str) -> TestContainer:
+        self._checks.append(ExitMsgCheck(expected_msg))
+        return self._parent
+
+    def expect_disk_has(self, expected_paths: list[str] | set[str]) -> TestContainer:
+        self._checks.append(DiskStateCheck(expected_paths))
+        return self._parent
+
+    def expect_ui_contains(self, template: str) -> TestContainer:
+        check = UIRenderCheck(template)
+        self._checks.append(check)
+        return self._parent
+
+    def where(self, field: str, predicate: Callable[[str], bool]) -> TestContainer:
+        if self._checks and isinstance(self._checks[-1], UIRenderCheck):
+            self._checks[-1].where(field, predicate)
+        return self._parent
+
+    def expect_prompt_contains(self, expected_prompt: str) -> TestContainer:
+        if self._checks and isinstance(self._checks[-1], PromptRenderCheck):
+            check = self._checks[-1]
+        else:
+            check = PromptRenderCheck()
+            self._checks.append(check)
+        check.contains(expected_prompt)
+        return self._parent
+
+    def expect_prompt_min_lines(self, count: int) -> TestContainer:
+        if self._checks and isinstance(self._checks[-1], PromptRenderCheck):
+            check = self._checks[-1]
+        else:
+            check = PromptRenderCheck()
+            self._checks.append(check)
+        check.min_lines(count)
+        return self._parent
+
+    def evaluate(self, frames: list[ExecutionFrame], name: str, test_number: int) -> AtomicTestResult:
+        if frames and frames[-1].exit_code == 1:
+            crash_msg = f"Unexpected crash (exit code 1):\n{frames[-1].stderr or ''}"
+            return AtomicTestResult(
+                test_number=test_number,
+                name=name,
+                expectance_results=[],
+                frames=frames,
+                crashed=True,
+                crash_message=crash_msg,
+            )
+
+        expectance_results = [
+            check.evaluate(frames) for check in self._checks
+        ]
+        return AtomicTestResult(
+            test_number=test_number,
+            name=name,
+            expectance_results=expectance_results,
+            frames=frames,
+            crashed=False,
+            crash_message=None,
+        )
+
+class TestContainer:
+    def __init__(self, sequence: list[str], name: str = "") -> None:
+        self.sequence = sequence
+        self.name = name
+        self.preop = SandboxImpl(parent=self)
+        self.expect = ExpectationBuilder(self)
+        self.postop = SandboxImpl(parent=self)
+
 
 class SandboxImpl(Sandbox):
-    def __init__(self) -> None:
+    def __init__(self, parent: TestContainer | None = None) -> None:
+        self._parent = parent
         self._actions: list[tuple[str, str, Callable[[Path], None]]] = []
 
-    def create_dirs(self, *paths: str) -> Self:
+    def create_dirs(self, *paths: str) -> TestContainer | Self:
         sanitized = remove_token(paths)
         def action(sandbox_dir: Path) -> None:
             for p in sanitized:
                 (sandbox_dir / p).mkdir(parents=True, exist_ok=True)
         self._actions.append(("create_dirs", f"create_dirs: {', '.join(sanitized)}", action))
-        return self
+        return self._parent if self._parent is not None else self
 
-    def create_file(self, path: str, content: str = "") -> Self:
+    def create_file(self, path: str, content: str = "") -> TestContainer | Self:
         sanitized = remove_token(path)
         def action(sandbox_dir: Path) -> None:
             target = sandbox_dir / sanitized
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(content, encoding="utf-8")
         self._actions.append(("create_file", f"create_file: {sanitized}", action))
-        return self
+        return self._parent if self._parent is not None else self
 
-    def edit_file(self, path: str, old: str, new: str) -> Self:
+    def edit_file(self, path: str, old: str, new: str) -> TestContainer | Self:
         sanitized = remove_token(path)
         def action(sandbox_dir: Path) -> None:
             target = sandbox_dir / sanitized
@@ -169,9 +244,9 @@ class SandboxImpl(Sandbox):
             updated = text.replace(old, new)
             target.write_text(updated, encoding="utf-8")
         self._actions.append(("edit_file", f"edit_file: {sanitized}", action))
-        return self
+        return self._parent if self._parent is not None else self
 
-    def rm(self, *paths: str) -> Self:
+    def rm(self, *paths: str) -> TestContainer | Self:
         sanitized = remove_token(paths)
         def action(sandbox_dir: Path) -> None:
             for p in sanitized:
@@ -181,7 +256,7 @@ class SandboxImpl(Sandbox):
                 else:
                     target.unlink(missing_ok=True)
         self._actions.append(("rm", f"rm: {', '.join(sanitized)}", action))
-        return self
+        return self._parent if self._parent is not None else self
 
     def execute(self, sandbox_dir: Path) -> SandboxOperationsResult:
         ops = []
@@ -194,81 +269,10 @@ class SandboxImpl(Sandbox):
             ops.append((op_type, desc, passed))
         return SandboxOperationsResult(ops, get_disk_state(sandbox_dir))
 
-class ExecutionImpl(Execution):
-    def __init__(self, sequence: list[str]) -> None:
-        # it can have a pre-test fileops
-        self.sequence = sequence
-        self.name: str = "SUCCIT" # it can have a name
-        # it can have a post-test fileops
-        self._checks: list[ExpectanceCheck] = []
-
-    def expect_exit_msg(self, expected_msg: str) -> Self:
-        self._checks.append(ExitMsgCheck(expected_msg))
-        return self
-
-    def expect_disk_has(self, expected_paths: list[str] | set[str]) -> Self:
-        self._checks.append(DiskStateCheck(expected_paths))
-        return self
-
-    def expect_ui_contains(self, template: str) -> Self:
-        check = UIRenderCheck(template)
-        self._checks.append(check)
-        return self
-
-    def where(self, field: str, predicate: Callable[[str], bool]) -> Self:
-        if self._checks and isinstance(self._checks[-1], UIRenderCheck):
-            self._checks[-1].where(field, predicate)
-        return self
-
-    def expect_prompt_contains(self, expected_prompt: str) -> Self:
-        if self._checks and isinstance(self._checks[-1], PromptRenderCheck):
-            check = self._checks[-1]
-        else:
-            check = PromptRenderCheck()
-            self._checks.append(check)
-        check.contains(expected_prompt)
-        return self
-
-    def expect_prompt_min_lines(self, count: int) -> Self:
-        if self._checks and isinstance(self._checks[-1], PromptRenderCheck):
-            check = self._checks[-1]
-        else:
-            check = PromptRenderCheck()
-            self._checks.append(check)
-        check.min_lines(count)
-        return self
-
-    def to_result(self, frames: list[ExecutionFrame], test_number: int) -> AtomicTestResult:
-        if frames and frames[-1].exit_code == 1:
-            crash_msg = f"Unexpected crash (exit code 1):\n{frames[-1].stderr or ''}"
-            return AtomicTestResult(
-                test_number=test_number,
-                name=self.name,
-                expectance_results=[],
-                frames=frames,
-                crashed=True,
-                crash_message=crash_msg,
-            )
-
-        expectance_results = [
-            check.evaluate(frames) for check in self._checks
-        ]
-        return AtomicTestResult(
-            test_number=test_number,
-            name=self.name,
-            expectance_results=expectance_results,
-            frames=frames,
-            crashed=False,
-            crash_message=None,
-        )
 
 class ActionsFactoryImpl(ActionsFactory):
-    @property
-    def sandbox(self) -> Sandbox:
-        return SandboxImpl()
-
-    def run_app(self, sequence: list[str]) -> Execution:
-        return ExecutionImpl(sequence)
+    def create_test(self, sequence: list[str], name: str = "") -> TestContainer:
+        return TestContainer(sequence, name)
 
 
 def remove_token(raw_path: str | list[str]) -> str | list[str]:
