@@ -129,3 +129,10 @@ Backlog tail end
     [x] 'content/test/base_classes.py': Delegate test execution to container.run
         - Remove '_run_put' method from BaseFixtureTest
         - Simplify 'run_tests' loop to call 'container.run(self.sandbox_dir, self.clanker_path, framedump_path)'
+
+5. Move exit code 1 and crash handling from ExpectationBuilder to TestContainerImpl
+    [x] 'content/test/expectance_impls.py': Reorganize crash detection and frame evaluation across TestContainerImpl and ExpectationBuilder
+        - update TestContainerImpl._run_put to collect disk frames and append crash frame on non-zero exit or exception
+        - update TestContainerImpl.run to check for at least 2 frames and successful exit code before delegating to ExpectationBuilder.evaluate
+        - construct AtomicTestResult with crashed=True directly in TestContainerImpl.run on sad path
+        - remove crash and exit_code check from ExpectationBuilder.evaluate

@@ -184,17 +184,6 @@ class ExpectationBuilder(Execution):
         return self._parent
 
     def evaluate(self, frames: list[ExecutionFrame], name: str, test_number: int) -> AtomicTestResult:
-        if frames and frames[-1].exit_code == 1:
-            crash_msg = f"Unexpected crash (exit code 1):\n{frames[-1].stderr or ''}"
-            return AtomicTestResult(
-                test_number=test_number,
-                name=name,
-                expectance_results=[],
-                frames=frames,
-                crashed=True,
-                crash_message=crash_msg,
-            )
-
         expectance_results = [
             check.evaluate(frames) for check in self._checks
         ]
@@ -230,7 +219,21 @@ class TestContainerImpl(TestContainer):
     def run(self, sandbox_dir: Path, clanker_path: Path, framedump_path: Path, test_number: int = 1) -> ContainerResult:
         preop_out = self._preop.execute(sandbox_dir)
         frames = self._run_put(sandbox_dir, clanker_path, framedump_path)
-        test_res = self._expect.evaluate(frames, name=self.name, test_number=test_number)
+
+        if len(frames) >= 2 and frames[-1].exit_code == 0:
+            test_res = self._expect.evaluate(frames, name=self.name, test_number=test_number)
+        else:
+            stderr_msg = frames[-1].stderr if frames and frames[-1].stderr else ""
+            crash_msg = f"Unexpected crash (exit code 1):\n{stderr_msg}"
+            test_res = AtomicTestResult(
+                test_number=test_number,
+                name=self.name,
+                expectance_results=[],
+                frames=frames,
+                crashed=True,
+                crash_message=crash_msg,
+            )
+
         postop_out = self._postop.execute(sandbox_dir)
 
         return ContainerResult(
@@ -287,7 +290,6 @@ class TestContainerImpl(TestContainer):
         )
         existing_frames.append(crash_frame)
         return existing_frames
-
 
 class SandboxImpl(Sandbox):
     def __init__(self, parent: TestContainer | None = None) -> None:
