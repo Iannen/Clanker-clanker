@@ -1,41 +1,16 @@
 #!/usr/bin/env -S python3 -B
 
-import inspect
-import re
-import shutil
 import sys
 from pathlib import Path
-from abc import ABC
 
 content_dir = Path(__file__).resolve().parent.parent
 if str(content_dir) not in sys.path:
     sys.path.insert(0, str(content_dir))
 
-from base_classes import BaseFixtureTest
+from base_classes import TestSuiteRunner
 from reporter import GateInspector
-from results import TestSuiteResult, ImportReports
-import assert_classes
-from import_checker import ImportPolicySuite
 
-
-def main() -> None:
-    paths = verify_execution_context()
-    reset_working_directories(paths["sandboxes_dir"], paths["reports_dir"])
-    test_results = prepare_and_run_test_suites(
-        paths["fixtures_dir"],
-        paths["sandboxes_dir"],
-        paths["clanker_path"]
-    )
-
-    import_reports = ImportPolicySuite(paths["content_dir"]).run_tests()
-    success = GateInspector(import_reports, test_results, paths["reports_dir"]).evaluate_and_report()   
-    status = "✅ SUCCESS" if success else "❌ FAILED"
-    print(f"Result: {status}")
-    sys.exit(0 if success else 1)
-
-
-def verify_execution_context() -> dict[str, Path]:
-    repo_root = Path.cwd()
+def get_verified_clanker_runnable_path(repo_root: Path) -> Path:
     clanker_path = repo_root / "content" / "clanker.py"
     gate_script_path = repo_root / "content" / "test" / "ship_gate.py"
 
@@ -53,49 +28,36 @@ def verify_execution_context() -> dict[str, Path]:
             f"Actual resolved script:  {Path(__file__).resolve()}\n"
         )
         sys.exit(1)
+    return clanker_path
 
-    content_path = repo_root / "content"
-    test_root = content_path / "test"
-    return {
-        "content_dir": content_path,
-        "clanker_path": clanker_path,
-        "fixtures_dir": test_root / "test_repos",
-        "sandboxes_dir": test_root / "sandboxes",
-        "reports_dir": test_root / "reports",
-    }
+def verify_execution_context() -> dict[str, Path]:
+    repo_root = Path.cwd()   
+    content_dir = repo_root / "content"
+    clanker_path = get_verified_clanker_runnable_path(repo_root)
+    test_root = content_dir / "test"
+    fixture_dir = test_root / "test_repos"
+    sandbox_dir = test_root / "sandboxes"
+    reports_dir = test_root / "reports"
 
-
-def reset_working_directories(sandboxes_dir: Path, reports_dir: Path) -> None:
-    for target_dir in [sandboxes_dir, reports_dir]:
-        if target_dir.exists():
-            shutil.rmtree(target_dir)
-        target_dir.mkdir(parents=True, exist_ok=True)
-
-
-def prepare_and_run_test_suites(fixtures_dir: Path, sandboxes_dir: Path, clanker_path: Path) -> list[TestSuiteResult]:
-    discovered_classes = [
-        cls
-        for _, cls in inspect.getmembers(assert_classes, inspect.isclass)
-        if cls.__module__ == "assert_classes" and not issubclass(cls, ABC)
-    ]
-
-    if not discovered_classes:
-        sys.stderr.write("Error: No test classes found in assert_classes.py\n")
-        sys.exit(1)
-
-    results = []
-    for cls in discovered_classes:
-        snake_name = re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__name__).lower()
-        sandbox_path = sandboxes_dir / f"active_sandbox_{snake_name}"
-        fixture_path = fixtures_dir / cls.TEMPLATE_FIXTURE_NAME
-
-        shutil.copytree(fixture_path, sandbox_path)
-
-        fixture = BaseFixtureTest(cls, sandbox_path, clanker_path)
-        suite_result = fixture.run_tests()
-        results.append(suite_result)
-
-    return results
+    return content_dir, clanker_path, fixture_dir, sandbox_dir, reports_dir
 
 if __name__ == "__main__":
-    main()
+    content_dir, clanker_path, fixture_dir, sandbox_dir, reports_dir = verify_execution_context()
+
+    runner = TestSuiteRunner(
+        content_dir = content_dir,
+        fixture_dir = fixture_dir,
+        sandbox_dir = sandbox_dir,
+        clanker_path = clanker_path
+    )
+    import_reports, test_results = runner.run_tests()
+
+    inspector = GateInspector(
+        import_result = import_reports, 
+        assert_results = test_results, 
+        reports_dir = reports_dir
+    )
+    success = inspector.evaluate_and_report()
+    status = "✅ SUCCESS" if success else "❌ FAILED"
+    print(f"Result: {status}")
+    sys.exit(0 if success else 1)

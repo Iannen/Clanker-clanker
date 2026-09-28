@@ -2,17 +2,21 @@ import json
 from pathlib import Path
 from typing import Optional
 import re
+import shutil
 from dataclasses import dataclass, field
 from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
 
 
 @dataclass(slots=True)
 class GateInspector:
-    import_reports: ImportReports
-    test_results: list[TestSuiteResult]
+    import_result: ImportSuiteResult
+    assert_results: list[AssertSuiteResult]
     reports_dir: Path
 
     def evaluate_and_report(self) -> bool:
+        if self.reports_dir.exists(): shutil.rmtree(self.reports_dir)
+        self.reports_dir.mkdir(parents=True, exist_ok=True)
+
         self._write_file_reports()
         return self.write_console_report()
 
@@ -24,9 +28,9 @@ class GateInspector:
             "w",
             encoding="utf-8",
         ) as f:
-            json.dump(self.import_reports.to_dict(), f, indent=2)
+            json.dump(self.import_result.to_dict(), f, indent=2)
 
-        for suite in self.test_results:
+        for suite in self.assert_results:
             snake_name = re.sub(r"(?<!^)(?=[A-Z])", "_", suite.suite_name).lower()
             report_file = f"{snake_name}.json"
             suite.report_filename = report_file
@@ -39,8 +43,8 @@ class GateInspector:
         print("Test results")
         print("============================================================")
 
-        import_pass = self.import_reports.is_clean
-        print(self.import_reports.to_console())
+        import_pass = self.import_result.is_clean
+        print(self.import_result.to_console())
 
         tests_pass = True
         total_tests = 0
@@ -48,7 +52,7 @@ class GateInspector:
         failed_tests = 0
         crashed_tests = 0
 
-        for suite in self.test_results:
+        for suite in self.assert_results:
             if not suite.passed:
                 tests_pass = False
 
