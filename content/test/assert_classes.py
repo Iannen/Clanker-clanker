@@ -38,9 +38,17 @@ class Execution(ABC):
     @abstractmethod
     def expect_prompt_min_lines(self, count: int) -> Self: ...
 
+class TestContainer(ABC):
+    sequence: list[str]
+    name: str
+    preop: Sandbox
+    expect: Execution
+    postop: Sandbox
+
+
 class ActionsFactory(ABC):
     @abstractmethod
-    def create_test(self, sequence: list[str], name: str = "") -> "TestContainer": ...
+    def create_test(self, sequence: list[str], name: str = "") -> TestContainer: ...
 
 
 class EmptyRepoTests:

@@ -146,25 +146,45 @@ class AtomicTestResult:
             "frames": [frame.__dict__ for frame in self.frames],
         }
 
+@dataclass
+class ContainerResult:
+    test_result: AtomicTestResult
+    preop_result: Optional[SandboxOperationsResult] = None
+    postop_result: Optional[SandboxOperationsResult] = None
+
+    @property
+    def passed(self) -> bool:
+        pre_ok = self.preop_result.passed if self.preop_result else True
+        post_ok = self.postop_result.passed if self.postop_result else True
+        return pre_ok and self.test_result.passed and post_ok
+
+    def to_dict(self) -> dict:
+        return {
+            "test_result": self.test_result.to_dict(),
+            "preop_result": self.preop_result.to_dict() if self.preop_result else None,
+            "postop_result": self.postop_result.to_dict() if self.postop_result else None,
+            "passed": self.passed,
+        }
+
 
 @dataclass
 class MethodResult:
     method_name: str
-    action_results: list[AtomicTestResult | SandboxOperationsResult] = field(default_factory=list)
+    container_results: list[ContainerResult] = field(default_factory=list)
 
     @property
     def passed(self) -> bool:
-        return all(r.passed for r in self.action_results)
+        return all(c.passed for c in self.container_results)
 
     @property
     def atomic_tests(self) -> list[AtomicTestResult]:
-        return [r for r in self.action_results if isinstance(r, AtomicTestResult)]
+        return [c.test_result for c in self.container_results]
 
     def to_dict(self) -> dict:
         return {
             "method_name": self.method_name,
             "passed": self.passed,
-            "action_results": [r.to_dict() for r in self.action_results],
+            "container_results": [c.to_dict() for c in self.container_results],
         }
 
 

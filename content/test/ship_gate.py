@@ -5,6 +5,7 @@ import re
 import shutil
 import sys
 from pathlib import Path
+from abc import ABC
 
 content_dir = Path(__file__).resolve().parent.parent
 if str(content_dir) not in sys.path:
@@ -73,10 +74,10 @@ def reset_working_directories(sandboxes_dir: Path, reports_dir: Path) -> None:
 def prepare_and_run_test_suites(fixtures_dir: Path, sandboxes_dir: Path, clanker_path: Path) -> list[TestSuiteResult]:
     discovered_classes = [
         cls
-        for name, cls in inspect.getmembers(assert_classes, inspect.isclass)
-        if cls.__module__ == "assert_classes" and not inspect.isabstract(cls)
+        for _, cls in inspect.getmembers(assert_classes, inspect.isclass)
+        if cls.__module__ == "assert_classes" and not issubclass(cls, ABC)
     ]
-
+    
     if not discovered_classes:
         sys.stderr.write("Error: No test classes found in assert_classes.py\n")
         sys.exit(1)

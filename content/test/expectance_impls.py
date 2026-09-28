@@ -6,7 +6,7 @@ import shutil
 from typing import Callable, Optional, Self
 
 from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
-from assert_classes import ActionsFactory, Execution, Sandbox
+from assert_classes import ActionsFactory, Execution, Sandbox, TestContainer
 from core import PathTokens
 from reporter import ExpectanceResult, SandboxOperationsResult, AtomicTestResult
 
@@ -205,13 +205,25 @@ class ExpectationBuilder(Execution):
             crash_message=None,
         )
 
-class TestContainer:
+class TestContainerImpl(TestContainer):
     def __init__(self, sequence: list[str], name: str = "") -> None:
         self.sequence = sequence
         self.name = name
-        self.preop = SandboxImpl(parent=self)
-        self.expect = ExpectationBuilder(self)
-        self.postop = SandboxImpl(parent=self)
+        self._preop = SandboxImpl(parent=self)
+        self._expect = ExpectationBuilder(self)
+        self._postop = SandboxImpl(parent=self)
+
+    @property
+    def preop(self) -> SandboxImpl:
+        return self._preop
+
+    @property
+    def expect(self) -> ExpectationBuilder:
+        return self._expect
+
+    @property
+    def postop(self) -> SandboxImpl:
+        return self._postop
 
 
 class SandboxImpl(Sandbox):
@@ -258,7 +270,9 @@ class SandboxImpl(Sandbox):
         self._actions.append(("rm", f"rm: {', '.join(sanitized)}", action))
         return self._parent if self._parent is not None else self
 
-    def execute(self, sandbox_dir: Path) -> SandboxOperationsResult:
+    def execute(self, sandbox_dir: Path) -> SandboxOperationsResult | None:
+        if not self._actions:
+            return None
         ops = []
         for op_type, desc, action in self._actions:
             try:
@@ -272,7 +286,7 @@ class SandboxImpl(Sandbox):
 
 class ActionsFactoryImpl(ActionsFactory):
     def create_test(self, sequence: list[str], name: str = "") -> TestContainer:
-        return TestContainer(sequence, name)
+        return TestContainerImpl(sequence, name)
 
 
 def remove_token(raw_path: str | list[str]) -> str | list[str]:

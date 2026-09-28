@@ -72,18 +72,10 @@ II. The pile
 
 Backlog tail, Selected item/items:
 
-lets work on this. we have a current set of impls - what can we reuse? do we just alter existing, or add one more?
+the testcontainers should convert into that which is held by Methodresult.
+do we give the containers the run put method?
 
-2. Expose TestContainer ABC and align implementations in assert_classes and expectance_impls
-    [ ] 'content/test/assert_classes.py': Declare TestContainer ABC and update ActionsFactory signature
-        - Add TestContainer(ABC) declaring sequence, name, and abstract preop, expect, postop properties
-        - Ensure preop and postop return Sandbox, expect returns Execution
-    [ ] 'content/test/expectance_impls.py': Rename concrete container and inherit from TestContainer ABC
-        - Import TestContainer from assert_classes
-        - Rename TestContainer class to TestContainerImpl inheriting from TestContainer(ABC)
-        - Update ActionsFactoryImpl.create_test to return initialized TestContainerImpl instance
-    [ ] 'content/test/base_classes.py': Update type annotations
-        - Align type annotations to reference TestContainer interface where applicable
+
 
 Backlog tail end
 
@@ -107,3 +99,14 @@ Backlog tail end
         - Update EmptyRepoTests to use factory.create_test(...).expect...
         - Update CorruptRepoTests setup/cleanup routines to use .preop.create_file/create_dirs and .postop.rm
         - use '\' to chain calls
+
+2. Expose TestContainer ABC and align implementations in assert_classes and expectance_impls
+    [x] 'content/test/assert_classes.py': Declare TestContainer ABC and update ActionsFactory signature
+        - Add TestContainer(ABC) declaring sequence, name, and abstract preop, expect, postop properties
+        - Ensure preop and postop return Sandbox, expect returns Execution
+    [x] 'content/test/expectance_impls.py': Rename concrete container and inherit from TestContainer ABC
+        - Import TestContainer from assert_classes
+        - Rename TestContainer class to TestContainerImpl inheriting from TestContainer(ABC)
+        - Update ActionsFactoryImpl.create_test to return initialized TestContainerImpl instance
+    [x] 'content/test/base_classes.py': Update type annotations
+        - Align type annotations to reference TestContainer interface where applicable
