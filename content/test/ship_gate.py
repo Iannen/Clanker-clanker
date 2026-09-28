@@ -1,11 +1,10 @@
 #!/usr/bin/env -S python3 -B
-
 import sys
 from pathlib import Path
-
 content_dir = Path(__file__).resolve().parent.parent
 if str(content_dir) not in sys.path:
     sys.path.insert(0, str(content_dir))
+
 
 from orchestrators import TestSuitesRunner, GateInspector
 

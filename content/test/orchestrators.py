@@ -56,7 +56,7 @@ class TestSuitesRunner:
 
 @dataclass(slots=True)
 class GateInspector:
-    import_results: [FileAnalysisResults]
+    import_results: list[FileAnalysisResults]
     assert_results: list[AssertSuiteResult]
     reports_dir: Path
 
