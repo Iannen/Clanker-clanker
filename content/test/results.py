@@ -35,7 +35,7 @@ class FileReport:
 
 
 @dataclass(slots=True)
-class ImportReports:
+class ImportSuiteResult:
     reports: list[FileReport] = field(default_factory=list)
 
     @property
@@ -208,7 +208,7 @@ class MethodResult:
 
 
 @dataclass(slots=True)
-class TestSuiteResult:
+class AssertSuiteResult:
     suite_name: str
     report_filename: str
     method_results: list[MethodResult]

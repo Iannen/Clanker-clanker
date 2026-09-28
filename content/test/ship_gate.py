@@ -7,7 +7,7 @@ content_dir = Path(__file__).resolve().parent.parent
 if str(content_dir) not in sys.path:
     sys.path.insert(0, str(content_dir))
 
-from base_classes import TestSuiteRunner
+from base_classes import TestSuitesRunner
 from reporter import GateInspector
 
 def get_verified_clanker_runnable_path(repo_root: Path) -> Path:
@@ -44,7 +44,7 @@ def verify_execution_context() -> dict[str, Path]:
 if __name__ == "__main__":
     content_dir, clanker_path, fixture_dir, sandbox_dir, reports_dir = verify_execution_context()
 
-    runner = TestSuiteRunner(
+    runner = TestSuitesRunner(
         content_dir = content_dir,
         fixture_dir = fixture_dir,
         sandbox_dir = sandbox_dir,

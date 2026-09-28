@@ -78,21 +78,6 @@ II. The pile
         - Refactor `GateInspector` console reporting and tallies to count and display icons directly from `TestStatus`
 Backlog tail, Selected item/items:
 
-2. Refactor test discovery into TestSuiteRunner and produce per-file TestSuiteResults
-    [ ] 'adapters/terminal/ship_gate.py': Simplify gate orchestration
-        - Delegate test discovery and execution to TestSuiteRunner
-        - pass result directly to GateInspector instance
-        - Exit with process code 0 or 1 based on overall GateInspector evaluation
-    [ ] 'content/test/base_classes.py': Rename BaseFixtureTest to TestSuiteRunner with path injection and automated discovery
-        - Rename `BaseFixtureTest` to `TestSuiteRunner`
-        - Accept `fixtures_dir`, `sandboxes_dir`, and `clanker_path` via `__init__` 
-        - imports 'from import_checker import ImportPolicySuite' 
-        - imports assert class module via 'import assert_classes' 
-        - on call to 'run_tests'
-            - instantiates ImportPolicySuite to produce a 'ImportReports'
-            - aggregate 'TestSuiteResult' in list for each ABC implementor in assert_classes
-        - returns to caller tuple[ImportReports, list[TestSuiteResult]]
-
 Backlog tail end
 
 1. Establish 4-entity Test container and namespace-based fluent builders
@@ -166,3 +151,18 @@ Backlog tail end
         - Add `to_console()` methods to `ImportReports`, `TestSuiteResult`, `MethodResult`, and `AtomicTestResult` that return formatted string blocks up the hierarchy
         - Keep printing and global tally aggregation inside `GateInspector.write_console_report()`
     [x] Moved all result types to results.py file
+
+8. Refactor test discovery into TestSuiteRunner and produce per-file TestSuiteResults
+    [x] 'adapters/terminal/ship_gate.py': Simplify gate orchestration
+        - Delegate test discovery and execution to TestSuiteRunner
+        - pass result directly to GateInspector instance
+        - Exit with process code 0 or 1 based on overall GateInspector evaluation
+    [x] 'content/test/base_classes.py': Rename BaseFixtureTest to TestSuiteRunner with path injection and automated discovery
+        - Rename `BaseFixtureTest` to `TestSuiteRunner`
+        - Accept `fixtures_dir`, `sandboxes_dir`, and `clanker_path` via `__init__` 
+        - imports 'from import_checker import ImportPolicySuite' 
+        - imports assert class module via 'import assert_classes' 
+        - on call to 'run_tests'
+            - instantiates ImportPolicySuite to produce a 'ImportReports'
+            - aggregate 'TestSuiteResult' in list for each ABC implementor in assert_classes
+        - returns to caller tuple[ImportReports, list[TestSuiteResult]]

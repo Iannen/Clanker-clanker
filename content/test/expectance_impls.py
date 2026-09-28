@@ -364,3 +364,7 @@ def get_disk_state(sandbox_dir: Path) -> list[str]:
             continue
         paths.append(str(rel))
     return sorted(paths)
+
+class myclass:
+    def method(self):
+        print("hlleo")
