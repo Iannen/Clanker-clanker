@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from datetime import datetime
 
 @dataclass(slots=True)
 class FileReport:
@@ -255,4 +256,45 @@ class AssertSuiteResult:
         for m in self.method_results:
             lines.append(m.to_console())
         lines.append(f"    Report: {self.report_filename}")
+        return "\n".join(lines)
+
+class RunResult:
+    __slots__ = (
+        "file_analysis_results",
+        "assert_suite_results",
+        "name",
+        "passed",
+    )
+
+    def __init__(
+        self,
+        file_analysis_results: list[FileAnalysisResults],
+        assert_suite_results: list[AssertSuiteResult],
+    ) -> None:
+        self.file_analysis_results = file_analysis_results
+        self.assert_suite_results = assert_suite_results
+        self.name = datetime.now().strftime("Run<%Y.%m.%d.%H.%M>")
+        self.passed = (
+            all(fa.is_clean for fa in self.file_analysis_results)
+            and all(suite.passed for suite in self.assert_suite_results)
+        )
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "passed": self.passed,
+            "file_analysis_results": [
+                fa.to_dict() for fa in self.file_analysis_results
+            ],
+            "assert_suite_results": [
+                suite.to_dict() for suite in self.assert_suite_results
+            ],
+        }
+
+    def to_console(self) -> str:
+        lines = [f"=== {self.name} ==="]
+        for fa in self.file_analysis_results:
+            lines.append(fa.to_console())
+        for suite in self.assert_suite_results:
+            lines.append(suite.to_console())
         return "\n".join(lines)
