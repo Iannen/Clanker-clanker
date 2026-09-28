@@ -292,9 +292,34 @@ class RunResult:
         }
 
     def to_console(self) -> str:
-        lines = [f"=== {self.name} ==="]
+        display_name = self.name.removeprefix("Run<").removesuffix(">")
+
+        lines = [
+            "============================================================",
+            f"Test results - {display_name}",
+            "============================================================",
+        ]
+
         for fa in self.file_analysis_results:
             lines.append(fa.to_console())
+
+        total_tests = 0
+        passed_tests = 0
+        failed_tests = 0
+        crashed_tests = 0
+
         for suite in self.assert_suite_results:
+            total_tests += suite.total_tests
+            passed_tests += suite.passed_tests
+            failed_tests += suite.failed_tests
+            crashed_tests += suite.crashed_tests
             lines.append(suite.to_console())
+
+        lines.append("\n------------------------------------------------------------")
+        lines.append(
+            f"TOTAL: {total_tests} tests | PASSED: {passed_tests} | "
+            f"FAILED: {failed_tests} | CRASHED: {crashed_tests}"
+        )
+        lines.append("============================================================")
+
         return "\n".join(lines)

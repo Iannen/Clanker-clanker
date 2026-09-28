@@ -48,11 +48,10 @@ if __name__ == "__main__":
         sandbox_dir = sandbox_dir,
         clanker_path = clanker_path
     )
-    file_analysis_results, assert_results = runner.run_tests()
+
 
     inspector = GateInspector(
-        import_results = file_analysis_results, 
-        assert_results = assert_results, 
+        run_result = runner.run_tests(),
         reports_dir = reports_dir
     )
     success = inspector.evaluate_and_report()
