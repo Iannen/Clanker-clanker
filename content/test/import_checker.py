@@ -3,7 +3,7 @@ import ast
 import builtins
 from dataclasses import dataclass, field
 from pathlib import Path
-from results import ImportSuiteResult, FileReport
+from results import FileAnalysisResults, FileReport
 
 module_list = [
     "stdlib",
@@ -76,12 +76,12 @@ policy = [
     ),
 ]
 
-class ImportSuite:
+class FileAnalysisSuite:
     def __init__(self, content_dir: Path) -> None:
         self._content_dir = content_dir
 
-    def run_tests(self) -> ImportSuiteResult:
-        aggregated_reports = ImportSuiteResult()
+    def analyse_files(self) -> FileAnalysisResults:
+        aggregated_reports = FileAnalysisResults()
         for rule in policy:
             paths = self._resolve_rule_paths(rule)
             for file_path in paths:

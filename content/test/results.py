@@ -35,7 +35,7 @@ class FileReport:
 
 
 @dataclass(slots=True)
-class ImportSuiteResult:
+class FileAnalysisResults:
     reports: list[FileReport] = field(default_factory=list)
 
     @property
