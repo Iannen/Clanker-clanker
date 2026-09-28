@@ -196,9 +196,10 @@ class SandboxImpl(Sandbox):
 
 class ExecutionImpl(Execution):
     def __init__(self, sequence: list[str]) -> None:
+        # it can have a pre-test fileops
         self.sequence = sequence
-        self.name: str = ""
-        self.frames_filename: str = ""
+        self.name: str = "SUCCIT" # it can have a name
+        # it can have a post-test fileops
         self._checks: list[ExpectanceCheck] = []
 
     def expect_exit_msg(self, expected_msg: str) -> Self:

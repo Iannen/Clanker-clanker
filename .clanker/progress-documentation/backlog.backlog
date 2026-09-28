@@ -72,82 +72,29 @@ II. The pile
 
 Backlog tail, Selected item/items:
 
-2. Contract verification and critical complaints support during bootstrap
-'''
-we define two asset buckets that have states, which we represent them with
+lets work on this. we have a current set of impls - what can we reuse? do we just alter existing, or add one more?
 
-clanker assets: [system cfg, shared cfg, all templates, all layouts]
-clanker assets states: 
-    clank-ok:
-        all assets exits, config assets are convertible
-    clank-bad
-        any assets missing or non-convertible
+1. Establish 4-entity Test container and namespace-based fluent builders
+    [ ] 'content/test/assert_classes.py': Update factory interface and test suite class declarations
+        - Remove standalone sandbox and run_app methods from ActionsFactory interface
+        - Add create_test(sequence, name) entry point to ActionsFactory
+        - Update test suite return signatures to return list[TestContainer]
+    [ ] 'content/test/expectance_impls.py': Implement Test container and sub-builders with parent references
+        - Add 'from __future__ import annotations' at module top for clean type hints
+        - Implement Test container class holding sequence, name, preop, expect, and postop members
+        - Implement PreOpSandbox and PostOpSandbox builders where all mutation methods return self._parent
+        - Implement ExpectationBuilder where all assertion methods return self._parent
+        - Implement ActionsFactoryImpl to return initialized Test instances
+    [ ] 'content/test/base_classes.py': Simplify runner loop to uniform 3-stage lifecycle
+        - Remove top-level isinstance checks for standalone SandboxImpl instances
+        - Execute preop sandbox actions before app execution
+        - Execute postop sandbox actions after app execution
+        - Evaluate expect checks on execution frames and record test results
 
-pud assets: [config.yaml, all prog docs, the readme, and content dir]
-pud assets states: 
-    pud-ok: 
-        all assets exits, config assets are convertible
-    pud-empty: no pud assets exist
-    pud-bad: : some but not all pud assets exist
-
-we get matrix, which i flatten
-
-co-po: execute bootstrap 
-co-pe: offer clankerize 
-co-pb: complain critically -> pud critical complaints, all soft complaints 
-cb-po: complain critically, clanker crits, all soft complaints 
-cb-pe: complain critically, clanker crits, all soft complaints 
-cb-pb: complain critically, clanker crits, pud crits (from po perspective) all soft complaints 
-'''
-    [ ] 'content/core/presentation.py': declare ActionResult inheritors per info below
-    [ ] 'content/core/engine_deps/ingestion.py':
-        - expand Report abstract interface with get_critical_complaints
-    [ ] 'content/modules/asset_ingestion/commons/error_collector.py':
-        - update ErrorCollector to store critical complaints alongside non-critical complaints
-             - both buckets have a getter and setter. (the Report interface has only getters)
-    [ ] 'content/modules/asset_ingestion/ingestion_service.py':
-        - implement helper to resolve clanker state
-            - accept errorcollector, record any issue as critical complaint
-            - return configs as dicts (default to {}), co | cb
-        - implement helper to resolve pud state 
-            -accept errorcollector, aggregate complains, and add to collector at end if pb case
-            - returns config as dict, po | pe | pb
-        - 'get_runtime_config'
-            - remove NoConfig / ConfigAssembly exception raises from get_runtime_config and _get_validated_cfg_fragment
-            - use helpers to get dicts, repo states
-            - attempt execution of extractors, assemblers, and validators to amass non-critical complaints (helpers must return {} defaults for which critical complaints were recorded)
-            - instantiate Actionresult spec given repo_states: 
-                co-po: DoBootstrap
-                co-po: OfferBootstrapWithComplaints (if ec has non-critical complaints)
-                co-pe: OfferClankerize
-                co-pe: OfferClankerizeWithComplaints (if ec has non-critical complaints)
-                co-pb, cb-po, cb-pe, cb-pb: TerminateGracefully
-            - return action_res, collector, button_map, ui_render, base_resolvers
-
-    [ ] 'content/core/engine.py':
-        - fold '_bootstrap' into 'run'
-        - match on action_res type:
-            DoBootstrap:
-                - assign members to services, store ActionResult.BOOTSTRAP_SUCCESS on self, enter loop
-            OfferBootstrapWithComplaints
-                - pass report to self.helper, receive question to prompt user
-                - store ActionResult.BOOTSTRAP_SUCCESS on self, enter loop
-                - catch UserDecline, return ActionResult.MSG_DECLINED_BOOTSTRAP to halt program
-            OfferClankerize
-                - offer user to clankerize
-                - call IngestionService.initialize_workspace
-                - call IngestionService.get_runtime_config
-                - assign members to services, store ActionResult.BOOTSTRAP_SUCCESS on self, enter loop
-                - catch UserDecline, return ActionResult.MSG_DECLINED_INIT to halt program
-            OfferClankerizeWithComplaints
-                - pass report to self.helper, receive question to prompt user
-                - offer user to clankerize
-                - call IngestionService.initialize_workspace
-                - call IngestionService.get_runtime_config
-                - assign members to services, store ActionResult.BOOTSTRAP_SUCCESS on self, enter loop
-                - catch UserDecline, return ActionResult.MSG_DECLINED_INIT to halt program
-            TerminateGracefully
-                - pass report to self.helper, receive ActionResult with complaints report formatted as msg
-                - return actionresult to halt program
+2. Refactor existing test suites to the namespace chaining syntax
+    [ ] 'content/test/assert_classes.py': Migrate test assertions in EmptyRepoTests and CorruptRepoTests
+        - Update EmptyRepoTests to use factory.create_test(...).expect...
+        - Update CorruptRepoTests setup/cleanup routines to use .preop.create_file/create_dirs and .postop.rm
+        - Ensure parent-returning chaining syntax is used without backslashes or mode toggles
 
 Backlog tail end

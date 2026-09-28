@@ -171,8 +171,8 @@ class MethodResult:
 @dataclass
 class TestSuiteResult:
     suite_name: str
-    report_filename: str = ""
-    method_results: list[MethodResult] = field(default_factory=list)
+    report_filename: str
+    method_results: list[MethodResult]
 
     @property
     def passed(self) -> bool:
