@@ -4,6 +4,7 @@ from typing import Callable, Self, Union
 from core.engine_deps import IOControl
 from core import RepoContract, WorkspaceAlreadyInitialized, ActionResult
 from adapters.terminal.scripted_terminal_adapter import TestSequenceEnded
+from base_classes import AssertSuite
 
 class Sandbox(ABC):
     @abstractmethod
@@ -51,7 +52,7 @@ class ActionsFactory(ABC):
     def create_test(self, sequence: list[str], name: str = "") -> TestContainer: ...
 
 
-class EmptyRepoTests:
+class EmptyRepoTests(AssertSuite):
     TEMPLATE_FIXTURE_NAME = "empty_repo"
 
     def assert_end_of_sequence_terminates_properly(self, actions: ActionsFactory) -> list["TestContainer"]:
@@ -100,7 +101,7 @@ class EmptyRepoTests:
         return ats
 
 
-class CorruptRepoTests:
+class CorruptRepoTests(AssertSuite):
     TEMPLATE_FIXTURE_NAME = "empty_repo"
 
     def assert_clankerize_fail(self, actions: ActionsFactory) -> list["TestContainer"]:

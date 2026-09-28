@@ -7,8 +7,7 @@ content_dir = Path(__file__).resolve().parent.parent
 if str(content_dir) not in sys.path:
     sys.path.insert(0, str(content_dir))
 
-from base_classes import TestSuitesRunner
-from reporter import GateInspector
+from orchestrators import TestSuitesRunner, GateInspector
 
 def get_verified_clanker_runnable_path(repo_root: Path) -> Path:
     clanker_path = repo_root / "content" / "clanker.py"
