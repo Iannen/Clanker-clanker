@@ -72,9 +72,6 @@ II. The pile
 
 Backlog tail, Selected item/items:
 
-the testcontainers should convert into that which is held by Methodresult.
-do we give the containers the run put method?
-
 
 
 Backlog tail end
@@ -110,3 +107,24 @@ Backlog tail end
         - Update ActionsFactoryImpl.create_test to return initialized TestContainerImpl instance
     [x] 'content/test/base_classes.py': Update type annotations
         - Align type annotations to reference TestContainer interface where applicable
+
+3. Introduce ContainerResult and refactor MethodResult data structure
+    [x] 'content/test/reporter.py': Add ContainerResult dataclass and update MethodResult to use container_results
+        - Define ContainerResult with test_result (AtomicTestResult), preop_result, and postop_result fields
+        - Implement passed property and to_dict method on ContainerResult
+        - Update MethodResult.container_results type annotation to list[ContainerResult]
+        - Add MethodResult.atomic_tests property returning [c.test_result for c in self.container_results]
+    [x] 'content/test/expectance_impls.py': Return None from SandboxImpl.execute when actions list is empty
+        - Check if self._actions is empty at the start of execute and return None early
+    [x] 'content/test/base_classes.py': Wrap execution outcomes into ContainerResult in BaseFixtureTest.run_tests
+        - Pass preop_res, test_res, and postop_res directly into ContainerResult instance
+        - Append ContainerResult instances to container_results list for each method
+
+4. Transfer test execution responsibility to TestContainerImpl via a new 'run' method
+    [x] 'content/test/expectance_impls.py': Add 'run' and '_run_put' methods to TestContainerImpl
+        - Implement 'run(sandbox_dir, clanker_path, framedump_path) -> ContainerResult'
+        - Move '_run_put' from BaseFixtureTest to TestContainerImpl
+        - Sequence execution: run preop, execute process via _run_put, evaluate expect, run postop, return ContainerResult
+    [x] 'content/test/base_classes.py': Delegate test execution to container.run
+        - Remove '_run_put' method from BaseFixtureTest
+        - Simplify 'run_tests' loop to call 'container.run(self.sandbox_dir, self.clanker_path, framedump_path)'

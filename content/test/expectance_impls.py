@@ -9,7 +9,10 @@ from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
 from assert_classes import ActionsFactory, Execution, Sandbox, TestContainer
 from core import PathTokens
 from reporter import ExpectanceResult, SandboxOperationsResult, AtomicTestResult
-
+import json
+import subprocess
+import sys
+from reporter import ContainerResult
 
 class ExpectanceCheck:
     def evaluate(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
@@ -26,7 +29,6 @@ class ExitMsgCheck(ExpectanceCheck):
         assertion = f"ExitMsg contains '{self.expected_msg}'"
         details = "" if passed else f"Expected exit_msg '{self.expected_msg}', got '{actual}'"
         return ExpectanceResult(assertion=assertion, passed=passed, details=details)
-
 
 class DiskStateCheck(ExpectanceCheck):
     def __init__(self, expected_paths: list[str]) -> None:
@@ -224,6 +226,67 @@ class TestContainerImpl(TestContainer):
     @property
     def postop(self) -> SandboxImpl:
         return self._postop
+
+    def run(self, sandbox_dir: Path, clanker_path: Path, framedump_path: Path, test_number: int = 1) -> ContainerResult:
+        preop_out = self._preop.execute(sandbox_dir)
+        frames = self._run_put(sandbox_dir, clanker_path, framedump_path)
+        test_res = self._expect.evaluate(frames, name=self.name, test_number=test_number)
+        postop_out = self._postop.execute(sandbox_dir)
+
+        return ContainerResult(
+            test_result=test_res,
+            preop_result=preop_out,
+            postop_result=postop_out,
+        )
+
+    def _run_put(self, sandbox_dir: Path, clanker_path: Path, framedump_path: Path) -> list[ExecutionFrame]:
+        cmd = [
+            sys.executable,
+            "-B",
+            str(clanker_path),
+            "--test",
+            "--input-script",
+            *self.sequence,
+            "--framedump-path",
+            str(framedump_path),
+        ]
+
+        exit_code = 0
+        stderr_output = ""
+
+        try:
+            proc = subprocess.run(
+                cmd,
+                cwd=sandbox_dir,
+                capture_output=True,
+                text=True,
+                timeout=10.0,
+            )
+            exit_code = proc.returncode
+            stderr_output = proc.stderr
+        except Exception as ex:
+            exit_code = 1
+            stderr_output = str(ex)
+
+        existing_frames = []
+        if framedump_path.exists():
+            try:
+                with open(framedump_path, "r", encoding="utf-8") as f:
+                    report_data = json.load(f)
+                    existing_frames = [ExecutionFrame(**r) for r in report_data["records"]]
+            except Exception:
+                pass
+
+        if exit_code == 0:
+            return existing_frames
+
+        crash_frame = ExecutionFrame(
+            latest_input=ScriptedTerminalAdapter.CRASH_EVENT,
+            exit_code=1,
+            stderr=stderr_output,
+        )
+        existing_frames.append(crash_frame)
+        return existing_frames
 
 
 class SandboxImpl(Sandbox):
