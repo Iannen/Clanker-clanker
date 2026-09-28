@@ -39,8 +39,8 @@ class BaseFixtureTest:
 
             for item in items:
                 if isinstance(item, SandboxImpl):
-                    sb_results = item.execute(self.sandbox_dir)
-                    method_result.action_results.extend(sb_results)
+                    sb_result = item.execute(self.sandbox_dir)
+                    method_result.action_results.append(sb_result)
                 elif isinstance(item, ExecutionImpl):
                     item.name = f"{method_name} #{atomic_idx}"
                     item.frames_filename = f"{method_name}_{atomic_idx}.framedump"

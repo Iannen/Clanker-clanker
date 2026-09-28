@@ -28,14 +28,8 @@ class ExitMsgCheck(ExpectanceCheck):
 
 
 class DiskStateCheck(ExpectanceCheck):
-    def __init__(self, expected_paths: list[str] | set[str]) -> None:
-        sanitized = []
-        for path in expected_paths:
-            p = str(path)
-            if p.startswith(PathTokens.PUD):
-                p = p[len(PathTokens.PUD):].lstrip("/\\")
-            sanitized.append(p)
-        self.expected_paths = sanitized
+    def __init__(self, expected_paths: list[str]) -> None:
+        self.expected_paths = remove_token(expected_paths)
 
     def evaluate(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
         frame = frames[-2]
@@ -150,16 +144,8 @@ class SandboxImpl(Sandbox):
     def __init__(self) -> None:
         self._actions: list[tuple[str, str, Callable[[Path], None]]] = []
 
-    def _sanitize_path(self, raw_path: str) -> str:
-        p = str(raw_path)
-        if p.startswith(PathTokens.PUD):
-            p = p[len(PathTokens.PUD):].lstrip("/\\")
-        elif p.startswith("<PUD>"):
-            p = p[len("<PUD>"):].lstrip("/\\")
-        return p
-
     def create_dirs(self, *paths: str) -> Self:
-        sanitized = [self._sanitize_path(p) for p in paths]
+        sanitized = remove_token(paths)
         def action(sandbox_dir: Path) -> None:
             for p in sanitized:
                 (sandbox_dir / p).mkdir(parents=True, exist_ok=True)
@@ -167,7 +153,7 @@ class SandboxImpl(Sandbox):
         return self
 
     def create_file(self, path: str, content: str = "") -> Self:
-        sanitized = self._sanitize_path(path)
+        sanitized = remove_token(path)
         def action(sandbox_dir: Path) -> None:
             target = sandbox_dir / sanitized
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -176,7 +162,7 @@ class SandboxImpl(Sandbox):
         return self
 
     def edit_file(self, path: str, old: str, new: str) -> Self:
-        sanitized = self._sanitize_path(path)
+        sanitized = remove_token(path)
         def action(sandbox_dir: Path) -> None:
             target = sandbox_dir / sanitized
             text = target.read_text(encoding="utf-8")
@@ -186,7 +172,7 @@ class SandboxImpl(Sandbox):
         return self
 
     def rm(self, *paths: str) -> Self:
-        sanitized = [self._sanitize_path(p) for p in paths]
+        sanitized = remove_token(paths)
         def action(sandbox_dir: Path) -> None:
             for p in sanitized:
                 target = sandbox_dir / p
@@ -197,13 +183,16 @@ class SandboxImpl(Sandbox):
         self._actions.append(("rm", f"rm: {', '.join(sanitized)}", action))
         return self
 
-    def execute(self, sandbox_dir: Path) -> list[SandboxOperationsResult]:
-        results = []
+    def execute(self, sandbox_dir: Path) -> SandboxOperationsResult:
+        ops = []
         for op_type, desc, action in self._actions:
-            action(sandbox_dir)
-            results.append(SandboxOperationsResult(operation_type=op_type, description=desc, passed=True))
-        return results
-
+            try:
+                action(sandbox_dir)
+                passed = True
+            except Exception:
+                passed = False
+            ops.append((op_type, desc, passed))
+        return SandboxOperationsResult(ops, get_disk_state(sandbox_dir))
 
 class ExecutionImpl(Execution):
     def __init__(self, sequence: list[str]) -> None:
@@ -272,7 +261,6 @@ class ExecutionImpl(Execution):
             crash_message=None,
         )
 
-
 class ActionsFactoryImpl(ActionsFactory):
     @property
     def sandbox(self) -> Sandbox:
@@ -280,3 +268,18 @@ class ActionsFactoryImpl(ActionsFactory):
 
     def run_app(self, sequence: list[str]) -> Execution:
         return ExecutionImpl(sequence)
+
+
+def remove_token(raw_path: str | list[str]) -> str | list[str]:
+    if isinstance(raw_path, str):
+        return raw_path.removeprefix(PathTokens.PUD).lstrip("/\\")
+    return [p.removeprefix(PathTokens.PUD).lstrip("/\\") for p in raw_path]
+
+def get_disk_state(sandbox_dir: Path) -> list[str]:
+    paths = []
+    for p in sandbox_dir.rglob("*"):
+        rel = p.relative_to(sandbox_dir)
+        if rel.parts and rel.parts[0] == "framedumps":
+            continue
+        paths.append(str(rel))
+    return sorted(paths)

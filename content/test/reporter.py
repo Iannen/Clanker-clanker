@@ -5,16 +5,12 @@ import re
 from dataclasses import dataclass, field
 from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
 
+
+@dataclass
 class GateInspector:
-    def __init__(
-        self,
-        import_reports: ImportReports,
-        test_results: list[TestSuiteResult],
-        reports_dir: Path,
-    ) -> None:
-        self.import_reports = import_reports
-        self.test_results = test_results
-        self.reports_dir = reports_dir
+    import_reports: ImportReports
+    test_results: list[TestSuiteResult]
+    reports_dir: Path
 
     def evaluate_and_report(self) -> bool:
         self.write_file_reports()
@@ -86,7 +82,7 @@ class GateInspector:
                             f"{test.passed_expectances}/{test.total_expectances} expectances"
                         )
 
-            print(f"    Report: {suite.report_filename or 'assert_class_name.json'}")
+            print(f"    Report: {suite.report_filename}")
 
         print("\n------------------------------------------------------------")
         print(
@@ -231,16 +227,26 @@ class ExpectanceResult:
 
 @dataclass
 class SandboxOperationsResult:
-    operation_type: str
-    description: str
-    passed: bool = True
+    operations: list[tuple[str, str, bool]]
+    disk_state: list[str] = field(default_factory=list)
+
+    @property
+    def passed(self) -> bool:
+        return all(passed for _, _, passed in self.operations)
 
     def to_dict(self) -> dict:
         return {
-            "type": "sandbox_operation",
-            "operation": self.operation_type,
-            "description": self.description,
+            "type": "sandbox_operations",
             "passed": self.passed,
+            "operations": [
+                {
+                    "operation": op_type,
+                    "description": desc,
+                    "passed": passed,
+                }
+                for op_type, desc, passed in self.operations
+            ],
+            "disk_state": self.disk_state,
         }
 
 @dataclass
