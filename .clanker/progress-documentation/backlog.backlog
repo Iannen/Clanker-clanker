@@ -65,9 +65,12 @@ II. The pile
 
 Backlog tail, Selected item/items:
 
-we have a contains assert, which by the name of the class targets a particular frame member, and checks that it contains a string.
-
-then we have prompt render lines. its an odd duck, lets talk about it
+1. Add PromptRenderMinLines assert class and field-prefix classname parser
+    [ ] 'content/test/expectance_impls.py': Refactor Assert class name parsing and add min_lines support
+        - Update _parse_class_name to greedily match words left-to-right against ExecutionFrame fields before deriving op_name
+        - Add 'min_lines' operation handling in _execute_phase_one
+        - Add PromptRenderMinLines class inheriting from Assert
+        - Update AssertsImpl.prompt_render_min_lines to instantiate PromptRenderMinLines directly
 
 Backlog tail end
 

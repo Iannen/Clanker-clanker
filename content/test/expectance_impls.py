@@ -1,17 +1,18 @@
 from __future__ import annotations
 
+import dataclasses
+import json
 from pathlib import Path
 import re
 import shutil
-from typing import Callable, Optional, Self
+import subprocess
+import sys
+from typing import Any, Callable, Optional, Self
 
 from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
 from assert_classes import ActionsFactory, Asserts, Sandbox, TestContainer
 from core import PathTokens
-from results import ExpectanceResult, SandboxOperationsResult, AtomicTestResult, ContainerResult
-import json
-import subprocess
-import sys
+from results import AtomicTestResult, ContainerResult, ExpectanceResult, SandboxOperationsResult
 
 class Assert:
     frame_pos: int = -2
@@ -27,7 +28,13 @@ class Assert:
             w.lower()
             for w in re.findall(r"[A-Z][a-z0-9]*", self.__class__.__name__)
         ]
-        return "_".join(words[:-1]), words[-1]
+        frame_fields = {f.name for f in dataclasses.fields(ExecutionFrame)}
+        for i in range(1, len(words)):
+            attr_candidate = "_".join(words[:i])
+            if attr_candidate in frame_fields:
+                op_candidate = "_".join(words[i:])
+                return attr_candidate, op_candidate
+        raise ValueError(f"No valid ExecutionFrame attribute prefix found in {self.__class__.__name__}")
 
     def _execute_phase_one(self, actual: Any, op_name: str) -> tuple[bool, dict[str, str], str]:
         if actual is None:
@@ -71,6 +78,17 @@ class Assert:
             details = "" if passed else f"Missing expected items: {missing}"
             return passed, {}, details
 
+        if op_name == "min_lines":
+            line_count = len(str(actual).splitlines()) if actual is not None else 0
+            passed = line_count >= int(self.expected)
+            details = "" if passed else f"Expected minimum {self.expected} lines, got {line_count}"
+            matches = {
+                "lines": str(actual),
+                "chars": str(actual),
+                "text": str(actual),
+            }
+            return passed, matches, details
+
         raise NotImplementedError(f"Unsupported primary operation: '{op_name}'")
 
     def evaluate(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
@@ -107,6 +125,7 @@ class ExitMsgContains(Assert): frame_pos = -1
 class DiskManifestHas(Assert): pass
 class UiRenderContains(Assert): pass
 class PromptRenderContains(Assert): pass
+class PromptRenderMinLines(Assert): pass
 
 class AssertsImpl(Asserts):
     def __init__(self, parent: TestContainer) -> None:
@@ -135,12 +154,7 @@ class AssertsImpl(Asserts):
         return self._parent
 
     def prompt_render_min_lines(self, count: int) -> TestContainer:
-        if self._asserts and isinstance(self._asserts[-1], PromptRenderContains):
-            check = self._asserts[-1]
-        else:
-            check = PromptRenderContains("")
-            self._asserts.append(check)
-        check.where("lines", lambda l: len(l.splitlines()) >= count)
+        self._asserts.append(PromptRenderMinLines(count))
         return self._parent
 
     def evaluate(self, frames: list[ExecutionFrame], name: str, test_number: int) -> AtomicTestResult:
