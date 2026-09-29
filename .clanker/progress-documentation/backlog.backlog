@@ -47,12 +47,7 @@ II. The pile
 
 Backlog tail, Selected item/items:
 1. Refactor Config and AssetPack error state handling and context hierarchy
-    [ ] 'content/core/core/entities.py': Move and standardize ingestion entities
-        - align AssetPack fields with Config by replacing issue with data: list[str] | MalformedAsset | MissingAsset
-    [ ] 'content/modules/asset_ingestion/commons/newshit.py': Remove moved asset entities
-        - remove deprecated class definitions transferred to core entities
-    [ ] 'content/modules/asset_ingestion/ingestion_service.py': Update AssetPack instantiation and introduce context base class
-        - update _get_asset_pack to return AssetPack populated with MissingAsset or MalformedAsset on failure
-        - introduce base context class to process Config and AssetPack lists uniformly via match and return complaint strings
-        - refactor ClankerCtx and PudCtx to inherit from base context, call shared match handling, and bulk-emit aggregated complaints to ErrorCollector
+    [x] Introduces types to represent malformed or missing configs / assetpacks. not sure how valuable it was
+
+2. Need to move button extraction up to ClankerCtx. it becomes contingent on domains, perhaps more
 Backlog tail end
