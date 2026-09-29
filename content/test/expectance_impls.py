@@ -23,6 +23,7 @@ class Assert:
     def where(self, field: str, predicate: Callable[[str], bool]) -> Self:
         self.validators[field] = predicate
         return self
+
     def _parse_class_name(self) -> tuple[str, str]:
         words = [
             w.lower()
@@ -93,33 +94,26 @@ class Assert:
 
     def evaluate(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
         attr_name, op_name = self._parse_class_name()
-        frame = frames[self.frame_pos]
-        actual = getattr(frame, attr_name, None)
+        actual = getattr(frames[self.frame_pos], attr_name, None)
+
+        passed, captured_matches, details = self._execute_phase_one(actual, op_name)
+
+        if passed:
+            for field_name, predicate in self.validators.items():
+                if field_name not in captured_matches:
+                    passed = False
+                    details = f"Predicate field '{field_name}' not found in template matches."
+                    break
+
+                val = captured_matches[field_name]
+                if not predicate(val):
+                    passed = False
+                    details = f"Validation failed for field '{field_name}' with value '{val}'"
+                    break
 
         formatted_attr = attr_name.replace("_", " ").title()
         assertion_str = f"{formatted_attr} {op_name}: '{self.expected}'"
-
-        passed, captured_matches, details = self._execute_phase_one(actual, op_name)
-        if not passed:
-            return ExpectanceResult(assertion=assertion_str, passed=False, details=details)
-
-        for field_name, predicate in self.validators.items():
-            if field_name not in captured_matches:
-                return ExpectanceResult(
-                    assertion=assertion_str,
-                    passed=False,
-                    details=f"Predicate field '{field_name}' not found in template matches.",
-                )
-
-            val = captured_matches[field_name]
-            if not predicate(val):
-                return ExpectanceResult(
-                    assertion=assertion_str,
-                    passed=False,
-                    details=f"Validation failed for field '{field_name}' with value '{val}'",
-                )
-
-        return ExpectanceResult(assertion=assertion_str, passed=True, details="")
+        return ExpectanceResult(assertion=assertion_str, passed=passed, details=details if not passed else "")
 
 class ExitMsgContains(Assert): frame_pos = -1
 class DiskManifestHas(Assert): pass
@@ -148,13 +142,13 @@ class AssertsImpl(Asserts):
         self._asserts.append(PromptRenderContains(expected_prompt))
         return self._parent
 
+    def prompt_render_min_lines(self, count: int) -> TestContainer:
+        self._asserts.append(PromptRenderMinLines(count))
+        return self._parent
+
     def where(self, field: str, predicate: Callable[[str], bool]) -> TestContainer:
         if self._asserts:
             self._asserts[-1].where(field, predicate)
-        return self._parent
-
-    def prompt_render_min_lines(self, count: int) -> TestContainer:
-        self._asserts.append(PromptRenderMinLines(count))
         return self._parent
 
     def evaluate(self, frames: list[ExecutionFrame], name: str, test_number: int) -> AtomicTestResult:

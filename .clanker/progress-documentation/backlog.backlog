@@ -65,12 +65,6 @@ II. The pile
 
 Backlog tail, Selected item/items:
 
-1. Add PromptRenderMinLines assert class and field-prefix classname parser
-    [ ] 'content/test/expectance_impls.py': Refactor Assert class name parsing and add min_lines support
-        - Update _parse_class_name to greedily match words left-to-right against ExecutionFrame fields before deriving op_name
-        - Add 'min_lines' operation handling in _execute_phase_one
-        - Add PromptRenderMinLines class inheriting from Assert
-        - Update AssertsImpl.prompt_render_min_lines to instantiate PromptRenderMinLines directly
 
 Backlog tail end
 
@@ -199,3 +193,10 @@ Backlog tail end
         - populate default string match metrics ('lines', 'chars', 'text') for string targets in Phase 1
         - implement Phase 2 predicate validation for where calls against Phase 1 captured dictionary
         - route where directly to trailing check in ExpectationBuilder._checks
+
+11. Add PromptRenderMinLines assert class and field-prefix classname parser
+    [x] 'content/test/expectance_impls.py': Refactor Assert class name parsing and add min_lines support
+        - Update _parse_class_name to greedily match words left-to-right against ExecutionFrame fields before deriving op_name
+        - Add 'min_lines' operation handling in _execute_phase_one
+        - Add PromptRenderMinLines class inheriting from Assert
+        - Update AssertsImpl.prompt_render_min_lines to instantiate PromptRenderMinLines directly
