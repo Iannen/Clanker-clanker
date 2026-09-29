@@ -17,7 +17,7 @@ import assert_classes as assert_cls_module
 from base_classes import AssertSuite
 from expectance_impls import ActionsFactoryImpl
 from import_checker import FileAnalysisSuite
-from results import FileAnalysisResults, MethodResult, AssertSuiteResult, RunResult
+from results import FileAnalysisResults, MethodResult, AssertSuiteResult, RunResult, Outcome
 from visitors.console_visitor import ConsoleReportVisitor
 from visitors.html_visitor import HtmlReportVisitor
 class TestSuitesRunner:
@@ -79,7 +79,7 @@ class GateInspector:
         self._write_report_file()
         self.write_console_report()
 
-        return self.run_result.passed
+        return self.run_result.outcome == Outcome.PASS
 
     def _write_report_file(self) -> None:
         html_report_file = self.reports_dir / f"{self.run_result.name}.html"

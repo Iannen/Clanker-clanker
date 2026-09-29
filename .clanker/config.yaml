@@ -16,8 +16,8 @@ filesets:
     content/clanker.py]}
 
   test_harness: {includes: [
-    content/test/results.py,
-    content/test/visitors]}
+    content/test/results.py]}#,
+#    content/test/visitors]}
 
 domains:
 - name: core

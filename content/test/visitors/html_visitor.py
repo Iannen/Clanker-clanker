@@ -1,35 +1,30 @@
+from results import Outcome, RunResult, FileAnalysisResults, FileReport, AssertSuiteResult, MethodResult, ContainerResult, AtomicTestResult, ExpectanceResult, SandboxOperationsResult
 import html
 
 
 class HtmlReportVisitor:
-    def visit_run_result(self, node) -> str:
+    def visit_run_result(self, node: RunResult) -> str:
         display_name = html.escape(node.name.removeprefix("Run<").removesuffix(">"))
-        status_badge = (
-            '<span class="badge badge-pass">PASSED</span>'
-            if node.passed
-            else '<span class="badge badge-fail">FAILED</span>'
-        )
+        status_badge = self._badge(node.outcome)
 
-        total_tests = 0
-        passed_tests = 0
-        failed_tests = 0
-        crashed_tests = 0
-
-        suite_html_blocks = []
+        total = passed = failed = undefined = 0
         for suite in node.assert_suite_results:
-            total_tests += suite.total_tests
-            passed_tests += suite.passed_tests
-            failed_tests += suite.failed_tests
-            crashed_tests += suite.crashed_tests
-            suite_html_blocks.append(suite.accept(self))
+            for test in suite.all_atomic_tests:
+                total += 1
+                if test.outcome == Outcome.PASS:
+                    passed += 1
+                elif test.outcome == Outcome.FAIL:
+                    failed += 1
+                else:
+                    undefined += 1
 
+        suite_html_blocks = [suite.accept(self) for suite in node.assert_suite_results]
         file_analysis_html = "".join(
             fa.accept(self) for fa in node.file_analysis_results
         )
         total_import_violations = sum(
             fa.total_violations for fa in node.file_analysis_results
         )
-
         suites_content = "".join(suite_html_blocks)
 
         return f"""<!DOCTYPE html>
@@ -47,7 +42,7 @@ class HtmlReportVisitor:
       --text-muted: #94a3b8;
       --accent-pass: #22c55e;
       --accent-fail: #ef4444;
-      --accent-crash: #a855f7;
+      --accent-undefined: #a855f7;
       --accent-warn: #f59e0b;
       --border-color: #334155;
     }}
@@ -85,6 +80,7 @@ class HtmlReportVisitor:
     }}
     .badge-pass {{ background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid var(--accent-pass); }}
     .badge-fail {{ background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid var(--accent-fail); }}
+    .badge-undefined {{ background: rgba(168, 85, 247, 0.2); color: #e9d5ff; border: 1px solid var(--accent-undefined); }}
     .stats-grid {{
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -166,9 +162,10 @@ class HtmlReportVisitor:
     }}
     .exp-pass {{ background: rgba(34, 197, 94, 0.1); color: #86efac; }}
     .exp-fail {{ background: rgba(239, 68, 68, 0.15); color: #fca5a5; }}
-    .crash-box {{
+    .exp-undefined {{ background: rgba(168, 85, 247, 0.15); color: #e9d5ff; }}
+    .undefined-box {{
       background: rgba(168, 85, 247, 0.15);
-      border: 1px solid var(--accent-crash);
+      border: 1px solid var(--accent-undefined);
       color: #e9d5ff;
       padding: 0.75rem;
       border-radius: 6px;
@@ -199,20 +196,20 @@ class HtmlReportVisitor:
     </div>
     <div class="stats-grid">
       <div class="stat-box">
-        <div class="stat-val">{total_tests}</div>
+        <div class="stat-val">{total}</div>
         <div class="stat-lbl">Total Tests</div>
       </div>
       <div class="stat-box" style="color: var(--accent-pass);">
-        <div class="stat-val">{passed_tests}</div>
-        <div class="stat-lbl">Passed</div>
+        <div class="stat-val">{passed}</div>
+        <div class="stat-lbl">Pass</div>
       </div>
       <div class="stat-box" style="color: var(--accent-fail);">
-        <div class="stat-val">{failed_tests}</div>
-        <div class="stat-lbl">Failed</div>
+        <div class="stat-val">{failed}</div>
+        <div class="stat-lbl">Fail</div>
       </div>
-      <div class="stat-box" style="color: var(--accent-crash);">
-        <div class="stat-val">{crashed_tests}</div>
-        <div class="stat-lbl">Crashed</div>
+      <div class="stat-box" style="color: var(--accent-undefined);">
+        <div class="stat-val">{undefined}</div>
+        <div class="stat-lbl">Undefined</div>
       </div>
       <div class="stat-box" style="color: var(--accent-warn);">
         <div class="stat-val">{total_import_violations}</div>
@@ -223,7 +220,7 @@ class HtmlReportVisitor:
 
   <div class="filter-bar">
     <button class="filter-btn active" onclick="filterAll(event)">All Results</button>
-    <button class="filter-btn" onclick="filterFailures(event)">Failures & Crashes Only</button>
+    <button class="filter-btn" onclick="filterNonPass(event)">Fail &amp; Undefined Only</button>
   </div>
 
   {file_analysis_html}
@@ -236,7 +233,7 @@ class HtmlReportVisitor:
     if (el) el.classList.toggle('hidden');
   }}
 
-  function filterFailures(e) {{
+  function filterNonPass(e) {{
     document.querySelectorAll('.pass-suite').forEach(el => el.classList.add('hidden'));
     document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
     e.target.classList.add('active');
@@ -251,8 +248,8 @@ class HtmlReportVisitor:
 </body>
 </html>"""
 
-    def visit_file_analysis_results(self, node) -> str:
-        icon = "✅" if node.is_clean else "❌"
+    def visit_file_analysis_results(self, node: FileAnalysisResults) -> str:
+        icon = self._icon(node.outcome)
         status_label = f"{node.total_files_checked} files inspected"
         reports_html = "".join(r.accept(self) for r in node.reports)
 
@@ -269,10 +266,13 @@ class HtmlReportVisitor:
     </div>
   </div>"""
 
-    def visit_file_report(self, node) -> str:
+    def visit_file_report(self, node: FileReport) -> str:
         rel_path = html.escape(node.rel_path)
-        if node.is_clean:
-            return f'<div style="font-size: 0.9rem; margin-bottom: 0.4rem;"><span style="color: var(--accent-pass);">✅ {rel_path}</span></div>'
+        if node.outcome == Outcome.PASS:
+            return (
+                f'<div style="font-size: 0.9rem; margin-bottom: 0.4rem;">'
+                f'<span style="color: var(--accent-pass);">✅ {rel_path}</span></div>'
+            )
 
         errors = (
             node.forbidden_import_statements
@@ -288,10 +288,10 @@ class HtmlReportVisitor:
         </ul>
       </div>"""
 
-    def visit_assert_suite_result(self, node) -> str:
+    def visit_assert_suite_result(self, node: AssertSuiteResult) -> str:
         suite_id = f"suite-{abs(hash(node.suite_name))}"
-        icon = "✅" if node.passed else "❌"
-        suite_class = "pass-suite" if node.passed else "fail-suite"
+        icon = self._icon(node.outcome)
+        suite_class = "pass-suite" if node.outcome == Outcome.PASS else "fail-suite"
         methods_html = "".join(m.accept(self) for m in node.method_results)
 
         return f"""
@@ -307,8 +307,8 @@ class HtmlReportVisitor:
     </div>
   </div>"""
 
-    def visit_method_result(self, node) -> str:
-        icon = "✅" if node.passed else "❌"
+    def visit_method_result(self, node: MethodResult) -> str:
+        icon = self._icon(node.outcome)
         containers_html = "".join(c.accept(self) for c in node.container_results)
 
         return f"""
@@ -317,41 +317,46 @@ class HtmlReportVisitor:
       </div>
       {containers_html}"""
 
-    def visit_container_result(self, node) -> str:
-        preop_html = (
-            f'<strong style="margin-top: 0.75rem; display: block;">Pre-Sandbox Operations:</strong>{node.preop_result.accept(self)}'
-            if node.preop_result
-            else ""
-        )
-        postop_html = (
-            f'<strong style="margin-top: 0.75rem; display: block;">Post-Sandbox Operations:</strong>{node.postop_result.accept(self)}'
-            if node.postop_result
-            else ""
-        )
-
-        test_html = node.test_result.accept(self)
-        if preop_html or postop_html:
-            test_html = test_html.replace(
-                "<!-- EXTRA_CONTAINER_OPS -->", f"{preop_html}{postop_html}"
+    def visit_container_result(self, node: ContainerResult) -> str:
+        parts = [node.test_result.accept(self)]
+        if node.preop_result is not None:
+            parts.append(
+                '<strong style="margin-top: 0.75rem; display: block;">Pre-Sandbox Operations:</strong>'
+                + node.preop_result.accept(self)
             )
-        return test_html
+        if node.postop_result is not None:
+            parts.append(
+                '<strong style="margin-top: 0.75rem; display: block;">Post-Sandbox Operations:</strong>'
+                + node.postop_result.accept(self)
+            )
+        return "".join(parts)
 
-    def visit_atomic_test_result(self, node) -> str:
+    def visit_atomic_test_result(self, node: AtomicTestResult) -> str:
         test_id = f"test-{node.test_number}-{abs(hash(node.name))}"
-        if node.crashed:
-            status_span = '<span style="color: var(--accent-crash); font-size: 0.8rem;">CRASHED</span>'
-            crash_msg = html.escape(
-                node.crash_message or "Application terminated unexpectedly"
-            )
-            details_body = f'<div class="crash-box">💀 Crash Message: {crash_msg}</div>'
-            icon = "💀"
-        else:
-            icon = "✅" if node.passed else "❌"
-            color = "var(--text-muted)" if node.passed else "var(--accent-fail)"
-            status_span = f'<span style="color: {color}; font-size: 0.8rem;">{node.passed_expectances}/{node.total_expectances} expectances</span>'
+        icon = self._icon(node.outcome)
 
+        if node.outcome == Outcome.UNDEFINED:
+            status_span = (
+                '<span style="color: var(--accent-undefined); font-size: 0.8rem;">UNDEFINED</span>'
+            )
+            details_body = (
+                '<div class="undefined-box">💀 Outcome UNDEFINED '
+                '(test setup error or application terminated unexpectedly)</div>'
+            )
+        else:
+            color = (
+                "var(--text-muted)"
+                if node.outcome == Outcome.PASS
+                else "var(--accent-fail)"
+            )
+            status_span = (
+                f'<span style="color: {color}; font-size: 0.8rem;">'
+                f'{node.passed_expectances}/{node.total_expectances} expectances</span>'
+            )
             exp_items = "".join(e.accept(self) for e in node.expectance_results)
-            details_body = f'<strong>Expectances:</strong><div class="exp-list">{exp_items}</div>'
+            details_body = (
+                f'<strong>Expectances:</strong><div class="exp-list">{exp_items}</div>'
+            )
 
         frames_html = ""
         if node.frames:
@@ -361,9 +366,12 @@ class HtmlReportVisitor:
                 exit_code = getattr(f, "exit_code", 0)
                 frame_lines.append(f"$ {cmd} [exit code: {exit_code}]")
             frames_str = "<br>".join(frame_lines)
-            frames_html = f'<strong style="margin-top: 0.75rem; display: block;">Execution Frames:</strong><div class="frame-box">{frames_str}</div>'
+            frames_html = (
+                '<strong style="margin-top: 0.75rem; display: block;">Execution Frames:</strong>'
+                f'<div class="frame-box">{frames_str}</div>'
+            )
 
-        is_hidden = "hidden" if node.passed else ""
+        is_hidden = "hidden" if node.outcome == Outcome.PASS else ""
 
         return f"""
       <div class="test-card">
@@ -373,17 +381,21 @@ class HtmlReportVisitor:
         </div>
         <div id="{test_id}" class="test-details {is_hidden}">
           {details_body}
-          <!-- EXTRA_CONTAINER_OPS -->
           {frames_html}
         </div>
       </div>"""
 
-    def visit_expectance_result(self, node) -> str:
-        css_cls = "exp-pass" if node.passed else "exp-fail"
-        status_txt = "PASSED" if node.passed else "FAILED"
+    def visit_expectance_result(self, node: ExpectanceResult) -> str:
+        css_cls = {
+            Outcome.PASS: "exp-pass",
+            Outcome.FAIL: "exp-fail",
+            Outcome.UNDEFINED: "exp-undefined",
+        }.get(node.outcome, "exp-fail")
+        status_txt = html.escape(node.outcome.name)
         assertion = html.escape(node.assertion)
         details_html = (
-            f'<div style="font-family: monospace; font-size: 0.8rem; color: #fca5a5; margin-top: 0.25rem;">Details: {html.escape(node.details)}</div>'
+            f'<div style="font-family: monospace; font-size: 0.8rem; color: #fca5a5; margin-top: 0.25rem;">'
+            f'Details: {html.escape(node.details)}</div>'
             if node.details
             else ""
         )
@@ -395,12 +407,36 @@ class HtmlReportVisitor:
           </div>
           {details_html}"""
 
-    def visit_sandbox_operations_result(self, node) -> str:
+    def visit_sandbox_operations_result(self, node: SandboxOperationsResult) -> str:
         op_lines = []
-        for op_type, desc, passed in node.operations:
-            pass_str = "PASSED" if passed else "FAILED"
+        for op_type, desc, outcome in node.operations:
+            icon = self._icon(outcome)
+            status = html.escape(outcome.name)
             op_lines.append(
-                f"• {html.escape(op_type)}: {html.escape(desc)} ({pass_str})"
+                f"{icon} {html.escape(op_type)}: {html.escape(desc)} ({status})"
             )
+        if node.disk_state:
+            op_lines.append("disk state:")
+            for entry in node.disk_state:
+                op_lines.append(f"  {html.escape(entry)}")
         ops_str = "<br>".join(op_lines)
         return f'<div class="frame-box">{ops_str}</div>'
+
+    @staticmethod
+    def _icon(outcome: Outcome) -> str:
+        return {
+            Outcome.PASS: "✅",
+            Outcome.FAIL: "❌",
+            Outcome.UNDEFINED: "💀",
+            Outcome.INIT: "?",
+        }.get(outcome, "?")
+
+    @staticmethod
+    def _badge(outcome: Outcome) -> str:
+        mapping = {
+            Outcome.PASS: ('badge-pass', 'PASS'),
+            Outcome.FAIL: ('badge-fail', 'FAIL'),
+            Outcome.UNDEFINED: ('badge-undefined', 'UNDEFINED'),
+        }
+        css, label = mapping.get(outcome, ('badge-fail', outcome.name if hasattr(outcome, 'name') else str(outcome)))
+        return f'<span class="badge {css}">{label}</span>'

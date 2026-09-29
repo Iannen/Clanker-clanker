@@ -45,22 +45,9 @@ II. The pile
         - append a trailing 'Next item numeral: <FOLLOWING_ROMAN_NUMERAL>' marker to history output instructions
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 
-
 Backlog tail, Selected item/items:
 
-1. Implement a base class for result type classes to absorb common behavior, reduce boilerplate, and standardize result objects
-    [ ] 'domain/results.py': Extract common visitor acceptance behavior into a base class
-        - Standardize the double-dispatch visitor signature across all result models
-        - Subclasses currently duplicate identical visitor delegation methods
-        - Handle `slots=True` inheritance constraints or slot removal across dataclasses
-    [ ] 'domain/results.py': Introduce a standard outcome enum and base class outcome field
-        - Replace binary boolean flags (`passed`, `is_clean`) with a unified three-state enum (`PASS`, `FAIL`, `CRASH`)
-        - Support an optional/nullable outcome field on the base class to allow explicit instantiation overrides
-        - Handle initial leaf outcome mappings where status originates directly from raw execution data or flags
-    [ ] 'domain/results.py': Implement automatic outcome resolution in base class post-init
-        - Inspect child fields dynamically (single result nodes or collections) during post-init when no explicit outcome is provided
-        - Implement precedence hierarchy rollup (`CRASH` > `FAIL` > `PASS`) across nested result structures
-        - Ensure compatibility with dataclass post-init hooks and field order across composite subclasses
+we need more results, so that we can eliminate post inits on all Result inheritors
 
 Backlog tail end
 
@@ -196,3 +183,21 @@ Backlog tail end
         - Add 'min_lines' operation handling in _execute_phase_one
         - Add PromptRenderMinLines class inheriting from Assert
         - Update AssertsImpl.prompt_render_min_lines to instantiate PromptRenderMinLines directly
+
+12. Implement a base class for result type classes to absorb common behavior, reduce boilerplate, and standardize result objects
+    [x] 'domain/results.py': Extract common visitor acceptance behavior into a base class
+        - Standardize the double-dispatch visitor signature across all result models
+        - Subclasses currently duplicate identical visitor delegation methods
+        - Handle `slots=True` inheritance constraints or slot removal across dataclasses
+    [x] 'domain/results.py': Introduce Outcome enum and base class outcome resolution
+        - Define `Outcome` IntEnum (`PASS`, `FAIL`, `UNDEFINED`) and `outcome` attribute on base `Result`
+        - remove and 'passed' bool or 'crashed' type members from any and all Result inheritors
+        - Implement base `__post_init__` on Result baseclass to automatically inspect child `Result` objects and roll up outcomes via `max()` precedence hierarchy
+            - if outcome is not None, return (it was set explicitly during construction), 
+            - if there are no child Results to aquire outcomes from, then set outcome to undefined
+            - else use the 'worst' outcome of the children
+        - no Result inheritor except for 'FileReport' is allowed to have a post init!
+    [x] Resulting alignments downstream & upstream:
+        - expectance_impls.py saw alignment as a result producer
+        - import_checker.py needed adjustment to collect -> instantiate pattern 
+        - both html and console visitors needed alignment to the new result model

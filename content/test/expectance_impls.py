@@ -12,7 +12,7 @@ from typing import Any, Callable, Optional, Self
 from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
 from assert_classes import ActionsFactory, Asserts, Sandbox, TestContainer
 from core import PathTokens
-from results import AtomicTestResult, ContainerResult, ExpectanceResult, SandboxOperationsResult
+from results import AtomicTestResult, ContainerResult, ExpectanceResult, SandboxOperationsResult, Outcome
 
 class Assert:
     frame_pos: int = -2
@@ -37,11 +37,14 @@ class Assert:
                 return attr_candidate, op_candidate
         raise ValueError(f"No valid ExecutionFrame attribute prefix found in {self.__class__.__name__}")
 
-    def _execute_phase_one(self, actual: Any, op_name: str) -> tuple[bool, dict[str, str], str]:
-        if actual is None:
-            return False, {}, f"Target frame attribute is None (expected '{self.expected}')"
+    def _execute_phase_one(self, actual: Any, op_name: str) -> tuple[Outcome, dict[str, str], str]:
+        outcome = Outcome.FAIL
+        matches: dict[str, str] = {}
+        details = ""
 
-        if isinstance(self.expected, str) and "{" in self.expected and "}" in self.expected:
+        if actual is None:
+            details = f"Target frame attribute is None (expected '{self.expected}')"
+        elif isinstance(self.expected, str) and "{" in self.expected and "}" in self.expected:
             parts = []
             last_idx = 0
             for match in re.finditer(r"\{(\w+)\}", self.expected):
@@ -52,68 +55,64 @@ class Assert:
             parts.append(re.escape(self.expected[last_idx:]))
             built_regex = "".join(parts)
 
-            match = re.search(built_regex, str(actual))
-            if match:
-                matches = match.groupdict()
+            regex_match = re.search(built_regex, str(actual))
+            if regex_match:
+                outcome = Outcome.PASS
+                matches = regex_match.groupdict()
                 matches.setdefault("lines", str(actual))
                 matches.setdefault("chars", str(actual))
                 matches.setdefault("text", str(actual))
-                return True, matches, ""
-            return False, {}, f"Expected template pattern not found: '{self.expected}'\n\n--- Actual ---\n{actual}"
-
-        if op_name == "contains":
-            passed = str(self.expected) in str(actual)
-            details = "" if passed else f"Expected '{self.expected}' to be contained in '{actual}'"
+            else:
+                details = f"Expected template pattern not found: '{self.expected}'\n\n--- Actual ---\n{actual}"
+        elif op_name == "contains":
+            if str(self.expected) in str(actual): outcome = Outcome.PASS
+            details = "" if outcome == Outcome.PASS else f"Expected '{self.expected}' to be contained in '{actual}'"
             matches = {
                 "lines": str(actual),
                 "chars": str(actual),
                 "text": str(actual),
             }
-            return passed, matches, details
-
-        if op_name == "has":
+        elif op_name == "has":
             actual_set = set(actual) if isinstance(actual, (list, set, tuple)) else set()
             expected_list = remove_token(self.expected) if isinstance(self.expected, (list, set, tuple)) else [remove_token(self.expected)]
             missing = [p for p in expected_list if p not in actual_set]
-            passed = len(missing) == 0
-            details = "" if passed else f"Missing expected items: {missing}"
-            return passed, {}, details
-
-        if op_name == "min_lines":
+            outcome = Outcome.PASS if len(missing) == 0 else Outcome.FAIL
+            details = "" if outcome else f"Missing expected items: {missing}"
+        elif op_name == "min_lines":
             line_count = len(str(actual).splitlines()) if actual is not None else 0
-            passed = line_count >= int(self.expected)
-            details = "" if passed else f"Expected minimum {self.expected} lines, got {line_count}"
+            outcome = Outcome.PASS if line_count >= int(self.expected) else Outcome.FAIL
+            details = "" if outcome else f"Expected minimum {self.expected} lines, got {line_count}"
             matches = {
                 "lines": str(actual),
                 "chars": str(actual),
                 "text": str(actual),
             }
-            return passed, matches, details
-
-        raise NotImplementedError(f"Unsupported primary operation: '{op_name}'")
+        else:
+            raise NotImplementedError(f"Unsupported primary operation: '{op_name}'")
+        return outcome, matches, details
 
     def evaluate(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
         attr_name, op_name = self._parse_class_name()
         actual = getattr(frames[self.frame_pos], attr_name, None)
 
-        passed, captured_matches, details = self._execute_phase_one(actual, op_name)
+        outcome, captured_matches, details = self._execute_phase_one(actual, op_name)
 
-        if passed:
+        if outcome == Outcome.PASS:
             for field_name, predicate in self.validators.items():
                 if field_name not in captured_matches:
-                    passed = False
+                    outcome = Outcome.FAIL
                     details = f"Predicate field '{field_name}' not found in template matches."
                     break
 
                 val = captured_matches[field_name]
                 if not predicate(val):
-                    passed = False
+                    outcome = Outcome.FAIL
                     details = f"Validation failed for field '{field_name}' with value '{val}'"
                     break
 
         formatted_attr = attr_name.replace("_", " ").title()
         assertion_str = f"{formatted_attr} {op_name}: '{self.expected}'"
-        return ExpectanceResult(assertion=assertion_str, passed=passed, details=details if not passed else "")
+        return ExpectanceResult(assertion=assertion_str, outcome=outcome, details=details if not outcome else "")
 
 class ExitMsgContains(Assert): frame_pos = -1
 class DiskManifestHas(Assert): pass
@@ -160,8 +159,6 @@ class AssertsImpl(Asserts):
             name=name,
             expectance_results=expectance_results,
             frames=frames,
-            crashed=False,
-            crash_message=None,
         )
 
 class TestContainerImpl(TestContainer):
@@ -184,7 +181,7 @@ class TestContainerImpl(TestContainer):
     def postop(self) -> SandboxImpl:
         return self._postop
 
-    def run(self, sandbox_dir: Path, clanker_path: Path, framedump_path: Path, test_number: int = 1) -> ContainerResult:
+    def run(self, sandbox_dir: Path, clanker_path: Path, framedump_path: Path, test_number: int = 1) -> ContainerResult: # CR carries crash msg
         preop_out = self._preop.execute(sandbox_dir)
         frames = self._run_put(sandbox_dir, clanker_path, framedump_path)
 
@@ -198,8 +195,6 @@ class TestContainerImpl(TestContainer):
                 name=self.name,
                 expectance_results=[],
                 frames=frames,
-                crashed=True,
-                crash_message=crash_msg,
             )
 
         postop_out = self._postop.execute(sandbox_dir)
@@ -309,10 +304,10 @@ class SandboxImpl(Sandbox):
         for op_type, desc, action in self._actions:
             try:
                 action(sandbox_dir)
-                passed = True
+                outcome = Outcome.PASS
             except Exception:
-                passed = False
-            ops.append((op_type, desc, passed))
+                outcome = Outcome.FAIL
+            ops.append((op_type, desc, outcome))
         return SandboxOperationsResult(ops, get_disk_state(sandbox_dir))
 
 class ActionsFactoryImpl(ActionsFactory):

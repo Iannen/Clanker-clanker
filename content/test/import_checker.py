@@ -81,13 +81,13 @@ class FileAnalysisSuite:
         self._content_dir = content_dir
 
     def analyse_files(self) -> FileAnalysisResults:
-        aggregated_reports = FileAnalysisResults()
+        aggregated_reports = []
         for rule in policy:
             paths = self._resolve_rule_paths(rule)
             for file_path in paths:
                 report = self._analyze_file(file_path, rule)
-                aggregated_reports.reports.append(report)
-        return aggregated_reports
+                aggregated_reports.append(report)
+        return FileAnalysisResults(aggregated_reports)
 
     def _resolve_rule_paths(self, rule: PolicyRule) -> list[Path]:
         target = self._content_dir / rule.dir
