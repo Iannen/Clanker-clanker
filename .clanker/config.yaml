@@ -15,19 +15,9 @@ filesets:
     content/core,
     content/clanker.py]}
 
-  ports_adapters: {includes: [
-    content/ports_adapters]}
-
   test_harness: {includes: [
-    content/adapters/terminal/scripted_terminal_adapter.py,
-    content/test/expectance_impls.py,
-    content/test/assert_classes.py]}
-
-  path_fix: {includes: [
-    content/core/core/constants.py,
-    content/modules/asset_ingestion/ingestion_service.py,
-    content/modules/asset_ingestion/assemblers/rtc.py,
-    content/modules/render_pipeline/render_service.py]}
+    content/test/results.py,
+    content/test/visitors]}
 
 domains:
 - name: core

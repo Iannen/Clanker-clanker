@@ -1,11 +1,19 @@
 from dataclasses import dataclass, field
 from datetime import datetime
+import re
 from typing import Optional
 from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
 
 
-@dataclass(slots=True)
-class FileReport:
+class Result:
+    def accept(self, visitor):
+        snake_name = re.sub(r"(?<!^)(?=[A-Z])", "_", self.__class__.__name__).lower()
+        method_name = f"visit_{snake_name}"
+        return getattr(visitor, method_name)(self)
+
+
+@dataclass
+class FileReport(Result):
     rel_path: str
     forbidden_import_statements: list[str] = field(default_factory=list)
     dangling_imports: list[str] = field(default_factory=list)
@@ -19,12 +27,9 @@ class FileReport:
             or self.undeclared_imports
         )
 
-    def accept(self, visitor):
-        return visitor.visit_file_report(self)
 
-
-@dataclass(slots=True)
-class FileAnalysisResults:
+@dataclass
+class FileAnalysisResults(Result):
     reports: list[FileReport] = field(default_factory=list)
 
     @property
@@ -44,22 +49,16 @@ class FileAnalysisResults:
             for r in self.reports
         )
 
-    def accept(self, visitor):
-        return visitor.visit_file_analysis_results(self)
 
-
-@dataclass(slots=True)
-class ExpectanceResult:
+@dataclass
+class ExpectanceResult(Result):
     assertion: str = ""
     passed: bool = False
     details: str = ""
 
-    def accept(self, visitor):
-        return visitor.visit_expectance_result(self)
 
-
-@dataclass(slots=True)
-class SandboxOperationsResult:
+@dataclass
+class SandboxOperationsResult(Result):
     operations: list[tuple[str, str, bool]]
     disk_state: list[str] = field(default_factory=list)
 
@@ -67,12 +66,9 @@ class SandboxOperationsResult:
     def passed(self) -> bool:
         return all(passed for _, _, passed in self.operations)
 
-    def accept(self, visitor):
-        return visitor.visit_sandbox_operations_result(self)
 
-
-@dataclass(slots=True)
-class AtomicTestResult:
+@dataclass
+class AtomicTestResult(Result):
     test_number: int
     name: str
     expectance_results: list[ExpectanceResult] = field(default_factory=list)
@@ -94,12 +90,9 @@ class AtomicTestResult:
     def passed_expectances(self) -> int:
         return sum(1 for r in self.expectance_results if r.passed)
 
-    def accept(self, visitor):
-        return visitor.visit_atomic_test_result(self)
 
-
-@dataclass(slots=True)
-class ContainerResult:
+@dataclass
+class ContainerResult(Result):
     test_result: AtomicTestResult
     preop_result: Optional[SandboxOperationsResult] = None
     postop_result: Optional[SandboxOperationsResult] = None
@@ -110,12 +103,9 @@ class ContainerResult:
         post_ok = self.postop_result.passed if self.postop_result else True
         return pre_ok and self.test_result.passed and post_ok
 
-    def accept(self, visitor):
-        return visitor.visit_container_result(self)
 
-
-@dataclass(slots=True)
-class MethodResult:
+@dataclass
+class MethodResult(Result):
     method_name: str
     container_results: list[ContainerResult] = field(default_factory=list)
 
@@ -127,12 +117,9 @@ class MethodResult:
     def atomic_tests(self) -> list[AtomicTestResult]:
         return [c.test_result for c in self.container_results]
 
-    def accept(self, visitor):
-        return visitor.visit_method_result(self)
 
-
-@dataclass(slots=True)
-class AssertSuiteResult:
+@dataclass
+class AssertSuiteResult(Result):
     suite_name: str
     report_filename: str
     method_results: list[MethodResult]
@@ -165,30 +152,18 @@ class AssertSuiteResult:
     def crashed_tests(self) -> int:
         return sum(1 for t in self.all_atomic_tests if t.crashed)
 
-    def accept(self, visitor):
-        return visitor.visit_assert_suite_result(self)
 
-
-class RunResult:
-    __slots__ = (
-        "file_analysis_results",
-        "assert_suite_results",
-        "name",
-        "passed",
+@dataclass
+class RunResult(Result):
+    file_analysis_results: list[FileAnalysisResults]
+    assert_suite_results: list[AssertSuiteResult]
+    name: str = field(
+        default_factory=lambda: datetime.now().strftime("Run<%Y.%m.%d.%H.%M>")
     )
+    passed: bool = field(init=False)
 
-    def __init__(
-        self,
-        file_analysis_results: list[FileAnalysisResults],
-        assert_suite_results: list[AssertSuiteResult],
-    ) -> None:
-        self.file_analysis_results = file_analysis_results
-        self.assert_suite_results = assert_suite_results
-        self.name = datetime.now().strftime("Run<%Y.%m.%d.%H.%M>")
+    def __post_init__(self) -> None:
         self.passed = (
             all(fa.is_clean for fa in self.file_analysis_results)
             and all(suite.passed for suite in self.assert_suite_results)
         )
-
-    def accept(self, visitor):
-        return visitor.visit_run_result(self)

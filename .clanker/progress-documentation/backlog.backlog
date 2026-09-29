@@ -46,7 +46,7 @@ II. The pile
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 
 
-
+Backlog tail, Selected item/items:
 
 1. Implement a base class for result type classes to absorb common behavior, reduce boilerplate, and standardize result objects
     [ ] 'domain/results.py': Extract common visitor acceptance behavior into a base class
@@ -61,10 +61,6 @@ II. The pile
         - Inspect child fields dynamically (single result nodes or collections) during post-init when no explicit outcome is provided
         - Implement precedence hierarchy rollup (`CRASH` > `FAIL` > `PASS`) across nested result structures
         - Ensure compatibility with dataclass post-init hooks and field order across composite subclasses
-
-
-Backlog tail, Selected item/items:
-
 
 Backlog tail end
 
