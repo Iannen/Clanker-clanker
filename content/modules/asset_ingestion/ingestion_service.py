@@ -19,7 +19,7 @@ from . import (
     FilesetExtractor,
     DomainExtractor,
     BaseResolverExtractor,
-    UIRenderExtractor,
+    SysConfigExtractor,
     RtcAssembler,
     FilelistValidator,
     FilesetValidator,
@@ -53,7 +53,7 @@ class ClankerCtx:
 
     def process(self):
         self._determine_action()
-        self.ui_render = UIRenderExtractor(self.collector).extract(self.sys_cfg) if self.sys_cfg.data else None
+        self.ui_render, self.btn_map = SysConfigExtractor(self.collector).extract(self.sys_cfg) if self.sys_cfg.data else None, None
         self.filelist = FilelistExtractor(self.collector).extract(self.shared_cfg) if self.shared_cfg.data else None
         self.fileset = FilesetExtractor(self.collector).extract(self.shared_cfg) if self.shared_cfg.data else None
         self.doms = DomainExtractor(self.collector, self.fileset, self.filelist).extract(self.shared_cfg) if self.shared_cfg.data else None

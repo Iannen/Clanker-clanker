@@ -1,14 +1,19 @@
 from stdlib import dataclass
-from core import KBStateResolver, Render
+from core import KBStateResolver, Render, Button
 from ...asset_ingestion import ErrorCollector, ValueExtractor, Config
 
 @dataclass
-class UIRenderExtractor:
+class SysConfigExtractor:
     collector: ErrorCollector
     def extract(
         self,
         sys_cfg: Config,
-    ) -> Render:
+    ) -> tuple[Render, dict[str, Button]]: 
+        ui_render = self._get_render(sys_cfg)
+        bnt_map = self._get_btn_map(sys_cfg)
+        return ui_render, bnt_map
+
+    def _get_render(self, sys_cfg):
         with self.collector.path("ui_render"):
             extractor = ValueExtractor()
             ui_render_dict = extractor.req_dict(sys_cfg.data, ["ui_render"])
@@ -41,3 +46,14 @@ class UIRenderExtractor:
                 inherit_base=inherit_base,
                 inherit_domain=inherit_domain,
             )
+
+    def _get_btn_map(self, sys_cfg):
+        # if we dont get them, complain! 
+        btn_map: dict[str, Button] = {}
+        for key_char in extractor.req_str(sys_cfg.data, ["button_rows", "prompts_row"]):
+            btn_map[key_char] = Button(type=Button.TYPE_PROMPT, key=key_char, inhabitant=None)
+        for key_char in extractor.req_str(sys_cfg.data, ["button_rows", "shared_domains_row"]),:
+            btn_map[key_char] = Button(type=Button.TYPE_DOMAIN, key=key_char, inhabitant=None)
+        for key_char in extractor.req_str(sys_cfg.data, ["button_rows", "pud_domains_row"]):
+            btn_map[key_char] = Button(type=Button.TYPE_DOMAIN, key=key_char, inhabitant=None)
+        return btn_map
