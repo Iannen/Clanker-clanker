@@ -19,18 +19,9 @@ filesets:
     content/ports_adapters]}
 
   test_harness: {includes: [
-    content/clanker.py,
     content/adapters/terminal/scripted_terminal_adapter.py,
-    content/test], excludes: [
-      content/test/reports,
-      content/test/sandboxes,
-      content/test/test_repos,
-      content/test/save.py,
-      content/test/import_checker.py,
-      content/test/reporter.py,
-      content/test/ship_gate.py,
-      content/test/results.py,
-    ]}
+    content/test/expectance_impls.py,
+    content/test/assert_classes.py]}
 
   path_fix: {includes: [
     content/core/core/constants.py,

@@ -65,6 +65,11 @@ II. The pile
 
 Backlog tail, Selected item/items:
 
+we have a contains assert, which by the name of the class targets a particular frame member, and checks that it contains a string.
+
+then we have prompt render lines. its an odd duck, lets talk about it
+
+Backlog tail end
 
 1. Establish 4-entity Test container and namespace-based fluent builders
     [x] 'content/test/assert_classes.py': Update factory interface and test suite class declarations
@@ -98,8 +103,6 @@ Backlog tail, Selected item/items:
         - Update ActionsFactoryImpl.create_test to return initialized TestContainerImpl instance
     [x] 'content/test/base_classes.py': Update type annotations
         - Align type annotations to reference TestContainer interface where applicable
-
-Backlog tail end
 
 3. Introduce ContainerResult and refactor MethodResult data structure
     [x] 'content/test/reporter.py': Add ContainerResult dataclass and update MethodResult to use container_results
@@ -181,3 +184,15 @@ Backlog tail end
    [x] 'content/test/orchestrators.py': Update GateInspector to delegate to visitors
        - Updated `GateInspector._write_report_file` to generate and persist both JSON (`.json`) and interactive HTML (`.html`) reports via `run_result.accept()`
        - Updated `GateInspector.write_console_report` to utilize `ConsoleReportVisitor` via `run_result.accept()` for terminal output
+
+10. Refactor Asserter base class to centralize evaluation and name parsing
+    [x] 'content/adapters/terminal/scripted_terminal_adapter.py': ExecutionFrame field model cleanups
+        - renamed latest_write to ui_render
+        - renamed latest_clipboard to prompt_render
+    [x] 'content/test/expectance_impls.py': Base Asserter evaluation and two-phase matcher pipeline
+        - extract frame attribute and operation name directly from PascalCase subclass names
+        - set default frame_pos = -2 on base Asserter with -1 override on ExitMsgContains
+        - implement Phase 1 extraction and template pattern matching via regex named groups
+        - populate default string match metrics ('lines', 'chars', 'text') for string targets in Phase 1
+        - implement Phase 2 predicate validation for where calls against Phase 1 captured dictionary
+        - route where directly to trailing check in ExpectationBuilder._checks

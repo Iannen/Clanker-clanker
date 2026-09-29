@@ -20,30 +20,30 @@ class Sandbox(ABC):
     def rm(self, *paths: str) -> Self: ...
 
 
-class Execution(ABC):
+class Asserts(ABC):
     @abstractmethod
-    def expect_exit_msg(self, expected_msg: str) -> Self: ...
+    def exit_msg_contains(self, expected_msg: str) -> Self: ...
 
     @abstractmethod
-    def expect_disk_has(self, expected_paths: list[str] | set[str]) -> Self: ...
+    def disk_manifest_has(self, expected_paths: list[str] | set[str]) -> Self: ...
 
     @abstractmethod
-    def expect_ui_contains(self, template: str) -> Self: ...
+    def ui_render_contains(self, template: str) -> Self: ...
+
+    @abstractmethod
+    def prompt_render_contains(self, expected_prompt: str) -> Self: ...
 
     @abstractmethod
     def where(self, field: str, predicate: Callable[[str], bool]) -> Self: ...
 
     @abstractmethod
-    def expect_prompt_contains(self, expected_prompt: str) -> Self: ...
-
-    @abstractmethod
-    def expect_prompt_min_lines(self, count: int) -> Self: ...
+    def prompt_render_min_lines(self, count: int) -> Self: ...
 
 class TestContainer(ABC):
     sequence: list[str]
     name: str
     preop: Sandbox
-    expect: Execution
+    expect: Asserts
     postop: Sandbox
 
 
@@ -58,21 +58,21 @@ class EmptyRepoTests(AssertSuite):
     def assert_end_of_sequence_terminates_properly(self, actions: ActionsFactory) -> list["TestContainer"]:
         return [
             actions.create_test([]) \
-                .expect.expect_exit_msg(TestSequenceEnded.__name__)
+                .expect.exit_msg_contains(TestSequenceEnded.__name__)
         ]
 
     def assert_abort_keys_decline_init(self, actions: ActionsFactory) -> list["TestContainer"]:
         return [
             actions.create_test([key]) \
-                .expect.expect_exit_msg(ActionResult.MSG_DECLINED_INIT)
+                .expect.exit_msg_contains(ActionResult.MSG_DECLINED_INIT)
             for key in IOControl.ABORT_KEYS
         ]
 
     def assert_clankerize_repo_contract(self, actions: ActionsFactory) -> list["TestContainer"]:
         return [
             actions.create_test(["yes", IOControl.ACCEPT_KEY]) \
-                .expect.expect_ui_contains(ActionResult.BOOTSTRAP_SUCCESS) \
-                .expect.expect_disk_has(RepoContract.get_all_target_paths()),
+                .expect.ui_render_contains(ActionResult.BOOTSTRAP_SUCCESS) \
+                .expect.disk_manifest_has(RepoContract.get_all_target_paths()),
         ]
 
     def navigate_ui_and_copy_prompts(self, actions: ActionsFactory) -> list["TestContainer"]:
@@ -80,22 +80,22 @@ class EmptyRepoTests(AssertSuite):
         prefix = ["1"]
         ats.append(
             actions.create_test(list(prefix)) \
-                .expect.expect_ui_contains("Domain 'manifest-analysis' on key '1' selected")
+                .expect.ui_render_contains("Domain 'manifest-analysis' on key '1' selected")
         )
         for c in "as":
             prefix.append(c)
             ats.append(
                 actions.create_test(list(prefix)) \
-                    .expect.expect_ui_contains(ActionResult.COPIED_TO_CLIPBOARD) \
+                    .expect.ui_render_contains(ActionResult.COPIED_TO_CLIPBOARD) \
                     .expect.where("lines", lambda l: int(l) > 100) \
                     .expect.where("chars", lambda c: int(c) > 3000) \
-                    .expect.expect_prompt_min_lines(50)
+                    .expect.prompt_render_min_lines(50)
             )
         for c in "df":
             prefix.append(c)
             ats.append(
                 actions.create_test(list(prefix)) \
-                    .expect.expect_ui_contains(ActionResult.UNBOUND_KEY) \
+                    .expect.ui_render_contains(ActionResult.UNBOUND_KEY) \
                     .expect.where("key", lambda k, target=c: str(k) == target)
             )
         return ats
@@ -111,7 +111,7 @@ class CorruptRepoTests(AssertSuite):
 
         items = [
             actions.create_test(["yes", IOControl.ACCEPT_KEY]) \
-                .expect.expect_ui_contains(ActionResult.BOOTSTRAP_SUCCESS) \
+                .expect.ui_render_contains(ActionResult.BOOTSTRAP_SUCCESS) \
                 .postop.rm(*all_targets)
         ]
 
@@ -119,7 +119,7 @@ class CorruptRepoTests(AssertSuite):
             items.append(
                 actions.create_test(["yes", IOControl.ACCEPT_KEY]) \
                     .preop.create_dirs(dir_path) \
-                    .expect.expect_exit_msg(WorkspaceAlreadyInitialized.__name__) \
+                    .expect.exit_msg_contains(WorkspaceAlreadyInitialized.__name__) \
                     .postop.rm(dir_path)
             )
 
@@ -127,7 +127,7 @@ class CorruptRepoTests(AssertSuite):
             items.append(
                 actions.create_test(["yes", IOControl.ACCEPT_KEY]) \
                     .preop.create_file(file_path, content="blocking content") \
-                    .expect.expect_exit_msg(WorkspaceAlreadyInitialized.__name__) \
+                    .expect.exit_msg_contains(WorkspaceAlreadyInitialized.__name__) \
                     .postop.rm(file_path)
             )
         return items

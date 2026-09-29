@@ -6,172 +6,146 @@ import shutil
 from typing import Callable, Optional, Self
 
 from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
-from assert_classes import ActionsFactory, Execution, Sandbox, TestContainer
+from assert_classes import ActionsFactory, Asserts, Sandbox, TestContainer
 from core import PathTokens
 from results import ExpectanceResult, SandboxOperationsResult, AtomicTestResult, ContainerResult
 import json
 import subprocess
 import sys
 
-OPERATIONS = {
-    "contains": lambda actual, expected: expected in actual if actual is not None else False,
-    "has": lambda actual, expected: all(
-        (p[len("<PUD>"):].lstrip("/") if isinstance(p, str) and p.startswith("<PUD>") else p) in set(actual or [])
-        for p in expected
-    ),
-}
-
-class Asserter:
-    frame_pos = -2
-    def evaluate(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
-        words = [w.lower()
-            for w in re.findall(r"[A-Z][a-z0-9]*", self.__class__.__name__)
-        ]
-        attr_name, op_func = "_".join(words[:-1]), OPERATIONS[words[-1]]
-        frame = frames[self.frame_pos]  # or frames[-self.framepos]
-        actual = getattr(frame, attr_name, None)
-        passed = op_func(actual, self.expected)
-        assertion = f"{attr_name.replace('_', ' ').title()} {words[-1]}: '{self.expected}'"
-        details = (
-            ""
-            if passed
-            else f"Expected {attr_name} '{self.expected}', got '{actual}'"
-        )
-        return ExpectanceResult(
-            assertion=assertion, passed=passed, details=details
-        )
-
-class ExitMsgContains(Asserter): 
-    frame_pos = -1
-    def __init__(self, expected: str) -> None:
-        self.expected = expected
-
-class DiskManifestHas(Asserter):
-    def __init__(self, expected: list[str]) -> None:
-        self.expected = remove_token(expected)
-
-class UIRenderContains(Asserter):
-    def __init__(self, expected: str) -> None:
+class Assert:
+    frame_pos: int = -2
+    def __init__(self, expected: Any = None) -> None:
         self.expected = expected
         self.validators: dict[str, Callable[[str], bool]] = {}
 
-    def where(self, field: str, predicate: Callable[[str], bool]) -> "UIRenderCheck":
+    def where(self, field: str, predicate: Callable[[str], bool]) -> Self:
         self.validators[field] = predicate
         return self
+    def _parse_class_name(self) -> tuple[str, str]:
+        words = [
+            w.lower()
+            for w in re.findall(r"[A-Z][a-z0-9]*", self.__class__.__name__)
+        ]
+        return "_".join(words[:-1]), words[-1]
+
+    def _execute_phase_one(self, actual: Any, op_name: str) -> tuple[bool, dict[str, str], str]:
+        if actual is None:
+            return False, {}, f"Target frame attribute is None (expected '{self.expected}')"
+
+        if isinstance(self.expected, str) and "{" in self.expected and "}" in self.expected:
+            parts = []
+            last_idx = 0
+            for match in re.finditer(r"\{(\w+)\}", self.expected):
+                parts.append(re.escape(self.expected[last_idx:match.start()]))
+                field_name = match.group(1)
+                parts.append(f"(?P<{field_name}>.+?)")
+                last_idx = match.end()
+            parts.append(re.escape(self.expected[last_idx:]))
+            built_regex = "".join(parts)
+
+            match = re.search(built_regex, str(actual))
+            if match:
+                matches = match.groupdict()
+                matches.setdefault("lines", str(actual))
+                matches.setdefault("chars", str(actual))
+                matches.setdefault("text", str(actual))
+                return True, matches, ""
+            return False, {}, f"Expected template pattern not found: '{self.expected}'\n\n--- Actual ---\n{actual}"
+
+        if op_name == "contains":
+            passed = str(self.expected) in str(actual)
+            details = "" if passed else f"Expected '{self.expected}' to be contained in '{actual}'"
+            matches = {
+                "lines": str(actual),
+                "chars": str(actual),
+                "text": str(actual),
+            }
+            return passed, matches, details
+
+        if op_name == "has":
+            actual_set = set(actual) if isinstance(actual, (list, set, tuple)) else set()
+            expected_list = remove_token(self.expected) if isinstance(self.expected, (list, set, tuple)) else [remove_token(self.expected)]
+            missing = [p for p in expected_list if p not in actual_set]
+            passed = len(missing) == 0
+            details = "" if passed else f"Missing expected items: {missing}"
+            return passed, {}, details
+
+        raise NotImplementedError(f"Unsupported primary operation: '{op_name}'")
 
     def evaluate(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
-        frame = frames[-2]
-        latest_frame = frame.latest_write or "(No UI render captured)"
+        attr_name, op_name = self._parse_class_name()
+        frame = frames[self.frame_pos]
+        actual = getattr(frame, attr_name, None)
 
-        parts = []
-        last_idx = 0
-        for match in re.finditer(r"\{(\w+)\}", self.expected):
-            parts.append(re.escape(self.expected[last_idx:match.start()]))
-            field_name = match.group(1)
-            parts.append(f"(?P<{field_name}>.+?)")
-            last_idx = match.end()
-        parts.append(re.escape(self.expected[last_idx:]))
-        built_regex = "".join(parts)
+        formatted_attr = attr_name.replace("_", " ").title()
+        assertion_str = f"{formatted_attr} {op_name}: '{self.expected}'"
 
-        match = re.search(built_regex, latest_frame)
-        passed = bool(match)
-        details = ""
+        passed, captured_matches, details = self._execute_phase_one(actual, op_name)
+        if not passed:
+            return ExpectanceResult(assertion=assertion_str, passed=False, details=details)
 
-        if passed and match:
-            for field_name, predicate in self.validators.items():
-                val = match.group(field_name)
-                if not predicate(val):
-                    passed = False
-                    details = f"Validation failed for field '{field_name}' with value '{val}'"
-                    break
-        elif not passed:
-            details = f"Expected UI pattern not found: '{self.expected}'\n\n--- Latest UI Render ---\n{latest_frame}"
+        for field_name, predicate in self.validators.items():
+            if field_name not in captured_matches:
+                return ExpectanceResult(
+                    assertion=assertion_str,
+                    passed=False,
+                    details=f"Predicate field '{field_name}' not found in template matches.",
+                )
 
-        assertion = f"Latest UI render matches template: '{self.expected}'"
-        return ExpectanceResult(assertion=assertion, passed=passed, details=details)
+            val = captured_matches[field_name]
+            if not predicate(val):
+                return ExpectanceResult(
+                    assertion=assertion_str,
+                    passed=False,
+                    details=f"Validation failed for field '{field_name}' with value '{val}'",
+                )
 
-class PromtRenderContains(Asserter):
-    def __init__(self) -> None:
-        self.expected_prompt = ""
-        self.minimum_lines: Optional[int] = None
+        return ExpectanceResult(assertion=assertion_str, passed=True, details="")
 
-    def contains(self, expected: str) -> "PromptRenderCheck":
-        self.expected_prompt = expected
-        return self
+class ExitMsgContains(Assert): frame_pos = -1
+class DiskManifestHas(Assert): pass
+class UiRenderContains(Assert): pass
+class PromptRenderContains(Assert): pass
 
-    def min_lines(self, count: int) -> "PromptRenderCheck":
-        self.minimum_lines = count
-        return self
-
-    def evaluate(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
-        frame = frames[-2]
-        latest_prompt = frame.latest_clipboard or ""
-        passed = True
-        failures = []
-
-        if self.expected_prompt and self.expected_prompt not in latest_prompt:
-            passed = False
-            failures.append(f"Expected prompt text '{self.expected_prompt}' not found.")
-
-        if self.minimum_lines is not None:
-            line_count = len(latest_prompt.splitlines()) if latest_prompt else 0
-            if line_count < self.minimum_lines:
-                passed = False
-                failures.append(f"Expected at least {self.minimum_lines} lines, got {line_count}.")
-
-        assertion_parts = []
-        if self.expected_prompt:
-            assertion_parts.append(f"contains '{self.expected_prompt}'")
-        if self.minimum_lines is not None:
-            assertion_parts.append(f"min_lines >= {self.minimum_lines}")
-
-        assertion = f"Prompt render check ({', '.join(assertion_parts)})"
-        details = "\n".join(failures) if not passed else ""
-        return ExpectanceResult(assertion=assertion, passed=passed, details=details)
-
-class ExpectationBuilder(Execution):
+class AssertsImpl(Asserts):
     def __init__(self, parent: TestContainer) -> None:
         self._parent = parent
-        self._checks: list[Asserter] = []
+        self._asserts: list[Assert] = []
 
-    def expect_exit_msg(self, expected_msg: str) -> TestContainer:
-        self._checks.append(ExitMsgContains(expected_msg))
+    def exit_msg_contains(self, expected_msg: str) -> TestContainer:
+        self._asserts.append(ExitMsgContains(expected_msg))
         return self._parent
 
-    def expect_disk_has(self, expected_paths: list[str] | set[str]) -> TestContainer:
-        self._checks.append(DiskManifestHas(expected_paths))
+    def disk_manifest_has(self, expected_paths: list[str] | set[str]) -> TestContainer:
+        self._asserts.append(DiskManifestHas(list(expected_paths)))
         return self._parent
 
-    def expect_ui_contains(self, template: str) -> TestContainer:
-        self._checks.append(UIRenderContains(template))
+    def ui_render_contains(self, template: str) -> TestContainer:
+        self._asserts.append(UiRenderContains(template))
+        return self._parent
+
+    def prompt_render_contains(self, expected_prompt: str) -> TestContainer:
+        self._asserts.append(PromptRenderContains(expected_prompt))
         return self._parent
 
     def where(self, field: str, predicate: Callable[[str], bool]) -> TestContainer:
-        if self._checks and isinstance(self._checks[-1], UIRenderContains):
-            self._checks[-1].where(field, predicate)
+        if self._asserts:
+            self._asserts[-1].where(field, predicate)
         return self._parent
 
-    def expect_prompt_contains(self, expected_prompt: str) -> TestContainer:
-        if self._checks and isinstance(self._checks[-1], PromtRenderContains):
-            check = self._checks[-1]
+    def prompt_render_min_lines(self, count: int) -> TestContainer:
+        if self._asserts and isinstance(self._asserts[-1], PromptRenderContains):
+            check = self._asserts[-1]
         else:
-            check = PromtRenderContains()
-            self._checks.append(check)
-        check.contains(expected_prompt)
-        return self._parent
-
-    def expect_prompt_min_lines(self, count: int) -> TestContainer:
-        if self._checks and isinstance(self._checks[-1], PromtRenderContains):
-            check = self._checks[-1]
-        else:
-            check = PromtRenderContains()
-            self._checks.append(check)
-        check.min_lines(count)
+            check = PromptRenderContains("")
+            self._asserts.append(check)
+        check.where("lines", lambda l: len(l.splitlines()) >= count)
         return self._parent
 
     def evaluate(self, frames: list[ExecutionFrame], name: str, test_number: int) -> AtomicTestResult:
         expectance_results = [
-            check.evaluate(frames) for check in self._checks
+            check.evaluate(frames) for check in self._asserts
         ]
         return AtomicTestResult(
             test_number=test_number,
@@ -187,7 +161,7 @@ class TestContainerImpl(TestContainer):
         self.sequence = sequence
         self.name = name
         self._preop = SandboxImpl(parent=self)
-        self._expect = ExpectationBuilder(self)
+        self._expect = AssertsImpl(self)
         self._postop = SandboxImpl(parent=self)
 
     @property
@@ -195,7 +169,7 @@ class TestContainerImpl(TestContainer):
         return self._preop
 
     @property
-    def expect(self) -> ExpectationBuilder:
+    def expect(self) -> AssertsImpl:
         return self._expect
 
     @property

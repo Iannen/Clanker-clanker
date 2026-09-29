@@ -10,8 +10,8 @@ class TestSequenceEnded(Fatal): leaf_ex = True
 @dataclass
 class ExecutionFrame:
     latest_input: Optional[str] = None
-    latest_write: Optional[str] = None
-    latest_clipboard: Optional[str] = None
+    ui_render: Optional[str] = None
+    prompt_render: Optional[str] = None
     exit_code: Optional[int] = None
     exit_msg: Optional[str] = None
     stderr: Optional[str] = None
@@ -34,8 +34,8 @@ class ScriptedTerminalAdapter(TerminalPort):
         self.frames = [
             ExecutionFrame(
                 latest_input=self.START_APP_EVENT,
-                latest_write=None,
-                latest_clipboard=None,
+                ui_render=None,
+                prompt_render=None,
                 disk_manifest=self._get_disk_paths(),
             )
         ]
@@ -62,8 +62,8 @@ class ScriptedTerminalAdapter(TerminalPort):
     def read_char(self) -> str:
         self.frames.append(ExecutionFrame(
             latest_input=self.input_sequence[self.input_index],
-            latest_write=self.last_write,
-            latest_clipboard=self.last_cp,
+            ui_render=self.last_write,
+            prompt_render=self.last_cp,
             disk_manifest=self._get_disk_paths()
         ))
         self.last_cp = self.last_write = None
@@ -103,8 +103,8 @@ class ScriptedTerminalAdapter(TerminalPort):
         try:
             self.frames.append(ExecutionFrame(
                 latest_input=self.END_APP_EVENT,
-                latest_write=self.last_write,
-                latest_clipboard=self.last_cp,
+                ui_render=self.last_write,
+                prompt_render=self.last_cp,
                 exit_code=0,
                 exit_msg=exit_msg,
                 disk_manifest=self._get_disk_paths()
