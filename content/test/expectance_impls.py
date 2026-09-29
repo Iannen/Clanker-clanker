@@ -18,7 +18,7 @@ class Asserter:
     frame_pos = 2
     def evaluate(self, frames: list[ExecutionFrame]) -> ExpectanceResult: raise NotImplementedError
 
-class ExitMsgContains(Asserter):
+class ExitMsgContains: #(Asserter)
     def __init__(self, expected_msg: str) -> None:
         self.expected_msg = expected_msg
 
