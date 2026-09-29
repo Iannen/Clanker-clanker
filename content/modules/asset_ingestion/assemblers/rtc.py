@@ -24,7 +24,7 @@ class RtcAssembler:
             row_keys=extractor.req_str(sys_cfg.data, ["button_rows", "pud_domains_row"]),
             domains=pud_doms,
             sys_cfg_name="pud_domains_row",
-            cfg_filename=PudAssets.Configs.PUD,
+            cfg_filename=PudAssets.Configs.configuration_file,
         )
 
         for key_char in extractor.req_str(sys_cfg.data, ["button_rows", "prompts_row"]):

@@ -394,7 +394,7 @@ class HtmlReportVisitor:
         status_txt = html.escape(node.outcome.name)
         assertion = html.escape(node.assertion)
         details_html = (
-            f'<div style="font-family: monospace; font-size: 0.8rem; color: #fca5a5; margin-top: 0.25rem;">'
+            f'<div style="font-family: monospace; font-size: 0.8rem; color: #fca5a5; margin-top: 0.25rem; white-space: pre-wrap;">'
             f'Details: {html.escape(node.details)}</div>'
             if node.details
             else ""

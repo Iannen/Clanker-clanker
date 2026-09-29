@@ -47,9 +47,6 @@ class FileReport(Result):
             or self.undeclared_imports
         )
 
-    def __post_init__(self) -> None:
-        self.outcome = Outcome.PASS if self.is_clean else Outcome.FAIL
-
 @dataclass
 class FileAnalysisResults(Result):
     reports: list[FileReport] = field(default_factory=list)
@@ -71,16 +68,6 @@ class FileAnalysisResults(Result):
             for r in self.reports
         )
 
-    def __post_init__(self) -> None:
-        for r in self.reports:
-            if r.outcome == Outcome.INIT:
-                r.__post_init__()
-
-        if not self.reports or self.is_clean:
-            self.outcome = Outcome.PASS
-        else:
-            self.outcome = Outcome.FAIL
-
 @dataclass
 class ExpectanceResult(Result):
     assertion: str = ""
@@ -90,14 +77,13 @@ class ExpectanceResult(Result):
 class SandboxOperationsResult(Result):
     operations: list[tuple[str, str, Outcome]]
     disk_state: list[str] = field(default_factory=list)
-
+    """
     def __post_init__(self) -> None:
             if self.outcome != Outcome.INIT:
                 return
             op_outcomes = [outcome for _, _, outcome in self.operations]
-            # Max outcome ensures FAIL (2) overrides PASS (1), or PASS if all pass
             self.outcome = max(op_outcomes) if op_outcomes else Outcome.PASS
-
+    """
 @dataclass
 class AtomicTestResult(Result):
     test_number: int

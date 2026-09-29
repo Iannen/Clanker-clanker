@@ -3,7 +3,7 @@ import ast
 import builtins
 from dataclasses import dataclass, field
 from pathlib import Path
-from results import FileAnalysisResults, FileReport
+from results import FileAnalysisResults, FileReport, Outcome
 
 module_list = [
     "stdlib",
@@ -188,8 +188,9 @@ class FileAnalysisSuite:
                 and symbol not in builtin_names
             )
         ]
-
+        
         return FileReport(
+            outcome = Outcome.PASS if not (forbidden_imports or dangling_imports or undeclared_imports) else Outcome.FAIL,
             rel_path=relative_path,
             forbidden_import_statements=forbidden_imports,
             dangling_imports=dangling_imports,

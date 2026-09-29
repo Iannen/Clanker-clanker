@@ -115,19 +115,21 @@ class CorruptRepoTests(AssertSuite):
                 .postop.rm(*all_targets)
         ]
 
-        for dir_path in dir_targets:
+        for dir in dir_targets:
+            others = [t for t in dir_targets if t != dir]
             items.append(
-                actions.create_test(["yes", IOControl.ACCEPT_KEY]) \
-                    .preop.create_dirs(dir_path) \
-                    .expect.exit_msg_contains(WorkspaceAlreadyInitialized.__name__) \
-                    .postop.rm(dir_path)
+                actions.create_test(["yes", IOControl.ACCEPT_KEY])
+                    .preop.create_dirs(dir)
+                    .expect.exit_msg_contains(others)
+                    .postop.rm(dir)
             )
 
-        for file_path in file_targets:
+        for file in file_targets:
+            others = [t for t in dir_targets if t != dir]
             items.append(
                 actions.create_test(["yes", IOControl.ACCEPT_KEY]) \
-                    .preop.create_file(file_path, content="blocking content") \
-                    .expect.exit_msg_contains(WorkspaceAlreadyInitialized.__name__) \
-                    .postop.rm(file_path)
+                    .preop.create_file(file, content="contentosaurus rex") \
+                    .expect.exit_msg_contains(others) \
+                    .postop.rm(file)
             )
         return items

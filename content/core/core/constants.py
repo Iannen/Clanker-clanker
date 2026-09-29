@@ -60,7 +60,7 @@ class PudAssets:
         BAD = "pb"     
         
     class Configs(StrEnum):
-        PUD = PathTokens.PUD + "/.clanker/config.yaml"
+        configuration_file = PathTokens.PUD + "/.clanker/config.yaml"
 
     class Directories(StrEnum):
         CONTENTS = PathTokens.PUD + "/content"
@@ -80,7 +80,7 @@ class RepoContract:
     ]
 
     MAPPINGS = [
-        (ClankerAssets.Templates.CFG, PudAssets.Configs.PUD),
+        (ClankerAssets.Templates.CFG, PudAssets.Configs.configuration_file),
         (ClankerAssets.Templates.README, PudAssets.Files.README),
         (ClankerAssets.Templates.DOC_ARCHITECTURE, PudAssets.Documentation.ARCHITECTURE),
         (ClankerAssets.Templates.DOC_NORTH_STAR, PudAssets.Documentation.NORTH_STAR),

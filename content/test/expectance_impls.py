@@ -13,6 +13,7 @@ from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
 from assert_classes import ActionsFactory, Asserts, Sandbox, TestContainer
 from core import PathTokens
 from results import AtomicTestResult, ContainerResult, ExpectanceResult, SandboxOperationsResult, Outcome
+from adapters.terminal.scripted_terminal_adapter import ScriptedTerminalAdapter
 
 class Assert:
     frame_pos: int = -2
@@ -64,9 +65,12 @@ class Assert:
                 matches.setdefault("text", str(actual))
             else:
                 details = f"Expected template pattern not found: '{self.expected}'\n\n--- Actual ---\n{actual}"
+
         elif op_name == "contains":
-            if str(self.expected) in str(actual): outcome = Outcome.PASS
-            details = "" if outcome == Outcome.PASS else f"Expected '{self.expected}' to be contained in '{actual}'"
+            expected_items = self.expected if isinstance(self.expected, (list, tuple, set)) else [self.expected]
+            missing = [exp for exp in expected_items if str(exp) not in str(actual)]
+            outcome = Outcome.PASS if not missing else Outcome.FAIL
+            details = "" if outcome == Outcome.PASS else f"Expected {missing} to be contained in:\n{actual}"
             matches = {
                 "lines": str(actual),
                 "chars": str(actual),
@@ -112,7 +116,7 @@ class Assert:
 
         formatted_attr = attr_name.replace("_", " ").title()
         assertion_str = f"{formatted_attr} {op_name}: '{self.expected}'"
-        return ExpectanceResult(assertion=assertion_str, outcome=outcome, details=details if not outcome else "")
+        return ExpectanceResult(assertion=assertion_str, outcome=outcome, details=details)
 
 class ExitMsgContains(Assert): frame_pos = -1
 class DiskManifestHas(Assert): pass
@@ -125,7 +129,7 @@ class AssertsImpl(Asserts):
         self._parent = parent
         self._asserts: list[Assert] = []
 
-    def exit_msg_contains(self, expected_msg: str) -> TestContainer:
+    def exit_msg_contains(self, expected_msg: str | list[str]) -> TestContainer:
         self._asserts.append(ExitMsgContains(expected_msg))
         return self._parent
 
@@ -308,7 +312,7 @@ class SandboxImpl(Sandbox):
             except Exception:
                 outcome = Outcome.FAIL
             ops.append((op_type, desc, outcome))
-        return SandboxOperationsResult(ops, get_disk_state(sandbox_dir))
+        return SandboxOperationsResult(ops, get_disk_state(sandbox_dir),outcome=outcome)
 
 class ActionsFactoryImpl(ActionsFactory):
     def create_test(self, sequence: list[str], name: str = "") -> TestContainer:
@@ -327,7 +331,3 @@ def get_disk_state(sandbox_dir: Path) -> list[str]:
             continue
         paths.append(str(rel))
     return sorted(paths)
-
-class myclass:
-    def method(self):
-        print("hlleo")

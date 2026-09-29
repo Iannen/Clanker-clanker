@@ -49,6 +49,8 @@ Backlog tail, Selected item/items:
 
 we need more results, so that we can eliminate post inits on all Result inheritors
 
+the container result needs to contain a crash report, in the event of exit 1 type scenarios
+
 Backlog tail end
 
 1. Establish 4-entity Test container and namespace-based fluent builders
