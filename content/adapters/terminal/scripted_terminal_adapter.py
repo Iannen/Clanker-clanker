@@ -15,7 +15,7 @@ class ExecutionFrame:
     exit_code: Optional[int] = None
     exit_msg: Optional[str] = None
     stderr: Optional[str] = None
-    disk_paths: list[str] = field(default_factory=list)
+    disk_manifest: list[str] = field(default_factory=list)
 
 class ScriptedTerminalAdapter(TerminalPort):
     START_APP_EVENT = "__START_APP__"
@@ -36,7 +36,7 @@ class ScriptedTerminalAdapter(TerminalPort):
                 latest_input=self.START_APP_EVENT,
                 latest_write=None,
                 latest_clipboard=None,
-                disk_paths=self._get_disk_paths(),
+                disk_manifest=self._get_disk_paths(),
             )
         ]
 
@@ -64,7 +64,7 @@ class ScriptedTerminalAdapter(TerminalPort):
             latest_input=self.input_sequence[self.input_index],
             latest_write=self.last_write,
             latest_clipboard=self.last_cp,
-            disk_paths=self._get_disk_paths()
+            disk_manifest=self._get_disk_paths()
         ))
         self.last_cp = self.last_write = None
         if self.input_index + 1 >= len(self.input_sequence):
@@ -107,7 +107,7 @@ class ScriptedTerminalAdapter(TerminalPort):
                 latest_clipboard=self.last_cp,
                 exit_code=0,
                 exit_msg=exit_msg,
-                disk_paths=self._get_disk_paths()
+                disk_manifest=self._get_disk_paths()
             ))
             self.last_write = self.last_cp = None
 

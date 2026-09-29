@@ -13,46 +13,57 @@ import json
 import subprocess
 import sys
 
-OPERATIONS = {
-    "contains": lambda actual, expected: expected in actual if actual is not None else False,
-    "has": lambda actual, expected: all(
-        (p[len("<PUD>"):].lstrip("/") if isinstance(p, str) and p.startswith("<PUD>") else p) in set(actual or [])
-        for p in expected
-    ),
-}
 
 class Asserter:
-    frame_pos = -2
-    def evaluate(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
-        words = [w.lower()
-            for w in re.findall(r"[A-Z][a-z0-9]*", self.__class__.__name__)
-        ]
-        attr_name, op_func = "_".join(words[:-1]), OPERATIONS[words[-1]]
-        frame = frames[self.frame_pos]  # or frames[-self.framepos]
-        actual = getattr(frame, attr_name, None)
-        passed = op_func(actual, self.expected)
-        assertion = f"{attr_name.replace('_', ' ').title()} {words[-1]}: '{self.expected}'"
-        details = (
-            ""
-            if passed
-            else f"Expected {attr_name} '{self.expected}', got '{actual}'"
-        )
-        return ExpectanceResult(
-            assertion=assertion, passed=passed, details=details
-        )
+    frame_pos = 2
+    def evaluate(self, frames: list[ExecutionFrame]) -> ExpectanceResult: raise NotImplementedError
 
-class ExitMsgContains(Asserter): 
-    frame_pos = -1
-    def __init__(self, expected: str) -> None:
-        self.expected = expected
+class ExitMsgContains: #(Asserter)
+    def __init__(self, expected_msg: str) -> None:
+        self.expected_msg = expected_msg
+
+    def evaluate(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
+        frame = frames[-1]
+        actual = frame.exit_msg
+        passed = self.expected_msg in actual
+        assertion = f"ExitMsg contains '{self.expected_msg}'"
+        details = "" if passed else f"Expected exit_msg '{self.expected_msg}', got '{actual}'"
+        return ExpectanceResult(assertion=assertion, passed=passed, details=details)
 
 class DiskManifestHas(Asserter):
-    def __init__(self, expected: list[str]) -> None:
-        self.expected = remove_token(expected)
+    def __init__(self, expected_paths: list[str]) -> None:
+        self.expected_paths = remove_token(expected_paths)
+
+    def evaluate(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
+        frame = frames[-2]
+        actual_paths = set(frame.disk_paths)
+        missing = []
+        for expected in self.expected_paths:
+            rel_path = expected
+            if rel_path.startswith("<PUD>"):
+                rel_path = rel_path[len("<PUD>"):].lstrip("/")
+            if rel_path not in actual_paths:
+                missing.append(expected)
+
+        passed = len(missing) == 0
+        assertion = "Disk state matches expected repository contract paths"
+
+        if passed:
+            details = ""
+        else:
+            expected_formatted = ",\n".join(f"'{p}'" for p in self.expected_paths)
+            actual_formatted = "\n".join(f"'{p}'" for p in frame.disk_paths) if frame.disk_paths else "(empty)"
+            details = (
+                f"Missing expected paths on disk:\n"
+                f"expected:\n{expected_formatted}\n"
+                f"actual:\n{actual_formatted}"
+            )
+
+        return ExpectanceResult(assertion=assertion, passed=passed, details=details)
 
 class UIRenderContains(Asserter):
-    def __init__(self, expected: str) -> None:
-        self.expected = expected
+    def __init__(self, template: str) -> None:
+        self.template = template
         self.validators: dict[str, Callable[[str], bool]] = {}
 
     def where(self, field: str, predicate: Callable[[str], bool]) -> "UIRenderCheck":
@@ -65,12 +76,12 @@ class UIRenderContains(Asserter):
 
         parts = []
         last_idx = 0
-        for match in re.finditer(r"\{(\w+)\}", self.expected):
-            parts.append(re.escape(self.expected[last_idx:match.start()]))
+        for match in re.finditer(r"\{(\w+)\}", self.template):
+            parts.append(re.escape(self.template[last_idx:match.start()]))
             field_name = match.group(1)
             parts.append(f"(?P<{field_name}>.+?)")
             last_idx = match.end()
-        parts.append(re.escape(self.expected[last_idx:]))
+        parts.append(re.escape(self.template[last_idx:]))
         built_regex = "".join(parts)
 
         match = re.search(built_regex, latest_frame)
@@ -85,9 +96,9 @@ class UIRenderContains(Asserter):
                     details = f"Validation failed for field '{field_name}' with value '{val}'"
                     break
         elif not passed:
-            details = f"Expected UI pattern not found: '{self.expected}'\n\n--- Latest UI Render ---\n{latest_frame}"
+            details = f"Expected UI pattern not found: '{self.template}'\n\n--- Latest UI Render ---\n{latest_frame}"
 
-        assertion = f"Latest UI render matches template: '{self.expected}'"
+        assertion = f"Latest UI render matches template: '{self.template}'"
         return ExpectanceResult(assertion=assertion, passed=passed, details=details)
 
 class PromtRenderContains(Asserter):
@@ -95,8 +106,8 @@ class PromtRenderContains(Asserter):
         self.expected_prompt = ""
         self.minimum_lines: Optional[int] = None
 
-    def contains(self, expected: str) -> "PromptRenderCheck":
-        self.expected_prompt = expected
+    def contains(self, expected_prompt: str) -> "PromptRenderCheck":
+        self.expected_prompt = expected_prompt
         return self
 
     def min_lines(self, count: int) -> "PromptRenderCheck":
@@ -129,6 +140,7 @@ class PromtRenderContains(Asserter):
         details = "\n".join(failures) if not passed else ""
         return ExpectanceResult(assertion=assertion, passed=passed, details=details)
 
+# could this just hardcode one of each check?
 class ExpectationBuilder(Execution):
     def __init__(self, parent: TestContainer) -> None:
         self._parent = parent
