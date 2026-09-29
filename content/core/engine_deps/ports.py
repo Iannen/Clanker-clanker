@@ -68,7 +68,7 @@ class DiskPort(ABC):
         rel_roots: list[str]
     ) -> set[str]: ...  # raises: InvalidPathToken, NoSuchFile, FileAccessError
 
-class ConfigParseError(Notice): leaf_ex = True
+class ConfigParseError(Exception):pass
 class ConfigParserPort(ABC):
     @abstractmethod
     def get_as_dict(self, raw_text: str) -> dict: ...  # raises: ConfigParseError

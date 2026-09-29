@@ -1,6 +1,6 @@
 from stdlib import dataclass, field
-from core import MultiDocResolver, Resolver
-from ...asset_ingestion import ErrorCollector, ValueExtractor, ResolverParser, Config, FilesetMap, FilelistMap
+from core import MultiDocResolver, Resolver, Config
+from ...asset_ingestion import ErrorCollector, ValueExtractor, ResolverParser, FilesetMap, FilelistMap
 
 @dataclass(slots=True, eq=False)
 class BaseResolverExtractor:

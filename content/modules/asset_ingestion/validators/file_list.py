@@ -1,6 +1,5 @@
 from stdlib import Self, dataclass
-from core import Domain, File, MultiDocResolver, PathTokens
-from ...asset_ingestion import AssetPack
+from core import Domain, File, MultiDocResolver, PathTokens, AssetPack
 
 @dataclass
 class FilelistValidator:

@@ -1,6 +1,6 @@
-from core import Domain, ManifestResolver, RepoContentResolver
+from core import Domain, ManifestResolver, RepoContentResolver, AssetPack
 from stdlib import dataclass, Self
-from ...asset_ingestion import AssetPack
+
 @dataclass
 class FilesetValidator:
     pud_assets: AssetPack

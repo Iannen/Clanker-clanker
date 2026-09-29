@@ -875,3 +875,55 @@ CXXI: TEST SUITE ISOLATION AND FLUENT ABC FRAMEWORK REFACTORING
     Reflection:
     - Transitioning from dynamic dynamic wrappers and accumulated state to explicit ABC interfaces and isolated process runs dramatically improved test determinism and isolation.
     - The fluent expectation builder provides a declarative, contract-first assertion DSL that makes test logic far easier to read, maintain, and extend.
+
+CXXII: TYPED INGESTION RESULTS AND STRUCTURED DUAL-CONTEXT BOOT
+    Purpose: Replace exception-driven control flow and ad-hoc complaint handling with an explicit, typed boot pipeline that correctly classifies repository states.
+    - Prior design mixed control-flow exceptions with incomplete complaint collection; ingestion lacked a formal model of the two repositories and their asset contributions.
+    Actions:
+    - Introduced frozen StartResult / ClankerizeResult / TerminateResult DTOs carrying Report, button map, UI render, and base resolvers.
+    - Refactored AppEngine to match on these typed results instead of catching control-flow exceptions for boot decisions.
+    - Implemented ClankerCtx and PudCtx, each owning configs, asset packs, file requirements, and an ErrorCollector; each independently determines BootAction (START / CLANKERIZE / NONE).
+    - Merged collectors, then dispatched on the combined actions plus critical-error status to return the appropriate result; performed unified fileset/domain assembly and validation only on the clean dual-START path.
+    - Preserved RepoContract-driven initialize_workspace for the CLANKERIZE path.
+    Reflection:
+    - Boot decisions are now data, not exceptions; partial failures surface as structured complaints rather than early exits.
+    - The dual-context model makes the contribution and health of shared vs. workspace assets explicit and independently testable.
+
+
+CXXIII: 4-ENTITY TEST CONTAINER AND FLUENT LIFECYCLE
+    Purpose: Replace ad-hoc sandbox and assertion handling with an explicit TestContainer that owns a uniform preop → execute → expect → postop lifecycle.
+    - Previous design mixed fixture mutation, process execution, and assertions across multiple layers with implicit state.
+    Actions:
+    - Introduced TestContainer ABC and concrete TestContainerImpl holding sequence, name, preop, expect, and postop.
+    - Implemented SandboxImpl and AssertsImpl as fluent sub-builders that return the parent container for chaining.
+    - Added ActionsFactory.create_test entry point and migrated EmptyRepoTests / CorruptRepoTests to the new fluent style.
+    - Moved process execution (_run_put) and crash-frame synthesis into TestContainerImpl.run, producing ContainerResult.
+    - Simplified BaseFixtureTest / AssertSuite runner to a uniform three-stage loop that only delegates to container.run.
+    Reflection:
+    - The container becomes the single unit of test definition and execution, eliminating cross-test state leakage and making setup/cleanup first-class.
+    - Fluent chaining turns test bodies into readable specifications of user journeys plus disk preconditions and postconditions.
+
+CXXIV: RESULT DOMAIN FORMALIZATION AND VISITOR SEPARATION
+    Purpose: Decouple pure result data from presentation and serialization while establishing automatic outcome roll-up.
+    - Result objects previously mixed domain state with to_console / to_dict methods; crash and pass flags were scattered.
+    Actions:
+    - Introduced hierarchical result types (ContainerResult, MethodResult, AssertSuiteResult, RunResult, etc.) with Outcome IntEnum.
+    - Implemented base Result class with __post_init__ outcome aggregation via max() over child Results; removed explicit passed/crashed flags.
+    - Extracted all presentation into visitors (ConsoleReportVisitor, HtmlReportVisitor) via accept() double-dispatch.
+    - Updated GateInspector and TestSuitesRunner to produce and consume the pure result tree.
+    - Aligned import_checker, expectance_impls, and report generation to the new model.
+    Reflection:
+    - Domain models stay serializable and free of UI concerns; new report formats can be added without touching result classes.
+    - Automatic outcome roll-up removes a whole class of inconsistent status bookkeeping.
+
+CXXV: NAME-DRIVEN ASSERTION DSL AND FRAME CONTRACT HARDENING
+    Purpose: Make assertions self-describing and robust against ExecutionFrame evolution while adding richer prompt checks.
+    - Assertion classes previously required manual attribute/operator wiring; frame fields had inconsistent names.
+    Actions:
+    - Renamed ExecutionFrame fields (latest_write → ui_render, latest_clipboard → prompt_render).
+    - Implemented Assert base class that parses frame attribute + operator from PascalCase subclass names (e.g. UiRenderContains, PromptRenderMinLines).
+    - Added two-phase evaluation (template/regex matching then where-predicate validation) with default lines/chars/text captures.
+    - Introduced PromptRenderMinLines and routed where() to the trailing assertion.
+    Reflection:
+    - New assertion types become trivial to add; the DSL stays declarative and frame-structure changes are localized to the name parser.
+    - Crash handling is now entirely owned by the container, keeping expectation evaluation pure.

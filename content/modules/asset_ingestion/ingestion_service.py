@@ -5,6 +5,11 @@ from core import (
     PudAssets,
     PathTokens,
     RepoContract,
+    DictConfig,
+    MissingConfig,
+    AssetPack,
+    MalformedConfig,
+    MissingAssetPack,
 )
 from core.engine_deps import IngestionService, NoSuchFile, AssetExists, DiskPort, ConfigParseError, ConfigParserPort, StartResult, ClankerizeResult, TerminateResult
 
@@ -19,10 +24,6 @@ from . import (
     FilelistValidator,
     FilesetValidator,
     CollisionDetector,
-    Config,
-    AssetPack,
-    MissingAsset,
-    MalformedAsset,
 )
 class BootAction(StrEnum):
     START = "ok"
@@ -38,20 +39,17 @@ class ClankerCtx:
     collector: ErrorCollector = field(default_factory=ErrorCollector)
 
     def _determine_action(self):
-        crit_compls = []
-        for item in [self.sys_cfg, self.shared_cfg]:
-            match item.data:
-                case MissingAsset(): crit_compls.append(f"'{item.name}' not found at '{item.path}'")
-                case MalformedAsset(): crit_compls.append(f"'{item.name}' at path '{item.path}' is malformed: {item.data.details}")
+        absent_files, present_files = self.file_reqs
+        configs = [self.sys_cfg, self.shared_cfg]
+        assetpacks = [self.doc_assets]
 
-        #if self.sys_cfg.issue: self.collector.add_critical_complaint(self.sys_cfg.issue)
-        #if self.shared_cfg.issue: self.collector.add_critical_complaint(self.shared_cfg.issue)
-        if self.doc_assets.issue: self.collector.add_critical_complaint(self.doc_assets.issue)
-        missing, _ = self.file_reqs 
-        for absentee in missing:
-            self.collector.add_critical_complaint(f"'{absentee.name}' not found at '{absentee.value}'")
-        for complaint in crit_compls: self.collector.add_critical_complaint(complaint)
-        self.action = BootAction.START if (not missing and not self.sys_cfg.data is None and not self.shared_cfg.data is None) else BootAction.NONE
+        if not absent_files and all(isinstance(cfg, DictConfig) for cfg in configs) and all(pack.issue is None for pack in assetpacks):
+            self.action = BootAction.START
+        else: 
+            self.action = BootAction.NONE
+            for missing_file in absent_files: self.collector.add_critical_complaint(f"'{missing_file.name}' not found at '{missing_file.value}'")            
+            for missing_cfg in [cfg for cfg in configs if isinstance(cfg, MissingConfig)]: self.collector.add_critical_complaint(f"'{missing_cfg.name}' not found at '{missing_cfg.path}'")
+            for malformed in [cfg for cfg in configs if isinstance(cfg, MalformedConfig)]: self.collector.add_critical_complaint(f"'{malformed.name}' not found at '{malformed.path}'")
 
     def process(self):
         self._determine_action()
@@ -71,30 +69,25 @@ class PudCtx:
     collector: ErrorCollector = field(default_factory=ErrorCollector)
 
     def _determine_action(self):
-        crit_compls = []
-        missing, present = self.file_reqs
-        if not missing and self.pud_cfg.data:
+        absent_files, present_files = self.file_reqs # this splits a list of name, value strenums into two lists, depending on disk presence
+        configs = [self.pud_cfg]
+        assetpacks = [self.doc_assets, self.content_assets]
+
+        if not absent_files and all(isinstance(cfg, DictConfig) for cfg in configs) and all(pack.issue is None for pack in assetpacks):
             self.action = BootAction.START
-        elif not present and self.pud_cfg.data is None:
+        elif not present_files and all(isinstance(cfg, MissingConfig) for cfg in configs) and all(pack.issue is not None for pack in assetpacks):
             self.action = BootAction.CLANKERIZE
-        else:
-
-            match self.pud_cfg.data:
-                case MissingAsset(): crit_compls.append(f"'{item.name}' not found at '{item.path}'")
-                case MalformedAsset(): crit_compls.append(f"'{item.name}' at path '{item.path}' is malformed: {item.data.details}")
-
-            #if self.pud_cfg.issue: self.collector.add_critical_complaint(self.pud_cfg.issue)
-            if self.doc_assets.issue: self.collector.add_critical_complaint(self.doc_assets.issue)
-            if self.content_assets.issue: self.collector.add_critical_complaint(self.content_assets.issue)
-            for absentee in missing:
-                self.collector.add_critical_complaint(f"'{absentee.name}' not found at '{absentee.value}'")
+        else: 
             self.action = BootAction.NONE
-        for complaint in crit_compls: self.collector.add_critical_complaint(complaint)
+            for missing_file in absent_files: self.collector.add_critical_complaint(f"'{missing_file.name}' not found at '{missing_file.value}'")            
+            for missing_cfg in [cfg for cfg in configs if isinstance(cfg, MissingConfig)]: self.collector.add_critical_complaint(f"'{missing_cfg.name}' not found at '{missing_cfg.path}'")
+            for malformed in [cfg for cfg in configs if isinstance(cfg, MalformedConfig)]: self.collector.add_critical_complaint(f"'{malformed.name}' not found at '{malformed.path}'")
 
     def process(self):
         self._determine_action()
-        self.filelist = FilelistExtractor(self.collector).extract(self.pud_cfg) if self.pud_cfg.data else None
-        self.fileset = FilesetExtractor(self.collector).extract(self.pud_cfg) if self.pud_cfg.data else None
+        cfg = isinstance(self.pud_cfg, DictConfig)
+        self.filelist = FilelistExtractor(self.collector).extract(self.pud_cfg) if cfg else None
+        self.fileset = FilesetExtractor(self.collector).extract(self.pud_cfg) if cfg else None
         if self.doc_assets.paths: CollisionDetector(self.collector).detect(self.doc_assets)
 
 @dataclass(slots=True)
@@ -111,12 +104,11 @@ class IngestionServiceImpl(IngestionService):
     def _get_config(self, config: StrEnum) -> Config:
         try:
             raw_content = self.files.get_file_contents(config.value)
-            return Config(config.name, config.value, self.cfg_ingestor.get_as_dict(raw_content))
+            return DictConfig(config.name, config.value, self.cfg_ingestor.get_as_dict(raw_content))
         except NoSuchFile:
-            #return Config(config.name, config.value, None, f"'{config.name}' not found at '{config.value}'")
-            return Config(config.name, config.value, None, )
+            return MissingConfig(config.name, config.value)
         except ConfigParseError: 
-            return Config(config.name, config.value, None, f"'{config.name}' malformed. Path: {config.value}")
+            return MalformedConfig(config.name, config.value, str(ex))
     
     def _get_file_reqs(self, assets: list[StrEnum]) -> tuple[list[StrEnum], list[StrEnum]]:
         missing = []

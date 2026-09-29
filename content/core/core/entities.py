@@ -72,3 +72,21 @@ class Button:
     key: str
     inhabitant: Domain | Prompt | None = None
     action: Callable | None = None
+
+@dataclass
+class Config: name: str; path: str
+@dataclass
+class MissingConfig(Config): pass
+@dataclass
+class MalformedConfig(Config): details: str
+@dataclass
+class DictConfig(Config): data: dict
+
+@dataclass
+class MissingAssetPack: pass
+@dataclass
+class AssetPack:
+    name: str
+    roots: list[str]
+    paths: list[str] | None = None
+    issue: str | None = None

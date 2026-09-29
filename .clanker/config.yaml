@@ -16,8 +16,19 @@ filesets:
     content/clanker.py]}
 
   test_harness: {includes: [
-    content/test/results.py,
-    content/test/expectance_impls.py]}
+    content/test], excludes: [
+        content/test/reports,
+        content/test/sandboxes,
+        content/test/test_repos,
+        content/test/visitors,
+    ]}
+
+  complaint_review: {includes: [
+      content/core/engine.py,
+      content/core/core,
+      content/core/engine_deps/ingestion.py,
+      content/modules/asset_ingestion/ingestion_service.py,
+      content/modules/asset_ingestion/commons]}
 
 domains:
 - name: core
@@ -44,7 +55,7 @@ domains:
 
 - name: ingestion
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: asset_ingestion }
+    - { id: repo_content, type: repo_content, fileset: complaint_review }
   prompts:
     - name: plan
       render:
