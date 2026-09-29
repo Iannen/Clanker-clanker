@@ -13,23 +13,24 @@ import json
 import subprocess
 import sys
 
-class ExpectanceCheck:
-    def evaluate(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
-        raise NotImplementedError
 
-class ExitMsgCheck(ExpectanceCheck):
+class Asserter:
+    frame_pos = 2
+    def evaluate(self, frames: list[ExecutionFrame]) -> ExpectanceResult: raise NotImplementedError
+
+class ExitMsgContains(Asserter):
     def __init__(self, expected_msg: str) -> None:
         self.expected_msg = expected_msg
 
     def evaluate(self, frames: list[ExecutionFrame]) -> ExpectanceResult:
         frame = frames[-1]
-        actual = frame.exit_msg or ""
+        actual = frame.exit_msg
         passed = self.expected_msg in actual
         assertion = f"ExitMsg contains '{self.expected_msg}'"
         details = "" if passed else f"Expected exit_msg '{self.expected_msg}', got '{actual}'"
         return ExpectanceResult(assertion=assertion, passed=passed, details=details)
 
-class DiskStateCheck(ExpectanceCheck):
+class DiskManifestHas(Asserter):
     def __init__(self, expected_paths: list[str]) -> None:
         self.expected_paths = remove_token(expected_paths)
 
@@ -60,8 +61,7 @@ class DiskStateCheck(ExpectanceCheck):
 
         return ExpectanceResult(assertion=assertion, passed=passed, details=details)
 
-
-class UIRenderCheck(ExpectanceCheck):
+class UIRenderContains(Asserter):
     def __init__(self, template: str) -> None:
         self.template = template
         self.validators: dict[str, Callable[[str], bool]] = {}
@@ -101,8 +101,7 @@ class UIRenderCheck(ExpectanceCheck):
         assertion = f"Latest UI render matches template: '{self.template}'"
         return ExpectanceResult(assertion=assertion, passed=passed, details=details)
 
-
-class PromptRenderCheck(ExpectanceCheck):
+class PromtRenderContains(Asserter):
     def __init__(self) -> None:
         self.expected_prompt = ""
         self.minimum_lines: Optional[int] = None
@@ -141,43 +140,43 @@ class PromptRenderCheck(ExpectanceCheck):
         details = "\n".join(failures) if not passed else ""
         return ExpectanceResult(assertion=assertion, passed=passed, details=details)
 
+# could this just hardcode one of each check?
 class ExpectationBuilder(Execution):
     def __init__(self, parent: TestContainer) -> None:
         self._parent = parent
-        self._checks: list[ExpectanceCheck] = []
+        self._checks: list[Asserter] = []
 
     def expect_exit_msg(self, expected_msg: str) -> TestContainer:
-        self._checks.append(ExitMsgCheck(expected_msg))
+        self._checks.append(ExitMsgContains(expected_msg))
         return self._parent
 
     def expect_disk_has(self, expected_paths: list[str] | set[str]) -> TestContainer:
-        self._checks.append(DiskStateCheck(expected_paths))
+        self._checks.append(DiskManifestHas(expected_paths))
         return self._parent
 
     def expect_ui_contains(self, template: str) -> TestContainer:
-        check = UIRenderCheck(template)
-        self._checks.append(check)
+        self._checks.append(UIRenderContains(template))
         return self._parent
 
     def where(self, field: str, predicate: Callable[[str], bool]) -> TestContainer:
-        if self._checks and isinstance(self._checks[-1], UIRenderCheck):
+        if self._checks and isinstance(self._checks[-1], UIRenderContains):
             self._checks[-1].where(field, predicate)
         return self._parent
 
     def expect_prompt_contains(self, expected_prompt: str) -> TestContainer:
-        if self._checks and isinstance(self._checks[-1], PromptRenderCheck):
+        if self._checks and isinstance(self._checks[-1], PromtRenderContains):
             check = self._checks[-1]
         else:
-            check = PromptRenderCheck()
+            check = PromtRenderContains()
             self._checks.append(check)
         check.contains(expected_prompt)
         return self._parent
 
     def expect_prompt_min_lines(self, count: int) -> TestContainer:
-        if self._checks and isinstance(self._checks[-1], PromptRenderCheck):
+        if self._checks and isinstance(self._checks[-1], PromtRenderContains):
             check = self._checks[-1]
         else:
-            check = PromptRenderCheck()
+            check = PromtRenderContains()
             self._checks.append(check)
         check.min_lines(count)
         return self._parent
@@ -335,8 +334,7 @@ class SandboxImpl(Sandbox):
         return self._parent if self._parent is not None else self
 
     def execute(self, sandbox_dir: Path) -> SandboxOperationsResult | None:
-        if not self._actions:
-            return None
+        if not self._actions: return None
         ops = []
         for op_type, desc, action in self._actions:
             try:
