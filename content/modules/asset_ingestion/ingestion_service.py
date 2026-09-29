@@ -5,11 +5,11 @@ from core import (
     PudAssets,
     PathTokens,
     RepoContract,
-    DictConfig,
+    Config,
     MissingConfig,
     AssetPack,
     MalformedConfig,
-    MissingAssetPack,
+    BaseAssetPack,
 )
 from core.engine_deps import IngestionService, NoSuchFile, AssetExists, DiskPort, ConfigParseError, ConfigParserPort, StartResult, ClankerizeResult, TerminateResult
 
@@ -43,7 +43,7 @@ class ClankerCtx:
         configs = [self.sys_cfg, self.shared_cfg]
         assetpacks = [self.doc_assets]
 
-        if not absent_files and all(isinstance(cfg, DictConfig) for cfg in configs) and all(pack.issue is None for pack in assetpacks):
+        if not absent_files and all(isinstance(cfg, Config) for cfg in configs) and all(pack.issue is None for pack in assetpacks):
             self.action = BootAction.START
         else: 
             self.action = BootAction.NONE
@@ -73,7 +73,7 @@ class PudCtx:
         configs = [self.pud_cfg]
         assetpacks = [self.doc_assets, self.content_assets]
 
-        if not absent_files and all(isinstance(cfg, DictConfig) for cfg in configs) and all(pack.issue is None for pack in assetpacks):
+        if not absent_files and all(isinstance(cfg, Config) for cfg in configs) and all(pack.issue is None for pack in assetpacks):
             self.action = BootAction.START
         elif not present_files and all(isinstance(cfg, MissingConfig) for cfg in configs) and all(pack.issue is not None for pack in assetpacks):
             self.action = BootAction.CLANKERIZE
@@ -85,7 +85,7 @@ class PudCtx:
 
     def process(self):
         self._determine_action()
-        cfg = isinstance(self.pud_cfg, DictConfig)
+        cfg = isinstance(self.pud_cfg, Config)
         self.filelist = FilelistExtractor(self.collector).extract(self.pud_cfg) if cfg else None
         self.fileset = FilesetExtractor(self.collector).extract(self.pud_cfg) if cfg else None
         if self.doc_assets.paths: CollisionDetector(self.collector).detect(self.doc_assets)
@@ -101,10 +101,10 @@ class IngestionServiceImpl(IngestionService):
         except NoSuchFile:
             return AssetPack(token, roots, None, f"Something missing in '{token}': {roots}") 
 
-    def _get_config(self, config: StrEnum) -> Config:
+    def _get_config(self, config: StrEnum) -> Config | MissingConfig | MalformedConfig:
         try:
             raw_content = self.files.get_file_contents(config.value)
-            return DictConfig(config.name, config.value, self.cfg_ingestor.get_as_dict(raw_content))
+            return Config(config.name, config.value, self.cfg_ingestor.get_as_dict(raw_content))
         except NoSuchFile:
             return MissingConfig(config.name, config.value)
         except ConfigParseError: 

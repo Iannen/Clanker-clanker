@@ -74,19 +74,20 @@ class Button:
     action: Callable | None = None
 
 @dataclass
-class Config: name: str; path: str
+class BaseCfg: name: str; path: str
 @dataclass
-class MissingConfig(Config): pass
+class MissingConfig(BaseCfg): pass
 @dataclass
-class MalformedConfig(Config): details: str
+class MalformedConfig(BaseCfg): details: str
 @dataclass
-class DictConfig(Config): data: dict
+class Config(BaseCfg): data: dict
 
 @dataclass
-class MissingAssetPack: pass
-@dataclass
-class AssetPack:
+class BaseAssetPack:
     name: str
     roots: list[str]
+@dataclass
+class AssetPack(BaseAssetPack):
     paths: list[str] | None = None
-    issue: str | None = None
+@dataclass
+class MissingAssetPack(BaseAssetPack): pass
