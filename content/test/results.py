@@ -77,13 +77,7 @@ class ExpectanceResult(Result):
 class SandboxOperationsResult(Result):
     operations: list[tuple[str, str, Outcome]]
     disk_state: list[str] = field(default_factory=list)
-    """
-    def __post_init__(self) -> None:
-            if self.outcome != Outcome.INIT:
-                return
-            op_outcomes = [outcome for _, _, outcome in self.operations]
-            self.outcome = max(op_outcomes) if op_outcomes else Outcome.PASS
-    """
+
 @dataclass
 class AtomicTestResult(Result):
     test_number: int

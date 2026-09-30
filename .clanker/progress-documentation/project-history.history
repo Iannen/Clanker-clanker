@@ -927,3 +927,16 @@ CXXV: NAME-DRIVEN ASSERTION DSL AND FRAME CONTRACT HARDENING
     Reflection:
     - New assertion types become trivial to add; the DSL stays declarative and frame-structure changes are localized to the name parser.
     - Crash handling is now entirely owned by the container, keeping expectation evaluation pure.
+
+CXXVI: DOMAIN MODEL ENTITY REFACTORING AND KEYBOARD SPECIALIZATION
+    Purpose: Eliminate implicit asset failure states and decouple button execution logic from domain entities.
+    - Asset ingestion lacked typed status structures, and button entities held executable callables, coupling domain entities to runtime dispatch.
+    Actions:
+    - Introduced explicit asset status entities (MissingConfig, MalformedConfig, MissingAssetPack) to cleanly represent degraded context states during ingestion.
+    - Created Keyboard entity to encapsulate key-to-button resolution and lookup logic.
+    - Defined specialized button entities (PromptButton, DomButton, SharedDomButton, PudDomButton) derived from base NewBtn without holding callables.
+    - Delegated Keyboard construction to SysConfigExtractor during post-context extraction and removed rtcassembler.
+    - Aligned KBService and RenderService to consume specialized button entities and helper methods.
+    Reflection:
+    - Keeping entities as pure data structures ensures domain state remains fully serializable and detached from execution mechanics.
+    - Encapsulating key resolution within Keyboard significantly improved readability and type safety across keyboard and rendering services.

@@ -14,8 +14,6 @@ from .extractors.base_resolver import *
 from .extractors.domains import *
 from .extractors.sys_config_extractor import *
 
-from .assemblers.rtc import *
-
 from .validators.assets import *
 from .validators.file_list import *
 from .validators.collision_detector import *

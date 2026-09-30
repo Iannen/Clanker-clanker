@@ -46,8 +46,17 @@ II. The pile
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 
 Backlog tail, Selected item/items:
-1. Refactor Config and AssetPack error state handling and context hierarchy
-    [x] Introduces types to represent malformed or missing configs / assetpacks. not sure how valuable it was
+1. Refactor asset ingestion diagnostics and error handling flow
+    [ ] 'content/core/core/entities.py': Remove diagnostic types
+        - remove BaseCfg, MissingConfig, MalformedConfig, BaseAssetPack, and MissingAssetPack
+    [ ] 'content/modules/asset_ingestion/commons/error_collector.py': Add Complaint hierarchy and update ErrorCollector
+        - define abstract base class Complaint with to_string() method
+        - implement MissingConfig, MalformedConfig, and MissingAssetPack dataclasses inheriting Complaint
+        - update add_complaint and add_critical_complaint to accept str | Complaint and format automatically
+    [ ] 'content/modules/asset_ingestion/ingestion_service.py': Simplify ingestion error flow and context processing
+        - update _get_config and _get_asset_pack to take ErrorCollector, push Complaint directly on error, and return None
+        - update ClankerCtx and PudCtx to handle optional Config and AssetPack types directly
+        - remove isinstance checks for diagnostic objects across context processing methods
 
-2. Need to move button extraction up to ClankerCtx. it becomes contingent on domains, perhaps more
+
 Backlog tail end

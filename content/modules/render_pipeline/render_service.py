@@ -1,7 +1,6 @@
 from core import (
     FileSet,
     ActionResult,
-    Button,
     CorruptClanker,
     Domain,
     KBStateResolver,
@@ -12,7 +11,10 @@ from core import (
     Render,
     RepoContentResolver,
     Resolver,
-    ConfigAssembly
+    ConfigAssembly,
+    Keyboard,
+    DomButton,
+    PromptButton,
 )
 from core.engine_deps import RenderService, RenderContext, UIRenderContext, DiskPort, NoSuchFile
 from . import ContentShaper
@@ -30,7 +32,7 @@ class RenderServiceImpl(RenderService):
         if self._ui_render is None:
             raise CorruptClanker("UI render spec has not been configured.")
         template = self._get_template(self._ui_render)
-        repl_map = self._res_ui(ctx.btn_map, ctx.selected_key)
+        repl_map = self._res_ui(ctx.kb)
         repl_map["msg"] = self.shaper.shape_action_result(msg.message)
         return self._hydrate(template, repl_map)
 
@@ -54,12 +56,8 @@ class RenderServiceImpl(RenderService):
 
     def _get_repl_map(self, ctx: RenderContext) -> dict[str, str]:
         active_resolvers: list[Resolver] = []
-        if ctx.render.inherit_base:
-            active_resolvers.extend(ctx.base_resolvers)
-        if ctx.render.inherit_domain and ctx.selected_key:
-            active_btn = ctx.btn_map.get(ctx.selected_key)
-            if active_btn and isinstance(active_btn.inhabitant, Domain):
-                active_resolvers.extend(active_btn.inhabitant.resolvers)
+        if ctx.render.inherit_domain:
+            if ctx.kb.selected_dom_btn: active_resolvers.extend(ctx.kb.selected_dom_btn.inhabitant.resolvers)
         active_resolvers.extend(ctx.render.resolvers)
         replacements: dict[str, str] = {}
         for resolver in active_resolvers:
@@ -70,8 +68,6 @@ class RenderServiceImpl(RenderService):
                     replacements.update(self._res_repo_content(resolver))
                 case ManifestResolver():
                     replacements.update(self._res_manifest(resolver))
-                case KBStateResolver():
-                    replacements.update(self._res_ui(ctx.btn_map, ctx.selected_key))
         return replacements
 
     def _res_multi_doc(self, resolver: MultiDocResolver) -> dict[str, str]:
@@ -135,31 +131,21 @@ class RenderServiceImpl(RenderService):
 
         return f"<{tag}>\n" + "\n".join(lines) + "\n</" + tag + ">"
 
-    def _res_ui(self, btn_map: dict[str, Button], selected_key: str | None) -> dict[str, str]:
-        if not btn_map:
-            return {}
-
+    def _res_ui(self, kb: Keyboard) -> dict[str, str]:
         btn_hl = self.files.read_asset(ClankerAssets.Layouts.BTN_HL)
         btn_active = self.files.read_asset(ClankerAssets.Layouts.BTN_ACTIVE)
         btn_inactive = self.files.read_asset(ClankerAssets.Layouts.BTN_INACTIVE)
 
         repl_map = {}
-        unique_buttons = {btn.key: btn for btn in btn_map.values()}.values()
-        for btn in unique_buttons:
-            label = ""
+        for btn in kb.get_btns(DomButton):
             template = btn_inactive
-            if btn.type == Button.TYPE_DOMAIN:
-                if btn.key == selected_key:
-                    template = btn_hl
-                    label = btn.inhabitant.name if btn.inhabitant else ""
-                elif btn.inhabitant:
-                    template = btn_active
-                    label = btn.inhabitant.name
-
-            elif btn.type == Button.TYPE_PROMPT:
-                if btn.inhabitant:
-                    template = btn_active
-                    label = btn.inhabitant.name
-
+            label = btn.inhabitant.name if btn.inhabitant else ""
+            if btn==kb.selected_dom_btn: template = btn_hl
+            elif btn.inhabitant: template = btn_active
             repl_map |= self.shaper.shape_button_replacements(btn, label, template)
+        for btn in kb.get_btns(PromptButton):
+            label = btn.inhabitant.name if btn.inhabitant else ""
+            template = btn_active if btn.inhabitant else btn_inactive  
+            repl_map |= self.shaper.shape_button_replacements(btn, label, template)
+            
         return repl_map

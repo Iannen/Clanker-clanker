@@ -75,31 +75,28 @@ class EmptyRepoTests(AssertSuite):
                 .expect.disk_manifest_has(RepoContract.get_all_target_paths()),
         ]
 
-    def navigate_ui_and_copy_prompts(self, actions: ActionsFactory) -> list["TestContainer"]:
+    def button_tree_exercise(self, actions: ActionsFactory) -> list["TestContainer"]:
         ats = []
-        prefix = ["1"]
+        uno = ["1"]
         ats.append(
-            actions.create_test(list(prefix)) \
+            actions.create_test(list(uno)) \
                 .expect.ui_render_contains("Domain 'manifest-analysis' on key '1' selected")
         )
         for c in "as":
-            prefix.append(c)
             ats.append(
-                actions.create_test(list(prefix)) \
+                actions.create_test(list(uno + [c])) \
                     .expect.ui_render_contains(ActionResult.COPIED_TO_CLIPBOARD) \
                     .expect.where("lines", lambda l: int(l) > 100) \
                     .expect.where("chars", lambda c: int(c) > 3000) \
                     .expect.prompt_render_min_lines(50)
             )
         for c in "df":
-            prefix.append(c)
             ats.append(
-                actions.create_test(list(prefix)) \
+                actions.create_test(list(uno + [c])) \
                     .expect.ui_render_contains(ActionResult.UNBOUND_KEY) \
                     .expect.where("key", lambda k, target=c: str(k) == target)
             )
         return ats
-
 
 class CorruptRepoTests(AssertSuite):
     TEMPLATE_FIXTURE_NAME = "empty_repo"

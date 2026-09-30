@@ -63,15 +63,6 @@ class Domain:
     prompts: list[Prompt]
     resolvers: list[Resolver]
 
-@dataclass
-class Button:
-    TYPE_DOMAIN: ClassVar[str] = "domain"
-    TYPE_PROMPT: ClassVar[str] = "prompt"
-    type: str
-    key: str
-    inhabitant: Domain | Prompt | None = None
-    action: Callable | None = None
-
 @dataclass 
 class NewBtn: key: str
 @dataclass
@@ -88,7 +79,24 @@ class Keyboard:
     shared_dom_btns: dict[str, SharedDomButton]
     pud_dom_btns: dict[str, PudDomButton]
     prompt_btns: dict[str, PromptButton]
-    selected_dom: Domain | None = None
+    selected_dom_btn: DomButton | None = None
+    def get_btns(self, cls: Type[NewBtn] | None = None) -> list[NewBtn]:
+        all_btns = [
+            *self.shared_dom_btns.values(),
+            *self.pud_dom_btns.values(),
+            *self.prompt_btns.values(),
+        ]
+        if cls is None:
+            return all_btns
+        return [btn for btn in all_btns if isinstance(btn, cls)]
+    def get(self, key: str, default: NewBtn | None = None) -> NewBtn | None:
+        return (
+            self.shared_dom_btns.get(key)
+            or self.pud_dom_btns.get(key)
+            or self.prompt_btns.get(key, default)
+        )
+    def set_selected_dom_btn(self, btn:DomButton):
+        self.selected_dom_btn=btn
 
 @dataclass
 class BaseCfg: name: str; path: str

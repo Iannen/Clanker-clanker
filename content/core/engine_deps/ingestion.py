@@ -1,5 +1,5 @@
 from stdlib import ABC, abstractmethod, dataclass
-from core import Button, Render, Resolver, Keyboard
+from core import Render, Resolver, Keyboard
 
 class Report(ABC):
     @abstractmethod
@@ -11,9 +11,7 @@ class Report(ABC):
 class StartResult:
     report: Report
     kb: Keyboard
-    btn_map: dict[str, Button]
     ui_render: Render
-    base_resolvers: list[Resolver]
 
 @dataclass(slots=True, frozen=True)
 class ClankerizeResult:
