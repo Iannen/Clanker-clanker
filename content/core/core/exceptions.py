@@ -21,7 +21,7 @@ class MissedNotice(Fatal): leaf_ex = True
 class AdapterLeakage(Fatal): leaf_ex = True
 class UnexpectedEx(Fatal): leaf_ex = True
 class CorruptClanker(Fatal): leaf_ex = True
-class ConfigAssembly(Fatal): leaf_ex = True
+class ConfigAssembly(Exception): pass
 class IllegalDuplicateFile(Fatal): leaf_ex = True
 class UserTask(Fatal): leaf_ex = True
 class WorkspaceAlreadyInitialized(Fatal): leaf_ex = True

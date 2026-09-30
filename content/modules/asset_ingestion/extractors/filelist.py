@@ -15,3 +15,4 @@ class FilelistExtractor:
                 result[k] = FilelistParser(v, self.collector).parse()
 
         return FilelistMap(data=result, collector=self.collector)
+    

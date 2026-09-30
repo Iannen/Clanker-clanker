@@ -1,5 +1,5 @@
 from stdlib import Any, dataclass, field
-from core import Domain, Prompt
+from core import Domain, Prompt, Resolver, ConfigAssembly
 from ...asset_ingestion import (
     ErrorCollector,
     FilesetMap,
@@ -15,18 +15,20 @@ class DomainExtractor:
     collector: ErrorCollector
     fileset_map: FilesetMap
     filelist_map: FilelistMap
+    base_res: Resolver
     extractor: ValueExtractor = field(default_factory=ValueExtractor)
 
-    def extract(self, cfg: Config) -> list[Domain]:
+    def extract(self, cfg: Config) -> list[Domain | None]:
         domains = []
-        #TODO create domainparser
-        for d in self.extractor.req_list(cfg.data, ["domains"]):
+        try: doms_list = self.extractor.req_list(cfg.data, ["domains"])
+        except ConfigAssembly as missing: self.collector.add_critical_complaint(f"{cfg.name}: does not have domains list!"); return None
+        for d in doms_list:
             name = self.extractor.req_str(d, ["name"])
             with self.collector.path(name):
                 raw_resolvers = self.extractor.req_list(d, ["resolvers"])
                 raw_prompts = self.extractor.req_list(d, ["prompts"])
 
-                resolvers = [
+                resolvers = self.base_res + [
                     ResolverParser(
                         r, self.collector, self.fileset_map, self.filelist_map
                     ).parse()

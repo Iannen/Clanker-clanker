@@ -46,3 +46,9 @@ class ErrorCollector(Report):
 
     def has_crits(self) -> bool:
         return len(self._critical_complaints) > 0
+
+    def merge(self, other: ErrorCollector) -> None:
+        merged_collector = ErrorCollector()
+        merged_collector.set_complaints(self.get_complaints() + other.get_complaints())
+        merged_collector.set_critical_complaints(self.get_critical_complaints() + other.get_critical_complaints())
+        return merged_collector

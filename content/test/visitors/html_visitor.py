@@ -368,8 +368,14 @@ class HtmlReportVisitor:
             frames_str = "<br>".join(frame_lines)
             frames_html = (
                 '<strong style="margin-top: 0.75rem; display: block;">Execution Frames:</strong>'
+                f'<div class="frame-box" style="white-space: pre-wrap;">{frames_str}</div>'
+            )
+            """
+            frames_html = (
+                '<strong style="margin-top: 0.75rem; display: block;">Execution Frames:</strong>'
                 f'<div class="frame-box">{frames_str}</div>'
             )
+            """
 
         is_hidden = "hidden" if node.outcome == Outcome.PASS else ""
 
