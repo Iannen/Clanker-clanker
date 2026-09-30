@@ -61,6 +61,7 @@ class IngestionServiceImpl(IngestionService):
             doc_assets = self._get_asset_pack(PathTokens.SHARED, ["content/a_lib"]),
             file_reqs = self._get_file_reqs([*ClankerAssets.Templates, *ClankerAssets.Layouts])
         )
+        clank.process()
         # here I receive a (ui_render, (to pud)) from clank, so pud can finish its business in its lifecycle
 
         pud = PudCtx()
