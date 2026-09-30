@@ -98,21 +98,29 @@ class Keyboard:
     def set_selected_dom_btn(self, btn:DomButton):
         self.selected_dom_btn=btn
 
-@dataclass
-class BaseCfg: name: str; path: str
+
+"""
 @dataclass
 class MissingConfig(BaseCfg): pass
 @dataclass
 class MalformedConfig(BaseCfg): details: str
-@dataclass
-class Config(BaseCfg): data: dict
-
+"""
+"""
 @dataclass
 class BaseAssetPack:
-    name: str
-    roots: list[str]
-@dataclass
-class AssetPack(BaseAssetPack):
-    paths: list[str] | None = None
+""" 
+"""
 @dataclass
 class MissingAssetPack(BaseAssetPack): pass
+"""
+@dataclass
+class AssetPack:
+    name: str
+    roots: list[str]
+    paths: list[str]
+@dataclass
+class RepoItem: name: str; path: str
+@dataclass
+class Filereq(RepoItem): pass
+@dataclass
+class Config(RepoItem): data: dict

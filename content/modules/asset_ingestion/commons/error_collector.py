@@ -1,4 +1,4 @@
-from stdlib import contextmanager, Generator
+from stdlib import contextmanager, Generator, ABC, abstractmethod, dataclass
 from core.engine_deps import Report
 
 class ErrorCollector(Report):
@@ -52,3 +52,25 @@ class ErrorCollector(Report):
         merged_collector.set_complaints(self.get_complaints() + other.get_complaints())
         merged_collector.set_critical_complaints(self.get_critical_complaints() + other.get_critical_complaints())
         return merged_collector
+
+    def accept(self, compl: Complaint):
+        match(compl):
+            case(Critical()): self.add_critical_complaint(compl.to_string())
+            case(Soft): self.add_complaint(compl.to_string())
+
+class Complaint(ABC):
+    @abstractmethod
+    def to_string(self): ...
+
+class Critical(Complaint): pass
+class Soft(Complaint): pass
+
+@dataclass
+class Malformed(Critical):
+    name: str; path: str; details: str
+    def to_string(self): return f"{self.__class__.__name__}: '{self.name}' at '{self.path}': \n{self.details}"
+
+@dataclass
+class Missing(Critical):
+    name: str; paths: str | list[str]
+    def to_string(self): return f"{self.__class__.__name__}: '{self.name}' not found at '{self.paths}'"

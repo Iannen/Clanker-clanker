@@ -6,10 +6,8 @@ from core import (
     PathTokens,
     RepoContract,
     Config,
-    MissingConfig,
     AssetPack,
-    MalformedConfig,
-    MissingAssetPack
+    Filereq
 )
 from core.engine_deps import IngestionService, NoSuchFile, AssetExists, DiskPort, ConfigParseError, ConfigParserPort, StartResult, ClankerizeResult, TerminateResult
 
@@ -25,6 +23,8 @@ from . import (
     FilelistValidator,
     FilesetValidator,
     CollisionDetector,
+    Malformed,
+    Missing
 )
 class BootAction(StrEnum):
     START = "ok"
@@ -62,30 +62,37 @@ class ClankerCtx:
 
 @dataclass
 class PudCtx:
-    pud_cfg: Config
-    doc_assets: AssetPack
-    content_assets: AssetPack
-    file_reqs: tuple[list[StrEnum], list[StrEnum]]
+    pud_cfg: Config | None = None
+    doc_assets: AssetPack | None = None
+    content_assets: AssetPack | None = None
     collector: ErrorCollector = field(default_factory=ErrorCollector)
 
-    def _determine_action(self):
-        absent_files, present_files = self.file_reqs
-        configs = [self.pud_cfg]
-        assetpacks = [self.doc_assets, self.content_assets]
+    def _classify(self,item ,malformed_items ,missing_items, present_items):
+        if isinstance(item, (Config, AssetPack)): present_items.append(item); return item
+        if isinstance(item, Malformed):malformed_items.append(item)
+        elif isinstance(item, (Missing)):missing_items.append(item)
+        return None
 
-        if not absent_files and all(isinstance(cfg, Config) for cfg in configs) and all(isinstance(pack, AssetPack) for pack in assetpacks):
-            self.action = BootAction.START
-        elif not present_files and all(isinstance(cfg, MissingConfig) for cfg in configs) and all(isinstance(pack, MissingAssetPack) for pack in assetpacks):
-            self.action = BootAction.CLANKERIZE
+    def determine_action(
+            self,
+            pud_cfg: Config | MissingConfig | MalformedConfig,
+            doc_assets: AssetPack | MissingAssetPack,
+            content_assets: AssetPack | MissingAssetPack,
+            file_reqs: tuple[list[StrEnum], list[StrEnum]], 
+        ):        
+        missing_items, present_items = file_reqs 
+        malformed_items = []
+        self.pud_cfg = self._classify(pud_cfg, malformed_items, missing_items, present_items)
+        self.doc_assets = self._classify(doc_assets, malformed_items, missing_items, present_items)
+        self.content_assets = self._classify(content_assets, malformed_items, missing_items, present_items)
+        
+        if not missing_items and not malformed_items: self.action = BootAction.START
+        elif not present_items: self.action = BootAction.CLANKERIZE
         else: 
             self.action = BootAction.NONE
-            for missing_file in absent_files: self.collector.add_critical_complaint(f"'{missing_file.name}' not found at '{missing_file.value}'")            
-            for missing_cfg in [cfg for cfg in configs if isinstance(cfg, MissingConfig)]: self.collector.add_critical_complaint(f"'{missing_cfg.name}' not found at '{missing_cfg.path}'")
-            for malformed in [cfg for cfg in configs if isinstance(cfg, MalformedConfig)]: self.collector.add_critical_complaint(f"'{malformed.name}' not found at '{malformed.path}'")
-            for missing_ap in [ap for ap in assetpacks if isinstance(ap, MissingAssetPack)]: self.collector.add_critical_complaint(f"'{missing_ap.name}' not found in '{missing_ap.roots}'")
+            for item in missing_items + malformed_items: self.collector.accept(item)
 
     def process(self):
-        self._determine_action()
         cfg = isinstance(self.pud_cfg, Config)
         self.filelist = FilelistExtractor(self.collector).extract(self.pud_cfg) if cfg else None
         self.fileset = FilesetExtractor(self.collector).extract(self.pud_cfg) if cfg else None
@@ -97,20 +104,16 @@ class IngestionServiceImpl(IngestionService):
     files: DiskPort
     cfg_ingestor: ConfigParserPort
 
-    def _get_asset_pack(self,token:str, roots) -> AssetPack:
-        try:
-            return AssetPack(token, roots, self.files.get_dir_manifest(token, roots)) 
-        except NoSuchFile:
-            return MissingAssetPack(token, roots) 
+    def _get_asset_pack(self,token:str, roots):
+        try: return AssetPack(token, roots, self.files.get_dir_manifest(token, roots)) 
+        except NoSuchFile: return Missing(token, roots) 
 
     def _get_config(self, config: StrEnum) -> Config | MissingConfig | MalformedConfig:
         try:
             raw_content = self.files.get_file_contents(config.value)
             return Config(config.name, config.value, self.cfg_ingestor.get_as_dict(raw_content))
-        except NoSuchFile:
-            return MissingConfig(config.name, config.value)
-        except ConfigParseError: 
-            return MalformedConfig(config.name, config.value, str(ex))
+        except NoSuchFile: return Missing(config.name, config.value)
+        except ConfigParseError: return Malformed(config.name, config.value, str(ex))
     
     def _get_file_reqs(self, assets: list[StrEnum]) -> tuple[list[StrEnum], list[StrEnum]]:
         missing = []
@@ -118,9 +121,9 @@ class IngestionServiceImpl(IngestionService):
         for asset in assets:
             try:
                 self.files.assert_absent(asset)
-                missing.append(asset)
+                missing.append(Missing(asset.name, asset.value))
             except AssetExists:
-                present.append(asset)
+                present.append(Filereq(asset.name, asset.value))
         return missing, present
 
     def get_runtime_config(self):
@@ -130,7 +133,8 @@ class IngestionServiceImpl(IngestionService):
             doc_assets = self._get_asset_pack(PathTokens.SHARED, ["content/a_lib"]),
             file_reqs = self._get_file_reqs([*ClankerAssets.Templates, *ClankerAssets.Layouts])
         )
-        pud = PudCtx(
+        pud = PudCtx()
+        pud.determine_action(
             pud_cfg = self._get_config(PudAssets.Configs.configuration_file),
             doc_assets = self._get_asset_pack(PathTokens.PUD, [".clanker"]),
             content_assets = self._get_asset_pack(PathTokens.PUD, ["content", "README.md"]),
