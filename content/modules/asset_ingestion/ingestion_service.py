@@ -26,78 +26,6 @@ from . import (
     Malformed,
     Missing
 )
-class BootAction(StrEnum):
-    START = "ok"
-    CLANKERIZE = "empty"
-    NONE = "invalid"
-
-@dataclass
-class ClankerCtx:
-    sys_cfg: Config
-    shared_cfg: Config
-    doc_assets: AssetPack
-    file_reqs: tuple[list[StrEnum], list[StrEnum]]
-    collector: ErrorCollector = field(default_factory=ErrorCollector)
-
-    def _determine_action(self):
-        absent_files, present_files = self.file_reqs
-        configs = [self.sys_cfg, self.shared_cfg]
-        assetpacks = [self.doc_assets]
-        if not absent_files and all(isinstance(cfg, Config) for cfg in configs) and all(isinstance(pack, AssetPack) for pack in assetpacks):
-            self.action = BootAction.START
-        else: 
-            self.action = BootAction.NONE
-            for missing_file in absent_files: self.collector.add_critical_complaint(f"'{missing_file.name}' not found at '{missing_file.value}'")            
-            for missing_cfg in [cfg for cfg in configs if isinstance(cfg, MissingConfig)]: self.collector.add_critical_complaint(f"'{missing_cfg.name}' not found at '{missing_cfg.path}'")
-            for malformed in [cfg for cfg in configs if isinstance(cfg, MalformedConfig)]: self.collector.add_critical_complaint(f"'{malformed.name}' not found at '{malformed.path}'")
-            for missing_ap in [ap for ap in assetpacks if isinstance(ap, MissingAssetPack)]: self.collector.add_critical_complaint(f"'{missing_ap.name}' not found in '{missing_ap.roots}'")
-
-    def process(self):
-        self._determine_action()
-        self.ui_render = SysConfigExtractor(self.collector).get_ui_render(self.sys_cfg) if isinstance(self.sys_cfg, Config) else None
-        self.filelist = FilelistExtractor(self.collector).extract(self.shared_cfg) if self.shared_cfg.data else None
-        self.fileset = FilesetExtractor(self.collector).extract(self.shared_cfg) if self.shared_cfg.data else None
-        self.base_res = BaseResolverExtractor(self.collector, self.filelist).extract(self.shared_cfg) if self.shared_cfg.data else None
-        if isinstance(self.doc_assets, AssetPack): CollisionDetector(self.collector).detect(self.doc_assets) 
-
-@dataclass
-class PudCtx:
-    pud_cfg: Config | None = None
-    doc_assets: AssetPack | None = None
-    content_assets: AssetPack | None = None
-    collector: ErrorCollector = field(default_factory=ErrorCollector)
-
-    def _classify(self,item ,malformed_items ,missing_items, present_items):
-        if isinstance(item, (Config, AssetPack)): present_items.append(item); return item
-        if isinstance(item, Malformed):malformed_items.append(item)
-        elif isinstance(item, (Missing)):missing_items.append(item)
-        return None
-
-    def determine_action(
-            self,
-            pud_cfg: Config | MissingConfig | MalformedConfig,
-            doc_assets: AssetPack | MissingAssetPack,
-            content_assets: AssetPack | MissingAssetPack,
-            file_reqs: tuple[list[StrEnum], list[StrEnum]], 
-        ):        
-        missing_items, present_items = file_reqs 
-        malformed_items = []
-        self.pud_cfg = self._classify(pud_cfg, malformed_items, missing_items, present_items)
-        self.doc_assets = self._classify(doc_assets, malformed_items, missing_items, present_items)
-        self.content_assets = self._classify(content_assets, malformed_items, missing_items, present_items)
-        
-        if not missing_items and not malformed_items: self.action = BootAction.START
-        elif not present_items: self.action = BootAction.CLANKERIZE
-        else: 
-            self.action = BootAction.NONE
-            for item in missing_items + malformed_items: self.collector.accept(item)
-
-    def process(self):
-        cfg = isinstance(self.pud_cfg, Config)
-        self.filelist = FilelistExtractor(self.collector).extract(self.pud_cfg) if cfg else None
-        self.fileset = FilesetExtractor(self.collector).extract(self.pud_cfg) if cfg else None
-        self.base_res = BaseResolverExtractor(self.collector, self.filelist).extract(self.pud_cfg) if cfg else None
-        if isinstance(self.doc_assets, AssetPack): CollisionDetector(self.collector).detect(self.doc_assets)
 
 @dataclass(slots=True)
 class IngestionServiceImpl(IngestionService):
@@ -116,8 +44,7 @@ class IngestionServiceImpl(IngestionService):
         except ConfigParseError: return Malformed(config.name, config.value, str(ex))
     
     def _get_file_reqs(self, assets: list[StrEnum]) -> tuple[list[StrEnum], list[StrEnum]]:
-        missing = []
-        present = []
+        missing, present = [], []
         for asset in assets:
             try:
                 self.files.assert_absent(asset)
@@ -127,12 +54,15 @@ class IngestionServiceImpl(IngestionService):
         return missing, present
 
     def get_runtime_config(self):
-        clank = ClankerCtx(
+        clank = ClankerCtx()
+        clank.determine_action(
             sys_cfg = self._get_config(ClankerAssets.Configs.sys_cfg),
             shared_cfg = self._get_config(ClankerAssets.Configs.shared_cfg),
             doc_assets = self._get_asset_pack(PathTokens.SHARED, ["content/a_lib"]),
             file_reqs = self._get_file_reqs([*ClankerAssets.Templates, *ClankerAssets.Layouts])
         )
+        # here I receive a (ui_render, (to pud)) from clank, so pud can finish its business in its lifecycle
+
         pud = PudCtx()
         pud.determine_action(
             pud_cfg = self._get_config(PudAssets.Configs.configuration_file),
@@ -140,8 +70,9 @@ class IngestionServiceImpl(IngestionService):
             content_assets = self._get_asset_pack(PathTokens.PUD, ["content", "README.md"]),
             file_reqs = self._get_file_reqs([*PudAssets.Directories, *PudAssets.Files, *PudAssets.Documentation])
         )
-        clank.process()
         pud.process()
+
+        # then from pud I receive a tuple of only the shit I need to proceed. I can have a third assembler type too, or let the service be the assembler via a helper
 
         merged_collector = clank.collector.merge(pud.collector)
 
@@ -180,3 +111,84 @@ class IngestionServiceImpl(IngestionService):
         for from_path, to_path in RepoContract.MAPPINGS:
             self.files.copy_file(from_path=from_path, to_path=to_path)
         return self.get_runtime_config()
+
+class BootAction(StrEnum):
+    START = "ok"
+    CLANKERIZE = "empty"
+    NONE = "invalid"
+
+class ItemHandler:
+    def _classify(self,item ,malformed_items ,missing_items, present_items):
+        if isinstance(item, (Config, AssetPack)): present_items.append(item); return item
+        if isinstance(item, Malformed):malformed_items.append(item)
+        elif isinstance(item, (Missing)):missing_items.append(item)
+        return None
+
+@dataclass
+class ClankerCtx(ItemHandler):
+    """
+    - produces ui render from sysextractor
+    - produces fileset, filelist
+    - produces base_resolver
+    - produces domains 
+    - produces button map, inserts shared domains in it consuming them
+    - validates collisions of clank doc assets 
+    - returns ui_render, (fileset, filelist, button_map, collector). the former for service, the latter for pud
+    """
+    sys_cfg: Config | None = None
+    shared_cfg: Config | None = None
+    doc_assets: AssetPack | None = None
+    collector: ErrorCollector = field(default_factory=ErrorCollector)
+
+    def determine_action(
+        self,
+        sys_cfg: Config | MissingConfig | MalformedConfig,
+        shared_cfg: Config | MissingConfig | MalformedConfig,
+        doc_assets: AssetPack | MissingAssetPack,
+        file_reqs: tuple[list[StrEnum], list[StrEnum]],
+    ):
+        missing_items, present_items, malformed_items = *file_reqs, []
+        self.sys_cfg = self._classify(sys_cfg, malformed_items, missing_items, present_items)
+        self.shared_cfg = self._classify(shared_cfg, malformed_items, missing_items, present_items)
+        self.doc_assets = self._classify(doc_assets, malformed_items, missing_items, present_items)
+        for item in missing_items + malformed_items: self.collector.accept(item)
+
+    def process(self):
+        sys_valid = isinstance(self.sys_cfg, Config)
+        shared_data = self.shared_cfg.data if isinstance(self.shared_cfg, Config) else None
+        self.ui_render = SysConfigExtractor(self.collector).get_ui_render(self.sys_cfg) if sys_valid else None
+        self.filelist = FilelistExtractor(self.collector).extract(self.shared_cfg) if shared_data else None
+        self.fileset = FilesetExtractor(self.collector).extract(self.shared_cfg) if shared_data else None
+        self.base_res = BaseResolverExtractor(self.collector, self.filelist).extract(self.shared_cfg) if shared_data else None
+        # make domains
+        if self.doc_assets: CollisionDetector(self.collector).detect(self.doc_assets)
+        return self.ui_render, (self.filelist, self.fileset, self.collector) #. the former for service, the latter for pud
+
+@dataclass
+class PudCtx(ItemHandler):
+    pud_cfg: Config | None = None
+    doc_assets: AssetPack | None = None
+    content_assets: AssetPack | None = None
+    collector: ErrorCollector = field(default_factory=ErrorCollector)
+
+    def determine_action(
+            self,
+            pud_cfg: Config | MissingConfig | MalformedConfig,
+            doc_assets: AssetPack | MissingAssetPack,
+            content_assets: AssetPack | MissingAssetPack,
+            file_reqs: tuple[list[StrEnum], list[StrEnum]], 
+        ):        
+        missing_items, present_items, malformed_items = *file_reqs, []
+        self.pud_cfg = self._classify(pud_cfg, malformed_items, missing_items, present_items)
+        self.doc_assets = self._classify(doc_assets, malformed_items, missing_items, present_items)
+        self.content_assets = self._classify(content_assets, malformed_items, missing_items, present_items)
+        self.action = BootAction.NONE
+        if not missing_items and not malformed_items: self.action = BootAction.START
+        elif not present_items: self.action = BootAction.CLANKERIZE
+        else: [self.collector.accept(item) for item in missing_items + malformed_items]
+
+    def process(self):
+        self.filelist = FilelistExtractor(self.collector).extract(self.pud_cfg) if self.pud_cfg else None #if cfg else None
+        self.fileset = FilesetExtractor(self.collector).extract(self.pud_cfg) if self.pud_cfg else None #if cfg else None
+        self.base_res = BaseResolverExtractor(self.collector, self.filelist).extract(self.pud_cfg) if self.pud_cfg else None #if cfg else None
+        if isinstance(self.doc_assets, AssetPack): CollisionDetector(self.collector).detect(self.doc_assets)
