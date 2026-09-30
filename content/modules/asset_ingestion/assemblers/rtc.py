@@ -4,7 +4,7 @@ from core import ClankerAssets, PudAssets, Button, Domain
 class RtcAssembler:
     def assemble(
         self,
-        sys_cfg: Config,
+        sys_cfg: Config, # this is removed
         shared_doms: list[Domain],
         pud_doms: list[Domain],
         collector: ErrorCollector,

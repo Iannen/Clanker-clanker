@@ -49,7 +49,7 @@ class AppEngine:
                 return msg                
 
         self.renderer.set_ui_render(res.ui_render)
-        self.kb_service.setup(res.btn_map, res.base_resolvers)
+        self.kb_service.setup(res.kb, res.btn_map, res.base_resolvers)
         action_res = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)            
 
         try:

@@ -55,7 +55,7 @@ class ClankerCtx:
 
     def process(self):
         self._determine_action()
-        self.ui_render, self.btn_map = SysConfigExtractor(self.collector).extract(self.sys_cfg) if isinstance(self.sys_cfg, Config) else (None, None)
+        self.ui_render = SysConfigExtractor(self.collector).get_ui_render(self.sys_cfg) if isinstance(self.sys_cfg, Config) else None
         self.filelist = FilelistExtractor(self.collector).extract(self.shared_cfg) if self.shared_cfg.data else None
         self.fileset = FilesetExtractor(self.collector).extract(self.shared_cfg) if self.shared_cfg.data else None
         self.base_res = BaseResolverExtractor(self.collector, self.filelist).extract(self.shared_cfg) if self.shared_cfg.data else None
@@ -150,10 +150,11 @@ class IngestionServiceImpl(IngestionService):
         shared_doms = DomainExtractor(merged_collector, clank.fileset, clank.filelist, base_resolver).extract(clank.shared_cfg) if clank.shared_cfg.data else None
         pud_doms = DomainExtractor(merged_collector, merged_fileset, merged_filelist, base_resolver).extract(pud.pud_cfg) if merged_filelist and merged_fileset and base_resolver and isinstance(pud.pud_cfg, Config) else None
 
+        kb = SysConfigExtractor(merged_collector).get_btn_map(clank.sys_cfg, shared_doms, pud_doms) if isinstance(clank.sys_cfg, Config) and shared_doms and pud_doms else None
+
         if merged_collector.has_crits(): return TerminateResult(merged_collector)
         elif pud.action is BootAction.CLANKERIZE: return ClankerizeResult(merged_collector)
         elif pud.action is BootAction.START: 
-                # TODO the buttons should be dealt with by the clankerctx at this point
                 button_map = RtcAssembler().assemble(
                     sys_cfg=clank.sys_cfg,
                     shared_doms=shared_doms,
@@ -171,7 +172,7 @@ class IngestionServiceImpl(IngestionService):
                 .validate(pud_ctx.pud_cfg, pud_doms, pud_ctx.collector)
                 .validate(clank_ctx.shared_cfg, clank_ctx.doms, clank_ctx.collector))
                 """
-                return StartResult(merged_collector, button_map, clank.ui_render, clank.base_res)            
+                return StartResult(merged_collector, kb, button_map, clank.ui_render, base_resolver)            
         """
         match (clank.action, pud.action, merged_collector.has_crits()):
             case (BootAction.START, BootAction.START, False):

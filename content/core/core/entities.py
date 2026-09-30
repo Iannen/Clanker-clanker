@@ -67,11 +67,28 @@ class Domain:
 class Button:
     TYPE_DOMAIN: ClassVar[str] = "domain"
     TYPE_PROMPT: ClassVar[str] = "prompt"
-
     type: str
     key: str
     inhabitant: Domain | Prompt | None = None
     action: Callable | None = None
+
+@dataclass 
+class NewBtn: key: str
+@dataclass
+class PromptButton(NewBtn): inhabitant: Prompt | None = None
+@dataclass
+class DomButton(NewBtn): inhabitant: Domain
+@dataclass
+class SharedDomButton(DomButton): pass
+@dataclass
+class PudDomButton(DomButton): pass
+
+@dataclass
+class Keyboard:
+    shared_dom_btns: dict[str, SharedDomButton]
+    pud_dom_btns: dict[str, PudDomButton]
+    prompt_btns: dict[str, PromptButton]
+    selected_dom: Domain | None = None
 
 @dataclass
 class BaseCfg: name: str; path: str

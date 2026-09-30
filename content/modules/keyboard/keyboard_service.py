@@ -7,11 +7,16 @@ from core import (
     Prompt,
     Render,
     Resolver,
+    Keyboard,
+    PudDomButton,
+    SharedDomButton,
+    PromptButton,
 )
 from core.engine_deps import KBService, RenderContext, UIRenderContext
 
 class KBServiceImpl(KBService):
-    def setup(self, btn_map: dict[str, Button], base_resolvers: list[Resolver]) -> None:
+    def setup(self,kb: Keyboard, btn_map: dict[str, Button], base_resolvers: list[Resolver]) -> None:
+        self.kb: Keyboard = kb
         self.button_map = btn_map
         self.selected_key: str | None = None
         self.base_resolvers = base_resolvers

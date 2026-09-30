@@ -14,3 +14,4 @@ import traceback
 import tty
 from typing import Any, Callable, ClassVar, Generator, Generic, TypeVar, Self
 from enum import StrEnum
+from itertools import zip_longest
