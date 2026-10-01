@@ -115,19 +115,29 @@ class ClankerCtx(ItemHandler):
         doc_assets = self._classify(self.doc_assets, malformed_items, missing_items, present_items)
         for item in missing_items + malformed_items: self.collector.accept(item)
 
+        # extractors, and their products
         filelist, filelist_extractor = FilelistExtractor(self.collector).clank_fl(cfg)
-
         fileset, fileset_extractor = FilesetExtractor(self.collector).clank_fs(cfg)
         doms, dom_extractor = DomainExtractor(self.collector).extract_shared_doms(cfg, fileset, filelist)
-        # here I must validate that doms can source from fileset and filelist. hm, i think they already do? the doms are constructed by looking up from the fileset and filelist.
-
-        list_validator = FilelistValidator(self.collector).validate_clank(doms, doc_assets, cfg) #TODO: this must validate the base_res too
-
+        # I must validate that doms can source from fileset and filelist. hm, i think perhaps this occurs inside the extractor already. the doms are constructed by looking up from the fileset and filelist if required
         sys_cfg_extractor = SysConfigExtractor(self.collector, sys_cfg).accept_shared_doms(doms)
-
         base_res, base_res_extractor = BaseResolverExtractor(self.collector, filelist).extract_from_clanker(cfg, filelist) #TODO:  I need to verify that this base_res can source from clanker assets.
 
-        if doc_assets: CollisionDetector(self.collector).detect(doc_assets)
+        #Validators
+        list_validator = FilelistValidator(self.collector).validate_clank(doms, doc_assets, cfg) #TODO: this must validate the base_res via separate method
+        # now the fileset validator.
+        """
+        - receives collector on init
+        - 
+        TODO arg/param alignment
+        (fileset_validator = FilesetValidator(collector)
+        .validate_clank(doms, clank_ctx))
+
+        fileset_validator.validate_pud(pud_cfg, pud_doms)
+        """
+
+
+        if doc_assets: CollisionDetector(self.collector).detect(doc_assets) # perhaps I make this part of the fielist validator. its after all relating to the same 'file' concept
         return self.collector, (sys_cfg_extractor, filelist_extractor, fileset_extractor, base_res_extractor, dom_extractor, list_validator, doc_assets, cfg) 
 
 
@@ -168,7 +178,8 @@ class PudCtx(ItemHandler):
         sys_cfg_extractor.accept_pud_doms(pud_doms)
         ui_render, kb = sys_cfg_extractor.deliver()
 
-        if isinstance(doc_assets, AssetPack): CollisionDetector(self.collector).detect(doc_assets)
+        
+        if isinstance(doc_assets, AssetPack): CollisionDetector(self.collector).detect(doc_assets) # perhaps I make this part of the fielist validator. its after all relating to the same 'file' concept
 
         list_validator.validate_pud(pud_doms, doc_assets, cfg) #TODO: this must also validate the base_resolver via new method
         
