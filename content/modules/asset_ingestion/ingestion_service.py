@@ -61,10 +61,13 @@ class IngestionServiceImpl(IngestionService):
             doc_assets = self._get_asset_pack(PathTokens.SHARED, ["content/a_lib"]),
             file_reqs = self._get_file_reqs([*ClankerAssets.Templates, *ClankerAssets.Layouts])
         )
-        clank.process()
+        #return (self.ui_render, self.collector), (self.filelist, self.fileset) #. the former for service, the latter for pud
+        a, b = clank.process()
+        ui_render, collector = a
+        filelist, fileset = b
         # here I receive a (ui_render, (to pud)) from clank, so pud can finish its business in its lifecycle
 
-        pud = PudCtx()
+        pud = PudCtx(collector)
         pud.determine_action(
             pud_cfg = self._get_config(PudAssets.Configs.configuration_file),
             doc_assets = self._get_asset_pack(PathTokens.PUD, [".clanker"]),
@@ -75,14 +78,14 @@ class IngestionServiceImpl(IngestionService):
 
         # then from pud I receive a tuple of only the shit I need to proceed. I can have a third assembler type too, or let the service be the assembler via a helper
 
-        merged_collector = clank.collector.merge(pud.collector)
+        merged_collector = collector.merge(pud.collector)
 
-        merged_filelist = clank.filelist.merge(pud.filelist) if clank.filelist and pud.filelist else None
-        merged_fileset = clank.fileset.merge(pud.fileset) if clank.fileset and pud.fileset else None
+        merged_filelist = filelist.merge(pud.filelist) if filelist and pud.filelist else None
+        merged_fileset = fileset.merge(pud.fileset) if fileset and pud.fileset else None
 
-        base_resolver = pud.base_res if pud.base_res else clank.base_res
+        base_resolver = pud.base_res if pud.base_res else base_res
 
-        shared_doms = DomainExtractor(merged_collector, clank.fileset, clank.filelist, base_resolver).extract(clank.shared_cfg) if clank.shared_cfg.data else None
+        shared_doms = DomainExtractor(merged_collector, fileset, filelist, base_resolver).extract(clank.shared_cfg) if clank.shared_cfg.data else None
         pud_doms = DomainExtractor(merged_collector, merged_fileset, merged_filelist, base_resolver).extract(pud.pud_cfg) if merged_filelist and merged_fileset and base_resolver and isinstance(pud.pud_cfg, Config) else None
 
         kb = SysConfigExtractor(merged_collector).get_btn_map(clank.sys_cfg, shared_doms, pud_doms) if isinstance(clank.sys_cfg, Config) and shared_doms and pud_doms else None
@@ -101,7 +104,7 @@ class IngestionServiceImpl(IngestionService):
                 .validate(pud_ctx.pud_cfg, pud_doms, pud_ctx.collector)
                 .validate(clank_ctx.shared_cfg, clank_ctx.doms, clank_ctx.collector))
                 """
-                return StartResult(merged_collector, kb, clank.ui_render)            
+                return StartResult(merged_collector, kb, ui_render)            
 
     def initialize_workspace(self):
         if self.files.is_cwd_script_dir():
@@ -163,7 +166,7 @@ class ClankerCtx(ItemHandler):
         self.base_res = BaseResolverExtractor(self.collector, self.filelist).extract(self.shared_cfg) if shared_data else None
         # make domains
         if self.doc_assets: CollisionDetector(self.collector).detect(self.doc_assets)
-        return self.ui_render, (self.filelist, self.fileset, self.collector) #. the former for service, the latter for pud
+        return (self.ui_render, self.collector), (self.filelist, self.fileset) #. the former for service, the latter for pud
 
 @dataclass
 class PudCtx(ItemHandler):
