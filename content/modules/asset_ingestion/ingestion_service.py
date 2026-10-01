@@ -167,9 +167,7 @@ class PudCtx(ItemHandler):
 
 
         if isinstance(doc_assets, AssetPack): CollisionDetector(self.collector).detect(doc_assets)
-        
-        # this can give us both pud and shared doms on return
-        #pud_doms = DomainExtractor(self.collector, filesets, filelist).extract(cfg) if filelist and filesets and isinstance(cfg, Config) else None
+
         pud_doms, clank_doms = dom_extractor.extract_and_return_both(cfg, filesets, filelist)
                             
         # I pass both domains into res_extractor, so it can stuff the resolver into the domains.
