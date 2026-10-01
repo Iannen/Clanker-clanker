@@ -116,8 +116,12 @@ class ClankerCtx(ItemHandler):
         for item in missing_items + malformed_items: self.collector.accept(item)
 
         filelist, filelist_extractor = FilelistExtractor(self.collector).clank_fl(cfg)
+
+        # validate that filelist can be sourced from doc_assets
+        #list_validator = FilelistValidator(self.collector, None, None)
+
         fileset, fileset_extractor = FilesetExtractor(self.collector).clank_fs(cfg)
-        doms, dom_extractor = DomainExtractor(self.collector, fileset, filelist).extract_shared_doms(cfg, fileset, filelist)
+        doms, dom_extractor = DomainExtractor(self.collector).extract_shared_doms(cfg, fileset, filelist)
         # here I must validate that doms can source from fileset and filelist
         # this then satisfies that clank does not rely on pud
 

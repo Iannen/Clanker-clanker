@@ -46,33 +46,3 @@ class BaseResolverExtractor:
             if extracted:
                 return [extracted[0]]
             return None
-
-    def extract(self, cfg: Config) -> list[Resolver]:
-        if not cfg: return None
-        with self.collector.path("base_resolvers"):
-            raw_resolvers = self.extractor.opt_list(cfg.data, ["base_resolvers"], [])
-            extracted: list[MultiDocResolver] = []
-
-            for r in raw_resolvers:
-                res_type = self.extractor.req_str(r, ["type"])
-                anchor = self.extractor.req_str(r, ["id"])
-
-                if res_type != "multi-document-retrieval":
-                    self.collector.add_complaint(
-                        f"Expected 'multi-document-retrieval' resolver type in base_resolvers, got '{res_type}'"
-                    )
-                    continue
-
-                if len(extracted) >= 1:
-                    self.collector.add_complaint(
-                        f"Extraneous base resolver '{anchor}' encountered; at most 1 base resolver expected"
-                    )
-                    continue
-
-                resolver_obj = ResolverParser(r, self.collector, self.filelist_map, self.filelist_map).parse()
-                if isinstance(resolver_obj, MultiDocResolver):
-                    extracted.append(resolver_obj)
-
-            if extracted:
-                return [extracted[0]]
-            return []

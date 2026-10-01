@@ -7,20 +7,14 @@ from ...asset_ingestion import ErrorCollector, FilelistMap, ValueExtractor, File
 class FilelistExtractor:
     collector: ErrorCollector
 
-    @overload
-    def extract(self, cfg: Config) -> FilelistMap: ...
-
-    @overload
-    def extract(self, cfg: Config, existing: FilelistMap) -> FilelistMap: ...
-
     def clank_fl(self, cfg: Config) -> FilelistMap | None:
-        self.clank_fl = self.extract(cfg)
+        self.clank_fl = self._extract(cfg)
         return self.clank_fl, self
 
     def unified_fl(self, cfg:Config) -> FilelistMap | None:
-        return self.extract(cfg, self.clank_fl) # Should I return fl if clank fl is none? validation can continue, i think so.
+        return self._extract(cfg, self.clank_fl) # Should I return fl if clank fl is none? validation can continue, i think so.
     
-    def extract(self, cfg: Config, existing: Optional[FilelistMap] = None) -> FilelistMap:
+    def _extract(self, cfg: Config, existing: Optional[FilelistMap] = None) -> FilelistMap:
         if not cfg: return None
         extractor = ValueExtractor()
         raw_filelists = extractor.opt_dict(cfg.data, ["filelists"], default={})
