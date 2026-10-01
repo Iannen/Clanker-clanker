@@ -16,16 +16,6 @@ class DomParser(ValueExtractor):
             
     def _build_prompts(self, dicts: list[dict[str, Any]], fileset_map: FilesetMap, filelist_map: FilelistMap) -> list[Prompt]:
         return [PromptParser(self.ec).parse(d, fileset_map, filelist_map) for d in dicts]
-        """
-        prompts = []
-        for d in dicts: 
-            name = self.req_str(d, ["name"])
-            with self.ec.path(name):
-                render_dict = self.opt_dict(d, ["render"])
-                render = RenderParser(render_dict, self.ec, fileset_map, filelist_map).extract()
-                prompts.append(Prompt(name=name, render=render))
-        return prompts
-        """
 
 @dataclass
 class PromptParser(ValueExtractor):

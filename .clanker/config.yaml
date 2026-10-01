@@ -4,7 +4,10 @@ system:
 filesets:
   core: {includes: [content/core]}
 
-  asset_ingestion: {includes: [content/modules/asset_ingestion]}
+  asset_ingestion: {includes: [
+    content/modules/asset_ingestion], excludes: [
+      content/modules/asset_ingestion/parsers
+    ]}
 
   cfg_validation: {includes: [
     content/core/entities.py,  
@@ -55,7 +58,7 @@ domains:
 
 - name: ingestion
   resolvers:
-    - { id: repo_content, type: repo_content, fileset: complaint_review }
+    - { id: repo_content, type: repo_content, fileset: asset_ingestion }
   prompts:
     - name: plan
       render:
