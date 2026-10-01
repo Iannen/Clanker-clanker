@@ -8,8 +8,8 @@ class BaseResolverExtractor(ValueExtractor):
     filelist_map: FilelistMap
 
     def extract_from_clanker(self, cfg: Config, filelist_map: FilelistMap) -> Resolver:
-        # if clanker doesnt have baseres, then make critical complaint no need to complain on pud
         self.clanker_baseres = self._extract(cfg, filelist_map)
+        if not self.clanker_baseres: self.collector.add_critical_complaint("Clanker must declare a base resolver")
         return self.clanker_baseres, self
 
     def get_proper_baseres(self, cfg: Config, filelist_map: FilelistMap): 
@@ -25,9 +25,8 @@ class BaseResolverExtractor(ValueExtractor):
         mds = [r for r in extracted if isinstance(r, MultiDocResolver)]
 
         md, overflow = (mds[0], mds[1:]) if mds else (None, [])
-
         with self.collector.path("base_resolvers"):
             for r in non_mds: self.collector.add_complaint(f"Expected 'multi-document-retrieval' resolver type in base_resolvers, got '{type(r).__name__}'")
             for _ in overflow: self.collector.add_complaint(f"Extraneous base resolver encountered in {cfg.name}; at most 1 base resolver expected")
-
+        
         return md
