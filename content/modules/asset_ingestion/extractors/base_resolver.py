@@ -35,6 +35,4 @@ class BaseResolverExtractor:
 
             if extracted:
                 return [extracted[0]]
-
-            #self.collector.add_critical_complaint("Missing required base resolver configuration")
             return []

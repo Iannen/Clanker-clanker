@@ -60,52 +60,24 @@ class IngestionServiceImpl(IngestionService):
             doc_assets = self._get_asset_pack(PathTokens.SHARED, ["content/a_lib"]),
             file_reqs = self._get_file_reqs([*ClankerAssets.Templates, *ClankerAssets.Layouts])
         )
-        # receive collector, res
-        # pass both to pud ctx on init
-        a, b = clank.determine_action()
-        sys_cfg_extractor, clank_base_res, shared_doms, collector = a
-        clank_filelist, clank_fileset = b
+        collector, res = clank.determine_action()
+
         pud = PudCtx(
             pud_cfg = self._get_config(PudAssets.Configs.configuration_file),
             doc_assets = self._get_asset_pack(PathTokens.PUD, [".clanker"]),
             content_assets = self._get_asset_pack(PathTokens.PUD, ["content", "README.md"]),
             file_reqs = self._get_file_reqs([*PudAssets.Directories, *PudAssets.Files, *PudAssets.Documentation]),
-            collector = collector
+            collector = collector,
+            clank_res=res
         )
 
-
-        collector, pud_filelist, pud_fileset, pud_base_res, pud_cfg, action  = pud.determine_action()
-
-        merged_filelist = clank_filelist.merge(pud_filelist) if clank_filelist and pud_filelist else None
-        merged_fileset = clank_fileset.merge(pud_fileset) if clank_fileset and pud_fileset else None
-
-        base_resolver = pud_base_res if pud_base_res else clank_base_res
-
-        pud_doms = DomainExtractor(collector, merged_fileset, merged_filelist).extract(pud_cfg) if merged_filelist and merged_fileset and isinstance(pud_cfg, Config) else None
-
+        collector, ui_render, kb, action  = pud.determine_action()
        
-        sys_cfg_extractor.accept_pud_doms(pud_doms)
-        ui_render, kb = sys_cfg_extractor.deliver()
 
         if collector.has_crits(): return TerminateResult(collector)
         elif action is BootAction.CLANKERIZE: return ClankerizeResult(collector)
-        elif action is BootAction.START: 
-                for d in [d for doms in (shared_doms, pud_doms) if doms for d in doms if d is not None]:
-                    for res in d.resolvers:
-                        d.resolvers = base_resolver +d.resolvers
-                # TODO arg/param alignment. this must happen after base resolver injection. the correct base resolver isnt discovered untill after both pud and clank have been processed
-                (FilelistValidator(pud.doc_assets, clank.doc_assets)
-                .validate(pud_cfg, pud_doms, collector)
-                .validate(clank.shared_cfg, shared_doms, collector))
-                
-                """
-                TODO arg/param alignment
-                (FilesetValidator(pud_ctx.content_assets, clank_ctx.doc_assets)
-                .validate(pud_res.pud_cfg, pud_doms, collector)
-                .validate(clank_ctx.shared_cfg, clank_ctx.doms, clank_ctx.collector))
-                """
-                return StartResult(collector, kb, ui_render)            
-
+        elif action is BootAction.START: return StartResult(collector, kb, ui_render) 
+                          
     def initialize_workspace(self):
         if self.files.is_cwd_script_dir():
             raise CorruptClanker("Clanker repository initialized is beyond scope of app.")
@@ -130,15 +102,6 @@ class ItemHandler:
 
 @dataclass
 class ClankerCtx(ItemHandler):
-    """
-    - produces ui render from sysextractor
-    - produces fileset, filelist
-    - produces base_resolver
-    - produces domains 
-    - produces button map, inserts shared domains in it consuming them
-    - validates collisions of clank doc assets 
-    - returns ui_render, (fileset, filelist, button_map, collector). the former for service, the latter for pud
-    """
     sys_cfg: Config | Missing | Malformed
     shared_cfg: Config | Missing | Malformed
     doc_assets: AssetPack | Missing
@@ -162,7 +125,8 @@ class ClankerCtx(ItemHandler):
         base_res = BaseResolverExtractor(self.collector, filelist).extract(shared_cfg) if shared_data else None
 
         if doc_assets: CollisionDetector(self.collector).detect(doc_assets)
-        return (sys_cfg_extractor, base_res, shared_doms, self.collector), (filelist, fileset) #. the former for service, the latter for pud
+        #return (sys_cfg_extractor, base_res, shared_doms, self.collector), (filelist, fileset) #. the former for service, the latter for pud
+        return self.collector, (sys_cfg_extractor, base_res, shared_doms, filelist, fileset, doc_assets, shared_cfg) 
 
 
 
@@ -173,6 +137,7 @@ class PudCtx(ItemHandler):
     content_assets: AssetPack | Missing
     file_reqs: tuple[list[StrEnum], list[StrEnum]]
     collector: ErrorCollector
+    clank_res: Any
 
     def determine_action(self):        
         missing_items, present_items, malformed_items = *self.file_reqs, []
@@ -184,16 +149,35 @@ class PudCtx(ItemHandler):
         elif not present_items: action = BootAction.CLANKERIZE
         else: [self.collector.accept(item) for item in missing_items + malformed_items]
 
-        filelist = FilelistExtractor(self.collector).extract(pud_cfg) if pud_cfg else None
-        fileset = FilesetExtractor(self.collector).extract(pud_cfg) if pud_cfg else None
-        base_res = BaseResolverExtractor(self.collector, filelist).extract(pud_cfg) if pud_cfg else None
+        sys_cfg_extractor, clank_base_res, clank_doms, clank_filelist, clank_fileset, clank_doc_assets, shared_cfg = self.clank_res
+
+        unified_filelist = FilelistExtractor(self.collector).extract(pud_cfg, clank_filelist) if pud_cfg else None
+        unified_fileset = FilesetExtractor(self.collector).extract(pud_cfg, clank_fileset) if pud_cfg else None
+        pud_base_res = BaseResolverExtractor(self.collector, unified_filelist).extract(pud_cfg) if pud_cfg else None
+        base_resolver = pud_base_res if pud_base_res else clank_base_res
         if isinstance(doc_assets, AssetPack): CollisionDetector(self.collector).detect(doc_assets)
         
-        return self.collector, filelist, fileset, base_res, pud_cfg, action
-    """
-    def process(self):
-        self.filelist = FilelistExtractor(self.collector).extract(self.pud_cfg) if self.pud_cfg else None #if cfg else None
-        self.fileset = FilesetExtractor(self.collector).extract(self.pud_cfg) if self.pud_cfg else None #if cfg else None
-        self.base_res = BaseResolverExtractor(self.collector, self.filelist).extract(self.pud_cfg) if self.pud_cfg else None #if cfg else None
-        if isinstance(self.doc_assets, AssetPack): CollisionDetector(self.collector).detect(self.doc_assets)
-    """
+        pud_doms = DomainExtractor(self.collector, unified_fileset, unified_filelist).extract(pud_cfg) if unified_filelist and unified_fileset and isinstance(pud_cfg, Config) else None
+        for d in [d for doms in (clank_doms, pud_doms) if doms for d in doms if d is not None]:
+                    for res in d.resolvers:
+                        d.resolvers = base_resolver +d.resolvers
+        sys_cfg_extractor.accept_pud_doms(pud_doms)
+        ui_render, kb = sys_cfg_extractor.deliver()
+
+        #for d in [d for doms in (shared_doms, pud_doms) if doms for d in doms if d is not None]:
+            #   for res in d.resolvers:
+            #      d.resolvers = base_resolver +d.resolvers
+        # TODO arg/param alignment. this must happen after base resolver injection. the correct base resolver isnt discovered untill after both pud and clank have been processed
+        (FilelistValidator(doc_assets, clank_doc_assets)
+        .validate(pud_cfg, pud_doms, self.collector)
+        .validate(shared_cfg, clank_doms, self.collector))
+        
+        """
+        TODO arg/param alignment
+        (FilesetValidator(pud_ctx.content_assets, clank_ctx.doc_assets)
+        .validate(pud_res.pud_cfg, pud_doms, collector)
+        .validate(clank_ctx.shared_cfg, clank_ctx.doms, clank_ctx.collector))
+        """
+        return self.collector, ui_render, kb, action
+
+        #return self.collector, unified_filelist, unified_fileset, base_resolver, pud_cfg, action

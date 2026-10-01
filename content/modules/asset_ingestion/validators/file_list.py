@@ -8,16 +8,16 @@ class FilelistValidator:
 
     def validate(
         self,
-        config_name: str,
+        config: Config,
         doms: list[Domain],
         collector,
     ) -> Self:
-        self._detect_unbacked_filerefs(config_name, doms, collector)
+        if doms and self.pud_assets and self.shared_assets: self._detect_unbacked_filerefs(config, doms, collector)
         return self
 
     def _detect_unbacked_filerefs(
         self,
-        config_name: str,
+        config: Config,
         doms: list[Domain],
         collector,
     ) -> None:
@@ -30,17 +30,17 @@ class FilelistValidator:
             if target_path:
                 file_item.path = target_path
             else:
-                self._handle_unbacked_file(collector, doms, file_item.name, config_name, context_path)
+                self._handle_unbacked_file(collector, doms, file_item.name, config, context_path)
 
     def _handle_unbacked_file(
         self,
         collector,
         targets: list[Domain],
         filename: str,
-        config_name: str,
+        config: Config,
         context_path: str,
     ) -> None:
-        with collector.path(config_name):
+        with collector.path(config.name):
             collector.add_complaint(
                 f"the file of <{context_path}> was not found in either pud or shared, so it was removed"
             )
