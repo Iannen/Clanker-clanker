@@ -21,8 +21,11 @@ class DomainExtractor:
         self.shr_doms = self._extract(cfg, fileset_map, filelist_map)
         return self.shr_doms, self
 
-    def extract_and_return_both(self, cfg: Config, fileset_map: FilesetMap, filelist_map: FilelistMap):
+    def extract_and_return_both(self, cfg: Config, fileset_map: FilesetMap, filelist_map: FilelistMap, base_res: Resolver):
         pud_doms = self._extract(cfg, fileset_map, filelist_map)
+        for d in [d for doms in (self.shr_doms, pud_doms) if doms for d in doms if d is not None]:
+            for res in d.resolvers:
+                d.resolvers = base_res +d.resolvers
         return pud_doms, self.shr_doms
 
     def _extract(self, cfg: Config, fileset_map: FilesetMap, filelist_map: FilelistMap) -> list[Domain] | None:

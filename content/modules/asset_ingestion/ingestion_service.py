@@ -117,8 +117,6 @@ class ClankerCtx(ItemHandler):
 
         filelist, filelist_extractor = FilelistExtractor(self.collector).clank_fl(cfg)
         fileset, fileset_extractor = FilesetExtractor(self.collector).clank_fs(cfg)
-
-        #doms = DomainExtractor(self.collector, fileset, filelist).extract(cfg) if cfg else None
         doms, dom_extractor = DomainExtractor(self.collector, fileset, filelist).extract_shared_doms(cfg, fileset, filelist)
         # here I must validate that doms can source from fileset and filelist
         # this then satisfies that clank does not rely on pud
@@ -164,22 +162,13 @@ class PudCtx(ItemHandler):
 
         filelist = filelist_extractor.unified_fl(cfg)
         filesets = fileset_extractor.unified_fs(cfg)
-
-
-        if isinstance(doc_assets, AssetPack): CollisionDetector(self.collector).detect(doc_assets)
-
-        pud_doms, clank_doms = dom_extractor.extract_and_return_both(cfg, filesets, filelist)
-                            
-        # I pass both domains into res_extractor, so it can stuff the resolver into the domains.
         base_resolver = base_res_extractor.get_proper_baseres(cfg, filelist)
-        # then i verify that the resolver returned can be satisfied with regards to the files it relies on.
-        for d in [d for doms in (clank_doms, pud_doms) if doms for d in doms if d is not None]:
-                    for res in d.resolvers:
-                        d.resolvers = base_resolver +d.resolvers
-
+        # i must verify that the resolver returned can be satisfied with regards to the files it relies on.
+        pud_doms, clank_doms = dom_extractor.extract_and_return_both(cfg, filesets, filelist, base_resolver)
         sys_cfg_extractor.accept_pud_doms(pud_doms)
         ui_render, kb = sys_cfg_extractor.deliver()
 
+        if isinstance(doc_assets, AssetPack): CollisionDetector(self.collector).detect(doc_assets)
         # TODO arg/param alignment. this must happen after base resolver injection. the correct base resolver isnt discovered untill after both pud and clank have been processed
         (FilelistValidator(doc_assets, clank_doc_assets)
         .validate(cfg, pud_doms, self.collector)
