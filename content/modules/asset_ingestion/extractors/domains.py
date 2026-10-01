@@ -15,7 +15,6 @@ class DomainExtractor:
     collector: ErrorCollector
     fileset_map: FilesetMap
     filelist_map: FilelistMap
-    base_res: Resolver
     extractor: ValueExtractor = field(default_factory=ValueExtractor)
 
     def extract(self, cfg: Config) -> list[Domain | None]:
@@ -28,7 +27,7 @@ class DomainExtractor:
                 raw_resolvers = self.extractor.req_list(d, ["resolvers"])
                 raw_prompts = self.extractor.req_list(d, ["prompts"])
 
-                resolvers = self.base_res + [
+                resolvers = [
                     ResolverParser(
                         r, self.collector, self.fileset_map, self.filelist_map
                     ).parse()

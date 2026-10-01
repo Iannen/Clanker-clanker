@@ -54,16 +54,14 @@ class IngestionServiceImpl(IngestionService):
         return missing, present
 
     def get_runtime_config(self):
-        clank = ClankerCtx()
-        clank.determine_action(
+        clank = ClankerCtx(
             sys_cfg = self._get_config(ClankerAssets.Configs.sys_cfg),
             shared_cfg = self._get_config(ClankerAssets.Configs.shared_cfg),
             doc_assets = self._get_asset_pack(PathTokens.SHARED, ["content/a_lib"]),
             file_reqs = self._get_file_reqs([*ClankerAssets.Templates, *ClankerAssets.Layouts])
         )
-        #return (self.ui_render, self.collector), (self.filelist, self.fileset) #. the former for service, the latter for pud
-        a, b = clank.process()
-        ui_render, collector = a
+        a, b = clank.determine_action()
+        ui_render, base_res, shared_doms, collector = a
         filelist, fileset = b
         # here I receive a (ui_render, (to pud)) from clank, so pud can finish its business in its lifecycle
 
@@ -85,8 +83,11 @@ class IngestionServiceImpl(IngestionService):
 
         base_resolver = pud.base_res if pud.base_res else base_res
 
-        shared_doms = DomainExtractor(merged_collector, fileset, filelist, base_resolver).extract(clank.shared_cfg) if clank.shared_cfg.data else None
-        pud_doms = DomainExtractor(merged_collector, merged_fileset, merged_filelist, base_resolver).extract(pud.pud_cfg) if merged_filelist and merged_fileset and base_resolver and isinstance(pud.pud_cfg, Config) else None
+        pud_doms = DomainExtractor(merged_collector, merged_fileset, merged_filelist).extract(pud.pud_cfg) if merged_filelist and merged_fileset and base_resolver and isinstance(pud.pud_cfg, Config) else None
+
+        for d in [d for doms in (shared_doms, pud_doms) if doms for d in doms if d is not None]:
+            for res in d.resolvers:
+                d.resolvers = base_res +d.resolvers
 
         kb = SysConfigExtractor(merged_collector).get_btn_map(clank.sys_cfg, shared_doms, pud_doms) if isinstance(clank.sys_cfg, Config) and shared_doms and pud_doms else None
 
@@ -139,34 +140,32 @@ class ClankerCtx(ItemHandler):
     - validates collisions of clank doc assets 
     - returns ui_render, (fileset, filelist, button_map, collector). the former for service, the latter for pud
     """
-    sys_cfg: Config | None = None
-    shared_cfg: Config | None = None
-    doc_assets: AssetPack | None = None
+    sys_cfg: Config | MissingConfig | MalformedConfig
+    shared_cfg: Config | MissingConfig | MalformedConfig
+    doc_assets: AssetPack | MissingAssetPack
+    file_reqs: tuple[list[StrEnum], list[StrEnum]]
     collector: ErrorCollector = field(default_factory=ErrorCollector)
 
-    def determine_action(
-        self,
-        sys_cfg: Config | MissingConfig | MalformedConfig,
-        shared_cfg: Config | MissingConfig | MalformedConfig,
-        doc_assets: AssetPack | MissingAssetPack,
-        file_reqs: tuple[list[StrEnum], list[StrEnum]],
-    ):
-        missing_items, present_items, malformed_items = *file_reqs, []
-        self.sys_cfg = self._classify(sys_cfg, malformed_items, missing_items, present_items)
-        self.shared_cfg = self._classify(shared_cfg, malformed_items, missing_items, present_items)
-        self.doc_assets = self._classify(doc_assets, malformed_items, missing_items, present_items)
+    def determine_action(self,):
+        missing_items, present_items, malformed_items = *self.file_reqs, []
+        sys_cfg = self._classify(self.sys_cfg, malformed_items, missing_items, present_items)
+        shared_cfg = self._classify(self.shared_cfg, malformed_items, missing_items, present_items)
+        doc_assets = self._classify(self.doc_assets, malformed_items, missing_items, present_items)
         for item in missing_items + malformed_items: self.collector.accept(item)
 
-    def process(self):
-        sys_valid = isinstance(self.sys_cfg, Config)
-        shared_data = self.shared_cfg.data if isinstance(self.shared_cfg, Config) else None
-        self.ui_render = SysConfigExtractor(self.collector).get_ui_render(self.sys_cfg) if sys_valid else None
-        self.filelist = FilelistExtractor(self.collector).extract(self.shared_cfg) if shared_data else None
-        self.fileset = FilesetExtractor(self.collector).extract(self.shared_cfg) if shared_data else None
-        self.base_res = BaseResolverExtractor(self.collector, self.filelist).extract(self.shared_cfg) if shared_data else None
+        sys_valid = isinstance(sys_cfg, Config)
+        shared_data = shared_cfg.data if isinstance(shared_cfg, Config) else None
+        ui_render = SysConfigExtractor(self.collector).get_ui_render(sys_cfg) if sys_valid else None
+        filelist = FilelistExtractor(self.collector).extract(shared_cfg) if shared_data else None
+        fileset = FilesetExtractor(self.collector).extract(shared_cfg) if shared_data else None
+        shared_doms = DomainExtractor(self.collector, fileset, filelist).extract(shared_cfg) if shared_data else None
+        base_res = BaseResolverExtractor(self.collector, filelist).extract(shared_cfg) if shared_data else None
         # make domains
-        if self.doc_assets: CollisionDetector(self.collector).detect(self.doc_assets)
-        return (self.ui_render, self.collector), (self.filelist, self.fileset) #. the former for service, the latter for pud
+        if doc_assets: CollisionDetector(self.collector).detect(doc_assets)
+        return (ui_render, base_res, shared_doms, self.collector), (filelist, fileset) #. the former for service, the latter for pud
+
+    def process(self): pass
+
 
 @dataclass
 class PudCtx(ItemHandler):
