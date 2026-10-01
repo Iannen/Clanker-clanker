@@ -6,6 +6,7 @@ from .parsers.filelist import *
 from .parsers.fileset import *
 from .parsers.resolver import *
 from .parsers.render import *
+from .parsers.domain import *
 
 from .extractors.base_resolver import *
 from .extractors.filelist import *
