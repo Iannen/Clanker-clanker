@@ -3,10 +3,9 @@ from core import MultiDocResolver, Resolver, Config
 from ...asset_ingestion import ErrorCollector, ValueExtractor, ResolverParser, FilesetMap, FilelistMap
 
 @dataclass(eq=False)
-class BaseResolverExtractor:
+class BaseResolverExtractor(ValueExtractor):
     collector: ErrorCollector
     filelist_map: FilelistMap
-    extractor: ValueExtractor = field(default_factory=ValueExtractor)
 
     def extract_from_clanker(self, cfg: Config, filelist_map: FilelistMap) -> Resolver:
         # if clanker doesnt have baseres, then make critical complaint
@@ -18,14 +17,14 @@ class BaseResolverExtractor:
         return pud_br if pud_br else self.clanker_baseres
 
     def _extract(self, cfg: Config, filelist_map: FilelistMap) -> list[Resolver]:
-        if not cfg: return None
+        if not self.valid_args(locals()): return None
         with self.collector.path("base_resolvers"):
-            raw_resolvers = self.extractor.opt_list(cfg.data, ["base_resolvers"], [])
+            raw_resolvers = self.opt_list(cfg.data, ["base_resolvers"], [])
             extracted: list[MultiDocResolver] = []
 
             for r in raw_resolvers:
-                res_type = self.extractor.req_str(r, ["type"])
-                anchor = self.extractor.req_str(r, ["id"])
+                res_type = self.req_str(r, ["type"])
+                anchor = self.req_str(r, ["id"])
 
                 if res_type != "multi-document-retrieval":
                     self.collector.add_complaint(

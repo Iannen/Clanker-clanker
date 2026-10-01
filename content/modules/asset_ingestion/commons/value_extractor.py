@@ -2,6 +2,9 @@ from stdlib import Any
 from core import ConfigAssembly
 
 class ValueExtractor:
+    def valid_args(self, frame_locals: dict) -> bool:
+        return all(v is not None for k, v in frame_locals.items() if k != "self")
+
     def _req(
         self, data: Any, path: list[str], target_type: type | tuple[type, ...], default: Any = None
     ) -> Any:

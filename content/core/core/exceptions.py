@@ -20,7 +20,7 @@ class IllegalExArgs(Fatal): leaf_ex = True
 class MissedNotice(Fatal): leaf_ex = True
 class AdapterLeakage(Fatal): leaf_ex = True
 class UnexpectedEx(Fatal): leaf_ex = True
-class CorruptClanker(Fatal): leaf_ex = True
+class CorruptClanker(Exception): pass
 class ConfigAssembly(Exception): pass
 class IllegalDuplicateFile(Fatal): leaf_ex = True
 class UserTask(Fatal): leaf_ex = True

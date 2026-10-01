@@ -19,6 +19,7 @@ class DomainExtractor(ValueExtractor):
         return pud_doms, self.shr_doms
 
     def _extract(self, cfg: Config, fileset_map: FilesetMap, filelist_map: FilelistMap) -> list[Domain] | None:
-        if any(arg is None for arg in (cfg, fileset_map, filelist_map)): return None
+        locs = locals()
+        if not self.valid_args(locals()): return None
         try: return [DomParser(self.collector).parse(d, fileset_map, filelist_map) for d in self.req_list(cfg.data, ["domains"])]
         except ConfigAssembly: self.collector.add_critical_complaint(f"{cfg.name}: does not have domains list!")

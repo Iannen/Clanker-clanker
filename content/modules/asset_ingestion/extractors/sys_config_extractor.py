@@ -18,6 +18,19 @@ class SysConfigExtractor:
     def accept_pud_doms(self, pud_doms: list[Domain] | None) -> None:
         self.pud_doms = pud_doms
 
+    def deliver(self) -> tuple[Render | None, Keyboard | None]:
+        ui_render = self._get_ui_render()
+        kb = self._get_btn_map()
+
+        if kb:
+            self._inject_shared_doms_to_kb(kb)
+            self._inject_pud_doms_to_kb(kb)
+
+        if all(x is not None for x in (self.sys_cfg, self.shared_doms, self.pud_doms)):
+            return ui_render, kb
+        else:
+            return None, None
+
     def _get_ui_render(self) -> Render | None:
         if not self.sys_cfg:
             return None
@@ -89,15 +102,4 @@ class SysConfigExtractor:
 
         return valid_doms
 
-    def deliver(self) -> tuple[Render | None, Keyboard | None]:
-        ui_render = self._get_ui_render()
-        kb = self._get_btn_map()
-
-        if kb:
-            self._inject_shared_doms_to_kb(kb)
-            self._inject_pud_doms_to_kb(kb)
-
-        if all(x is not None for x in (self.sys_cfg, self.shared_doms, self.pud_doms)):
-            return ui_render, kb
-        else:
-            return None, None
+    
