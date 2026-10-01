@@ -15,7 +15,7 @@ class DomainExtractor(ValueExtractor):
         pud_doms = self._extract(cfg, fileset_map, filelist_map)
         if pud_doms:
             for d in [d for doms in (self.shr_doms, pud_doms) if doms for d in doms if d is not None]:
-                d.resolvers = base_res + d.resolvers
+                d.resolvers.append(base_res)
         return pud_doms, self.shr_doms
 
     def _extract(self, cfg: Config, fileset_map: FilesetMap, filelist_map: FilelistMap) -> list[Domain] | None:
