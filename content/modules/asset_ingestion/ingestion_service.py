@@ -118,7 +118,7 @@ class ClankerCtx(ItemHandler):
         filelist, filelist_extractor = FilelistExtractor(self.collector).clank_fl(cfg)
 
         # validate that filelist can be sourced from doc_assets
-        #list_validator = FilelistValidator(self.collector, None, None)
+        list_validator = FilelistValidator(self.collector, None, None)
 
         fileset, fileset_extractor = FilesetExtractor(self.collector).clank_fs(cfg)
         doms, dom_extractor = DomainExtractor(self.collector).extract_shared_doms(cfg, fileset, filelist)
@@ -174,7 +174,7 @@ class PudCtx(ItemHandler):
 
         if isinstance(doc_assets, AssetPack): CollisionDetector(self.collector).detect(doc_assets)
         # TODO arg/param alignment. this must happen after base resolver injection. the correct base resolver isnt discovered untill after both pud and clank have been processed
-        (FilelistValidator(doc_assets, clank_doc_assets)
+        (FilelistValidator(self.collector, doc_assets, clank_doc_assets)
         .validate(cfg, pud_doms, self.collector)
         .validate(shared_cfg, clank_doms, self.collector))
         

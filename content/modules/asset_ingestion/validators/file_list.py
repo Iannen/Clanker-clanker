@@ -3,6 +3,7 @@ from core import Domain, File, MultiDocResolver, PathTokens, AssetPack
 
 @dataclass
 class FilelistValidator:
+    collector: ErrorCollector
     pud_assets: AssetPack
     shared_assets: AssetPack
 
