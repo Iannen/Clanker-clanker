@@ -13,6 +13,7 @@ class SysConfigExtractor:
 
     def accept_shared_doms(self, shared_doms: list[Domain] | None) -> None:
         self.shared_doms = shared_doms
+        return self
 
     def accept_pud_doms(self, pud_doms: list[Domain] | None) -> None:
         self.pud_doms = pud_doms

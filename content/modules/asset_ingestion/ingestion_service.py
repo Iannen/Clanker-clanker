@@ -117,22 +117,18 @@ class ClankerCtx(ItemHandler):
 
         filelist, filelist_extractor = FilelistExtractor(self.collector).clank_fl(cfg)
 
-        # validate that filelist can be sourced from doc_assets
-        list_validator = FilelistValidator(self.collector, None, None)
-
         fileset, fileset_extractor = FilesetExtractor(self.collector).clank_fs(cfg)
         doms, dom_extractor = DomainExtractor(self.collector).extract_shared_doms(cfg, fileset, filelist)
-        # here I must validate that doms can source from fileset and filelist
-        # this then satisfies that clank does not rely on pud
+        # here I must validate that doms can source from fileset and filelist. hm, i think they already do? the doms are constructed by looking up from the fileset and filelist.
 
-        sys_cfg_extractor = SysConfigExtractor(self.collector, sys_cfg)
-        sys_cfg_extractor.accept_shared_doms(doms)
+        list_validator = FilelistValidator(self.collector).validate_clank(doms, doc_assets, cfg) #TODO: this must validate the base_res too
 
-        base_res, base_res_extractor = BaseResolverExtractor(self.collector, filelist).extract_from_clanker(cfg, filelist)
-        # I need to verify that this base_res can source from clanker assets.
+        sys_cfg_extractor = SysConfigExtractor(self.collector, sys_cfg).accept_shared_doms(doms)
+
+        base_res, base_res_extractor = BaseResolverExtractor(self.collector, filelist).extract_from_clanker(cfg, filelist) #TODO:  I need to verify that this base_res can source from clanker assets.
 
         if doc_assets: CollisionDetector(self.collector).detect(doc_assets)
-        return self.collector, (sys_cfg_extractor, filelist_extractor, fileset_extractor, base_res_extractor, dom_extractor, doc_assets, cfg) 
+        return self.collector, (sys_cfg_extractor, filelist_extractor, fileset_extractor, base_res_extractor, dom_extractor, list_validator, doc_assets, cfg) 
 
 
 
@@ -162,7 +158,7 @@ class PudCtx(ItemHandler):
     def _process(self, inputs):
         cfg, doc_assets, content_assets, action = inputs
 
-        sys_cfg_extractor, filelist_extractor, fileset_extractor, base_res_extractor, dom_extractor, clank_doc_assets, shared_cfg = self.clank_res
+        sys_cfg_extractor, filelist_extractor, fileset_extractor, base_res_extractor, dom_extractor, list_validator, clank_doc_assets, shared_cfg = self.clank_res
 
         filelist = filelist_extractor.unified_fl(cfg)
         filesets = fileset_extractor.unified_fs(cfg)
@@ -173,10 +169,8 @@ class PudCtx(ItemHandler):
         ui_render, kb = sys_cfg_extractor.deliver()
 
         if isinstance(doc_assets, AssetPack): CollisionDetector(self.collector).detect(doc_assets)
-        # TODO arg/param alignment. this must happen after base resolver injection. the correct base resolver isnt discovered untill after both pud and clank have been processed
-        (FilelistValidator(self.collector, doc_assets, clank_doc_assets)
-        .validate(cfg, pud_doms, self.collector)
-        .validate(shared_cfg, clank_doms, self.collector))
+
+        list_validator.validate_pud(pud_doms, doc_assets, cfg) #TODO: this must also validate the base_resolver via new method
         
         """
         TODO arg/param alignment

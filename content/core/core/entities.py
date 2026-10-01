@@ -98,21 +98,6 @@ class Keyboard:
     def set_selected_dom_btn(self, btn:DomButton):
         self.selected_dom_btn=btn
 
-
-"""
-@dataclass
-class MissingConfig(BaseCfg): pass
-@dataclass
-class MalformedConfig(BaseCfg): details: str
-"""
-"""
-@dataclass
-class BaseAssetPack:
-""" 
-"""
-@dataclass
-class MissingAssetPack(BaseAssetPack): pass
-"""
 @dataclass
 class AssetPack:
     name: str

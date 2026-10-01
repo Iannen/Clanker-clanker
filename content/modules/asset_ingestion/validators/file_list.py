@@ -1,11 +1,33 @@
 from stdlib import Self, dataclass
-from core import Domain, File, MultiDocResolver, PathTokens, AssetPack
+from core import Domain, File, MultiDocResolver, PathTokens, AssetPack, Config
 
 @dataclass
 class FilelistValidator:
     collector: ErrorCollector
-    pud_assets: AssetPack
-    shared_assets: AssetPack
+
+    def validate_clank(self, doms: list[Domain] | None, doc_assets: AssetPack | None, cfg: Config | None):
+        if not doms or not doc_assets or not cfg: return self
+        reqs = self._extract_existencereqs(doms)
+        self.shared_map = {p.rsplit("/", 1)[-1]: f"{PathTokens.SHARED}/{p}" for p in doc_assets.paths}
+        for file_item, context_path in reqs:
+            target_path = self.shared_map.get(file_item.name)
+            if target_path:
+                file_item.path = target_path
+            else:
+                self._handle_unbacked_file(self.collector, doms, file_item.name, cfg, context_path)
+        return self
+
+    def validate_pud(self, doms: list[Domain] | None, doc_assets: AssetPack | None, cfg: Config | None):
+        if not doms or not doc_assets or not cfg: return
+        if not getattr(self, "shared_map", None): raise Exception
+        reqs = self._extract_existencereqs(doms)
+        pud_map = {p.rsplit("/", 1)[-1]: f"{PathTokens.PUD}/{p}" for p in doc_assets.paths}
+        for file_item, context_path in reqs:
+            target_path = self.shared_map.get(file_item.name) or pud_map.get(file_item.name)
+            if target_path:
+                file_item.path = target_path
+            else:
+                self._handle_unbacked_file(self.collector, doms, file_item.name, cfg, context_path)
 
     def validate(
         self,
