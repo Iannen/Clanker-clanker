@@ -3,56 +3,43 @@ from stdlib import dataclass, Self
 
 @dataclass
 class FilesetValidator:
-    pud_assets: AssetPack
-    shared_assets: AssetPack
+    collector: Collector
 
-    def validate(
-        self,
-        config_name: str,
-        doms: list[Domain],
-        collector,
-    ) -> Self:
-        self._detect_unbacked_includes(config_name, doms, collector)
+    def validate_clank(self, doms: list[Domain] | None, shared_assets: AssetPack | None, cfg: Config | None): 
+        self.clank_cfg = cfg
+        self.clank_doms = doms
+        self.clank_assets = shared_assets
         return self
 
-    def _detect_unbacked_includes(
-        self,
-        config_name: str,
-        doms: list[Domain],
-        collector,
-    ) -> None:
+    def validate_pud(self, doms: list[Domain] | None, pud_assets: AssetPack | None, cfg: Config | None):
+        if not (getattr(self, "clank_assets", None) and getattr(self, "clank_doms", None) and getattr(self, "clank_cfg", None) and doms and pud_assets and cfg):
+            return
+        
         pud_reqs = self._extract_filesets_that_target_pud(doms)
         for include_path, context in pud_reqs:
             has_match = any(
                 self._is_parent_or_equal(asset_path, include_path)
-                for asset_path in self.pud_assets.paths
+                for asset_path in pud_assets.paths
             )
             if not has_match:
                 self._report_unbacked_include(
-                    collector, config_name, "pud", include_path, context
+                    cfg.name, cfg.name, include_path, context
                 )
 
-        shared_reqs = self._extract_filesets_that_target_shared(doms)
+        shared_reqs = self._extract_filesets_that_target_shared(self.clank_doms)
         for include_path, context in shared_reqs:
             has_match = any(
                 self._is_parent_or_equal(asset_path, include_path)
-                for asset_path in self.shared_assets.paths
+                for asset_path in self.clank_assets.paths
             )
             if not has_match:
                 self._report_unbacked_include(
-                    collector, config_name, "shared", include_path, context
+                    cfg.name, self.clank_cfg.name, include_path, context
                 )
 
-    def _report_unbacked_include(
-        self,
-        collector,
-        config_name: str,
-        target_name: str,
-        include_path: str,
-        context: str,
-    ) -> None:
-        with collector.path(config_name):
-            collector.add_complaint(
+    def _report_unbacked_include(self,config_name: str,target_name: str,include_path: str,context: str,) -> None:
+        with self.collector.path(config_name):
+            self.collector.add_complaint(
                 f"asset include '{include_path}' (<{context}>) was not found in {target_name}"
             )
 

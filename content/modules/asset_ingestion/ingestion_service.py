@@ -125,20 +125,20 @@ class ClankerCtx(ItemHandler):
 
         #Validators
         list_validator = FilelistValidator(self.collector).validate_clank(doms, doc_assets, cfg) #TODO: this must validate the base_res via separate method
-        # now the fileset validator.
+        fileset_validator = FilesetValidator(self.collector).validate_clank(doms, doc_assets, cfg)
         """
         - receives collector on init
-        - 
+        - we just pass it the stuff it needs for pudside validation via method, pretending there is some clankside validation going on.
+        - then pudside we just do the same thing we do now.
         TODO arg/param alignment
-        (fileset_validator = FilesetValidator(collector)
-        .validate_clank(doms, clank_ctx))
+        
 
         fileset_validator.validate_pud(pud_cfg, pud_doms)
         """
 
 
         if doc_assets: CollisionDetector(self.collector).detect(doc_assets) # perhaps I make this part of the fielist validator. its after all relating to the same 'file' concept
-        return self.collector, (sys_cfg_extractor, filelist_extractor, fileset_extractor, base_res_extractor, dom_extractor, list_validator, doc_assets, cfg) 
+        return self.collector, (sys_cfg_extractor, filelist_extractor, fileset_extractor, base_res_extractor, dom_extractor, list_validator, fileset_validator, doc_assets, cfg) 
 
 
 
@@ -168,7 +168,7 @@ class PudCtx(ItemHandler):
     def _process(self, inputs):
         cfg, doc_assets, content_assets, action = inputs
 
-        sys_cfg_extractor, filelist_extractor, fileset_extractor, base_res_extractor, dom_extractor, list_validator, clank_doc_assets, shared_cfg = self.clank_res
+        sys_cfg_extractor, filelist_extractor, fileset_extractor, base_res_extractor, dom_extractor, list_validator, fileset_validator, clank_doc_assets, shared_cfg = self.clank_res
 
         filelist = filelist_extractor.unified_fl(cfg)
         filesets = fileset_extractor.unified_fs(cfg)
@@ -182,11 +182,5 @@ class PudCtx(ItemHandler):
         if isinstance(doc_assets, AssetPack): CollisionDetector(self.collector).detect(doc_assets) # perhaps I make this part of the fielist validator. its after all relating to the same 'file' concept
 
         list_validator.validate_pud(pud_doms, doc_assets, cfg) #TODO: this must also validate the base_resolver via new method
-        
-        """
-        TODO arg/param alignment
-        (FilesetValidator(pud_ctx.content_assets, clank_ctx.doc_assets)
-        .validate(pud_res.pud_cfg, pud_doms, collector)
-        .validate(clank_ctx.shared_cfg, clank_ctx.doms, clank_ctx.collector))
-        """
+        fileset_validator.validate_pud(pud_doms,doc_assets, cfg)
         return self.collector, ui_render, kb, action
