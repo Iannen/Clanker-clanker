@@ -6,6 +6,7 @@ T = TypeVar("T")
 
 
 class NamedMap(Generic[T]):
+    # TODO: this should have an add method, instead of the silly merge method
     def __init__(
         self,
         data: dict[str, T],

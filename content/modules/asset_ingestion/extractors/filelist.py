@@ -4,7 +4,7 @@ from ...asset_ingestion import ErrorCollector, FilelistMap, ValueExtractor, File
 
 
 @dataclass
-class FilelistExtractor:
+class FilelistExtractor(ValueExtractor):
     collector: ErrorCollector
 
     def clank_fl(self, cfg: Config) -> FilelistMap | None:
@@ -16,8 +16,7 @@ class FilelistExtractor:
     
     def _extract(self, cfg: Config, existing: Optional[FilelistMap] = None) -> FilelistMap:
         if not cfg: return None
-        extractor = ValueExtractor()
-        raw_filelists = extractor.opt_dict(cfg.data, ["filelists"], default={})
+        raw_filelists = self.opt_dict(cfg.data, ["filelists"], default={})
 
         result = dict(existing._data) if existing is not None else {}
 

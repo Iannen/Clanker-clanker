@@ -4,10 +4,9 @@ from ...asset_ingestion import ErrorCollector, ValueExtractor, Config
 
 
 @dataclass
-class SysConfigExtractor:
+class SysConfigExtractor(ValueExtractor):
     collector: ErrorCollector
     sys_cfg: Config | None
-    extractor = ValueExtractor()
     shared_doms: list[Domain] | None = None
     pud_doms: list[Domain] | None = None
 
@@ -25,7 +24,7 @@ class SysConfigExtractor:
         if kb:
             self._inject_shared_doms_to_kb(kb)
             self._inject_pud_doms_to_kb(kb)
-
+        # do I just return them outright?
         if all(x is not None for x in (self.sys_cfg, self.shared_doms, self.pud_doms)):
             return ui_render, kb
         else:
@@ -35,17 +34,17 @@ class SysConfigExtractor:
         if not self.sys_cfg:
             return None
         with self.collector.path("ui_render"):
-            ui_render_dict = self.extractor.req_dict(self.sys_cfg.data, ["ui_render"])
+            ui_render_dict = self.req_dict(self.sys_cfg.data, ["ui_render"])
 
-            template = self.extractor.req_str(ui_render_dict, ["template"])
-            inherit_base = self.extractor.req_bool(ui_render_dict, ["inherit_base"])
-            inherit_domain = self.extractor.req_bool(ui_render_dict, ["inherit_domain"])
-            raw_resolvers = self.extractor.req_list(ui_render_dict, ["resolvers"])
+            template = self.req_str(ui_render_dict, ["template"])
+            inherit_base = self.req_bool(ui_render_dict, ["inherit_base"])
+            inherit_domain = self.req_bool(ui_render_dict, ["inherit_domain"])
+            raw_resolvers = self.req_list(ui_render_dict, ["resolvers"])
 
             resolvers: list[KBStateResolver] = []
             for r_dict in raw_resolvers:
-                res_type = self.extractor.req_str(r_dict, ["type"])
-                anchor = self.extractor.req_str(r_dict, ["id"])
+                res_type = self.req_str(r_dict, ["type"])
+                anchor = self.req_str(r_dict, ["id"])
 
                 if res_type in ("kb_info", "kb_state"):
                     resolvers.append(KBStateResolver(anchor=anchor))
@@ -72,20 +71,20 @@ class SysConfigExtractor:
         return Keyboard(
             shared_dom_btns={},
             pud_dom_btns={},
-            prompt_btns={key: PromptButton(key) for key in self.extractor.req_str(self.sys_cfg.data, ["button_rows", "prompts_row"])},
+            prompt_btns={key: PromptButton(key) for key in self.req_str(self.sys_cfg.data, ["button_rows", "prompts_row"])},
         )
 
     def _inject_shared_doms_to_kb(self, kb: Keyboard) -> None:
         if not self.sys_cfg or self.shared_doms is None:
             return
-        shared_dom_keys = self.extractor.req_str(self.sys_cfg.data, ["button_rows", "shared_domains_row"])
+        shared_dom_keys = self.req_str(self.sys_cfg.data, ["button_rows", "shared_domains_row"])
         pruned_shr_doms = self._handle_domain_overflow(self.shared_doms, shared_dom_keys)
         kb.shared_dom_btns = {key: SharedDomButton(key, dom) for key, dom in zip_longest(shared_dom_keys, pruned_shr_doms, fillvalue=None)}
 
     def _inject_pud_doms_to_kb(self, kb: Keyboard) -> None:
         if not self.sys_cfg or self.pud_doms is None:
             return
-        pud_dom_keys = self.extractor.req_str(self.sys_cfg.data, ["button_rows", "pud_domains_row"])
+        pud_dom_keys = self.req_str(self.sys_cfg.data, ["button_rows", "pud_domains_row"])
         pruned_pud_doms = self._handle_domain_overflow(self.pud_doms, pud_dom_keys)
         kb.pud_dom_btns = {key: PudDomButton(key, dom) for key, dom in zip_longest(pud_dom_keys, pruned_pud_doms, fillvalue=None)}
 

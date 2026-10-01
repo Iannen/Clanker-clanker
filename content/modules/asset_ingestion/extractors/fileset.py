@@ -4,7 +4,7 @@ from ...asset_ingestion import ErrorCollector, FilesetMap, ValueExtractor, Files
 
 
 @dataclass
-class FilesetExtractor:
+class FilesetExtractor(ValueExtractor):
     collector: ErrorCollector
 
     def clank_fs(self, cfg: Config) -> FilesetMap | None:
@@ -15,9 +15,9 @@ class FilesetExtractor:
         return self._extract(cfg, self.clank_fs) # Should I return fl if clank fl is none? validation can continue, i think so.
 
     def _extract(self, cfg: Config, existing: Optional[FilesetMap] = None) -> FilesetMap | None:
+        self.valid_args(locals())
         if not cfg: return None
-        extractor = ValueExtractor()
-        raw_filesets = extractor.opt_dict(cfg.data, ["filesets"], default={})
+        raw_filesets = self.opt_dict(cfg.data, ["filesets"], default={})
 
         result = dict(existing._data) if existing is not None else {}
 
