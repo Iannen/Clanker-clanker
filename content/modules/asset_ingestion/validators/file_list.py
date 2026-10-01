@@ -1,6 +1,7 @@
 from stdlib import Self, dataclass
 from core import Domain, File, MultiDocResolver, PathTokens, AssetPack, Config
 
+# TODO: this must validate the base resolver. from clank side against clank assetpack, and from pudside with fallback
 @dataclass
 class FilelistValidator:
     collector: ErrorCollector

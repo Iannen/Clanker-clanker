@@ -1,11 +1,12 @@
 from stdlib import dataclass, defaultdict
 from ...asset_ingestion import ErrorCollector, AssetPack
-
+#TODO: consider, perhaps I make this part of the fielist validator. its after all relating to the same 'file' concept
 @dataclass(slots=True, eq=False)
 class CollisionDetector:
     collector: ErrorCollector
 
     def detect(self, file_paths: AssetPack) -> None:
+        if file_paths is None: return
         filename_to_paths: dict[str, list[str]] = defaultdict(list)
 
         for path_str in file_paths.paths:

@@ -1,4 +1,4 @@
-from stdlib import dataclass, field, ClassVar, Callable
+from stdlib import dataclass, field, ClassVar, Type
 
 @dataclass
 class TruncationSpec:

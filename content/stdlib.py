@@ -12,6 +12,6 @@ import sys
 import termios
 import traceback
 import tty
-from typing import Any, Callable, ClassVar, Generator, Generic, TypeVar, Self
+from typing import Any, Callable, ClassVar, Generator, Generic, TypeVar, Self, Type
 from enum import StrEnum
 from itertools import zip_longest
