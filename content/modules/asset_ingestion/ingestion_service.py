@@ -61,9 +61,8 @@ class IngestionServiceImpl(IngestionService):
             file_reqs = self._get_file_reqs([*ClankerAssets.Templates, *ClankerAssets.Layouts])
         )
         a, b = clank.determine_action()
-        ui_render, base_res, shared_doms, collector = a
+        sys_cfg_extractor, base_res, shared_doms, collector = a
         filelist, fileset = b
-        # here I receive a (ui_render, (to pud)) from clank, so pud can finish its business in its lifecycle
 
         pud = PudCtx(collector)
         pud.determine_action(
@@ -74,8 +73,6 @@ class IngestionServiceImpl(IngestionService):
         )
         pud.process()
 
-        # then from pud I receive a tuple of only the shit I need to proceed. I can have a third assembler type too, or let the service be the assembler via a helper
-
         merged_collector = collector.merge(pud.collector)
 
         merged_filelist = filelist.merge(pud.filelist) if filelist and pud.filelist else None
@@ -85,16 +82,17 @@ class IngestionServiceImpl(IngestionService):
 
         pud_doms = DomainExtractor(merged_collector, merged_fileset, merged_filelist).extract(pud.pud_cfg) if merged_filelist and merged_fileset and base_resolver and isinstance(pud.pud_cfg, Config) else None
 
-        for d in [d for doms in (shared_doms, pud_doms) if doms for d in doms if d is not None]:
-            for res in d.resolvers:
-                d.resolvers = base_res +d.resolvers
-
-        kb = SysConfigExtractor(merged_collector).get_btn_map(clank.sys_cfg, shared_doms, pud_doms) if isinstance(clank.sys_cfg, Config) and shared_doms and pud_doms else None
+       
+        sys_cfg_extractor.accept_pud_doms(pud_doms)
+        ui_render, kb = sys_cfg_extractor.deliver()
 
         if merged_collector.has_crits(): return TerminateResult(merged_collector)
         elif pud.action is BootAction.CLANKERIZE: return ClankerizeResult(merged_collector)
         elif pud.action is BootAction.START: 
-                # TODO arg/param alignment
+                for d in [d for doms in (shared_doms, pud_doms) if doms for d in doms if d is not None]:
+                    for res in d.resolvers:
+                        d.resolvers = base_res +d.resolvers
+                # TODO arg/param alignment. this must happend after base resolver injection. the correct base resolver isnt discovered untill after both pud and clank have been processed
                 (FilelistValidator(pud.doc_assets, clank.doc_assets)
                 .validate(pud.pud_cfg, pud_doms, pud.collector)
                 .validate(clank.shared_cfg, shared_doms, clank.collector))
@@ -155,16 +153,16 @@ class ClankerCtx(ItemHandler):
 
         sys_valid = isinstance(sys_cfg, Config)
         shared_data = shared_cfg.data if isinstance(shared_cfg, Config) else None
-        ui_render = SysConfigExtractor(self.collector).get_ui_render(sys_cfg) if sys_valid else None
         filelist = FilelistExtractor(self.collector).extract(shared_cfg) if shared_data else None
         fileset = FilesetExtractor(self.collector).extract(shared_cfg) if shared_data else None
         shared_doms = DomainExtractor(self.collector, fileset, filelist).extract(shared_cfg) if shared_data else None
+        sys_cfg_extractor = SysConfigExtractor(self.collector, sys_cfg)
+        sys_cfg_extractor.accept_shared_doms(shared_doms)
         base_res = BaseResolverExtractor(self.collector, filelist).extract(shared_cfg) if shared_data else None
-        # make domains
-        if doc_assets: CollisionDetector(self.collector).detect(doc_assets)
-        return (ui_render, base_res, shared_doms, self.collector), (filelist, fileset) #. the former for service, the latter for pud
 
-    def process(self): pass
+        if doc_assets: CollisionDetector(self.collector).detect(doc_assets)
+        return (sys_cfg_extractor, base_res, shared_doms, self.collector), (filelist, fileset) #. the former for service, the latter for pud
+
 
 
 @dataclass
