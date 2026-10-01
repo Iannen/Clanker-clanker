@@ -10,12 +10,41 @@ from ...asset_ingestion import (
     Config
 )
 
-@dataclass(slots=True, eq=False)
+@dataclass(eq=False)
 class DomainExtractor:
     collector: ErrorCollector
     fileset_map: FilesetMap
     filelist_map: FilelistMap
     extractor: ValueExtractor = field(default_factory=ValueExtractor)
+
+    def extract_shared_doms(self, cfg: Config, fileset_map: FilesetMap, filelist_map: FilelistMap) -> list[Domain] | None:
+        self.shr_doms = self._extract(cfg, fileset_map, filelist_map)
+        return self.shr_doms, self
+
+    def extract_and_return_both(self, cfg: Config, fileset_map: FilesetMap, filelist_map: FilelistMap):
+        pud_doms = self._extract(cfg, fileset_map, filelist_map)
+        return pud_doms, self.shr_doms
+
+    def _extract(self, cfg: Config, fileset_map: FilesetMap, filelist_map: FilelistMap) -> list[Domain] | None:
+        if not cfg: return None
+        domains = []
+        try: doms_list = self.extractor.req_list(cfg.data, ["domains"])
+        except ConfigAssembly as missing: self.collector.add_critical_complaint(f"{cfg.name}: does not have domains list!"); return None
+        for d in doms_list:
+            name = self.extractor.req_str(d, ["name"])
+            with self.collector.path(name):
+                raw_resolvers = self.extractor.req_list(d, ["resolvers"])
+                raw_prompts = self.extractor.req_list(d, ["prompts"])
+
+                resolvers = [
+                    ResolverParser(
+                        r, self.collector, fileset_map, filelist_map
+                    ).parse()
+                    for r in raw_resolvers
+                ]
+                prompts = self._build_prompts(raw_prompts)
+                domains.append(Domain(name=name, prompts=prompts, resolvers=resolvers))
+        return domains
 
     def extract(self, cfg: Config) -> list[Domain | None]:
         domains = []

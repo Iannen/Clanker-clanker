@@ -63,9 +63,9 @@ class IngestionServiceImpl(IngestionService):
         collector, res = clank.determine_action()
 
         pud = PudCtx(
-            pud_cfg = self._get_config(PudAssets.Configs.configuration_file),
-            doc_assets = self._get_asset_pack(PathTokens.PUD, [".clanker"]),
-            content_assets = self._get_asset_pack(PathTokens.PUD, ["content", "README.md"]),
+            cfg_result = self._get_config(PudAssets.Configs.configuration_file),
+            doc_assets_result = self._get_asset_pack(PathTokens.PUD, [".clanker"]),
+            content_assets_result = self._get_asset_pack(PathTokens.PUD, ["content", "README.md"]),
             file_reqs = self._get_file_reqs([*PudAssets.Directories, *PudAssets.Files, *PudAssets.Documentation]),
             collector = collector,
             clank_res=res
@@ -111,65 +111,80 @@ class ClankerCtx(ItemHandler):
     def determine_action(self):
         missing_items, present_items, malformed_items = *self.file_reqs, []
         sys_cfg = self._classify(self.sys_cfg, malformed_items, missing_items, present_items)
-        shared_cfg = self._classify(self.shared_cfg, malformed_items, missing_items, present_items)
+        cfg = self._classify(self.shared_cfg, malformed_items, missing_items, present_items)
         doc_assets = self._classify(self.doc_assets, malformed_items, missing_items, present_items)
         for item in missing_items + malformed_items: self.collector.accept(item)
 
-        sys_valid = isinstance(sys_cfg, Config)
-        shared_data = shared_cfg.data if isinstance(shared_cfg, Config) else None
-        filelist = FilelistExtractor(self.collector).extract(shared_cfg) if shared_data else None
-        fileset = FilesetExtractor(self.collector).extract(shared_cfg) if shared_data else None
-        shared_doms = DomainExtractor(self.collector, fileset, filelist).extract(shared_cfg) if shared_data else None
+        filelist, filelist_extractor = FilelistExtractor(self.collector).clank_fl(cfg)
+        fileset, fileset_extractor = FilesetExtractor(self.collector).clank_fs(cfg)
+
+        #doms = DomainExtractor(self.collector, fileset, filelist).extract(cfg) if cfg else None
+        doms, dom_extractor = DomainExtractor(self.collector, fileset, filelist).extract_shared_doms(cfg, fileset, filelist)
+        # here I must validate that doms can source from fileset and filelist
+        # this then satisfies that clank does not rely on pud
+
         sys_cfg_extractor = SysConfigExtractor(self.collector, sys_cfg)
-        sys_cfg_extractor.accept_shared_doms(shared_doms)
-        base_res = BaseResolverExtractor(self.collector, filelist).extract(shared_cfg) if shared_data else None
+        sys_cfg_extractor.accept_shared_doms(doms)
+
+        base_res, base_res_extractor = BaseResolverExtractor(self.collector, filelist).extract_from_clanker(cfg, filelist)
+        # I need to verify that this base_res can source from clanker assets.
 
         if doc_assets: CollisionDetector(self.collector).detect(doc_assets)
-        #return (sys_cfg_extractor, base_res, shared_doms, self.collector), (filelist, fileset) #. the former for service, the latter for pud
-        return self.collector, (sys_cfg_extractor, base_res, shared_doms, filelist, fileset, doc_assets, shared_cfg) 
+        return self.collector, (sys_cfg_extractor, filelist_extractor, fileset_extractor, base_res_extractor, dom_extractor, doc_assets, cfg) 
 
 
 
 @dataclass
 class PudCtx(ItemHandler):
-    pud_cfg: Config | Missing | Malformed
-    doc_assets: AssetPack | Missing
-    content_assets: AssetPack | Missing
+    cfg_result: Config | Missing | Malformed
+    doc_assets_result: AssetPack | Missing
+    content_assets_result: AssetPack | Missing
     file_reqs: tuple[list[StrEnum], list[StrEnum]]
     collector: ErrorCollector
     clank_res: Any
 
     def determine_action(self):        
+        # hm, could I put all my items in some list, and pass a list to classify? then it returns the item or none in a new list
         missing_items, present_items, malformed_items = *self.file_reqs, []
-        pud_cfg = self._classify(self.pud_cfg, malformed_items, missing_items, present_items)
-        doc_assets = self._classify(self.doc_assets, malformed_items, missing_items, present_items)
-        content_assets = self._classify(self.content_assets, malformed_items, missing_items, present_items)
+        cfg = self._classify(self.cfg_result, malformed_items, missing_items, present_items)
+        doc_assets = self._classify(self.doc_assets_result, malformed_items, missing_items, present_items)
+        content_assets = self._classify(self.content_assets_result, malformed_items, missing_items, present_items)
         action = BootAction.NONE
         if not missing_items and not malformed_items: action = BootAction.START
         elif not present_items: action = BootAction.CLANKERIZE
         else: [self.collector.accept(item) for item in missing_items + malformed_items]
 
-        sys_cfg_extractor, clank_base_res, clank_doms, clank_filelist, clank_fileset, clank_doc_assets, shared_cfg = self.clank_res
+        return self._process((cfg, doc_assets, content_assets, action))
 
-        unified_filelist = FilelistExtractor(self.collector).extract(pud_cfg, clank_filelist) if pud_cfg else None
-        unified_fileset = FilesetExtractor(self.collector).extract(pud_cfg, clank_fileset) if pud_cfg else None
-        pud_base_res = BaseResolverExtractor(self.collector, unified_filelist).extract(pud_cfg) if pud_cfg else None
-        base_resolver = pud_base_res if pud_base_res else clank_base_res
+    
+    def _process(self, inputs):
+        cfg, doc_assets, content_assets, action = inputs
+
+        sys_cfg_extractor, filelist_extractor, fileset_extractor, base_res_extractor, dom_extractor, clank_doc_assets, shared_cfg = self.clank_res
+
+        filelist = filelist_extractor.unified_fl(cfg)
+        filesets = fileset_extractor.unified_fs(cfg)
+
+
         if isinstance(doc_assets, AssetPack): CollisionDetector(self.collector).detect(doc_assets)
         
-        pud_doms = DomainExtractor(self.collector, unified_fileset, unified_filelist).extract(pud_cfg) if unified_filelist and unified_fileset and isinstance(pud_cfg, Config) else None
+        # this can give us both pud and shared doms on return
+        #pud_doms = DomainExtractor(self.collector, filesets, filelist).extract(cfg) if filelist and filesets and isinstance(cfg, Config) else None
+        pud_doms, clank_doms = dom_extractor.extract_and_return_both(cfg, filesets, filelist)
+                            
+        # I pass both domains into res_extractor, so it can stuff the resolver into the domains.
+        base_resolver = base_res_extractor.get_proper_baseres(cfg, filelist)
+        # then i verify that the resolver returned can be satisfied with regards to the files it relies on.
         for d in [d for doms in (clank_doms, pud_doms) if doms for d in doms if d is not None]:
                     for res in d.resolvers:
                         d.resolvers = base_resolver +d.resolvers
+
         sys_cfg_extractor.accept_pud_doms(pud_doms)
         ui_render, kb = sys_cfg_extractor.deliver()
 
-        #for d in [d for doms in (shared_doms, pud_doms) if doms for d in doms if d is not None]:
-            #   for res in d.resolvers:
-            #      d.resolvers = base_resolver +d.resolvers
         # TODO arg/param alignment. this must happen after base resolver injection. the correct base resolver isnt discovered untill after both pud and clank have been processed
         (FilelistValidator(doc_assets, clank_doc_assets)
-        .validate(pud_cfg, pud_doms, self.collector)
+        .validate(cfg, pud_doms, self.collector)
         .validate(shared_cfg, clank_doms, self.collector))
         
         """
@@ -179,5 +194,3 @@ class PudCtx(ItemHandler):
         .validate(clank_ctx.shared_cfg, clank_ctx.doms, clank_ctx.collector))
         """
         return self.collector, ui_render, kb, action
-
-        #return self.collector, unified_filelist, unified_fileset, base_resolver, pud_cfg, action
