@@ -7,19 +7,12 @@ class DomainExtractor(ValueExtractor):
     shr_doms = None
     collector: ErrorCollector
 
-    def extract_shared_doms(self, cfg: Config, fileset_map: FilesetMap, filelist_map: FilelistMap) -> list[Domain] | None:
-        self.shr_doms = self._extract(cfg, fileset_map, filelist_map)
-        return self.shr_doms, self
+    def get_domains(self, clank_cfg, clank_fs, clank_fl, pud_cfg, pud_fs, pud_fl, base_res):
+        clank_doms = self._extract(clank_cfg, clank_fs, clank_fl, base_res)
+        pud_doms = self._extract(pud_cfg, pud_fs, pud_fl, base_res)
+        return clank_doms, pud_doms
 
-    def extract_and_return_both(self, cfg: Config, fileset_map: FilesetMap, filelist_map: FilelistMap, base_res: Resolver):
-        pud_doms = self._extract(cfg, fileset_map, filelist_map)
-        if pud_doms:
-            for d in [d for doms in (self.shr_doms, pud_doms) if doms for d in doms if d is not None]:
-                d.resolvers.append(base_res)
-        return pud_doms, self.shr_doms
-
-    def _extract(self, cfg: Config, fileset_map: FilesetMap, filelist_map: FilelistMap) -> list[Domain] | None:
-        locs = locals()
+    def _extract(self, cfg: Config, fileset_map: FilesetMap, filelist_map: FilelistMap, base_res) -> list[Domain] | None:
         if not self.valid_args(locals()): return None
-        try: return [DomParser(self.collector).parse(d, fileset_map, filelist_map) for d in self.req_list(cfg.data, ["domains"])]
+        try: return [DomParser(self.collector).parse(d, fileset_map, filelist_map, base_res) for d in self.req_list(cfg.data, ["domains"])]
         except ConfigAssembly: self.collector.add_critical_complaint(f"{cfg.name}: does not have domains list!")

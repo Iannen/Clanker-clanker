@@ -11,13 +11,6 @@ class FilelistExtractor(ValueExtractor):
         clank_fl = self._extract(clank_cfg)
         pud_fl = self._extract(pud_cfg, clank_fl)
         return clank_fl, pud_fl
-
-    def clank_fl(self, cfg: Config) -> FilelistMap | None:
-        self.clank_fl = self._extract(cfg)
-        return self.clank_fl, self
-
-    def unified_fl(self, cfg:Config) -> FilelistMap | None:
-        return self._extract(cfg, self.clank_fl) # Should I return fl if clank fl is none? validation can continue, i think so.
     
     def _extract(self, cfg: Config, existing: Optional[FilelistMap] = None) -> FilelistMap:
         if not cfg: return None

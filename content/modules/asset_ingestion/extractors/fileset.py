@@ -7,12 +7,10 @@ from ...asset_ingestion import ErrorCollector, FilesetMap, ValueExtractor, Files
 class FilesetExtractor(ValueExtractor):
     collector: ErrorCollector
 
-    def clank_fs(self, cfg: Config) -> FilesetMap | None:
-        self.clank_fs = self._extract(cfg)
-        return self.clank_fs, self
-
-    def unified_fs(self, cfg:Config) -> FilesetMap | None:
-        return self._extract(cfg, self.clank_fs) # Should I return fl if clank fl is none? validation can continue, i think so.
+    def get_filesets(self, clank_cfg, pud_cfg) -> tuple[FilesetMap | None, FilesetMap | None]:
+        clank_fs = self._extract(clank_cfg)
+        pud_fs = self._extract(pud_cfg, clank_fs)
+        return clank_fs, pud_fs
 
     def _extract(self, cfg: Config, existing: Optional[FilesetMap] = None) -> FilesetMap | None:
         self.valid_args(locals())

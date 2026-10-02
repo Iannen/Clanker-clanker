@@ -4,13 +4,14 @@ from core import Domain, Prompt
 @dataclass
 class DomParser(ValueExtractor):
     ec: ErrorCollector
-    def parse(self, data: dict, fileset_map: FilesetMap, filelist_map: FilelistMap) -> Domain:
+    def parse(self, data: dict, fileset_map: FilesetMap, filelist_map: FilelistMap, base_res) -> Domain:
         name = self.req_str(data, ["name"])
         with self.ec.path(name):
             raw_resolvers = self.req_list(data, ["resolvers"])
             raw_prompts = self.req_list(data, ["prompts"])
 
             resolvers = [ResolverParser(r, self.ec, fileset_map, filelist_map).parse()for r in raw_resolvers]
+            if base_res: resolvers.append(base_res)
             prompts = self._build_prompts(raw_prompts, fileset_map, filelist_map)
             return Domain(name=name, prompts=prompts, resolvers=resolvers)
             

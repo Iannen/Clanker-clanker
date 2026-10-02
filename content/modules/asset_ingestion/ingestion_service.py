@@ -72,20 +72,10 @@ class IngestionServiceImpl(IngestionService):
         clank_cfg, sys_cfg, clank_doc_assets = clank.determine_action()
         pud_cfg, pud_doc_assets, pud_content_assets, action  = pud.determine_action()
 
-        """
-        clank_fl, filelist_extractor = FilelistExtractor(collector).clank_fl(clank_cfg)
-        pud_fl = filelist_extractor.unified_fl(pud_cfg)
-        """
         clank_fl, pud_fl = FilelistExtractor(collector).get_filelists(clank_cfg, pud_cfg)
-
-        clank_fs, fileset_extractor = FilesetExtractor(collector).clank_fs(clank_cfg)
-        pud_fs = fileset_extractor.unified_fs(pud_cfg)
-
-        clank_baseres, base_res_extractor = BaseResolverExtractor(collector, clank_fl).extract_from_clanker(clank_cfg, clank_fl)
-        pud_baseres = base_res_extractor.get_proper_baseres(pud_cfg, pud_fl)
-
-        clank_doms, dom_extractor = DomainExtractor(collector).extract_shared_doms(clank_cfg, clank_fs, clank_fl)
-        pud_doms, clank_doms = dom_extractor.extract_and_return_both(pud_cfg, pud_fs, pud_fl, pud_baseres)
+        clank_fs, pud_fs = FilesetExtractor(collector).get_filesets(clank_cfg, pud_cfg)
+        pud_baseres = BaseResolverExtractor(collector).get_base_res(clank_cfg, pud_cfg, clank_fl, pud_fl)
+        clank_doms, pud_doms = DomainExtractor(collector).get_domains(clank_cfg, clank_fs, clank_fl, pud_cfg, pud_fs, pud_fl, pud_baseres)
 
         list_validator = FilelistValidator(collector).validate_clank(clank_doms, clank_doc_assets, clank_cfg)
         list_validator.validate_pud(pud_doms, pud_doc_assets, pud_cfg) 

@@ -5,16 +5,12 @@ from ...asset_ingestion import ErrorCollector, ValueExtractor, ResolverParser, F
 @dataclass(eq=False)
 class BaseResolverExtractor(ValueExtractor):
     collector: ErrorCollector
-    filelist_map: FilelistMap
 
-    def extract_from_clanker(self, cfg: Config, filelist_map: FilelistMap) -> Resolver:
-        self.clanker_baseres = self._extract(cfg, filelist_map)
-        if not self.clanker_baseres: self.collector.add_critical_complaint("Clanker must declare a base resolver")
-        return self.clanker_baseres, self
-
-    def get_proper_baseres(self, cfg: Config, filelist_map: FilelistMap): 
-        pud_br = self._extract(cfg, filelist_map)
-        return pud_br if pud_br else self.clanker_baseres
+    def get_base_res(self, clank_cfg, pud_cfg, clank_fl, pud_fl) -> Resolver | None:
+        clank_br = self._extract(clank_cfg, clank_fl)
+        # crit complain if no clank br
+        pud_br = self._extract(pud_cfg, pud_fl)
+        return pud_br if pud_br else clank_br
 
     def _extract(self, cfg: Config, filelist_map: FilelistMap) -> Resolver | None:
         if not self.valid_args(locals()): return None
