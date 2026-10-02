@@ -62,7 +62,17 @@ class IngestionServiceImpl(IngestionService):
             doc_assets = self._get_asset_pack(PathTokens.SHARED, ["content/a_lib"]),
             file_reqs = self._get_file_reqs([*ClankerAssets.Templates, *ClankerAssets.Layouts])
         )
+        pud = PudCtx(
+            collector = collector,
+            cfg_result = self._get_config(PudAssets.Configs.configuration_file),
+            doc_assets_result = self._get_asset_pack(PathTokens.PUD, [".clanker"]),
+            content_assets_result = self._get_asset_pack(PathTokens.PUD, ["content", "README.md"]),
+            file_reqs = self._get_file_reqs([*PudAssets.Directories, *PudAssets.Files, *PudAssets.Documentation]),
+        )
+
         clank_cfg, sys_cfg, clank_doc_assets = clank.determine_action()
+        pud_cfg, pud_doc_assets, pud_content_assets, action  = pud.determine_action()
+
         filelist, filelist_extractor = FilelistExtractor(collector).clank_fl(clank_cfg)
         fileset, fileset_extractor = FilesetExtractor(collector).clank_fs(clank_cfg)
         doms, dom_extractor = DomainExtractor(collector).extract_shared_doms(clank_cfg, fileset, filelist)
@@ -72,19 +82,18 @@ class IngestionServiceImpl(IngestionService):
         list_validator = FilelistValidator(collector).validate_clank(doms, clank_doc_assets, clank_cfg)
         fileset_validator = FilesetValidator(collector).validate_clank(doms, clank_doc_assets, clank_cfg)
         CollisionDetector(collector).detect(clank_doc_assets) 
-        res = sys_cfg_extractor, filelist_extractor, fileset_extractor, base_res_extractor, dom_extractor, list_validator, fileset_validator
 
-        pud = PudCtx(
-            collector = collector,
-            cfg_result = self._get_config(PudAssets.Configs.configuration_file),
-            doc_assets_result = self._get_asset_pack(PathTokens.PUD, [".clanker"]),
-            content_assets_result = self._get_asset_pack(PathTokens.PUD, ["content", "README.md"]),
-            file_reqs = self._get_file_reqs([*PudAssets.Directories, *PudAssets.Files, *PudAssets.Documentation]),
-            clank_res=res
-        )
 
-        ui_render, kb, action  = pud.determine_action()
-       
+        filelist = filelist_extractor.unified_fl(pud_cfg)
+        filesets = fileset_extractor.unified_fs(pud_cfg)
+        base_resolver = base_res_extractor.get_proper_baseres(pud_cfg, filelist)
+        pud_doms, clank_doms = dom_extractor.extract_and_return_both(pud_cfg, filesets, filelist, base_resolver)
+        sys_cfg_extractor.accept_pud_doms(pud_doms)
+        ui_render, kb = sys_cfg_extractor.deliver()
+        CollisionDetector(collector).detect(pud_doc_assets)
+
+        list_validator.validate_pud(pud_doms, pud_doc_assets, pud_cfg) 
+        fileset_validator.validate_pud(pud_doms,pud_doc_assets, pud_cfg)      
 
         if collector.has_crits(): return TerminateResult(collector)
         elif action is BootAction.CLANKERIZE: return ClankerizeResult(collector)
@@ -137,10 +146,8 @@ class PudCtx(ItemHandler):
     doc_assets_result: AssetPack | Missing
     content_assets_result: AssetPack | Missing
     file_reqs: tuple[list[StrEnum], list[StrEnum]]
-    clank_res: Any
 
     def determine_action(self):        
-        # hm, could I put all my items in some list, and pass a list to classify? then it returns the item or none in a new list
         missing_items, present_items, malformed_items = *self.file_reqs, []
         cfg = self._classify(self.cfg_result, malformed_items, missing_items, present_items)
         doc_assets = self._classify(self.doc_assets_result, malformed_items, missing_items, present_items)
@@ -149,25 +156,4 @@ class PudCtx(ItemHandler):
         if not missing_items and not malformed_items: action = BootAction.START
         elif not present_items: action = BootAction.CLANKERIZE
         else: [self.collector.accept(item) for item in missing_items + malformed_items]
-
-        return self._process((cfg, doc_assets, content_assets, action))
-
-    
-    def _process(self, inputs):
-        cfg, doc_assets, content_assets, action = inputs
-
-        sys_cfg_extractor, filelist_extractor, fileset_extractor, base_res_extractor, dom_extractor, list_validator, fileset_validator = self.clank_res
-
-        filelist = filelist_extractor.unified_fl(cfg)
-        filesets = fileset_extractor.unified_fs(cfg)
-        base_resolver = base_res_extractor.get_proper_baseres(cfg, filelist)
-        pud_doms, clank_doms = dom_extractor.extract_and_return_both(cfg, filesets, filelist, base_resolver)
-        sys_cfg_extractor.accept_pud_doms(pud_doms)
-        ui_render, kb = sys_cfg_extractor.deliver()
-
-        
-        CollisionDetector(self.collector).detect(doc_assets)
-
-        list_validator.validate_pud(pud_doms, doc_assets, cfg) 
-        fileset_validator.validate_pud(pud_doms,doc_assets, cfg)
-        return ui_render, kb, action
+        return cfg, doc_assets, content_assets, action
