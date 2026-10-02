@@ -55,21 +55,21 @@ class IngestionServiceImpl(IngestionService):
 
     def get_runtime_config(self):
         collector = ErrorCollector()
-        clank = ClankerCtx(
+        clank = ClankerCtx.determine_action(
             collector=collector,
             sys_cfg = self._get_config(ClankerAssets.Configs.sys_cfg),
             shared_cfg = self._get_config(ClankerAssets.Configs.shared_cfg),
             doc_assets = self._get_asset_pack(PathTokens.SHARED, ["content/a_lib"]),
             file_reqs = self._get_file_reqs([*ClankerAssets.Templates, *ClankerAssets.Layouts])
         )
-        pud = PudCtx(
+        pud = PudCtx.determine_action(
             collector = collector,
             cfg_result = self._get_config(PudAssets.Configs.configuration_file),
             doc_assets_result = self._get_asset_pack(PathTokens.PUD, [".clanker"]),
             content_assets_result = self._get_asset_pack(PathTokens.PUD, ["content", "README.md"]),
             file_reqs = self._get_file_reqs([*PudAssets.Directories, *PudAssets.Files, *PudAssets.Documentation]),
         )
-        action, ui_render, kb = Assembler.assemble(collector, clank.determine_action(), pud.determine_action())
+        action, ui_render, kb = Assembler.assemble(collector, clank, pud)
 
         if collector.has_crits(): return TerminateResult(collector)
         if action is BootAction.CLANKERIZE: return ClankerizeResult(collector)
@@ -91,50 +91,48 @@ class BootAction(StrEnum):
     NONE = "invalid"
 
 class ItemHandler:
-    def _classify(self,item ,malformed_items ,missing_items, present_items):
+    @staticmethod
+    def _classify(item, malformed_items, missing_items, present_items):
         if isinstance(item, (Config, AssetPack)): present_items.append(item); return item
-        if isinstance(item, Malformed):malformed_items.append(item)
-        elif isinstance(item, (Missing)):missing_items.append(item)
+        if isinstance(item, Malformed): malformed_items.append(item)
+        elif isinstance(item, Missing): missing_items.append(item)
         return None
 
-@dataclass
 class ClankerCtx(ItemHandler):
-    collector: ErrorCollector
-    sys_cfg: Config | Missing | Malformed
-    shared_cfg: Config | Missing | Malformed
-    doc_assets: AssetPack | Missing
-    file_reqs: tuple[list[StrEnum], list[StrEnum]]
-
-    def determine_action(self):
-        missing_items, present_items, malformed_items = *self.file_reqs, []
-        sys_cfg = self._classify(self.sys_cfg, malformed_items, missing_items, present_items)
-        cfg = self._classify(self.shared_cfg, malformed_items, missing_items, present_items)
-        doc_assets = self._classify(self.doc_assets, malformed_items, missing_items, present_items)
-        for item in missing_items + malformed_items: self.collector.accept(item)
-
+    @staticmethod
+    def determine_action(
+        collector: ErrorCollector, 
+        sys_cfg: Config | Missing | Malformed, 
+        shared_cfg: Config | Missing | Malformed, 
+        doc_assets: AssetPack | Missing, 
+        file_reqs: tuple[list[StrEnum], list[StrEnum]]
+    ) -> tuple [Config | None, Config | None, AssetPack | None]:
+        missing_items, present_items, malformed_items = *file_reqs, []
+        sys_cfg = ClankerCtx._classify(sys_cfg, malformed_items, missing_items, present_items)
+        cfg = ClankerCtx._classify(shared_cfg, malformed_items, missing_items, present_items)
+        doc_assets = ClankerCtx._classify(doc_assets, malformed_items, missing_items, present_items)
+        for item in missing_items + malformed_items: collector.accept(item)
         return cfg, sys_cfg, doc_assets
 
-
-@dataclass
 class PudCtx(ItemHandler):
-    collector: ErrorCollector
-    cfg_result: Config | Missing | Malformed
-    doc_assets_result: AssetPack | Missing
-    content_assets_result: AssetPack | Missing
-    file_reqs: tuple[list[StrEnum], list[StrEnum]]
-
-    def determine_action(self):        
-        missing_items, present_items, malformed_items = *self.file_reqs, []
-        cfg = self._classify(self.cfg_result, malformed_items, missing_items, present_items)
-        doc_assets = self._classify(self.doc_assets_result, malformed_items, missing_items, present_items)
-        content_assets = self._classify(self.content_assets_result, malformed_items, missing_items, present_items)
+    @staticmethod
+    def determine_action(
+        collector: ErrorCollector, 
+        cfg_result: Config | Missing | Malformed, 
+        doc_assets_result: AssetPack | Missing, 
+        content_assets_result: AssetPack | Missing, 
+        file_reqs: tuple[list[StrEnum], list[StrEnum]]
+    ) -> tuple [Config | None, AssetPack | None, AssetPack | None, BootAction]:
+        missing_items, present_items, malformed_items = *file_reqs, []
+        cfg = PudCtx._classify(cfg_result, malformed_items, missing_items, present_items)
+        doc_assets = PudCtx._classify(doc_assets_result, malformed_items, missing_items, present_items)
+        content_assets = PudCtx._classify(content_assets_result, malformed_items, missing_items, present_items)
         action = BootAction.NONE
         if not missing_items and not malformed_items: action = BootAction.START
         elif not present_items: action = BootAction.CLANKERIZE
-        else: [self.collector.accept(item) for item in missing_items + malformed_items]
+        else: [collector.accept(item) for item in missing_items + malformed_items]
         return cfg, doc_assets, content_assets, action
 
-@dataclass
 class Assembler:
     @staticmethod
     def assemble(collector: ErrorCollector, clank_inputs, pud_inputs) ->  tuple[BootAction, Render, Keyboard]:
