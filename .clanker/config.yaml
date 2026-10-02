@@ -5,9 +5,7 @@ filesets:
   core: {includes: [content/core]}
 
   asset_ingestion: {includes: [
-    content/modules/asset_ingestion], excludes: [
-      content/modules/asset_ingestion/parsers
-    ]}
+    content/modules/asset_ingestion]}
 
   cfg_validation: {includes: [
     content/core/entities.py,  

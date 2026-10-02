@@ -1,28 +1,20 @@
-from stdlib import Any
+from stdlib import Any, dataclass
 from core import Render
 from ...asset_ingestion import ErrorCollector, ValueExtractor, ResolverParser
 
-
-class RenderParser:
-    def __init__(
-        self,
-        render_dict: dict[str, Any],
-        collector: ErrorCollector,
-        fileset_map: NamedMap,
-        filelist_map: NamedMap | None = None,
-    ) -> None:
-        self.render_dict = render_dict
-        self.collector = collector
-        self.fileset_map = fileset_map
-        self.filelist_map = filelist_map
-        self.extractor = ValueExtractor()
+@dataclass
+class RenderParser(ValueExtractor):
+    render_dict: dict[str, Any]
+    collector: ErrorCollector
+    fileset_map: NamedMap
+    filelist_map: NamedMap | None = None
 
     def extract(self) -> Render:
-        template = self.extractor.opt_str(self.render_dict, ["template"], Render.template)
-        inherit_base = self.extractor.opt_bool(self.render_dict, ["inherit_base"], Render.inherit_base)
-        inherit_domain = self.extractor.opt_bool(self.render_dict, ["inherit_domain"], Render.inherit_domain)
-        raw_resolvers = self.extractor.req_list(self.render_dict, ["resolvers"])
-        resolvers = [ResolverParser(r, self.collector, self.fileset_map, self.filelist_map).parse() for r in raw_resolvers]
+        template = self.opt_str(self.render_dict, ["template"], Render.template)
+        inherit_base = self.opt_bool(self.render_dict, ["inherit_base"], Render.inherit_base)
+        inherit_domain = self.opt_bool(self.render_dict, ["inherit_domain"], Render.inherit_domain)
+        res_dicts = self.req_list(self.render_dict, ["resolvers"])
+        resolvers = [ResolverParser(data, self.collector, self.fileset_map, self.filelist_map).parse() for data in res_dicts]
         return Render(
             template=template,
             resolvers=resolvers,
