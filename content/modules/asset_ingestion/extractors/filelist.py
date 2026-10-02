@@ -7,6 +7,11 @@ from ...asset_ingestion import ErrorCollector, FilelistMap, ValueExtractor, File
 class FilelistExtractor(ValueExtractor):
     collector: ErrorCollector
 
+    def get_filelists(self, clank_cfg, pud_cfg) -> tuple[FilelistMap | None, FilelistMap | None]:
+        clank_fl = self._extract(clank_cfg)
+        pud_fl = self._extract(pud_cfg, clank_fl)
+        return clank_fl, pud_fl
+
     def clank_fl(self, cfg: Config) -> FilelistMap | None:
         self.clank_fl = self._extract(cfg)
         return self.clank_fl, self

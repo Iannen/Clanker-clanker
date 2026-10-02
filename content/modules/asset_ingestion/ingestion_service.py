@@ -72,10 +72,11 @@ class IngestionServiceImpl(IngestionService):
         clank_cfg, sys_cfg, clank_doc_assets = clank.determine_action()
         pud_cfg, pud_doc_assets, pud_content_assets, action  = pud.determine_action()
 
-
-
+        """
         clank_fl, filelist_extractor = FilelistExtractor(collector).clank_fl(clank_cfg)
         pud_fl = filelist_extractor.unified_fl(pud_cfg)
+        """
+        clank_fl, pud_fl = FilelistExtractor(collector).get_filelists(clank_cfg, pud_cfg)
 
         clank_fs, fileset_extractor = FilesetExtractor(collector).clank_fs(clank_cfg)
         pud_fs = fileset_extractor.unified_fs(pud_cfg)
