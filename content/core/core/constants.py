@@ -12,7 +12,7 @@ class ClankerAssets:
         sys_cfg = PathTokens.SHARED + "/content/a_lib/shared-assets/config-fragments/system_cfg.yaml"
         shared_cfg = PathTokens.SHARED + "/content/a_lib/shared-assets/config-fragments/shared_cfg.yaml"
 
-    class Templates(StrEnum):
+    class templates(StrEnum):
         CFG = PathTokens.SHARED + "/content/a_lib/templates/config.template"
         README = PathTokens.SHARED + "/content/a_lib/templates/README.template"
         DOC_ARCHITECTURE = PathTokens.SHARED + "/content/a_lib/templates/documentation/architecture.template"
@@ -20,7 +20,7 @@ class ClankerAssets:
         DOC_BACKLOG = PathTokens.SHARED + "/content/a_lib/templates/documentation/backlog.template"
         DOC_PROJECT_HISTORY = PathTokens.SHARED + "/content/a_lib/templates/documentation/project-history.template"
 
-    class Layouts(StrEnum):
+    class layouts(StrEnum):
         UI = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/ui.layout"
         PROMPT = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/prompt.layout"
         BTN_ACTIVE = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/btn_active.layout"
@@ -54,12 +54,12 @@ class RepoContract:
     ]
 
     MAPPINGS = [
-        (ClankerAssets.Templates.CFG, PudAssets.Configs.configuration_file),
-        (ClankerAssets.Templates.README, PudAssets.Files.README),
-        (ClankerAssets.Templates.DOC_ARCHITECTURE, PudAssets.Documentation.ARCHITECTURE),
-        (ClankerAssets.Templates.DOC_NORTH_STAR, PudAssets.Documentation.NORTH_STAR),
-        (ClankerAssets.Templates.DOC_BACKLOG, PudAssets.Documentation.BACKLOG),
-        (ClankerAssets.Templates.DOC_PROJECT_HISTORY, PudAssets.Documentation.PROJECT_HISTORY),
+        (ClankerAssets.templates.CFG, PudAssets.Configs.configuration_file),
+        (ClankerAssets.templates.README, PudAssets.Files.README),
+        (ClankerAssets.templates.DOC_ARCHITECTURE, PudAssets.Documentation.ARCHITECTURE),
+        (ClankerAssets.templates.DOC_NORTH_STAR, PudAssets.Documentation.NORTH_STAR),
+        (ClankerAssets.templates.DOC_BACKLOG, PudAssets.Documentation.BACKLOG),
+        (ClankerAssets.templates.DOC_PROJECT_HISTORY, PudAssets.Documentation.PROJECT_HISTORY),
     ]
 
     @classmethod

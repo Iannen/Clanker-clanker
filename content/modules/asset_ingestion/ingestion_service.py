@@ -42,7 +42,7 @@ class IngestionServiceImpl(IngestionService):
             raw_content = self.files.get_file_contents(config.value)
             return Config(config.name, config.value, self.cfg_ingestor.get_as_dict(raw_content))
         except NoSuchFile: return Missing(config.name, config.value)
-        except ConfigParseError: return Malformed(config.name, config.value, str(ex))
+        except ConfigParseError as ex: return Malformed(config.name, config.value, str(ex))
 
     def _get_file_req(self, filereq: StrEnum) -> Filereq | Missing:
         try: return Filereq(filereq.name, filereq.value, self.files.get_file_contents(filereq.value))
@@ -50,15 +50,15 @@ class IngestionServiceImpl(IngestionService):
         except NoSuchFile: return Missing(filereq.name, filereq.value) 
 
     def get_runtime_config(self):
-        collector = ErrorCollector()
-        clank_classifier = ItemClassifier(collector)
-        pud_classifier = ItemClassifier(collector)
+        ec = ErrorCollector()
+        clank_classifier = ItemClassifier(ec)
+        pud_classifier = ItemClassifier(ec)
 
-        for req in [*ClankerAssets.Templates, *ClankerAssets.Layouts]: clank_classifier.classify(self._get_file_req(req))
+        for req in [*ClankerAssets.templates, *ClankerAssets.layouts]: clank_classifier.classify(self._get_file_req(req))
         for req in [*PudAssets.Directories, *PudAssets.Files, *PudAssets.Documentation]: pud_classifier.classify(self._get_file_req(req))
 
-        ui_render, kb = Assembler.assemble(
-            collector, 
+        assember = Assembler(
+            ec, 
             clank_classifier.classify(self._get_config(ClankerAssets.Configs.shared_cfg)),
             clank_classifier.classify(self._get_config(ClankerAssets.Configs.sys_cfg)),
             clank_classifier.classify(self._get_asset_pack(PathTokens.SHARED, ["content/a_lib"])),
@@ -66,17 +66,16 @@ class IngestionServiceImpl(IngestionService):
             pud_classifier.classify(self._get_asset_pack(PathTokens.PUD, [".clanker"])), 
             pud_classifier.classify(self._get_asset_pack(PathTokens.PUD, ["content", "README.md"])), 
         )
+        clank_classifier.complain() 
+        pud_result = pud_classifier.evaluate()
+        if pud_result is ClassificationResult.MIXED: pud_classifier.complain() 
+        ui_render, kb = assember.assemble(pud_result)
 
-        clank_classifier.complain()
-
-        if pud_classifier.all_present(): action = BootAction.START
-        elif pud_classifier.none_present(): action = BootAction.CLANKERIZE
-        else:  action = BootAction.NONE ; pud_classifier.complain()
-       
-        if collector.has_crits(): return TerminateResult(collector)
-        if action is BootAction.CLANKERIZE: return ClankerizeResult(collector)
-        if action is BootAction.START: return StartResult(collector, kb, ui_render) 
-                          
+        
+        if ec.has_crits(): return TerminateResult(ec) 
+        if pud_result is ClassificationResult.ALL_PRESENT: return StartResult(ec, kb, ui_render) 
+        if pud_result is ClassificationResult.NONE_PRESENT: return ClankerizeResult(ec)
+        
     def initialize_workspace(self):
         if self.files.is_cwd_script_dir():
             raise CorruptClanker("Clanker repository initialized is beyond scope of app.")
@@ -87,49 +86,60 @@ class IngestionServiceImpl(IngestionService):
             self.files.copy_file(from_path=from_path, to_path=to_path)
         return self.get_runtime_config()
 
-class BootAction(StrEnum):
-    START = "ok"
-    CLANKERIZE = "empty"
-    NONE = "invalid"
+class ClassificationResult(StrEnum):
+    ALL_PRESENT = "all"
+    NONE_PRESENT = "none"
+    MIXED = "mix"
+
 
 class ItemClassifier:
     def __init__(self, ec: ErrorCollector):
         self.ec = ec
-        self.present, self.missing, self.malformed = [],[],[]
+        self.present, self.missing, self.malformed = [], [], []
+
     def classify(self, item):
         if isinstance(item, RepoItem): self.present.append(item); return item 
-        if isinstance(item, Missing): self.missing.append(item); return None
-        if isinstance(item, Malformed): self.malformed.append(item) ; return None
-    def all_present(self): return not self.missing and not self.malformed
-    def none_present(self): return not self.present
+        if isinstance(item, Missing):  self.missing.append(item); return None
+        if isinstance(item, Malformed): self.malformed.append(item); return None
+        raise TypeError(f"ItemClassifier cannot classify object of type {type(item).__name__}: {item!r}")
+
+    def evaluate(self) -> ClassificationResult:
+        has_present = bool(self.present)
+        has_invalid = bool(self.missing or self.malformed)
+
+        if not has_present and not has_invalid: raise CorruptClanker(f"{type(self).__name__} was supplied no items to classify")
+        if has_present and has_invalid: return ClassificationResult.MIXED
+        if has_present: return ClassificationResult.ALL_PRESENT
+        return ClassificationResult.NONE_PRESENT
+
     def complain(self):
-        for c in self.missing + self.malformed: self.ec.accept(c)
+        for c in self.missing + self.malformed:  self.ec.accept(c)
 
+@dataclass
 class Assembler:
-    @staticmethod
-    def assemble(
-        collector: ErrorCollector, 
-        clank_cfg,
-        sys_cfg,
-        clank_doc_assets,
-        pud_cfg, 
-        pud_doc_assets, 
-        pud_content_assets, 
-    ) ->  tuple[BootAction, Render, Keyboard]:
+    collector: ErrorCollector | None
+    clank_cfg: Config  | None
+    sys_cfg: Config  | None
+    clank_doc_assets: AssetPack  | None
+    pud_cfg: Config  | None
+    pud_doc_assets: AssetPack  | None
+    pud_content_assets: AssetPack  | None
 
-        clank_fl, pud_fl = FilelistExtractor(collector).get_filelists(clank_cfg, pud_cfg)
-        clank_fs, pud_fs = FilesetExtractor(collector).get_filesets(clank_cfg, pud_cfg)
-        pud_baseres = BaseResolverExtractor(collector).get_base_res(clank_cfg, pud_cfg, clank_fl, pud_fl)
-        clank_doms, pud_doms = DomainExtractor(collector).get_domains(clank_cfg, clank_fs, clank_fl, pud_cfg, pud_fs, pud_fl, pud_baseres)
-        ui_render, kb = SysConfigExtractor(collector, sys_cfg).get_final_product(clank_doms, pud_doms)       
+    # not sure about value of the pud res in here.
+    def assemble(self, pud_res: ClassificationResult) ->  tuple[BootAction, Render, Keyboard]:
+        clank_fl, pud_fl = FilelistExtractor(self.collector).get_filelists(self.clank_cfg, self.pud_cfg)
+        clank_fs, pud_fs = FilesetExtractor(self.collector).get_filesets(self.clank_cfg, self.pud_cfg)
+        pud_baseres = BaseResolverExtractor(self.collector).get_base_res(self.clank_cfg, self.pud_cfg, clank_fl, pud_fl)
+        clank_doms, pud_doms = DomainExtractor(self.collector).get_domains(self.clank_cfg, clank_fs, clank_fl, self.pud_cfg, pud_fs, pud_fl, pud_baseres)
+        ui_render, kb = SysConfigExtractor(self.collector, self.sys_cfg).get_final_product(clank_doms, pud_doms)       
 
-        list_validator = FilelistValidator(collector).validate_clank(clank_doms, clank_doc_assets, clank_cfg)
-        list_validator.validate_pud(pud_doms, pud_doc_assets, pud_cfg) 
+        list_validator = FilelistValidator(self.collector).validate_clank(clank_doms, self.clank_doc_assets, self.clank_cfg)
+        list_validator.validate_pud(pud_doms, self.pud_doc_assets, self.pud_cfg) 
         
-        fileset_validator = FilesetValidator(collector).validate_clank(clank_doms, clank_doc_assets, clank_cfg)
-        fileset_validator.validate_pud(pud_doms,pud_doc_assets, pud_cfg)      
+        fileset_validator = FilesetValidator(self.collector).validate_clank(clank_doms, self.clank_doc_assets, self.clank_cfg)
+        fileset_validator.validate_pud(pud_doms, self.pud_doc_assets, self.pud_cfg)      
 
-        CollisionDetector(collector).detect(clank_doc_assets) 
-        CollisionDetector(collector).detect(pud_doc_assets)
+        CollisionDetector(self.collector).detect(self.clank_doc_assets) 
+        CollisionDetector(self.collector).detect(self.pud_doc_assets)
 
         return ui_render, kb

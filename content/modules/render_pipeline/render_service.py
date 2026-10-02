@@ -48,9 +48,9 @@ class RenderServiceImpl(RenderService):
         try:
             match render.template:
                 case "prompt_template":
-                    return self.files.read_asset(ClankerAssets.Layouts.PROMPT)
+                    return self.files.read_asset(ClankerAssets.layouts.PROMPT)
                 case "ui_template":
-                    return self.files.read_asset(ClankerAssets.Layouts.UI)
+                    return self.files.read_asset(ClankerAssets.layouts.UI)
         except NoSuchFile as ex:
             raise CorruptClanker(f"Error loading template for '{render.template}': {ex}") from ex
 
@@ -132,9 +132,9 @@ class RenderServiceImpl(RenderService):
         return f"<{tag}>\n" + "\n".join(lines) + "\n</" + tag + ">"
 
     def _res_ui(self, kb: Keyboard) -> dict[str, str]:
-        btn_hl = self.files.read_asset(ClankerAssets.Layouts.BTN_HL)
-        btn_active = self.files.read_asset(ClankerAssets.Layouts.BTN_ACTIVE)
-        btn_inactive = self.files.read_asset(ClankerAssets.Layouts.BTN_INACTIVE)
+        btn_hl = self.files.read_asset(ClankerAssets.layouts.BTN_HL)
+        btn_active = self.files.read_asset(ClankerAssets.layouts.BTN_ACTIVE)
+        btn_inactive = self.files.read_asset(ClankerAssets.layouts.BTN_INACTIVE)
 
         repl_map = {}
         for btn in kb.get_btns(DomButton):
