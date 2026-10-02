@@ -1,6 +1,6 @@
 from stdlib import Any, dataclass, field
 from core import Domain, Prompt, Resolver, ConfigAssembly
-from ...asset_ingestion import (ErrorCollector, ValueExtractor, Config,DomParser)
+from ...asset_ingestion import ErrorCollector, ValueExtractor, Config, DomParser, NotFound
 
 @dataclass(eq=False)
 class DomainExtractor(ValueExtractor):

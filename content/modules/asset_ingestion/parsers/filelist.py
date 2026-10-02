@@ -1,41 +1,23 @@
-from stdlib import Any
+from stdlib import Any, dataclass
 from core import File, Filelist, TruncationSpec
 from ...asset_ingestion import ErrorCollector, ValueExtractor
 
-
-class FilelistParser:
+@dataclass
+class FilelistParser(ValueExtractor):
+    filelist_cfg: Any
+    collector: ErrorCollector
     entity_cls = Filelist
-    def __init__(
-        self,
-        filelist_cfg: Any,
-        collector: ErrorCollector,
-        filelist_map: NamedMap | None = None,
-    ) -> None:
-        self.filelist_cfg = filelist_cfg
-        self.collector = collector
-        self.filelist_map = filelist_map
-        self.extractor = ValueExtractor()
 
     def parse(self) -> Filelist:
-        if isinstance(self.filelist_cfg, str):
-            if self.filelist_map is not None:
-                filelist_obj = self.filelist_map.get(self.filelist_cfg)
-                if filelist_obj is not None:
-                    return filelist_obj
-            return Filelist(files=[])
-
-        if isinstance(self.filelist_cfg, list):
-            file_objs = [self._build_file(f) for f in self.filelist_cfg]
-            return Filelist(files=file_objs)
-
-        return Filelist(files=[])
+        file_objs = [self._build_file(f) for f in self.filelist_cfg]
+        return Filelist(files=file_objs)
 
     def _build_file(self, data: Any) -> File:
         if isinstance(data, dict):
-            filename = self.extractor.req_str(data, ["file"])
+            filename = self.req_str(data, ["file"])
             trunc_spec = self._build_truncation_spec(data)
             return File(name=filename, truncation_spec=trunc_spec)
-        return File(name=self.extractor.req_str({"file": data}, ["file"]))
+        return File(name=self.req_str({"file": data}, ["file"]))
 
     def _build_truncation_spec(self, data: dict[str, Any]) -> TruncationSpec | None:
         has_tail = "tail_lines" in data
@@ -49,15 +31,15 @@ class FilelistParser:
             return None
 
         if has_tail:
-            tail_lines = self.extractor.req_int(data, ["tail_lines"])
+            tail_lines = self.req_int(data, ["tail_lines"])
             if tail_lines is None:
                 self.collector.add_complaint("TruncationSpec error: tail_lines must be an integer")
                 return None
             return TruncationSpec(type=TruncationSpec.TYPE_TAIL, tail_lines=tail_lines)
 
         if has_from or has_upto:
-            from_line = self.extractor.req_str(data, ["from_line"]) if has_from else None
-            up_to = self.extractor.req_str(data, ["up_to"]) if has_upto else None
+            from_line = self.req_str(data, ["from_line"]) if has_from else None
+            up_to = self.req_str(data, ["up_to"]) if has_upto else None
             return TruncationSpec(
                 type=TruncationSpec.TYPE_REGEX_RANGE,
                 from_line=from_line,
