@@ -32,18 +32,24 @@ class IngestionServiceImpl(IngestionService):
     files: DiskPort
     cfg_ingestor: ConfigParserPort
 
-    def _get_asset_pack(self,token:str, roots):
+    """ the service use these 3 methods to convert a strenum to a proper item or a complaint """
+    def _get_asset_pack(self,token:str, roots) -> AssetPack | Missing:
         try: return AssetPack(token, roots, self.files.get_dir_manifest(token, roots)) 
         except NoSuchFile: return Missing(token, roots) 
 
-    def _get_config(self, config: StrEnum) -> Config | MissingConfig | MalformedConfig:
+    def _get_config(self, config: StrEnum) -> Config | Missing | Malformed:
         try:
             raw_content = self.files.get_file_contents(config.value)
             return Config(config.name, config.value, self.cfg_ingestor.get_as_dict(raw_content))
         except NoSuchFile: return Missing(config.name, config.value)
         except ConfigParseError: return Malformed(config.name, config.value, str(ex))
+
+    def _get_file_req(self, filereq: StrEnum) -> Filereq | Missing:
+        
+        pass
     
-    def _get_file_reqs(self, assets: list[StrEnum]) -> tuple[list[StrEnum], list[StrEnum]]:
+    def _classify_file_reqs(self, assets: list[StrEnum]) -> tuple[list[StrEnum], list[StrEnum]]:
+        """ this method gets converted to work on a single strenum at a time""" 
         missing, present = [], []
         for asset in assets:
             try:
@@ -53,6 +59,16 @@ class IngestionServiceImpl(IngestionService):
                 present.append(Filereq(asset.name, asset.value))
         return missing, present
 
+    def _evaluate_clanker_items(self):pass
+    """ 
+    - 'important' items via separate args, return the item | None
+    - the unimportant ones i get in a list for bulk processing
+        i implement whater business rules i have for clankers items here
+    """
+
+    def _evaluate_pud_items(self):pass
+    """ 'important' items via separate params, the unimportant ones in a list"""
+
     def get_runtime_config(self):
         collector = ErrorCollector()
         clank = ClankerCtx.determine_action(
@@ -60,14 +76,14 @@ class IngestionServiceImpl(IngestionService):
             sys_cfg = self._get_config(ClankerAssets.Configs.sys_cfg),
             shared_cfg = self._get_config(ClankerAssets.Configs.shared_cfg),
             doc_assets = self._get_asset_pack(PathTokens.SHARED, ["content/a_lib"]),
-            file_reqs = self._get_file_reqs([*ClankerAssets.Templates, *ClankerAssets.Layouts])
+            file_reqs = self._classify_file_reqs([*ClankerAssets.Templates, *ClankerAssets.Layouts])
         )
         pud = PudCtx.determine_action(
             collector = collector,
             cfg_result = self._get_config(PudAssets.Configs.configuration_file),
             doc_assets_result = self._get_asset_pack(PathTokens.PUD, [".clanker"]),
             content_assets_result = self._get_asset_pack(PathTokens.PUD, ["content", "README.md"]),
-            file_reqs = self._get_file_reqs([*PudAssets.Directories, *PudAssets.Files, *PudAssets.Documentation]),
+            file_reqs = self._classify_file_reqs([*PudAssets.Directories, *PudAssets.Files, *PudAssets.Documentation]),
         )
         action, ui_render, kb = Assembler.assemble(collector, clank, pud)
 
@@ -90,15 +106,15 @@ class BootAction(StrEnum):
     CLANKERIZE = "empty"
     NONE = "invalid"
 
-class ItemHandler:
+class Classifier:
     @staticmethod
     def _classify(item, malformed_items, missing_items, present_items):
-        if isinstance(item, (Config, AssetPack)): present_items.append(item); return item
+        if isinstance(item, (Config, AssetPack)): present_items.append(item); return item # common ancestor for these kinda items in the future
         if isinstance(item, Malformed): malformed_items.append(item)
         elif isinstance(item, Missing): missing_items.append(item)
         return None
 
-class ClankerCtx(ItemHandler):
+class ClankerCtx(Classifier):
     @staticmethod
     def determine_action(
         collector: ErrorCollector, 
@@ -114,7 +130,7 @@ class ClankerCtx(ItemHandler):
         for item in missing_items + malformed_items: collector.accept(item)
         return cfg, sys_cfg, doc_assets
 
-class PudCtx(ItemHandler):
+class PudCtx(Classifier):
     @staticmethod
     def determine_action(
         collector: ErrorCollector, 
