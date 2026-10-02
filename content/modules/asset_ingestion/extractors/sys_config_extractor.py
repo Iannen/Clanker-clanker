@@ -10,6 +10,11 @@ class SysConfigExtractor(ValueExtractor):
     shared_doms: list[Domain] | None = None
     pud_doms: list[Domain] | None = None
 
+    def get_final_product(self, clank_doms, pud_doms) -> tuple[Render, Keyboard]:
+        self.shared_doms = clank_doms
+        self.pud_doms = pud_doms
+        return self.deliver()
+
     def accept_shared_doms(self, shared_doms: list[Domain] | None) -> None:
         self.shared_doms = shared_doms
         return self

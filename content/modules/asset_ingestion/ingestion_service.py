@@ -69,6 +69,11 @@ class IngestionServiceImpl(IngestionService):
             content_assets_result = self._get_asset_pack(PathTokens.PUD, ["content", "README.md"]),
             file_reqs = self._get_file_reqs([*PudAssets.Directories, *PudAssets.Files, *PudAssets.Documentation]),
         )
+        """
+        assembler = Assembler(
+            collector = collector,
+
+        )"""
         clank_cfg, sys_cfg, clank_doc_assets = clank.determine_action()
         pud_cfg, pud_doc_assets, pud_content_assets, action  = pud.determine_action()
 
@@ -76,6 +81,7 @@ class IngestionServiceImpl(IngestionService):
         clank_fs, pud_fs = FilesetExtractor(collector).get_filesets(clank_cfg, pud_cfg)
         pud_baseres = BaseResolverExtractor(collector).get_base_res(clank_cfg, pud_cfg, clank_fl, pud_fl)
         clank_doms, pud_doms = DomainExtractor(collector).get_domains(clank_cfg, clank_fs, clank_fl, pud_cfg, pud_fs, pud_fl, pud_baseres)
+        ui_render, kb = SysConfigExtractor(collector, sys_cfg).get_final_product(clank_doms, pud_doms)       
 
         list_validator = FilelistValidator(collector).validate_clank(clank_doms, clank_doc_assets, clank_cfg)
         list_validator.validate_pud(pud_doms, pud_doc_assets, pud_cfg) 
@@ -85,10 +91,6 @@ class IngestionServiceImpl(IngestionService):
 
         CollisionDetector(collector).detect(clank_doc_assets) 
         CollisionDetector(collector).detect(pud_doc_assets)
-
-        sys_cfg_extractor = SysConfigExtractor(collector, sys_cfg).accept_shared_doms(clank_doms)
-        sys_cfg_extractor.accept_pud_doms(pud_doms)
-        ui_render, kb = sys_cfg_extractor.deliver()
 
         if collector.has_crits(): return TerminateResult(collector)
         elif action is BootAction.CLANKERIZE: return ClankerizeResult(collector)
@@ -152,3 +154,7 @@ class PudCtx(ItemHandler):
         elif not present_items: action = BootAction.CLANKERIZE
         else: [self.collector.accept(item) for item in missing_items + malformed_items]
         return cfg, doc_assets, content_assets, action
+
+@dataclass
+class Assembler:pass
+    
