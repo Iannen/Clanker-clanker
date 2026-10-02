@@ -54,24 +54,26 @@ class IngestionServiceImpl(IngestionService):
         return missing, present
 
     def get_runtime_config(self):
+        collector = ErrorCollector()
         clank = ClankerCtx(
+            collector=collector,
             sys_cfg = self._get_config(ClankerAssets.Configs.sys_cfg),
             shared_cfg = self._get_config(ClankerAssets.Configs.shared_cfg),
             doc_assets = self._get_asset_pack(PathTokens.SHARED, ["content/a_lib"]),
             file_reqs = self._get_file_reqs([*ClankerAssets.Templates, *ClankerAssets.Layouts])
         )
-        collector, res = clank.determine_action()
+        res = clank.determine_action()
 
         pud = PudCtx(
+            collector = collector,
             cfg_result = self._get_config(PudAssets.Configs.configuration_file),
             doc_assets_result = self._get_asset_pack(PathTokens.PUD, [".clanker"]),
             content_assets_result = self._get_asset_pack(PathTokens.PUD, ["content", "README.md"]),
             file_reqs = self._get_file_reqs([*PudAssets.Directories, *PudAssets.Files, *PudAssets.Documentation]),
-            collector = collector,
             clank_res=res
         )
 
-        collector, ui_render, kb, action  = pud.determine_action()
+        ui_render, kb, action  = pud.determine_action()
        
 
         if collector.has_crits(): return TerminateResult(collector)
@@ -102,11 +104,11 @@ class ItemHandler:
 
 @dataclass
 class ClankerCtx(ItemHandler):
+    collector: ErrorCollector
     sys_cfg: Config | Missing | Malformed
     shared_cfg: Config | Missing | Malformed
     doc_assets: AssetPack | Missing
     file_reqs: tuple[list[StrEnum], list[StrEnum]]
-    collector: ErrorCollector = field(default_factory=ErrorCollector)
 
     def determine_action(self):
         missing_items, present_items, malformed_items = *self.file_reqs, []
@@ -124,17 +126,17 @@ class ClankerCtx(ItemHandler):
         list_validator = FilelistValidator(self.collector).validate_clank(doms, doc_assets, cfg)
         fileset_validator = FilesetValidator(self.collector).validate_clank(doms, doc_assets, cfg)
         CollisionDetector(self.collector).detect(doc_assets) 
-        return self.collector, (sys_cfg_extractor, filelist_extractor, fileset_extractor, base_res_extractor, dom_extractor, list_validator, fileset_validator) 
+        return sys_cfg_extractor, filelist_extractor, fileset_extractor, base_res_extractor, dom_extractor, list_validator, fileset_validator
 
 
 
 @dataclass
 class PudCtx(ItemHandler):
+    collector: ErrorCollector
     cfg_result: Config | Missing | Malformed
     doc_assets_result: AssetPack | Missing
     content_assets_result: AssetPack | Missing
     file_reqs: tuple[list[StrEnum], list[StrEnum]]
-    collector: ErrorCollector
     clank_res: Any
 
     def determine_action(self):        
@@ -168,4 +170,4 @@ class PudCtx(ItemHandler):
 
         list_validator.validate_pud(pud_doms, doc_assets, cfg) 
         fileset_validator.validate_pud(pud_doms,doc_assets, cfg)
-        return self.collector, ui_render, kb, action
+        return ui_render, kb, action
