@@ -1,9 +1,10 @@
 from stdlib import Any
 from core import File, Filelist, TruncationSpec
-from ...asset_ingestion import ErrorCollector, ValueExtractor, NamedMap
+from ...asset_ingestion import ErrorCollector, ValueExtractor
 
 
 class FilelistParser:
+    entity_cls = Filelist
     def __init__(
         self,
         filelist_cfg: Any,

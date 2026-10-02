@@ -12,7 +12,6 @@ from core import (
 )
 from ...asset_ingestion import (
     ErrorCollector,
-    NamedMap,
     ValueExtractor,
     FilesetParser,
     FilelistParser,

@@ -9,8 +9,7 @@ from .parsers.render import *
 from .parsers.domain import *
 
 from .extractors.base_resolver import *
-from .extractors.filelist import *
-from .extractors.fileset import *
+from .extractors.map_extractor import *
 from .extractors.base_resolver import *
 from .extractors.domains import *
 from .extractors.sys_config_extractor import *

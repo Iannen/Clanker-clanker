@@ -14,9 +14,8 @@ from core.engine_deps import IngestionService, NoSuchFile, AssetExists, DiskPort
 
 from . import (
     ErrorCollector,
-    FilelistExtractor,
     NamedMap,
-    FilesetExtractor,
+    NamedMapExtractor,
     DomainExtractor,
     BaseResolverExtractor,
     SysConfigExtractor,
@@ -24,7 +23,9 @@ from . import (
     FilesetValidator,
     CollisionDetector,
     Malformed,
-    Missing
+    Missing,
+    FilesetParser,
+    FilelistParser
 )
 
 @dataclass(slots=True)
@@ -126,8 +127,8 @@ class Assembler:
 
     # not sure about value of the pud res in here.
     def assemble(self, pud_res: ClassificationResult) ->  tuple[BootAction, Render, Keyboard]:
-        clank_fl, pud_fl = FilelistExtractor(self.collector).get_filelists(self.clank_cfg, self.pud_cfg)
-        clank_fs, pud_fs = FilesetExtractor(self.collector).get_filesets(self.clank_cfg, self.pud_cfg)
+        clank_fl, pud_fl = NamedMapExtractor(self.collector, self.clank_cfg, self.pud_cfg).get_maps(FilelistParser)
+        clank_fs, pud_fs = NamedMapExtractor(self.collector, self.clank_cfg, self.pud_cfg).get_maps(FilesetParser)
         pud_baseres = BaseResolverExtractor(self.collector).get_base_res(self.clank_cfg, self.pud_cfg, clank_fl, pud_fl)
         clank_doms, pud_doms = DomainExtractor(self.collector).get_domains(self.clank_cfg, clank_fs, clank_fl, self.pud_cfg, pud_fs, pud_fl, pud_baseres)
         ui_render, kb = SysConfigExtractor(self.collector, self.sys_cfg).get_final_product(clank_doms, pud_doms)       

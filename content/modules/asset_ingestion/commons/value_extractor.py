@@ -1,6 +1,9 @@
 from stdlib import Any
 from core import ConfigAssembly
-
+# in the opt case, this thing should return the default for whenever the path has no value
+# but if the path has a value, but is wrong, then its an ex case for handler to deal with by complain
+# the reqs raise in both cases
+class WrongType(Exception): pass
 class ValueExtractor:
     def valid_args(self, frame_locals: dict) -> bool:
         return all(v is not None for k, v in frame_locals.items() if k != "self")

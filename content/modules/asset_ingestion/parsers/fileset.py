@@ -1,9 +1,10 @@
 from stdlib import Any
 from core import FileSet
-from ...asset_ingestion import ErrorCollector, ValueExtractor, NamedMap
+from ...asset_ingestion import ErrorCollector, ValueExtractor
 
 
 class FilesetParser:
+    entity_cls = FileSet
     def __init__(
         self,
         fileset_cfg: Any,

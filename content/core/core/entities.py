@@ -1,5 +1,21 @@
 from stdlib import dataclass, field, ClassVar, Type
 
+class classproperty:
+    def __init__(self, func):
+        self.func = func
+    def __get__(self, obj, owner):
+        return self.func(owner)
+
+class Entity:
+    @classproperty
+    def key_name(cls) -> str:
+        return getattr(cls, "_key_name", cls.__name__.lower())
+
+    @classproperty
+    def plural_key(cls) -> str:
+        return getattr(cls, "_plural_key", f"{cls.key_name}s")
+
+
 @dataclass
 class TruncationSpec:
     TYPE_TAIL: ClassVar[str] = "tail"
@@ -9,6 +25,8 @@ class TruncationSpec:
     from_line: str | None = None
     up_to: str | None = None
 
+
+
 @dataclass
 class File:
     name: str
@@ -16,11 +34,11 @@ class File:
     path: str | None = None
 
 @dataclass
-class Filelist:
+class Filelist(Entity):
     files: list[File] = field(default_factory=list)
 
 @dataclass
-class FileSet:
+class FileSet(Entity):
     includes: list[str]
     excludes: list[str]
 
