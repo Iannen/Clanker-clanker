@@ -69,28 +69,34 @@ class IngestionServiceImpl(IngestionService):
             content_assets_result = self._get_asset_pack(PathTokens.PUD, ["content", "README.md"]),
             file_reqs = self._get_file_reqs([*PudAssets.Directories, *PudAssets.Files, *PudAssets.Documentation]),
         )
-
         clank_cfg, sys_cfg, clank_doc_assets = clank.determine_action()
         pud_cfg, pud_doc_assets, pud_content_assets, action  = pud.determine_action()
 
+
+
         clank_fl, filelist_extractor = FilelistExtractor(collector).clank_fl(clank_cfg)
+        pud_fl = filelist_extractor.unified_fl(pud_cfg)
+
         clank_fs, fileset_extractor = FilesetExtractor(collector).clank_fs(clank_cfg)
-        clank_doms, dom_extractor = DomainExtractor(collector).extract_shared_doms(clank_cfg, clank_fs, clank_fl)
-        sys_cfg_extractor = SysConfigExtractor(collector, sys_cfg).accept_shared_doms(clank_doms)
+        pud_fs = fileset_extractor.unified_fs(pud_cfg)
+
         clank_baseres, base_res_extractor = BaseResolverExtractor(collector, clank_fl).extract_from_clanker(clank_cfg, clank_fl)
+        pud_baseres = base_res_extractor.get_proper_baseres(pud_cfg, pud_fl)
+
+        clank_doms, dom_extractor = DomainExtractor(collector).extract_shared_doms(clank_cfg, clank_fs, clank_fl)
+        pud_doms, clank_doms = dom_extractor.extract_and_return_both(pud_cfg, pud_fs, pud_fl, pud_baseres)
 
         list_validator = FilelistValidator(collector).validate_clank(clank_doms, clank_doc_assets, clank_cfg)
-        fileset_validator = FilesetValidator(collector).validate_clank(clank_doms, clank_doc_assets, clank_cfg)
-        CollisionDetector(collector).detect(clank_doc_assets) 
-
-        pud_fl = filelist_extractor.unified_fl(pud_cfg)
-        pud_fs = fileset_extractor.unified_fs(pud_cfg)
-        pud_baseres = base_res_extractor.get_proper_baseres(pud_cfg, pud_fl)
-        pud_doms, clank_doms = dom_extractor.extract_and_return_both(pud_cfg, pud_fs, pud_fl, pud_baseres)
-        sys_cfg_extractor.accept_pud_doms(pud_doms)
-        CollisionDetector(collector).detect(pud_doc_assets)
         list_validator.validate_pud(pud_doms, pud_doc_assets, pud_cfg) 
+        
+        fileset_validator = FilesetValidator(collector).validate_clank(clank_doms, clank_doc_assets, clank_cfg)
         fileset_validator.validate_pud(pud_doms,pud_doc_assets, pud_cfg)      
+
+        CollisionDetector(collector).detect(clank_doc_assets) 
+        CollisionDetector(collector).detect(pud_doc_assets)
+
+        sys_cfg_extractor = SysConfigExtractor(collector, sys_cfg).accept_shared_doms(clank_doms)
+        sys_cfg_extractor.accept_pud_doms(pud_doms)
         ui_render, kb = sys_cfg_extractor.deliver()
 
         if collector.has_crits(): return TerminateResult(collector)
