@@ -1,7 +1,5 @@
 from dataclasses import dataclass
-from typing import overload, Optional
 from ...asset_ingestion import ErrorCollector, FilesetMap, ValueExtractor, FilesetParser, Config
-
 
 @dataclass
 class FilesetExtractor(ValueExtractor):
@@ -13,7 +11,6 @@ class FilesetExtractor(ValueExtractor):
         return clank_fs, pud_fs
 
     def _extract(self, cfg: Config, existing: Optional[FilesetMap] = None) -> FilesetMap | None:
-        self.valid_args(locals())
         if not cfg: return None
         raw_filesets = self.opt_dict(cfg.data, ["filesets"], default={})
 
