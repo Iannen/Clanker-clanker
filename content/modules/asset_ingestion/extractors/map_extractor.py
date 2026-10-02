@@ -1,8 +1,6 @@
 from stdlib import Generic, TypeVar, dataclass, field
 from ...asset_ingestion import Config, ErrorCollector, ValueExtractor, WrongType
 
-#T = TypeVar("T")
-
 @dataclass
 class NamedMap[T]:
     collector: ErrorCollector
