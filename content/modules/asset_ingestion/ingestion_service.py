@@ -45,7 +45,7 @@ class IngestionServiceImpl(IngestionService):
         except ConfigParseError: return Malformed(config.name, config.value, str(ex))
 
     def _get_file_req(self, filereq: StrEnum) -> Filereq | Missing:
-        try: return Filereq(filereq.name, filereq.value, self.files.get_file_contents(filreq.value))
+        try: return Filereq(filereq.name, filereq.value, self.files.get_file_contents(filereq.value))
         except NoSuchFile: return Missing(filereq.name, filereq.value) 
 
     def _classify_file_reqs(self, assets: list[StrEnum]) -> tuple[list[StrEnum], list[StrEnum]]:
@@ -71,6 +71,13 @@ class IngestionServiceImpl(IngestionService):
 
     def get_runtime_config(self):
         collector = ErrorCollector()
+        present, missing, malformed = [], [], []
+        sys_cfg = Classifier._classify(self._get_config(ClankerAssets.Configs.sys_cfg),present, missing, malformed)
+        shared_cfg = Classifier._classify(self._get_config(ClankerAssets.Configs.shared_cfg),present, missing, malformed)
+        doc_assets = Classifier._classify(self._get_asset_pack(PathTokens.SHARED, ["content/a_lib"]),present, missing, malformed)
+        for req in [*ClankerAssets.Templates, *ClankerAssets.Layouts]: Classifier._classify(self._get_file_req(req), present, missing, malformed)
+
+        
         clank = ClankerCtx.determine_action(
             collector=collector,
             sys_cfg = self._get_config(ClankerAssets.Configs.sys_cfg),
@@ -85,6 +92,7 @@ class IngestionServiceImpl(IngestionService):
             content_assets_result = self._get_asset_pack(PathTokens.PUD, ["content", "README.md"]),
             file_reqs = self._classify_file_reqs([*PudAssets.Directories, *PudAssets.Files, *PudAssets.Documentation]),
         )
+        
         action, ui_render, kb = Assembler.assemble(collector, clank, pud)
 
         if collector.has_crits(): return TerminateResult(collector)
