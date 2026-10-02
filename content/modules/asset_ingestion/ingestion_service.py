@@ -45,9 +45,9 @@ class IngestionServiceImpl(IngestionService):
         except ConfigParseError: return Malformed(config.name, config.value, str(ex))
 
     def _get_file_req(self, filereq: StrEnum) -> Filereq | Missing:
-        
-        pass
-    
+        try: return Filereq(filereq.name, filereq.value, self.files.get_file_contents(filreq.value))
+        except NoSuchFile: return Missing(filereq.name, filereq.value) 
+
     def _classify_file_reqs(self, assets: list[StrEnum]) -> tuple[list[StrEnum], list[StrEnum]]:
         """ this method gets converted to work on a single strenum at a time""" 
         missing, present = [], []
@@ -56,7 +56,7 @@ class IngestionServiceImpl(IngestionService):
                 self.files.assert_absent(asset)
                 missing.append(Missing(asset.name, asset.value))
             except AssetExists:
-                present.append(Filereq(asset.name, asset.value))
+                present.append(Filereq(asset.name, asset.value, ""))
         return missing, present
 
     def _evaluate_clanker_items(self):pass

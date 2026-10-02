@@ -106,6 +106,6 @@ class AssetPack:
 @dataclass
 class RepoItem: name: str; path: str
 @dataclass
-class Filereq(RepoItem): pass
+class Filereq(RepoItem): content: str
 @dataclass
 class Config(RepoItem): data: dict
