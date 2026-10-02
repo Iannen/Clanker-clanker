@@ -1,6 +1,6 @@
 from stdlib import Any
 from core import Render
-from ...asset_ingestion import ErrorCollector, FilesetMap, FilelistMap, ValueExtractor, ResolverParser
+from ...asset_ingestion import ErrorCollector, ValueExtractor, ResolverParser, NamedMap
 
 
 class RenderParser:
@@ -8,8 +8,8 @@ class RenderParser:
         self,
         render_dict: dict[str, Any],
         collector: ErrorCollector,
-        fileset_map: FilesetMap,
-        filelist_map: FilelistMap | None = None,
+        fileset_map: NamedMap,
+        filelist_map: NamedMap | None = None,
     ) -> None:
         self.render_dict = render_dict
         self.collector = collector

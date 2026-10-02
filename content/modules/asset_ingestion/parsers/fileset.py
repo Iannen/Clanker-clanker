@@ -1,6 +1,6 @@
 from stdlib import Any
 from core import FileSet
-from ...asset_ingestion import ErrorCollector, FilesetMap, ValueExtractor
+from ...asset_ingestion import ErrorCollector, ValueExtractor, NamedMap
 
 
 class FilesetParser:
@@ -8,7 +8,7 @@ class FilesetParser:
         self,
         fileset_cfg: Any,
         collector: ErrorCollector,
-        fileset_map: FilesetMap | None = None,
+        fileset_map: NamedMap | None = None,
     ) -> None:
         self.fileset_cfg = fileset_cfg
         self.collector = collector

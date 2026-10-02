@@ -1,5 +1,5 @@
 from .commons.error_collector import *
-from .commons.fileset_map import *
+from .commons.named_map import *
 from .commons.value_extractor import *
 
 from .parsers.filelist import *

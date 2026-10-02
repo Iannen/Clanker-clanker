@@ -1,6 +1,6 @@
 from stdlib import Any
 from core import File, Filelist, TruncationSpec
-from ...asset_ingestion import ErrorCollector, FilelistMap, ValueExtractor
+from ...asset_ingestion import ErrorCollector, ValueExtractor, NamedMap
 
 
 class FilelistParser:
@@ -8,7 +8,7 @@ class FilelistParser:
         self,
         filelist_cfg: Any,
         collector: ErrorCollector,
-        filelist_map: FilelistMap | None = None,
+        filelist_map: NamedMap | None = None,
     ) -> None:
         self.filelist_cfg = filelist_cfg
         self.collector = collector

@@ -15,8 +15,7 @@ from core.engine_deps import IngestionService, NoSuchFile, AssetExists, DiskPort
 from . import (
     ErrorCollector,
     FilelistExtractor,
-    FilelistMap,
-    FilesetMap,
+    NamedMap,
     FilesetExtractor,
     DomainExtractor,
     BaseResolverExtractor,

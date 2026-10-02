@@ -12,8 +12,7 @@ from core import (
 )
 from ...asset_ingestion import (
     ErrorCollector,
-    FilesetMap,
-    FilelistMap,
+    NamedMap,
     ValueExtractor,
     FilesetParser,
     FilelistParser,
@@ -25,8 +24,8 @@ class ResolverParser:
         self,
         resolver_cfg: dict[str, Any],
         collector: ErrorCollector,
-        fileset_map: FilesetMap,
-        filelist_map: FilelistMap
+        fileset_map: NamedMap,
+        filelist_map: NamedMap
     ) -> None:
         self.resolver_cfg = resolver_cfg
         self.collector = collector

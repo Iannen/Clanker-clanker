@@ -1,6 +1,6 @@
 from stdlib import dataclass, field
 from core import MultiDocResolver, Resolver, Config
-from ...asset_ingestion import ErrorCollector, ValueExtractor, ResolverParser, FilesetMap, FilelistMap
+from ...asset_ingestion import ErrorCollector, ValueExtractor, ResolverParser
 
 @dataclass(eq=False)
 class BaseResolverExtractor(ValueExtractor):
@@ -12,7 +12,7 @@ class BaseResolverExtractor(ValueExtractor):
         pud_br = self._extract(pud_cfg, pud_fl)
         return pud_br if pud_br else clank_br
 
-    def _extract(self, cfg: Config, filelist_map: FilelistMap) -> Resolver | None:
+    def _extract(self, cfg: Config, filelist_map) -> Resolver | None:
         if not self.valid_args(locals()): return None
 
         raw_resolvers = self.opt_list(cfg.data, ["base_resolvers"], [])
