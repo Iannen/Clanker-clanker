@@ -62,7 +62,17 @@ class IngestionServiceImpl(IngestionService):
             doc_assets = self._get_asset_pack(PathTokens.SHARED, ["content/a_lib"]),
             file_reqs = self._get_file_reqs([*ClankerAssets.Templates, *ClankerAssets.Layouts])
         )
-        res = clank.determine_action()
+        clank_cfg, sys_cfg, clank_doc_assets = clank.determine_action()
+        filelist, filelist_extractor = FilelistExtractor(collector).clank_fl(clank_cfg)
+        fileset, fileset_extractor = FilesetExtractor(collector).clank_fs(clank_cfg)
+        doms, dom_extractor = DomainExtractor(collector).extract_shared_doms(clank_cfg, fileset, filelist)
+        sys_cfg_extractor = SysConfigExtractor(collector, sys_cfg).accept_shared_doms(doms)
+        base_res, base_res_extractor = BaseResolverExtractor(collector, filelist).extract_from_clanker(clank_cfg, filelist)
+
+        list_validator = FilelistValidator(collector).validate_clank(doms, clank_doc_assets, clank_cfg)
+        fileset_validator = FilesetValidator(collector).validate_clank(doms, clank_doc_assets, clank_cfg)
+        CollisionDetector(collector).detect(clank_doc_assets) 
+        res = sys_cfg_extractor, filelist_extractor, fileset_extractor, base_res_extractor, dom_extractor, list_validator, fileset_validator
 
         pud = PudCtx(
             collector = collector,
@@ -117,17 +127,7 @@ class ClankerCtx(ItemHandler):
         doc_assets = self._classify(self.doc_assets, malformed_items, missing_items, present_items)
         for item in missing_items + malformed_items: self.collector.accept(item)
 
-        filelist, filelist_extractor = FilelistExtractor(self.collector).clank_fl(cfg)
-        fileset, fileset_extractor = FilesetExtractor(self.collector).clank_fs(cfg)
-        doms, dom_extractor = DomainExtractor(self.collector).extract_shared_doms(cfg, fileset, filelist)
-        sys_cfg_extractor = SysConfigExtractor(self.collector, sys_cfg).accept_shared_doms(doms)
-        base_res, base_res_extractor = BaseResolverExtractor(self.collector, filelist).extract_from_clanker(cfg, filelist)
-
-        list_validator = FilelistValidator(self.collector).validate_clank(doms, doc_assets, cfg)
-        fileset_validator = FilesetValidator(self.collector).validate_clank(doms, doc_assets, cfg)
-        CollisionDetector(self.collector).detect(doc_assets) 
-        return sys_cfg_extractor, filelist_extractor, fileset_extractor, base_res_extractor, dom_extractor, list_validator, fileset_validator
-
+        return cfg, sys_cfg, doc_assets
 
 
 @dataclass
