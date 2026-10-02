@@ -4,7 +4,7 @@ from core import Filelist
 
 @dataclass
 class FilelistExtractor(ValueExtractor):
-    collector: ErrorCollector
+    ec: ErrorCollector
 
     def get_filelists(self, clank_cfg, pud_cfg) -> tuple[NamedMap[Filelist] | None, NamedMap[Filelist] | None]:
         clank_fl = self._extract(clank_cfg)
@@ -15,9 +15,9 @@ class FilelistExtractor(ValueExtractor):
         if not cfg: return None
         raw_filelists = self.opt_dict(cfg.data, ["filelists"], default={})
 
-        res_map = existing if existing is not None else NamedMap(self.collector, Filelist)
+        flm = existing if existing is not None else NamedMap(self.ec, Filelist)
 
         for k, v in raw_filelists.items():
-            res_map.set(k, FilelistParser(v, self.collector).parse())
+            flm.set(k, FilelistParser(v, self.ec).parse())
 
-        return res_map
+        return flm
