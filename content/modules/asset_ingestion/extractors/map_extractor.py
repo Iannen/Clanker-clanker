@@ -1,8 +1,10 @@
-from stdlib import Generic, TypeVar, dataclass, field
-from ...asset_ingestion import Config, ErrorCollector, ValueExtractor, WrongType
+from stdlib import dataclass, field, Generic, TypeVar
+from ...asset_ingestion import ErrorCollector, ValueExtractor, WrongType
+
+T = TypeVar("T")
 
 @dataclass
-class NamedMap[T]:
+class NamedMap(Generic[T]):
     collector: ErrorCollector
     entity_cls: type[T]
     data: dict[str, T] = field(default_factory=dict)
@@ -19,19 +21,20 @@ class NamedMap[T]:
     def clone(self) -> NamedMap[T]:
         return NamedMap(self.collector, self.entity_cls, dict(self.data))
 
+T = TypeVar("T")
 
 @dataclass
-class NamedMapExtractor[T](ValueExtractor):
+class NamedMapExtractor(ValueExtractor):
     ec: ErrorCollector
     clank_cfg: Config
     pud_cfg: Config
 
-    def get_maps(self, parse_cls: type) -> tuple[NamedMap[T] | None, NamedMap[T] | None]:
+    def get_maps[T](self, parse_cls: type[T]) -> tuple[NamedMap[T] | None, NamedMap[T] | None]:
         clank_map = self._extract_map(parse_cls, self.clank_cfg)
         pud_map = self._extract_map(parse_cls, self.pud_cfg, clank_map)
         return clank_map, pud_map
 
-    def _extract_map(self, parse_cls: type, cfg: Config, old_map: NamedMap[T] | None = None) -> NamedMap[T] | None:
+    def _extract_map[T](self, parse_cls: type[T], cfg: Config, old_map: NamedMap[T] | None = None) -> NamedMap[T] | None:
         if not cfg: return None
         res_map = old_map.clone() if old_map else NamedMap(self.ec, parse_cls.entity_cls)
 

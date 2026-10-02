@@ -28,6 +28,7 @@ from . import (
     FilelistParser
 )
 
+
 @dataclass(slots=True)
 class IngestionServiceImpl(IngestionService):
     files: DiskPort
@@ -125,10 +126,10 @@ class Assembler:
     pud_doc_assets: AssetPack  | None
     pud_content_assets: AssetPack  | None
 
-    # not sure about value of the pud res in here.
     def assemble(self, pud_res: ClassificationResult) ->  tuple[BootAction, Render, Keyboard]:
-        clank_fl, pud_fl = NamedMapExtractor(self.collector, self.clank_cfg, self.pud_cfg).get_maps(FilelistParser)
-        clank_fs, pud_fs = NamedMapExtractor(self.collector, self.clank_cfg, self.pud_cfg).get_maps(FilesetParser)
+        extractor = NamedMapExtractor(self.collector, self.clank_cfg, self.pud_cfg)
+        clank_fl, pud_fl = extractor.get_maps(FilelistParser)
+        clank_fs, pud_fs = extractor.get_maps(FilesetParser)
         pud_baseres = BaseResolverExtractor(self.collector).get_base_res(self.clank_cfg, self.pud_cfg, clank_fl, pud_fl)
         clank_doms, pud_doms = DomainExtractor(self.collector).get_domains(self.clank_cfg, clank_fs, clank_fl, self.pud_cfg, pud_fs, pud_fl, pud_baseres)
         ui_render, kb = SysConfigExtractor(self.collector, self.sys_cfg).get_final_product(clank_doms, pud_doms)       

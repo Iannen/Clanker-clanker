@@ -60,17 +60,7 @@ class ResolverParser(ValueExtractor):
             "excludes": self.opt_list(self.data, ["excludes"], default=[]),
         }
         fileset_obj = FilesetParser(fileset_val, self.collector).parse()
-        """
-        if "fileset" in self.data:
-            fileset_val = self.req_str_or_dict(self.data, ["fileset"])
-        else:
-            fileset_val = {
-                "includes": self.req_list(self.data, ["includes"]),
-                "excludes": self.opt_list(self.data, ["excludes"], default=[]),
-            }
-        # look up the fucking thing in the fucking map
-        fileset_obj = FilesetParser(fileset_val, self.collector).parse()
-        """
+
         return RepoContentResolver(anchor=anchor, fileset=fileset_obj)
 
     def _repo_manifest(self, anchor) -> ManifestResolver | None:
