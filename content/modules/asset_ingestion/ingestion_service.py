@@ -7,7 +7,8 @@ from core import (
     RepoContract,
     Config,
     AssetPack,
-    Filereq
+    Filereq,
+    RepoItem
 )
 from core.engine_deps import IngestionService, NoSuchFile, AssetExists, DiskPort, ConfigParseError, ConfigParserPort, StartResult, ClankerizeResult, TerminateResult
 
@@ -32,9 +33,8 @@ class IngestionServiceImpl(IngestionService):
     files: DiskPort
     cfg_ingestor: ConfigParserPort
 
-    """ the service use these 3 methods to convert a strenum to a proper item or a complaint """
     def _get_asset_pack(self,token:str, roots) -> AssetPack | Missing:
-        try: return AssetPack(token, roots, self.files.get_dir_manifest(token, roots)) 
+        try: return AssetPack(token, "", roots, self.files.get_dir_manifest(token, roots)) 
         except NoSuchFile: return Missing(token, roots) 
 
     def _get_config(self, config: StrEnum) -> Config | Missing | Malformed:
@@ -46,10 +46,11 @@ class IngestionServiceImpl(IngestionService):
 
     def _get_file_req(self, filereq: StrEnum) -> Filereq | Missing:
         try: return Filereq(filereq.name, filereq.value, self.files.get_file_contents(filereq.value))
+        except IsADirectoryError: return Filereq(filereq.name, filereq.value, "") 
         except NoSuchFile: return Missing(filereq.name, filereq.value) 
-
+        
+    """
     def _classify_file_reqs(self, assets: list[StrEnum]) -> tuple[list[StrEnum], list[StrEnum]]:
-        """ this method gets converted to work on a single strenum at a time""" 
         missing, present = [], []
         for asset in assets:
             try:
@@ -58,41 +59,54 @@ class IngestionServiceImpl(IngestionService):
             except AssetExists:
                 present.append(Filereq(asset.name, asset.value, ""))
         return missing, present
+    
+    def _evaluate_clanker_items(self, ec: ErrorCollector):
+        classifier = ItemClassifier(ec)
+        for req in [*ClankerAssets.Templates, *ClankerAssets.Layouts]: classifier.classify(self._get_file_req(req))
+        sys_cfg = classifier.classify(self._get_config(ClankerAssets.Configs.sys_cfg))
+        clank_cfg = classifier.classify(self._get_config(ClankerAssets.Configs.shared_cfg))
+        clank_doc_assets = classifier.classify(self._get_asset_pack(PathTokens.SHARED, ["content/a_lib"]))
+        #for complaint in classifier.missing + classifier.malformed: ec.accept(complaint)
+        classifier.complain()
+        return clank_cfg, sys_cfg, clank_doc_assets
 
-    def _evaluate_clanker_items(self):pass
-    """ 
-    - 'important' items via separate args, return the item | None
-    - the unimportant ones i get in a list for bulk processing
-        i implement whater business rules i have for clankers items here
+    def _evaluate_pud_items(self, ec: ErrorCollector):
+        classifier = ItemClassifier(ec)
+        for req in [*PudAssets.Directories, *PudAssets.Files, *PudAssets.Documentation]: classifier.classify(self._get_file_req(req))
+        cfg = classifier.classify(self._get_config(PudAssets.Configs.configuration_file))
+        doc_assets = classifier.classify(self._get_asset_pack(PathTokens.PUD, [".clanker"]))
+        content_assets = classifier.classify(self._get_asset_pack(PathTokens.PUD, ["content", "README.md"]))
+
+        action = BootAction.NONE
+        if classifier.all_present(): action = BootAction.START
+        elif classifier.none_present(): action = BootAction.CLANKERIZE
+        else: classifier.complain()
+        return cfg, doc_assets, content_assets, action
     """
 
-    def _evaluate_pud_items(self):pass
-    """ 'important' items via separate params, the unimportant ones in a list"""
 
     def get_runtime_config(self):
         collector = ErrorCollector()
-        present, missing, malformed = [], [], []
-        sys_cfg = Classifier._classify(self._get_config(ClankerAssets.Configs.sys_cfg),present, missing, malformed)
-        shared_cfg = Classifier._classify(self._get_config(ClankerAssets.Configs.shared_cfg),present, missing, malformed)
-        doc_assets = Classifier._classify(self._get_asset_pack(PathTokens.SHARED, ["content/a_lib"]),present, missing, malformed)
-        for req in [*ClankerAssets.Templates, *ClankerAssets.Layouts]: Classifier._classify(self._get_file_req(req), present, missing, malformed)
+        clank_classifier = ItemClassifier(collector)
+        for req in [*ClankerAssets.Templates, *ClankerAssets.Layouts]: clank_classifier.classify(self._get_file_req(req))
+        sys_cfg = clank_classifier.classify(self._get_config(ClankerAssets.Configs.sys_cfg))
+        clank_cfg = clank_classifier.classify(self._get_config(ClankerAssets.Configs.shared_cfg))
+        clank_doc_assets = clank_classifier.classify(self._get_asset_pack(PathTokens.SHARED, ["content/a_lib"]))
+        clank_classifier.complain()
+        clank = (clank_cfg, sys_cfg, clank_doc_assets)
 
-        
-        clank = ClankerCtx.determine_action(
-            collector=collector,
-            sys_cfg = self._get_config(ClankerAssets.Configs.sys_cfg),
-            shared_cfg = self._get_config(ClankerAssets.Configs.shared_cfg),
-            doc_assets = self._get_asset_pack(PathTokens.SHARED, ["content/a_lib"]),
-            file_reqs = self._classify_file_reqs([*ClankerAssets.Templates, *ClankerAssets.Layouts])
-        )
-        pud = PudCtx.determine_action(
-            collector = collector,
-            cfg_result = self._get_config(PudAssets.Configs.configuration_file),
-            doc_assets_result = self._get_asset_pack(PathTokens.PUD, [".clanker"]),
-            content_assets_result = self._get_asset_pack(PathTokens.PUD, ["content", "README.md"]),
-            file_reqs = self._classify_file_reqs([*PudAssets.Directories, *PudAssets.Files, *PudAssets.Documentation]),
-        )
-        
+        pud_classifier = ItemClassifier(collector)
+        for req in [*PudAssets.Directories, *PudAssets.Files, *PudAssets.Documentation]: pud_classifier.classify(self._get_file_req(req))
+        cfg = pud_classifier.classify(self._get_config(PudAssets.Configs.configuration_file))
+        doc_assets = pud_classifier.classify(self._get_asset_pack(PathTokens.PUD, [".clanker"]))
+        content_assets = pud_classifier.classify(self._get_asset_pack(PathTokens.PUD, ["content", "README.md"]))
+
+        action = BootAction.NONE
+        if pud_classifier.all_present(): action = BootAction.START
+        elif pud_classifier.none_present(): action = BootAction.CLANKERIZE
+        else: pud_classifier.complain()
+        pud = (cfg, doc_assets, content_assets, action)
+
         action, ui_render, kb = Assembler.assemble(collector, clank, pud)
 
         if collector.has_crits(): return TerminateResult(collector)
@@ -114,6 +128,43 @@ class BootAction(StrEnum):
     CLANKERIZE = "empty"
     NONE = "invalid"
 
+class ItemClassifier:
+    def __init__(self, ec: ErrorCollector):
+        self.ec = ec
+        self.present, self.missing, self.malformed = [],[],[]
+    def classify(self, item):
+        if isinstance(item, RepoItem): self.present.append(item); return item 
+        if isinstance(item, Missing): self.missing.append(item); return None
+        if isinstance(item, Malformed): self.malformed.append(item) ; return None
+    def all_present(self): return not self.missing and not self.malformed
+    def none_present(self): return not self.present
+    def complain(self):
+        for c in self.missing + self.malformed: self.ec.accept(c)
+
+class Assembler:
+    @staticmethod
+    def assemble(collector: ErrorCollector, clank_inputs, pud_inputs) ->  tuple[BootAction, Render, Keyboard]:
+        clank_cfg, sys_cfg, clank_doc_assets = clank_inputs
+        pud_cfg, pud_doc_assets, pud_content_assets, action  = pud_inputs
+
+        clank_fl, pud_fl = FilelistExtractor(collector).get_filelists(clank_cfg, pud_cfg)
+        clank_fs, pud_fs = FilesetExtractor(collector).get_filesets(clank_cfg, pud_cfg)
+        pud_baseres = BaseResolverExtractor(collector).get_base_res(clank_cfg, pud_cfg, clank_fl, pud_fl)
+        clank_doms, pud_doms = DomainExtractor(collector).get_domains(clank_cfg, clank_fs, clank_fl, pud_cfg, pud_fs, pud_fl, pud_baseres)
+        ui_render, kb = SysConfigExtractor(collector, sys_cfg).get_final_product(clank_doms, pud_doms)       
+
+        list_validator = FilelistValidator(collector).validate_clank(clank_doms, clank_doc_assets, clank_cfg)
+        list_validator.validate_pud(pud_doms, pud_doc_assets, pud_cfg) 
+        
+        fileset_validator = FilesetValidator(collector).validate_clank(clank_doms, clank_doc_assets, clank_cfg)
+        fileset_validator.validate_pud(pud_doms,pud_doc_assets, pud_cfg)      
+
+        CollisionDetector(collector).detect(clank_doc_assets) 
+        CollisionDetector(collector).detect(pud_doc_assets)
+
+        return action, ui_render, kb
+
+"""
 class Classifier:
     @staticmethod
     def _classify(item, malformed_items, missing_items, present_items):
@@ -156,26 +207,4 @@ class PudCtx(Classifier):
         elif not present_items: action = BootAction.CLANKERIZE
         else: [collector.accept(item) for item in missing_items + malformed_items]
         return cfg, doc_assets, content_assets, action
-
-class Assembler:
-    @staticmethod
-    def assemble(collector: ErrorCollector, clank_inputs, pud_inputs) ->  tuple[BootAction, Render, Keyboard]:
-        clank_cfg, sys_cfg, clank_doc_assets = clank_inputs
-        pud_cfg, pud_doc_assets, pud_content_assets, action  = pud_inputs
-
-        clank_fl, pud_fl = FilelistExtractor(collector).get_filelists(clank_cfg, pud_cfg)
-        clank_fs, pud_fs = FilesetExtractor(collector).get_filesets(clank_cfg, pud_cfg)
-        pud_baseres = BaseResolverExtractor(collector).get_base_res(clank_cfg, pud_cfg, clank_fl, pud_fl)
-        clank_doms, pud_doms = DomainExtractor(collector).get_domains(clank_cfg, clank_fs, clank_fl, pud_cfg, pud_fs, pud_fl, pud_baseres)
-        ui_render, kb = SysConfigExtractor(collector, sys_cfg).get_final_product(clank_doms, pud_doms)       
-
-        list_validator = FilelistValidator(collector).validate_clank(clank_doms, clank_doc_assets, clank_cfg)
-        list_validator.validate_pud(pud_doms, pud_doc_assets, pud_cfg) 
-        
-        fileset_validator = FilesetValidator(collector).validate_clank(clank_doms, clank_doc_assets, clank_cfg)
-        fileset_validator.validate_pud(pud_doms,pud_doc_assets, pud_cfg)      
-
-        CollisionDetector(collector).detect(clank_doc_assets) 
-        CollisionDetector(collector).detect(pud_doc_assets)
-
-        return action, ui_render, kb
+"""

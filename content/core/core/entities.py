@@ -98,14 +98,16 @@ class Keyboard:
     def set_selected_dom_btn(self, btn:DomButton):
         self.selected_dom_btn=btn
 
-@dataclass
-class AssetPack:
-    name: str
-    roots: list[str]
-    paths: list[str]
+
 @dataclass
 class RepoItem: name: str; path: str
 @dataclass
 class Filereq(RepoItem): content: str
 @dataclass
 class Config(RepoItem): data: dict
+
+@dataclass
+class AssetPack(RepoItem):
+    name: str
+    roots: list[str]
+    paths: list[str]
