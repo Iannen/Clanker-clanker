@@ -16,71 +16,71 @@ filelists:
   backlog_at_consultant: [{file: backlog.backlog, from_line: 'Backlog tail, Selected item/items:', up_to: 'Backlog tail end'}]
             
 domains:
-  - name: manifest-analysis
-    resolvers:
-      - { id: prompt_fragments, type: multi-document-retrieval, files: [config.yaml, system_cfg.yaml, shared_cfg.yaml] }
-    prompts:
-      - name: only m
-        render:
-          resolvers:
-            - { id: domain_fragments, type: repo-manifest, pud_fileset: content-dir, shared_fileset: clanker-shared-assets }
-      - name: core
-        render:
-          resolvers:
-            - { id: domain_fragments, type: multi-document-retrieval, files: [config-development-mode.mode_instruction] }
-            - { id: repo_content, type: repo_content, fileset: content-dir }
+    manifest-analysis:
+      resolvers:
+        - { id: prompt_fragments, type: multi-document-retrieval, files: [config.yaml, system_cfg.yaml, shared_cfg.yaml] }
+      prompts:
+        - name: only m
+          render:
+            resolvers:
+              - { id: domain_fragments, type: repo-manifest, pud_fileset: content-dir, shared_fileset: clanker-shared-assets }
+        - name: core
+          render:
+            resolvers:
+              - { id: domain_fragments, type: multi-document-retrieval, files: [config-development-mode.mode_instruction] }
+              - { id: repo_content, type: repo_content, fileset: content-dir }
 
-  - name: readme
-    resolvers:
-      - { id: repo_content, type: repo_content, includes: [README.md] } 
-    prompts:
-      - name: structure
-        render:
-          resolvers:
-            - { id: domain_fragments, type: multi-document-retrieval, files: [readme.structure_spec] }
-            - { id: prompt_fragments, type: multi-document-retrieval, files: [readme_structure.mode_instruction] }
-      - name: content 
-        render:
-          resolvers:
-            - { id: domain_fragments, type: multi-document-retrieval, files: [readme_messaging.intent] }
-            - { id: prompt_fragments, type: multi-document-retrieval, files: [readme_content.mode_instruction] }
+    readme:
+      resolvers:
+        - { id: repo_content, type: repo_content, includes: [README.md] } 
+      prompts:
+        - name: structure
+          render:
+            resolvers:
+              - { id: domain_fragments, type: multi-document-retrieval, files: [readme.structure_spec] }
+              - { id: prompt_fragments, type: multi-document-retrieval, files: [readme_structure.mode_instruction] }
+        - name: content 
+          render:
+            resolvers:
+              - { id: domain_fragments, type: multi-document-retrieval, files: [readme_messaging.intent] }
+              - { id: prompt_fragments, type: multi-document-retrieval, files: [readme_content.mode_instruction] }
 
-  - name: north-star
-    resolvers:
-      - { id: domain_fragments, type: multi-document-retrieval, files: [north-star.cdoc, backlog.backlog] }
-    prompts:
-      - name: core
-        render:
-          resolvers:
-            - { id: prompt_fragments, type: multi-document-retrieval, files: [north-star-mode.mode_instruction] }
-            - { id: repo_content, type: repo_content, fileset: content-dir }
+    north-star:
+      resolvers:
+        - { id: domain_fragments, type: multi-document-retrieval, files: [north-star.cdoc, backlog.backlog] }
+      prompts:
+        - name: core
+          render:
+            resolvers:
+              - { id: prompt_fragments, type: multi-document-retrieval, files: [north-star-mode.mode_instruction] }
+              - { id: repo_content, type: repo_content, fileset: content-dir }
 
-  - name: config-dev
-    resolvers:
-      - { id: domain_fragments, type: multi-document-retrieval, files: [config.yaml, system_cfg.yaml, shared_cfg.yaml] }
-    prompts:
-      - name: config-dev
-        render:
-          resolvers:
-            - { id: prompt_fragments, type: multi-document-retrieval, files: [] }
-            - { id: repo_content, type: repo_content, fileset: content-dir }
+    config-dev:
+      resolvers:
+        - { id: domain_fragments, type: multi-document-retrieval, files: [config.yaml, system_cfg.yaml, shared_cfg.yaml] }
+      prompts:
+        - name: config-dev
+          render:
+            resolvers:
+              - { id: prompt_fragments, type: multi-document-retrieval, files: [] }
+              - { id: repo_content, type: repo_content, fileset: content-dir }
 
-  - name: debloat
-    resolvers:
-      - { id: domain_fragments, type: multi-document-retrieval, files: [domain-debloat.md] }
-    prompts:
-      - name: debloat
-        render:
-          resolvers:
-            - { id: prompt_fragments, type: multi-document-retrieval, files: [debloat-instructions.md] }
-            - { id: repo_content, type: repo_content, fileset: content-dir }
+    debloat:
+      resolvers:
+        - { id: domain_fragments, type: multi-document-retrieval, files: [domain-debloat.md] }
+      prompts:
+        - name: debloat
+          render:
+            resolvers:
+              - { id: prompt_fragments, type: multi-document-retrieval, files: [debloat-instructions.md] }
+              - { id: repo_content, type: repo_content, fileset: content-dir }
 
-  - name: presentation
-    resolvers:
-      - { id: domain_fragments, type: multi-document-retrieval, files: [] }
-    prompts:
-      - name: debloat
-        render:
-          resolvers:
-            - { id: repo_content, type: repo_content, fileset: presentation }
+    presentation:
+      resolvers:
+        - { id: domain_fragments, type: multi-document-retrieval, files: [] }
+      prompts:
+        - name: debloat
+          render:
+            resolvers:
+              - { id: repo_content, type: repo_content, fileset: presentation }
 

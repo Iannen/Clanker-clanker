@@ -3,7 +3,7 @@ filesets:
   content: { includes: [content, .clanker]}
 
 domains:
-  - name: analysis
+  analysis:
     resolvers:
       - { id: domain_fragments, type: repo-manifest, pud_fileset: content, shared_fileset: clanker-shared-assets }
     prompts:

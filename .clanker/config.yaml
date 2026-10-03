@@ -32,66 +32,65 @@ filesets:
       content/modules/asset_ingestion/commons]}
 
 domains:
-- name: core
-  resolvers:
-    - { id: repo_content, type: repo_content, fileset: core } 
+  core:
+    resolvers:
+      - { id: repo_content, type: repo_content, fileset: core } 
 
-  prompts:
-    - name: plan
-      render:
-        resolvers:
-          - { id: prompt_fragments, type: multi-document-retrieval, files: plan_mode_instructions }
-          - { id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant }
-    - name: impl
-      render:
-        resolvers:
-          - {id: prompt_fragments, type: multi-document-retrieval, files: do_mode_instructions}
-          - { id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant }
+    prompts:
+      - name: plan
+        render:
+          resolvers:
+            - { id: prompt_fragments, type: multi-document-retrieval, files: plan_mode_instructions }
+            - { id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant }
+      - name: impl
+        render:
+          resolvers:
+            - {id: prompt_fragments, type: multi-document-retrieval, files: do_mode_instructions}
+            - { id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant }
 
-    - name: drain
-      render:
-        resolvers:
-          - {id: prompt_fragments, type: multi-document-retrieval, files: doc_management_mode_instructions}
-          - {id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant }
+      - name: drain
+        render:
+          resolvers:
+            - {id: prompt_fragments, type: multi-document-retrieval, files: doc_management_mode_instructions}
+            - {id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant }
 
-- name: ingestion
-  resolvers:
-    - { id: repo_content, type: repo_content, fileset: asset_ingestion }
-  prompts:
-    - name: plan
-      render:
-        resolvers:
-          - { id: prompt_fragments, type: multi-document-retrieval, files: plan_mode_instructions }
-          - { id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant }
-    - name: impl
-      render:
-        resolvers:
-          - {id: prompt_fragments, type: multi-document-retrieval, files: do_mode_instructions}
-          - { id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant }
+  ingestion:
+    resolvers:
+      - { id: repo_content, type: repo_content, fileset: asset_ingestion }
+    prompts:
+      - name: plan
+        render:
+          resolvers:
+            - { id: prompt_fragments, type: multi-document-retrieval, files: plan_mode_instructions }
+            - { id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant }
+      - name: impl
+        render:
+          resolvers:
+            - {id: prompt_fragments, type: multi-document-retrieval, files: do_mode_instructions}
+            - { id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant }
 
-    - name: drain
-      render:
-        resolvers:
-          - {id: prompt_fragments, type: multi-document-retrieval, files: doc_management_mode_instructions}
-          - {id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant}
+      - name: drain
+        render:
+          resolvers:
+            - {id: prompt_fragments, type: multi-document-retrieval, files: doc_management_mode_instructions}
+            - {id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant}
 
-- name: test
-  resolvers:
-    - { id: repo_content, type: repo_content, fileset: test_harness}
-    #- { id: base_fragments, type: multi-document-retrieval, files: [test.doctrine] }
-  prompts:
-    - name: plan
-      render:
-        resolvers:
-          - { id: prompt_fragments, type: multi-document-retrieval, files: plan_mode_instructions }
-          - { id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant}
-    - name: impl
-      render:
-        resolvers:
-          - {id: prompt_fragments, type: multi-document-retrieval, files: do_mode_instructions}
-          - { id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant}
-    - name: drain
-      render:
-        resolvers:
-          - {id: prompt_fragments, type: multi-document-retrieval, files: doc_management_mode_instructions}
-          - {id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant}
+  test:
+    resolvers:
+      - { id: repo_content, type: repo_content, fileset: test_harness}
+    prompts:
+      - name: plan
+        render:
+          resolvers:
+            - { id: prompt_fragments, type: multi-document-retrieval, files: plan_mode_instructions }
+            - { id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant}
+      - name: impl
+        render:
+          resolvers:
+            - {id: prompt_fragments, type: multi-document-retrieval, files: do_mode_instructions}
+            - { id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant}
+      - name: drain
+        render:
+          resolvers:
+            - {id: prompt_fragments, type: multi-document-retrieval, files: doc_management_mode_instructions}
+            - {id: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant}

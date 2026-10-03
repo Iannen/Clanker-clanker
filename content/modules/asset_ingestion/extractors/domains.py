@@ -14,5 +14,12 @@ class DomainExtractor(ValueExtractor):
 
     def _extract(self, cfg: Config, fileset_map, filelist_map, base_res) -> list[Domain] | None:
         if not self.valid_args(locals()): return None
-        try: return [DomParser(self.collector).parse(d, fileset_map, filelist_map, base_res) for d in self.req_list(cfg.data, ["domains"])]
+        try: doms_dict = self.req_dict(cfg.data, ["domains"])
+        except ConfigAssembly: self.collector.add_critical_complaint("config dont got no doms son"); return None
+        doms_list = [
+            {"name": name, **domain_data}
+            for name, domain_data in doms_dict.items()
+        ]
+        
+        try: return [DomParser(self.collector).parse(d, fileset_map, filelist_map, base_res) for d in doms_list]
         except ConfigAssembly: self.collector.add_critical_complaint(f"{cfg.name}: does not have domains list!")
