@@ -9,9 +9,9 @@ class DomainExtractor(ValueExtractor):
     pud_cfg: Config
     def get_domains(self, clank_fs, clank_fl, unified_fs, unified_fl, base_res) -> tuple[NamedMap[Domain] | None, NamedMap[Domain] | None, NamedMap[Domain] | None]:
         clank_args = (clank_fs, clank_fl, base_res)
-        
-        clank_doms = self._extract(self.clank_cfg, clank_fs, clank_fl, base_res)
-        pud_doms = self._extract(self.pud_cfg, unified_fs, unified_fl, base_res)
+        pud_args = (unified_fs, unified_fl, base_res)
+        clank_doms = self._extract(self.clank_cfg, clank_args)
+        pud_doms = self._extract(self.pud_cfg, pud_args)
 
         if clank_doms is None:
             return None, pud_doms, None
@@ -23,13 +23,13 @@ class DomainExtractor(ValueExtractor):
 
         return clank_doms, pud_doms, unified_doms
 
-    def _extract(self, cfg: Config, fileset_map, filelist_map, base_res) -> NamedMap[Domain] | None:
+    def _extract(self, cfg: Config, parse_args) -> NamedMap[Domain] | None:
         if not self.valid_args(locals()): return None
         try: doms_dict = self.req_dict(cfg.data, ["domains"])
         except ConfigAssembly: self.collector.add_critical_complaint("config dont got no doms son"); return None
 
         doms_list = [{"name": name, **domain_data} for name, domain_data in doms_dict.items()]
-        ret_val = [DomParser(self.collector).parse(d, fileset_map, filelist_map, base_res) for d in doms_list]
+        ret_val = [DomParser(self.collector).parse(d, *parse_args) for d in doms_list]
         
         domain_map = NamedMap(self.collector, Domain)
         for dom in ret_val: 
