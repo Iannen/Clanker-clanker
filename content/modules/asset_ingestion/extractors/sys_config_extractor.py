@@ -6,11 +6,11 @@ from ...asset_ingestion import ErrorCollector, ValueExtractor, Config
 class SysConfigExtractor(ValueExtractor):
     collector: ErrorCollector
     sys_cfg: Config | None
-    shared_doms: list[Domain] | None = None
+    clank_doms: list[Domain] | None = None
     pud_doms: list[Domain] | None = None
 
     def get_final_product(self, clank_doms: list[Domain], pud_doms: list[Domain]) -> tuple[Render, Keyboard | None]:
-        self.shared_doms = clank_doms
+        self.clank_doms = clank_doms
         self.pud_doms = pud_doms
         ui_render = UIRenderParser(self.req_dict(self.sys_cfg.data, ["ui_render"]), self.collector).parse()
 
@@ -28,11 +28,11 @@ class SysConfigExtractor(ValueExtractor):
         )
 
     def _get_shared_dom_btns(self) -> dict[str, SharedDomButton]:
-        if not self.sys_cfg or self.shared_doms is None:
+        if not self.sys_cfg or self.clank_doms is None:
             return {}
 
         shared_dom_keys = self.req_str(self.sys_cfg.data, ["button_rows", "shared_domains_row"])
-        pruned_shr_doms = self._handle_domain_overflow(self.shared_doms, shared_dom_keys)
+        pruned_shr_doms = self._handle_domain_overflow(self.clank_doms, shared_dom_keys)
         return {key: SharedDomButton(key, dom) for key, dom in zip_longest(shared_dom_keys, pruned_shr_doms, fillvalue=None)}
 
     def _get_pud_dom_btns(self) -> dict[str, PudDomButton]:
@@ -44,6 +44,7 @@ class SysConfigExtractor(ValueExtractor):
         return {key: PudDomButton(key, dom) for key, dom in zip_longest(pud_dom_keys, pruned_pud_doms, fillvalue=None)}
 
     def _handle_domain_overflow(self, domains: list[Domain], row_keys: str) -> list[Domain]:
+        domains = list(domains.values())
         slot_limit = len(row_keys)
         valid_doms = domains[:slot_limit]
         overflow_doms = domains[slot_limit:]

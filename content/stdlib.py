@@ -15,3 +15,4 @@ import tty
 from typing import Any, Callable, ClassVar, Generator, Generic, TypeVar, Self, Type
 from enum import StrEnum
 from itertools import zip_longest
+from collections.abc import ItemsView

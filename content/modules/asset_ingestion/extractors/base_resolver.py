@@ -7,9 +7,9 @@ class BaseResolverExtractor(ValueExtractor):
     collector: ErrorCollector
 
     def get_base_res(self, clank_cfg, pud_cfg, clank_fl, pud_fl) -> Resolver | None:
-        clank_br = self._extract(clank_cfg, clank_fl)
+        clank_br = self._extract(clank_cfg, clank_fl) # clank br must be satisfied from clank fl
         # crit complain if no clank br
-        pud_br = self._extract(pud_cfg, pud_fl)
+        pud_br = self._extract(pud_cfg, pud_fl) # pud br from unified fl
         return pud_br if pud_br else clank_br
 
     def _extract(self, cfg: Config, filelist_map) -> Resolver | None:

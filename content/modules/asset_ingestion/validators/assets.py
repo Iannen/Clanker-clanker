@@ -50,6 +50,7 @@ class FilesetValidator:
         return asset_path.startswith(prefix)
 
     def _extract_filesets_that_target_pud(self, doms: list[Domain]) -> list[tuple[str, str]]:
+        doms = list(doms.values())
         reqs: list[tuple[str, str]] = []
 
         for dom in doms:
@@ -77,6 +78,7 @@ class FilesetValidator:
         return reqs
 
     def _extract_filesets_that_target_shared(self, doms: list[Domain]) -> list[tuple[str, str]]:
+        doms = list(doms.values())
         reqs: list[tuple[str, str]] = []
 
         for dom in doms:

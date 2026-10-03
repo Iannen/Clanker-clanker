@@ -64,6 +64,7 @@ class FilelistValidator:
         config: Config,
         context_path: str,
     ) -> None:
+        targets = list(targets.values())
         with collector.path(config.name):
             collector.add_complaint(
                 f"the file of <{context_path}> was not found in either pud or shared, so it was removed"
@@ -80,6 +81,7 @@ class FilelistValidator:
                         resolver.files.files = [f for f in resolver.files.files if f.name != filename]
 
     def _extract_existencereqs(self, doms: list[Domain]) -> list[tuple[File, str]]:
+        doms = list(doms.values())
         reqs: list[tuple[File, str]] = []
 
         for dom in doms:
