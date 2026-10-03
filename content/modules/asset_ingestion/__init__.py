@@ -19,4 +19,6 @@ from .extractors.base_resolver import *
 from .extractors.domains import *
 from .extractors.sys_config_extractor import *
 
+from .new.service_workers import *
+
 from .ingestion_service import *
