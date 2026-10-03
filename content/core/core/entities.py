@@ -76,7 +76,7 @@ class Prompt:
     render: Render
 
 @dataclass
-class Domain:
+class Domain(Entity):
     name: str
     prompts: list[Prompt]
     resolvers: list[Resolver]

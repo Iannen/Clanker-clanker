@@ -4,6 +4,7 @@ from core import Domain, Prompt
 @dataclass
 class DomParser(ValueExtractor):
     ec: ErrorCollector
+    entity_cls = Domain
     def parse(self, name: str, data: dict, fileset_map: NamedMap, filelist_map: NamedMap, base_res) -> Domain:
         with self.ec.path(name):
             raw_resolvers = self.req_list(data, ["resolvers"])

@@ -45,7 +45,7 @@ class ResolverParser(ValueExtractor):
         
         
         if filelist_name is not None: filelist_obj = self.filelist_map.get(filelist_name)
-        elif data is not None: filelist_obj = FilelistParser(data, self.collector).parse()
+        elif data is not None: filelist_obj = FilelistParser(self.collector).parse("", data)
         else: raise Exception("bugg")
         return MultiDocResolver(anchor=anchor, files=filelist_obj)
 
@@ -56,7 +56,7 @@ class ResolverParser(ValueExtractor):
             "includes": self.req_list(self.data, ["includes"]),
             "excludes": self.opt_list(self.data, ["excludes"], default=[]),
         }
-        fileset_obj = FilesetParser(fileset_val, self.collector).parse()
+        fileset_obj = FilesetParser(self.collector).parse("",fileset_val)
 
         return RepoContentResolver(anchor=anchor, fileset=fileset_obj)
 

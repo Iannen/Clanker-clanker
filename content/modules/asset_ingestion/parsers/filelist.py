@@ -4,12 +4,11 @@ from ...asset_ingestion import ErrorCollector, ValueExtractor
 
 @dataclass
 class FilelistParser(ValueExtractor):
-    data: list[str] | list[dict]
     collector: ErrorCollector
     entity_cls = Filelist
 
-    def parse(self) -> Filelist:
-        files = [self._build_file(f) for f in self.data]
+    def parse(self, name, data) -> Filelist:
+        files = [self._build_file(f) for f in data]
         return Filelist(files=files)
 
     def _build_file(self, data: Any) -> File:
