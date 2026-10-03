@@ -74,36 +74,3 @@ class NamedMapExtractor(ValueExtractor):
             target_map.set(k, parse_cls(self.ec).parse(k, v, *args))
 
         return target_map
-"""
-@dataclass
-class NamedMapExtractor(ValueExtractor):
-    ec: ErrorCollector
-    clank_cfg: Config
-    pud_cfg: Config
-
-    def get_maps[T](self, parse_cls: type[T]) -> tuple[NamedMap[T] | None, NamedMap[T] | None, NamedMap[T] | None]:
-        clank_map = self._extract_map(parse_cls, self.clank_cfg)
-        pud_map = self._extract_map(parse_cls, self.pud_cfg)
-
-        if clank_map is None:
-            return None, pud_map, None
-
-        unified_map = clank_map.clone()
-        if pud_map:
-            for k, v in pud_map.items():
-                unified_map.set(k, v)
-
-        return clank_map, pud_map, unified_map
-
-    def _extract_map[T](self, parse_cls: type[T], cfg: Config) -> NamedMap[T] | None:
-        if not cfg: return None
-        target_map = NamedMap(self.ec, parse_cls.entity_cls)
-
-        try: raw_entries = self.opt_dict(cfg.data, [parse_cls.entity_cls.plural_key], default={})
-        except WrongType: self.ec.add_complaint("Wrong type"); raw_entries = {}
-
-        for k, v in raw_entries.items():
-            target_map.set(k, parse_cls(self.ec).parse(k, v))
-
-        return target_map
-"""
