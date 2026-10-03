@@ -50,49 +50,50 @@ class FilesetValidator:
         return asset_path.startswith(prefix)
 
     def _extract_filesets_that_target_pud(self, doms: list[Domain]) -> list[tuple[str, str]]:
-        doms = list(doms.values())
+        #doms = list(doms.values())
         reqs: list[tuple[str, str]] = []
 
-        for dom in doms:
+        #for dom in doms:
+        for name, dom in doms.items():
             for resolver in getattr(dom, "resolvers", []):
                 if isinstance(resolver, RepoContentResolver):
                     for inc in getattr(resolver.fileset, "includes", []):
-                        context = f"domain={dom.name}, resolver=RepoContentResolver, include={inc}"
+                        context = f"domain={name}, resolver=RepoContentResolver, include={inc}"
                         reqs.append((inc, context))
                 elif isinstance(resolver, ManifestResolver):
                     for inc in getattr(resolver.pud_fileset, "includes", []):
-                        context = f"domain={dom.name}, resolver=ManifestResolver, fileset=pud_fileset, include={inc}"
+                        context = f"domain={name}, resolver=ManifestResolver, fileset=pud_fileset, include={inc}"
                         reqs.append((inc, context))
 
             for prompt in getattr(dom, "prompts", []):
                 for resolver in getattr(prompt.render, "resolvers", []):
                     if isinstance(resolver, RepoContentResolver):
                         for inc in getattr(resolver.fileset, "includes", []):
-                            context = f"domain={dom.name}, prompt={prompt.name}, resolver=RepoContentResolver, include={inc}"
+                            context = f"domain={name}, prompt={prompt.name}, resolver=RepoContentResolver, include={inc}"
                             reqs.append((inc, context))
                     elif isinstance(resolver, ManifestResolver):
                         for inc in getattr(resolver.pud_fileset, "includes", []):
-                            context = f"domain={dom.name}, prompt={prompt.name}, resolver=ManifestResolver, fileset=pud_fileset, include={inc}"
+                            context = f"domain={name}, prompt={prompt.name}, resolver=ManifestResolver, fileset=pud_fileset, include={inc}"
                             reqs.append((inc, context))
 
         return reqs
 
     def _extract_filesets_that_target_shared(self, doms: list[Domain]) -> list[tuple[str, str]]:
-        doms = list(doms.values())
+        #doms = list(doms.values())
         reqs: list[tuple[str, str]] = []
 
-        for dom in doms:
+        for dom in doms.items():
             for resolver in getattr(dom, "resolvers", []):
                 if isinstance(resolver, ManifestResolver) and getattr(resolver, "shared_fileset", None) is not None:
                     for inc in getattr(resolver.shared_fileset, "includes", []):
-                        context = f"domain={dom.name}, resolver=ManifestResolver, fileset=shared_fileset, include={inc}"
+                        context = f"domain={name}, resolver=ManifestResolver, fileset=shared_fileset, include={inc}"
                         reqs.append((inc, context))
 
             for prompt in getattr(dom, "prompts", []):
                 for resolver in getattr(prompt.render, "resolvers", []):
                     if isinstance(resolver, ManifestResolver) and getattr(resolver, "shared_fileset", None) is not None:
                         for inc in getattr(resolver.shared_fileset, "includes", []):
-                            context = f"domain={dom.name}, prompt={prompt.name}, resolver=ManifestResolver, fileset=shared_fileset, include={inc}"
+                            context = f"domain={name}, prompt={prompt.name}, resolver=ManifestResolver, fileset=shared_fileset, include={inc}"
                             reqs.append((inc, context))
 
         return reqs

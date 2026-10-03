@@ -7,9 +7,9 @@ class DomainExtractor(ValueExtractor):
     collector: ErrorCollector
     clank_cfg: Config
     pud_cfg: Config
-    def get_domains(self, clank_fs, clank_fl, unified_fs, unified_fl, base_res) -> tuple[NamedMap[Domain] | None, NamedMap[Domain] | None, NamedMap[Domain] | None]:
-        clank_args = (clank_fs, clank_fl, base_res)
-        pud_args = (unified_fs, unified_fl, base_res)
+    def get_domains(self, clank_args, pud_args) -> tuple[NamedMap[Domain] | None, NamedMap[Domain] | None, NamedMap[Domain] | None]:
+        #clank_args = (clank_fs, clank_fl, base_res)
+        #pud_args = (unified_fs, unified_fl, base_res)
         clank_doms = self._extract(self.clank_cfg, clank_args)
         pud_doms = self._extract(self.pud_cfg, pud_args)
 
@@ -22,20 +22,34 @@ class DomainExtractor(ValueExtractor):
                 unified_doms.set(k, v)
 
         return clank_doms, pud_doms, unified_doms
+    
+    def _extract(self, cfg: Config, parser_args: tuple | None = None) -> NamedMap[Domain] | None:
+        if not self.valid_args(locals()): return None
+        try: doms_dict = self.req_dict(cfg.data, ["domains"])
+        except ConfigAssembly: self.collector.add_critical_complaint("config dont got no doms son"); return None
 
-    def _extract(self, cfg: Config, parse_args) -> NamedMap[Domain] | None:
+        args = parser_args or ()
+        domain_map = NamedMap(self.collector, Domain)
+
+        for k, v in doms_dict.items():
+            domain_map.set(k, DomParser(self.collector).parse(k, v, *args))
+
+        return domain_map
+    """
+    def _extract(self, cfg: Config, parser_args) -> NamedMap[Domain] | None:
         if not self.valid_args(locals()): return None
         try: doms_dict = self.req_dict(cfg.data, ["domains"])
         except ConfigAssembly: self.collector.add_critical_complaint("config dont got no doms son"); return None
 
         doms_list = [{"name": name, **domain_data} for name, domain_data in doms_dict.items()]
-        ret_val = [DomParser(self.collector).parse(d, *parse_args) for d in doms_list]
+        ret_val = [DomParser(self.collector).parse(d, *parser_args) for d in doms_list]
         
         domain_map = NamedMap(self.collector, Domain)
         for dom in ret_val: 
             domain_map.set(dom.name, dom) 
 
         return domain_map
+    """
 """
 @dataclass(eq=False)
 class DomainExtractor(ValueExtractor):

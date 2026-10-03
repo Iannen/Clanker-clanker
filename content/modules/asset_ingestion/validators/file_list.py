@@ -81,20 +81,22 @@ class FilelistValidator:
                         resolver.files.files = [f for f in resolver.files.files if f.name != filename]
 
     def _extract_existencereqs(self, doms: list[Domain]) -> list[tuple[File, str]]:
-        doms = list(doms.values())
+        #doms = list(doms.values())
         reqs: list[tuple[File, str]] = []
 
-        for dom in doms:
+        for name, dom in doms.items():
             for resolver in getattr(dom, "resolvers", []):
                 if isinstance(resolver, MultiDocResolver):
                     for file_item in resolver.files.files:
-                        context = f"domain={dom.name}, resolver=MultiDocResolver, fileset=files, file={file_item.name}"
+                        #context = f"domain={dom.name}, resolver=MultiDocResolver, fileset=files, file={file_item.name}"
+                        context = f"domain={name}, resolver=MultiDocResolver, fileset=files, file={file_item.name}"
                         reqs.append((file_item, context))
 
             for prompt in getattr(dom, "prompts", []):
                 for resolver in prompt.render.resolvers:
                     if isinstance(resolver, MultiDocResolver):
                         for file_item in resolver.files.files:
-                            context = f"domain={dom.name}, prompt={prompt.name}, resolver=MultiDocResolver, fileset=files, file={file_item.name}"
+                            #context = f"domain={dom.name}, prompt={prompt.name}, resolver=MultiDocResolver, fileset=files, file={file_item.name}"
+                            context = f"domain={name}, prompt={prompt.name}, resolver=MultiDocResolver, fileset=files, file={file_item.name}"
                             reqs.append((file_item, context))
         return reqs

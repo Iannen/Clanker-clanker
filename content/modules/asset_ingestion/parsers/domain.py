@@ -4,8 +4,7 @@ from core import Domain, Prompt
 @dataclass
 class DomParser(ValueExtractor):
     ec: ErrorCollector
-    def parse(self, data: dict, fileset_map: NamedMap, filelist_map: NamedMap, base_res) -> Domain:
-        name = self.req_str(data, ["name"])
+    def parse(self, name: str, data: dict, fileset_map: NamedMap, filelist_map: NamedMap, base_res) -> Domain:
         with self.ec.path(name):
             raw_resolvers = self.req_list(data, ["resolvers"])
             raw_prompts = self.req_list(data, ["prompts"])
@@ -13,7 +12,7 @@ class DomParser(ValueExtractor):
             resolvers = [ResolverParser(r, self.ec, fileset_map, filelist_map).parse()for r in raw_resolvers]
             if base_res: resolvers.append(base_res)
             prompts = self._build_prompts(raw_prompts, fileset_map, filelist_map)
-            return Domain(name=name, prompts=prompts, resolvers=resolvers)
+            return Domain(name=name, prompts=prompts, resolvers=resolvers) #name=name, 
             
     def _build_prompts(self, dicts: list[dict], fileset_map, filelist_map) -> list[Prompt]:
         return [PromptParser(self.ec).parse(d, fileset_map, filelist_map) for d in dicts]

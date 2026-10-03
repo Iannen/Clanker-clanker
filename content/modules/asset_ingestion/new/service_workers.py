@@ -47,7 +47,7 @@ class Assembler:
         clank_fl, pud_fl, unified_fl = extractor.get_maps(FilelistParser)
         clank_fs, pud_fs, unified_fs = extractor.get_maps(FilesetParser)
         pud_baseres = BaseResolverExtractor(self.collector).get_base_res(self.clank_cfg, self.pud_cfg, clank_fl, unified_fl)
-        clank_doms, pud_doms, unified_doms = DomainExtractor(self.collector,self.clank_cfg, self.pud_cfg).get_domains(clank_fs, clank_fl, unified_fs, unified_fl, pud_baseres)
+        clank_doms, pud_doms, unified_doms = DomainExtractor(self.collector,self.clank_cfg, self.pud_cfg).get_domains((clank_fs, clank_fl, pud_baseres), (unified_fs, unified_fl, pud_baseres))
         ui_render, kb = SysConfigExtractor(self.collector, self.sys_cfg).get_final_product(clank_doms, pud_doms)       
 
         list_validator = FilelistValidator(self.collector).validate_clank(clank_doms, self.clank_doc_assets, self.clank_cfg)
