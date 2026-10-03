@@ -13,10 +13,11 @@ class SysConfigExtractor(ValueExtractor):
     def get_final_product(self, clank_doms, pud_doms) -> tuple[Render, Keyboard]:
         self.shared_doms = clank_doms
         self.pud_doms = pud_doms
-        return self.deliver()
+        ui_render = UIRenderParser(self.req_dict(self.sys_cfg.data, ["ui_render"]), self.collector).parse()
+        _, kb = self.deliver()
+        return ui_render, kb
 
     def deliver(self) -> tuple[Render | None, Keyboard | None]:
-        ui_render = self._get_ui_render()
         kb = self._get_btn_map()
 
         if kb:
@@ -28,40 +29,6 @@ class SysConfigExtractor(ValueExtractor):
         else:
             return None, None
 
-    def _get_ui_render(self) -> Render | None:
-        if not self.sys_cfg:
-            return None
-        with self.collector.path("ui_render"):
-            ui_render_dict = self.req_dict(self.sys_cfg.data, ["ui_render"])
-
-            template = self.req_str(ui_render_dict, ["template"])
-            inherit_base = self.req_bool(ui_render_dict, ["inherit_base"])
-            inherit_domain = self.req_bool(ui_render_dict, ["inherit_domain"])
-            raw_resolvers = self.req_list(ui_render_dict, ["resolvers"])
-
-            resolvers: list[KBStateResolver] = []
-            for r_dict in raw_resolvers:
-                res_type = self.req_str(r_dict, ["type"])
-                anchor = self.req_str(r_dict, ["id"])
-
-                if res_type in ("kb_info", "kb_state"):
-                    resolvers.append(KBStateResolver(anchor=anchor))
-                else:
-                    self.collector.add_complaint(
-                        f"Invalid resolver type '{res_type}' in ui_render; only 'kb_info' or 'kb_state' allowed."
-                    )
-
-            if len(resolvers) != 1:
-                self.collector.add_complaint(
-                    f"ui_render must carry exactly one KBStateResolver ('kb_info'), found {len(resolvers)}"
-                )
-
-            return Render(
-                template=template,
-                resolvers=resolvers,
-                inherit_base=inherit_base,
-                inherit_domain=inherit_domain,
-            )
 
     def _get_btn_map(self) -> Keyboard | None:
         if not self.sys_cfg:
@@ -99,4 +66,15 @@ class SysConfigExtractor(ValueExtractor):
 
         return valid_doms
 
-    
+@dataclass
+class UIRenderParser(ValueExtractor):
+    data: dict[str, Any]
+    collector: ErrorCollector
+    def parse(self): 
+        template = self.req_str(self.data, ["template"])
+        return Render(
+            template=template,
+            resolvers=[],
+            inherit_base=False,
+            inherit_domain=False,
+        )

@@ -81,3 +81,4 @@ class ResolverParser(ValueExtractor):
             pud_fileset=pud_fileset_obj,
             shared_fileset=shared_fileset_obj,
         )
+
