@@ -75,7 +75,37 @@ policy = [
         outside_module_list=True,
     ),
 ]
+""" 
+goddamn
+this must be refactored to something less insane. goddamn robots 
 
+1. the fileanalysis suite should get the files, apply filter rules
+2. it hands each file to an instance of a class which does the ast parsing
+3. then produces result at the end
+
+can not be bothered now. goddamn
+
+these are the rules i target
+
+I want this to apply
+
+"Extract the full module path from the AST node. Strip away leading relative dots or parent prefixes like modules.. The remaining target path must match or terminate precisely at a whitelisted module entry"
+
+for a whitelist of only 'asset_ingestion'
+
+this is allowed. 
+from ....asset_ingestion import NamedMapExtractor 
+from modules.asset_ingestion import NamedMapExtractor  
+import modules.asset_ingestion 
+import modules.asset_ingestion as ai 
+
+this is not allowed
+
+from ....asset_ingestion.childof import OtherSymbol
+from modules.asset_ingestion.childof import OtherSymbol
+import modules.asset_ingestion.childof 
+import modules.asset_ingestion.childof as child
+"""
 class FileAnalysisSuite:
     def __init__(self, content_dir: Path) -> None:
         self._content_dir = content_dir
