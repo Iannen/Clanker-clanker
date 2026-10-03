@@ -1,6 +1,6 @@
 from stdlib import Any, dataclass
 from core import Render
-from ...asset_ingestion import ErrorCollector, ValueExtractor, ResolverParser
+from ...asset_ingestion import ErrorCollector, ValueExtractor, ResolverParser, NamedMap
 
 @dataclass
 class RenderParser(ValueExtractor):

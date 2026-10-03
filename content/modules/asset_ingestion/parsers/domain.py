@@ -1,5 +1,5 @@
 from stdlib import dataclass
-from ...asset_ingestion import ValueExtractor, ErrorCollector, ResolverParser, RenderParser
+from ...asset_ingestion import ValueExtractor, ErrorCollector, ResolverParser, RenderParser, NamedMap
 from core import Domain, Prompt
 @dataclass
 class DomParser(ValueExtractor):

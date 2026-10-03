@@ -13,7 +13,7 @@ from ...asset_ingestion import (
     ValueExtractor,
     FilesetParser,
     FilelistParser,
-    #NamedMap,
+    NamedMap,
 )
 
 @dataclass
