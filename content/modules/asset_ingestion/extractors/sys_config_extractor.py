@@ -25,10 +25,9 @@ class SysConfigExtractor(ValueExtractor):
             self._inject_pud_doms_to_kb(kb)
         # do I just return them outright?
         if all(x is not None for x in (self.sys_cfg, self.shared_doms, self.pud_doms)):
-            return ui_render, kb
+            return None, kb
         else:
             return None, None
-
 
     def _get_btn_map(self) -> Keyboard | None:
         if not self.sys_cfg:
