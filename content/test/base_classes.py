@@ -2,11 +2,11 @@ import re
 import shutil
 from pathlib import Path
 from results import MethodResult, AssertSuiteResult
-
+#from expectance_impls import ActionsFactoryImpl ran into circular, f it
 class AssertSuite:
     TEMPLATE_FIXTURE_NAME = ""
 
-    def __init__(self, sandbox_dir: Path, fixture_dir: Path, clanker_path: Path, factory: ActionsFactoryImpl):
+    def __init__(self, sandbox_dir: Path, fixture_dir: Path, clanker_path: Path, factory): #: ActionsFactoryImpl
         self.sandbox_dir = sandbox_dir
         self.fixture_dir = fixture_dir
         self.clanker_path = clanker_path
