@@ -1,5 +1,6 @@
 from stdlib import dataclass, field, Generic, TypeVar
 from ...asset_ingestion import ErrorCollector, ValueExtractor, WrongType
+from core import Config
 
 T = TypeVar("T")
 

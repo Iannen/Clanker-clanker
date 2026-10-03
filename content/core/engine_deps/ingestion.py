@@ -1,5 +1,5 @@
 from stdlib import ABC, abstractmethod, dataclass
-from core import Render, Resolver, Keyboard
+from core import Render, Keyboard
 
 class Report(ABC):
     @abstractmethod

@@ -1,25 +1,19 @@
-import json
 from pathlib import Path
-from typing import Optional
-import re
 import shutil
-from dataclasses import dataclass, field
-from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
-from abc import ABC
+from dataclasses import dataclass
 import inspect
 from pathlib import Path
-import re
 import shutil
-import sys
-from typing import Any
 
 import assert_classes as assert_cls_module
 from base_classes import AssertSuite
 from expectance_impls import ActionsFactoryImpl
 from import_checker import FileAnalysisSuite
-from results import FileAnalysisResults, MethodResult, AssertSuiteResult, RunResult, Outcome
+from results import FileAnalysisResults, AssertSuiteResult, RunResult, Outcome
 from visitors.console_visitor import ConsoleReportVisitor
 from visitors.html_visitor import HtmlReportVisitor
+
+@dataclass
 class TestSuitesRunner:
     def __init__(
         self,
@@ -78,7 +72,6 @@ class GateInspector:
 
         self._write_report_file()
         self.write_console_report()
-
         return self.run_result.outcome == Outcome.PASS
 
     def _write_report_file(self) -> None:

@@ -7,7 +7,7 @@ class RenderParser(ValueExtractor):
     render_dict: dict[str, Any]
     collector: ErrorCollector
     fileset_map: NamedMap
-    filelist_map: NamedMap | None = None
+    filelist_map: NamedMap
 
     def extract(self) -> Render:
         template = self.opt_str(self.render_dict, ["template"], Render.template)

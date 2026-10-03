@@ -1,4 +1,5 @@
-from results import Outcome
+from results import Outcome, MethodResult, RunResult, AtomicTestResult, SandboxOperationsResult, SandboxOperationsResult, FileAnalysisResults, AssertSuiteResult, ContainerResult, ExpectanceResult, FileReport
+
 class ConsoleReportVisitor:
     def visit_run_result(self, node: RunResult) -> str:
         display_name = node.name.removeprefix("Run<").removesuffix(">")

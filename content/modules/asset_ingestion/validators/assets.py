@@ -1,9 +1,9 @@
-from core import Domain, ManifestResolver, RepoContentResolver, AssetPack
-from stdlib import dataclass, Self
-
+from core import Domain, ManifestResolver, RepoContentResolver, AssetPack, Config
+from stdlib import dataclass
+from ...asset_ingestion import ErrorCollector
 @dataclass
 class FilesetValidator:
-    collector: Collector
+    collector: ErrorCollector
 
     def validate_clank(self, doms: list[Domain] | None, shared_assets: AssetPack | None, cfg: Config | None): 
         self.clank_cfg = cfg

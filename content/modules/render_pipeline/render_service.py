@@ -2,8 +2,6 @@ from core import (
     FileSet,
     ActionResult,
     CorruptClanker,
-    Domain,
-    KBStateResolver,
     ClankerAssets,
     ManifestResolver,
     MultiDocResolver,

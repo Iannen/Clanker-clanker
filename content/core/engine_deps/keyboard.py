@@ -1,5 +1,5 @@
 from stdlib import ABC, abstractmethod, dataclass
-from core import Resolver, Render, ActionResult, Keyboard
+from core import Render, ActionResult, Keyboard
 
 @dataclass
 class RenderContext:

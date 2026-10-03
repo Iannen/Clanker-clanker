@@ -1,13 +1,13 @@
-from stdlib import Any, dataclass, field
-from core import Domain, Prompt, Resolver, ConfigAssembly
-from ...asset_ingestion import ErrorCollector, ValueExtractor, Config, DomParser, NotFound
+from stdlib import dataclass
+from core import Domain, ConfigAssembly
+from ...asset_ingestion import ErrorCollector, ValueExtractor, Config, DomParser
 
 @dataclass(eq=False)
 class DomainExtractor(ValueExtractor):
     shr_doms = None
     collector: ErrorCollector
 
-    def get_domains(self, clank_cfg, clank_fs, clank_fl, pud_cfg, pud_fs, pud_fl, base_res):
+    def get_domains(self, clank_cfg, clank_fs, clank_fl, pud_cfg, pud_fs, pud_fl, base_res) -> tuple[list[Domain] | None, list[Domain] | None]:
         clank_doms = self._extract(clank_cfg, clank_fs, clank_fl, base_res)
         pud_doms = self._extract(pud_cfg, pud_fs, pud_fl, base_res)
         return clank_doms, pud_doms

@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Callable, Self, Union
+from typing import Callable, Self
 
 from core.engine_deps import IOControl
-from core import RepoContract, WorkspaceAlreadyInitialized, ActionResult
+from core import RepoContract, ActionResult
 from adapters.terminal.scripted_terminal_adapter import TestSequenceEnded
 from base_classes import AssertSuite
 

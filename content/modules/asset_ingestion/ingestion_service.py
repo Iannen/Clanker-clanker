@@ -1,4 +1,4 @@
-from stdlib import dataclass, StrEnum, field
+from stdlib import dataclass, StrEnum
 from core import (
     CorruptClanker,
     ClankerAssets,
@@ -8,13 +8,14 @@ from core import (
     Config,
     AssetPack,
     Filereq,
-    RepoItem
+    RepoItem,
+    Render,
+    Keyboard
 )
-from core.engine_deps import IngestionService, NoSuchFile, AssetExists, DiskPort, ConfigParseError, ConfigParserPort, StartResult, ClankerizeResult, TerminateResult
+from core.engine_deps import IngestionService, NoSuchFile, DiskPort, ConfigParseError, ConfigParserPort, StartResult, ClankerizeResult, TerminateResult
 
 from . import (
     ErrorCollector,
-    NamedMap,
     NamedMapExtractor,
     DomainExtractor,
     BaseResolverExtractor,
@@ -126,7 +127,7 @@ class Assembler:
     pud_doc_assets: AssetPack  | None
     pud_content_assets: AssetPack  | None
 
-    def assemble(self, pud_res: ClassificationResult) ->  tuple[BootAction, Render, Keyboard]:
+    def assemble(self, pud_res: ClassificationResult) ->  tuple[Render, Keyboard]:
         extractor = NamedMapExtractor(self.collector, self.clank_cfg, self.pud_cfg)
         clank_fl, pud_fl = extractor.get_maps(FilelistParser)
         clank_fs, pud_fs = extractor.get_maps(FilesetParser)

@@ -1,4 +1,4 @@
-from stdlib import dataclass, field
+from stdlib import dataclass
 from core import MultiDocResolver, Resolver, Config
 from ...asset_ingestion import ErrorCollector, ValueExtractor, ResolverParser
 

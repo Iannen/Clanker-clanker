@@ -1,4 +1,4 @@
-from stdlib import Any, dataclass
+from stdlib import dataclass
 from core import FileSet
 from ...asset_ingestion import ErrorCollector, ValueExtractor
 

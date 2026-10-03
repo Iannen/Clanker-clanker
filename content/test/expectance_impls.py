@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import dataclasses
 import json
 from pathlib import Path
@@ -7,7 +5,7 @@ import re
 import shutil
 import subprocess
 import sys
-from typing import Any, Callable, Optional, Self
+from typing import Any, Callable, Self
 
 from adapters.terminal.scripted_terminal_adapter import ExecutionFrame
 from assert_classes import ActionsFactory, Asserts, Sandbox, TestContainer
