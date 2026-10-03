@@ -14,7 +14,7 @@ class RenderParser(ValueExtractor):
         inherit_base = self.opt_bool(self.render_dict, ["inherit_base"], Render.inherit_base)
         inherit_domain = self.opt_bool(self.render_dict, ["inherit_domain"], Render.inherit_domain)
         res_dicts = self.req_list(self.render_dict, ["resolvers"])
-        resolvers = [ResolverParser(data, self.collector, self.fileset_map, self.filelist_map).parse() for data in res_dicts]
+        resolvers = [ResolverParser(self.collector).parse("", data, self.fileset_map, self.filelist_map ) for data in res_dicts]
         return Render(
             template=template,
             resolvers=resolvers,

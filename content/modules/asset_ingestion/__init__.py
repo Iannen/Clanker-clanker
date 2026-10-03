@@ -14,7 +14,7 @@ from .parsers.render import *
 from .parsers.domain import *
 
 
-from .extractors.base_resolver import *
+#from .extractors.base_resolver import *
 from .extractors.sys_config_extractor import *
 
 from .new.service_workers import *

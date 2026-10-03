@@ -1,7 +1,6 @@
-base_resolvers:
-  - id: base_fragments
-    type: multi-document-retrieval
-    files: [general-rules.md]
+resolvers:
+  base:
+    {id: base_fragments, type: multi-document-retrieval, files: [general-rules.md]}
 
 filesets:
   content-dir: {includes: [content]}

@@ -43,7 +43,7 @@ class FileSet(Entity):
     excludes: list[str]
 
 @dataclass
-class Resolver:
+class Resolver(Entity):
     anchor: str
 
 @dataclass

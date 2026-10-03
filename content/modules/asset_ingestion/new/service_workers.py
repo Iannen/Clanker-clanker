@@ -1,6 +1,6 @@
 from stdlib import StrEnum, dataclass
 from core import RepoItem, CorruptClanker, Config, Render, AssetPack, Keyboard
-from ...asset_ingestion import NamedMapExtractor, FilelistParser, FilesetParser, BaseResolverExtractor, SysConfigExtractor, FilelistValidator, FilesetValidator, CollisionDetector, Missing, Malformed, ErrorCollector, DomParser
+from ...asset_ingestion import NamedMapExtractor, FilelistParser, FilesetParser, SysConfigExtractor, FilelistValidator, FilesetValidator, CollisionDetector, Missing, Malformed, ErrorCollector, DomParser, ResolverParser
 
 
 class ClassificationResult(StrEnum):
@@ -46,7 +46,10 @@ class Assembler:
         extractor = NamedMapExtractor(self.collector, self.clank_cfg, self.pud_cfg)
         clank_fl, pud_fl, unified_fl = extractor.get_maps(FilelistParser)
         clank_fs, pud_fs, unified_fs = extractor.get_maps(FilesetParser)
-        pud_baseres = BaseResolverExtractor(self.collector).get_base_res(self.clank_cfg, self.pud_cfg, clank_fl, unified_fl)
+        #pud_baseres = BaseResolverExtractor(self.collector).get_base_res(self.clank_cfg, self.pud_cfg, clank_fl, unified_fl)
+        # must crit if clank dont got br. 
+        br_cl, br_pud, br_uni = extractor.get_maps(ResolverParser, (clank_fs, clank_fl), (unified_fs, unified_fl))
+        pud_baseres = list(br_cl.values())[0] # 
         clank_doms, pud_doms, unified_doms = extractor.get_maps(DomParser, (clank_fs, clank_fl, pud_baseres), (unified_fs, unified_fl, pud_baseres))
         ui_render, kb = SysConfigExtractor(self.collector, self.sys_cfg).get_final_product(clank_doms, pud_doms)       
 

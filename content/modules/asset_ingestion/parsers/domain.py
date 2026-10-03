@@ -10,7 +10,7 @@ class DomParser(ValueExtractor):
             raw_resolvers = self.req_list(data, ["resolvers"])
             raw_prompts = self.req_list(data, ["prompts"])
 
-            resolvers = [ResolverParser(r, self.ec, fileset_map, filelist_map).parse()for r in raw_resolvers]
+            resolvers = [ResolverParser(self.ec).parse("", r, fileset_map, filelist_map)for r in raw_resolvers]
             if base_res: resolvers.append(base_res)
             prompts = self._build_prompts(raw_prompts, fileset_map, filelist_map)
             return Domain(name=name, prompts=prompts, resolvers=resolvers) #name=name, 
