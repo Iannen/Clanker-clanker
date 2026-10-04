@@ -3,6 +3,7 @@ from .commons.value_extractor import *
 
 from .extractors.map_extractor import *
 
+from .validators.overflow_validator import *
 from .validators.assets import *
 from .validators.file_list import *
 from .validators.collision_detector import *

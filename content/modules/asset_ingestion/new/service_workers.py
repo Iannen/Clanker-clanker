@@ -1,6 +1,6 @@
 from stdlib import StrEnum, dataclass
 from core import RepoItem, CorruptClanker, Config, Render, AssetPack, Keyboard
-from ...asset_ingestion import ConfigExtractor, FilelistParser, FilesetParser, SysConfigExtractorOld, FilelistValidator, FilesetValidator, CollisionDetector, Missing, Malformed, ErrorCollector, DomParser, ResolverParser, SysConfigExtractor, UIRenderParser, KeyboardParser
+from ...asset_ingestion import ConfigExtractor, FilelistParser, FilesetParser, SysConfigExtractorOld, FilelistValidator, FilesetValidator, CollisionDetector, Missing, Malformed, ErrorCollector, DomParser, ResolverParser, SysConfigExtractor, UIRenderParser, KeyboardParser, OverflowHandler
 
 
 class ClassificationResult(StrEnum):
@@ -56,7 +56,7 @@ class Assembler:
 
         ui_render2 = sys_ext.get_one(UIRenderParser,(clank_fs, clank_fl))
         kb2 = sys_ext.get_one(KeyboardParser)
-        finished_kb = self._validate_assemble(br_cl, br_pud, unified_doms, kb2)
+        finished_kb = self._validate_assemble(br_cl, br_pud, clank_doms, pud_doms, kb2)
 
         list_validator = FilelistValidator(self.collector).validate_clank(clank_doms, self.clank_doc_assets, self.clank_cfg)
         list_validator.validate_pud(pud_doms, self.pud_doc_assets, self.pud_cfg) 
@@ -67,11 +67,15 @@ class Assembler:
         CollisionDetector(self.collector).detect(self.clank_doc_assets) 
         CollisionDetector(self.collector).detect(self.pud_doc_assets)
         
-        return ui_render, kb
+        return ui_render, finished_kb #kb
     
-    def _validate_assemble(self, br_cl, br_pud, doms, kb):
-        return None
-    
+    def _validate_assemble(self, br_cl, br_pud, clank_doms, pud_doms, kb):
+        # check and decide which br is right. then put that one in with the doms
+        # put doms in their buttons, discarding overflow with complaint
+        # check prompts of doms, if overflowing then discard with complaint
+        
+        finished_kb = OverflowHandler(self.collector).do_it(br_cl, br_pud, clank_doms, pud_doms, kb)
+
         list_validator = FilelistValidator(self.collector).validate_clank(clank_doms, self.clank_doc_assets, self.clank_cfg)
         list_validator.validate_pud(pud_doms, self.pud_doc_assets, self.pud_cfg) 
         
@@ -80,6 +84,6 @@ class Assembler:
 
         CollisionDetector(self.collector).detect(self.clank_doc_assets) 
         CollisionDetector(self.collector).detect(self.pud_doc_assets)
-    
+        return finished_kb
 
         
