@@ -67,8 +67,12 @@ class NamedMap(Generic[T]):
     def keys(self):
         return self.data.keys()
 
-    def clone(self) -> NamedMap[T]:
-        return NamedMap(self.collector, self.entity_cls, dict(self.data))
+    def __or__(self, other: NamedMap[T]) -> NamedMap[T]:
+        if not isinstance(other, NamedMap):
+            return NotImplemented
+        merged_data = dict(self.data)
+        merged_data.update(other.data)
+        return NamedMap(self.collector, self.entity_cls, merged_data)
 
 T = TypeVar("T")
 @dataclass
@@ -82,15 +86,7 @@ class ConfigExtractor(BaseConfigExtractor):
         clank_map = self._extract_map(parse_cls, self.clank_cfg, clank_args, search_key)
         pud_map = self._extract_map(parse_cls, self.pud_cfg, pud_args, search_key)
 
-        if clank_map is None:
-            return None, pud_map, None
-
-        unified_map = clank_map.clone()
-        if pud_map:
-            for k, v in pud_map.items():
-                unified_map.set(k, v)
-
-        return clank_map, pud_map, unified_map
+        return clank_map, pud_map
 
     def _extract_map[T](
         self, 
