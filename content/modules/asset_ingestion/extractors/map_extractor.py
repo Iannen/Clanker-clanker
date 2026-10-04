@@ -34,7 +34,8 @@ class BaseConfigExtractor(ValueExtractor):
         if not cfg: return None
         
         try: raw_entries = self.opt_dict(cfg.data, [search_key], default={})
-        except WrongType: self.ec.add_complaint("Wrong type"); raw_entries = {}
+        except WrongType: self.ec.add_complaint("Wrong type"); raw_entries = {} # probably add complaint here
+        if not raw_entries: return None
 
         args = parser_args or ()
         item = parse_cls(self.ec).parse(search_key, raw_entries, *args)
@@ -78,29 +79,40 @@ T = TypeVar("T")
 @dataclass
 class ConfigExtractor(BaseConfigExtractor):
     ec: ErrorCollector
-    clank_cfg: Config
-    pud_cfg: Config
+    configs: tuple[Config, ...]
 
-    def get_maps[T](self, parse_cls: type[T], clank_args: tuple | None = None, pud_args: tuple | None = None) -> tuple[NamedMap[T] | None, NamedMap[T] | None, NamedMap[T] | None]:
+    def get_maps[T](
+        self, 
+        parse_cls: type[T], 
+        *args_per_config: tuple | None
+    ) -> tuple[NamedMap[T] | None, ...]:
         search_key = parse_cls.entity_cls.plural_key
-        clank_map = self._extract_map(parse_cls, self.clank_cfg, clank_args, search_key)
-        pud_map = self._extract_map(parse_cls, self.pud_cfg, pud_args, search_key)
+       
+        results: list[NamedMap[T] | None] = []
+        for i, cfg in enumerate(self.configs):
+            cfg_args = args_per_config[i] if i < len(args_per_config) else None
+            extracted_map = self._extract_map(parse_cls, cfg, cfg_args, search_key)
+            results.append(extracted_map)
 
-        return clank_map, pud_map
+        return tuple(results)
 
     def _extract_map[T](
         self, 
         parse_cls: type[T], 
-        cfg: Config, 
-        parser_args: tuple,
-        search_key:str
+        cfg: Config | None, 
+        parser_args: tuple | None,
+        search_key: str
     ) -> NamedMap[T] | None:
-        if not cfg: return None
+        if not cfg: 
+            return None
+            
         target_map = NamedMap(self.ec, parse_cls.entity_cls)
-
         
-        try: raw_entries = self.opt_dict(cfg.data, [search_key], default={})
-        except WrongType: self.ec.add_complaint("Wrong type"); raw_entries = {}
+        try: 
+            raw_entries = self.opt_dict(cfg.data, [search_key], default={})
+        except WrongType: 
+            self.ec.add_complaint("Wrong type")
+            raw_entries = {}
 
         args = parser_args or ()
         for k, v in raw_entries.items():
@@ -108,13 +120,28 @@ class ConfigExtractor(BaseConfigExtractor):
 
         return target_map
 
+    def get_singles[T](
+        self, 
+        parse_cls: type[T], 
+        *args_per_config: tuple | None
+    ) -> tuple[T | None, ...]:
+        search_key = parse_cls.entity_cls.key_name
+        
+        results: list[T | None] = []
+        for i, cfg in enumerate(self.configs):
+            cfg_args = args_per_config[i] if i < len(args_per_config) else None
+            extracted_item = self._extract_single(parse_cls, cfg, cfg_args, search_key)
+            results.append(extracted_item)
+
+        return tuple(results)
+
 
 T = TypeVar("T")
 @dataclass
 class SysConfigExtractor(BaseConfigExtractor):
     ec: ErrorCollector
     sys_cfg: Config
-
+    
     def get_one(self, parse_cls: type, args: tuple | None = None):
         search_key = parse_cls.entity_cls.key_name
         item = self._extract_single(parse_cls, self.sys_cfg, args, search_key)

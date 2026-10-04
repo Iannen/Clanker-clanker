@@ -2,6 +2,9 @@ resolvers:
   base:
     {id: base_fragments, type: multi-document-retrieval, files: [general-rules.md]}
 
+resolver:
+    {id: base_fragments, type: multi-document-retrieval, files: [general-rules.md]}
+
 filesets:
   content-dir: {includes: [content]}
   empty: {includes: [], excludes: [.git]}

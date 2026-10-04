@@ -19,7 +19,7 @@ class OverflowHandler:
         return kb
 
     def _get_proper_baseres(self, br_cl: Resolver, br_pud: Resolver) -> Resolver:
-        return list(br_cl.values())[0]
+        return br_pud if br_pud else br_cl
 
     def _handle_domain_overflow(self, domains: list[Domain], buttons: list[NewBtn], baseres) -> list[Domain]:
         row_keys = [btn.key for btn in buttons]
