@@ -1,6 +1,6 @@
 from stdlib import StrEnum, dataclass
 from core import RepoItem, CorruptClanker, Config, Render, AssetPack, Keyboard
-from ...asset_ingestion import ConfigExtractor, FilelistParser, FilesetParser, SysConfigExtractorOld, FilelistValidator, FilesetValidator, CollisionDetector, Missing, Malformed, ErrorCollector, DomParser, ResolverParser, SysConfigExtractor, UIRenderParser, KeyboardParser, OverflowHandler
+from ...asset_ingestion import ConfigExtractor, FilelistParser, FilesetParser, FilelistValidator, FilesetValidator, CollisionDetector, Missing, Malformed, ErrorCollector, DomParser, ResolverParser, SysConfigExtractor, UIRenderParser, KeyboardParser, OverflowHandler
 
 
 class ClassificationResult(StrEnum):
@@ -46,12 +46,11 @@ class Assembler:
         extractor = ConfigExtractor(self.collector, self.clank_cfg, self.pud_cfg)
         clank_fl, pud_fl, unified_fl = extractor.get_maps(FilelistParser)
         clank_fs, pud_fs, unified_fs = extractor.get_maps(FilesetParser)
-        # must crit if clank dont got br. 
         br_cl, br_pud, br_uni = extractor.get_maps(ResolverParser, (clank_fs, clank_fl), (unified_fs, unified_fl))
         pud_baseres = list(br_cl.values())[0] # use get_one here
         clank_doms, pud_doms, unified_doms = extractor.get_maps(DomParser, (clank_fs, clank_fl, pud_baseres), (unified_fs, unified_fl, pud_baseres))
         
-        ui_render, kb = SysConfigExtractorOld(self.collector, self.sys_cfg).get_final_product(clank_doms, pud_doms)       
+        #ui_render, kb = SysConfigExtractorOld(self.collector, self.sys_cfg).get_final_product(clank_doms, pud_doms)       
         sys_ext = SysConfigExtractor(self.collector, self.sys_cfg)
 
         ui_render2 = sys_ext.get_one(UIRenderParser,(clank_fs, clank_fl))
@@ -67,7 +66,7 @@ class Assembler:
         CollisionDetector(self.collector).detect(self.clank_doc_assets) 
         CollisionDetector(self.collector).detect(self.pud_doc_assets)
         
-        return ui_render, finished_kb #kb
+        return ui_render2, finished_kb 
     
     def _validate_assemble(self, br_cl, br_pud, clank_doms, pud_doms, kb):
         # check and decide which br is right. then put that one in with the doms
