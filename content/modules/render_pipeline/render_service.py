@@ -82,10 +82,9 @@ class RenderServiceImpl(RenderService):
         return {resolver.anchor: "\n\n".join(fragments)}
 
     def _res_repo_content(self, resolver: RepoContentResolver) -> dict[str, str]:
-        paths = sorted(
-            self.files.get_file_paths(PathTokens.PUD, resolver.fileset.includes, missing_ok=False) -
-            self.files.get_file_paths(PathTokens.PUD, resolver.fileset.excludes, missing_ok=True)
-        )
+        includes = self.files.get_file_paths(PathTokens.PUD, resolver.fileset.includes, missing_ok=False)
+        excludes = self.files.get_file_paths(PathTokens.PUD, resolver.fileset.excludes, missing_ok=True) if resolver.fileset.excludes else set()
+        paths = sorted(includes - excludes)
 
         tree_header = f"<tree>\n" + "\n".join(f"├── {p}" for p in paths) + "\n</tree>"
 
@@ -113,11 +112,15 @@ class RenderServiceImpl(RenderService):
         return {resolver.anchor: "\n".join(manifest_blocks)}
 
     def _build_manifest(self, tag: str, basepath_token: str, fileset: Fileset) -> str:
+        includes = self.files.get_file_paths(basepath_token, fileset.includes, missing_ok=False)
+        excludes = self.files.get_file_paths(basepath_token, fileset.excludes, missing_ok=True) if fileset.excludes else set()
+        paths = sorted(includes - excludes)
+        """
         paths = sorted(
             self.files.get_file_paths(basepath_token, fileset.includes, missing_ok=False) -
             self.files.get_file_paths(basepath_token, fileset.excludes, missing_ok=True)
         )
-
+        """
         lines = []
         for p in paths:
             try:

@@ -54,7 +54,7 @@ class Filelist(Entity):
 @dataclass
 class Fileset(Entity):
     includes: list[str]
-    excludes: list[str]
+    excludes: list[str] | None
 
 @dataclass
 class Resolver(Entity):

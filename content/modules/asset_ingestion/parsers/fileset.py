@@ -1,10 +1,10 @@
 from stdlib import dataclass
 from core import Fileset
-from ...asset_ingestion import ErrorCollector, ValueExtractor
+from ...asset_ingestion import ErrorCollector, BaseParser
 
 @dataclass
-class FilesetParser(ValueExtractor):
-    collector: ErrorCollector
+class FilesetParser(BaseParser):
+    ec: ErrorCollector
     entity_cls = Fileset
 
     def parse(self, name, data) -> Fileset:

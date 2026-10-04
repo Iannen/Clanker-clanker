@@ -8,6 +8,7 @@ from .validators.assets import *
 from .validators.file_list import *
 from .validators.collision_detector import *
 
+from .parsers.base_parser import *
 from .parsers.filelist import *
 from .parsers.fileset import *
 from .parsers.resolver import *
