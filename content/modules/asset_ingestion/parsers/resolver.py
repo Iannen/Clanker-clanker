@@ -5,7 +5,7 @@ from core import (
     RepoContentResolver,
     ManifestResolver,
     Resolver,
-    FileSet,
+    Fileset,
     ConfigAssembly,
 )
 from ...asset_ingestion import (
@@ -66,7 +66,7 @@ class ResolverParser(ValueExtractor):
 
         pud_val = self.opt_str_or_dict(data, ["pud_fileset"], default={})
         if isinstance(pud_val, str): pud_fileset_obj = fileset_map.get(pud_val)
-        else: pud_fileset_obj = FilesetParser(pud_val, self.collector).parse() if pud_val else FileSet(includes=[], excludes=[])
+        else: pud_fileset_obj = FilesetParser(pud_val, self.collector).parse() if pud_val else Fileset(includes=[], excludes=[])
         shared_val = self.opt_str_or_dict(data, ["shared_fileset"], default={})
         if isinstance(shared_val, str): shared_fileset_obj = fileset_map.get(shared_val)
         else: shared_fileset_obj = FilesetParser(shared_val, self.collector).parse() if shared_val else None

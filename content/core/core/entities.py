@@ -1,4 +1,4 @@
-from stdlib import dataclass, field, ClassVar, Type
+from stdlib import dataclass, field, ClassVar, Type, re
 
 class classproperty:
     def __init__(self, func):
@@ -9,12 +9,28 @@ class classproperty:
 class Entity:
     @classproperty
     def key_name(cls) -> str:
-        return getattr(cls, "_key_name", cls.__name__.lower())
+        if hasattr(cls, "_key_name"):
+            return cls._key_name
+        
+        # Inserts '_' before capital letters following lowercase/numbers, 
+        # or preceding another capital followed by lowercase (e.g. "HTTPRequest" -> "http_request")
+        name = re.sub(r'(?<!^)(?=[A-Z][a-z])|(?<=[a-z0-9])(?=[A-Z])', '_', cls.__name__)
+        return name.lower()
 
     @classproperty
     def plural_key(cls) -> str:
         return getattr(cls, "_plural_key", f"{cls.key_name}s")
 
+"""
+class Entity:
+    @classproperty
+    def key_name(cls) -> str:
+        return getattr(cls, "_key_name", cls.__name__.lower())
+
+    @classproperty
+    def plural_key(cls) -> str:
+        return getattr(cls, "_plural_key", f"{cls.key_name}s")
+"""
 
 @dataclass
 class TruncationSpec:
@@ -24,8 +40,6 @@ class TruncationSpec:
     tail_lines: int | None = None
     from_line: str | None = None
     up_to: str | None = None
-
-
 
 @dataclass
 class File:
@@ -38,7 +52,7 @@ class Filelist(Entity):
     files: list[File] = field(default_factory=list)
 
 @dataclass
-class FileSet(Entity):
+class Fileset(Entity):
     includes: list[str]
     excludes: list[str]
 
@@ -52,23 +66,30 @@ class MultiDocResolver(Resolver):
 
 @dataclass
 class RepoContentResolver(Resolver):
-    fileset: FileSet = field(default_factory=FileSet)
+    fileset: Fileset = field(default_factory=Fileset)
 
 @dataclass
 class ManifestResolver(Resolver):
-    pud_fileset: FileSet = field(default_factory=FileSet)
-    shared_fileset: FileSet | None = None
+    pud_fileset: Fileset = field(default_factory=Fileset)
+    shared_fileset: Fileset | None = None
 
 @dataclass
 class KBStateResolver(Resolver):
     anchor: str = "kb_info"
 
 @dataclass
-class Render:
+class Render(Entity):
     template: str = "prompt_template"
     resolvers: list[Resolver] = field(default_factory=list)
     inherit_base: bool = True
     inherit_domain: bool = True
+
+@dataclass 
+class UIRender(Entity):
+    template: str = "prompt_template"
+    resolvers: list[Resolver] = field(default_factory=list)
+    inherit_base: bool = False
+    inherit_domain: bool = False
 
 @dataclass
 class Prompt:
@@ -86,14 +107,15 @@ class NewBtn: key: str
 @dataclass
 class PromptButton(NewBtn): inhabitant: Prompt | None = None
 @dataclass
-class DomButton(NewBtn): inhabitant: Domain
+class DomButton(NewBtn): inhabitant: Domain | None = None
+# i think these could be pruned, not sure
 @dataclass
 class SharedDomButton(DomButton): pass
 @dataclass
 class PudDomButton(DomButton): pass
 
 @dataclass
-class Keyboard:
+class Keyboard(Entity):
     shared_dom_btns: dict[str, SharedDomButton]
     pud_dom_btns: dict[str, PudDomButton]
     prompt_btns: dict[str, PromptButton]

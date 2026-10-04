@@ -1,5 +1,5 @@
 from core import (
-    FileSet,
+    Fileset,
     ActionResult,
     CorruptClanker,
     ClankerAssets,
@@ -112,7 +112,7 @@ class RenderServiceImpl(RenderService):
 
         return {resolver.anchor: "\n".join(manifest_blocks)}
 
-    def _build_manifest(self, tag: str, basepath_token: str, fileset: FileSet) -> str:
+    def _build_manifest(self, tag: str, basepath_token: str, fileset: Fileset) -> str:
         paths = sorted(
             self.files.get_file_paths(basepath_token, fileset.includes, missing_ok=False) -
             self.files.get_file_paths(basepath_token, fileset.excludes, missing_ok=True)

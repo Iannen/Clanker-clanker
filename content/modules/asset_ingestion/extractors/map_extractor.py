@@ -1,6 +1,45 @@
 from stdlib import dataclass, field, Generic, TypeVar, ItemsView
-from ...asset_ingestion import ErrorCollector, ValueExtractor, WrongType
+from ...asset_ingestion import ErrorCollector, ValueExtractor, WrongType#, RenderParser, UIRenderParser, DomParser
 from core import Config
+
+class BaseConfigExtractor(ValueExtractor):
+
+    def _extract_map[T](
+        self, 
+        parse_cls: type[T], 
+        cfg: Config, 
+        parser_args: tuple,
+        search_key:str
+    ) -> NamedMap[T] | None:
+        if not cfg: return None
+        target_map = NamedMap(self.ec, parse_cls.entity_cls)
+
+        
+        try: raw_entries = self.opt_dict(cfg.data, [search_key], default={})
+        except WrongType: self.ec.add_complaint("Wrong type"); raw_entries = {}
+
+        args = parser_args or ()
+        for k, v in raw_entries.items():
+            target_map.set(k, parse_cls(self.ec).parse(k, v, *args))
+
+        return target_map
+
+    def _extract_single[T](
+        self, 
+        parse_cls: type[T], 
+        cfg: Config, 
+        parser_args: tuple,
+        search_key:str
+    ) -> T | None:
+        if not cfg: return None
+        
+        try: raw_entries = self.opt_dict(cfg.data, [search_key], default={})
+        except WrongType: self.ec.add_complaint("Wrong type"); raw_entries = {}
+
+        args = parser_args or ()
+        item = parse_cls(self.ec).parse(search_key, raw_entries, *args)
+
+        return item
 
 T = TypeVar("T")
 
@@ -33,19 +72,15 @@ class NamedMap(Generic[T]):
 
 T = TypeVar("T")
 @dataclass
-class NamedMapExtractor(ValueExtractor):
+class ConfigExtractor(BaseConfigExtractor):
     ec: ErrorCollector
     clank_cfg: Config
     pud_cfg: Config
 
-    def get_maps[T](
-        self, 
-        parse_cls: type[T], 
-        clank_args: tuple | None = None, 
-        pud_args: tuple | None = None
-    ) -> tuple[NamedMap[T] | None, NamedMap[T] | None, NamedMap[T] | None]:
-        clank_map = self._extract_map(parse_cls, self.clank_cfg, clank_args)
-        pud_map = self._extract_map(parse_cls, self.pud_cfg, pud_args)
+    def get_maps[T](self, parse_cls: type[T], clank_args: tuple | None = None, pud_args: tuple | None = None) -> tuple[NamedMap[T] | None, NamedMap[T] | None, NamedMap[T] | None]:
+        search_key = parse_cls.entity_cls.plural_key
+        clank_map = self._extract_map(parse_cls, self.clank_cfg, clank_args, search_key)
+        pud_map = self._extract_map(parse_cls, self.pud_cfg, pud_args, search_key)
 
         if clank_map is None:
             return None, pud_map, None
@@ -61,12 +96,14 @@ class NamedMapExtractor(ValueExtractor):
         self, 
         parse_cls: type[T], 
         cfg: Config, 
-        parser_args: tuple | None = None
+        parser_args: tuple,
+        search_key:str
     ) -> NamedMap[T] | None:
         if not cfg: return None
         target_map = NamedMap(self.ec, parse_cls.entity_cls)
 
-        try: raw_entries = self.opt_dict(cfg.data, [parse_cls.entity_cls.plural_key], default={})
+        
+        try: raw_entries = self.opt_dict(cfg.data, [search_key], default={})
         except WrongType: self.ec.add_complaint("Wrong type"); raw_entries = {}
 
         args = parser_args or ()
@@ -74,3 +111,15 @@ class NamedMapExtractor(ValueExtractor):
             target_map.set(k, parse_cls(self.ec).parse(k, v, *args))
 
         return target_map
+
+
+T = TypeVar("T")
+@dataclass
+class SysConfigExtractor(BaseConfigExtractor):
+    ec: ErrorCollector
+    sys_cfg: Config
+
+    def get_one(self, parse_cls: type, args: tuple | None = None):
+        search_key = parse_cls.entity_cls.key_name
+        item = self._extract_single(parse_cls, self.sys_cfg, args, search_key)
+        return item

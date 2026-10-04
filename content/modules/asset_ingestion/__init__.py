@@ -12,6 +12,7 @@ from .parsers.fileset import *
 from .parsers.resolver import *
 from .parsers.render import *
 from .parsers.domain import *
+from .parsers.keyboard import *
 
 
 #from .extractors.base_resolver import *

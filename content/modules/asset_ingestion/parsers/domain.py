@@ -22,5 +22,5 @@ class DomParser(ValueExtractor):
 class PromptParser(ValueExtractor):
     ec: ErrorCollector
     def parse(self, data, fileset_map, filelist_map) -> Prompt: 
-        return Prompt(self.req_str(data, ["name"]), RenderParser(self.req_dict(data, ["render"]), self.ec, fileset_map, filelist_map).extract())
+        return Prompt(self.req_str(data, ["name"]), RenderParser(self.ec).extract("", self.req_dict(data, ["render"]), fileset_map, filelist_map))
         

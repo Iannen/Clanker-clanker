@@ -1,9 +1,9 @@
-from stdlib import dataclass, zip_longest, Any
+from stdlib import dataclass, zip_longest
 from core import Render, Keyboard, SharedDomButton, PudDomButton, PromptButton, Domain
-from ...asset_ingestion import ErrorCollector, ValueExtractor, Config
+from ...asset_ingestion import ErrorCollector, ValueExtractor, Config, UIRenderParser
 
 @dataclass
-class SysConfigExtractor(ValueExtractor):
+class SysConfigExtractorOld(ValueExtractor):
     collector: ErrorCollector
     sys_cfg: Config | None
     clank_doms: list[Domain] | None = None
@@ -12,7 +12,7 @@ class SysConfigExtractor(ValueExtractor):
     def get_final_product(self, clank_doms: list[Domain], pud_doms: list[Domain]) -> tuple[Render, Keyboard | None]:
         self.clank_doms = clank_doms
         self.pud_doms = pud_doms
-        ui_render = UIRenderParser(self.req_dict(self.sys_cfg.data, ["ui_render"]), self.collector).parse()
+        ui_render = UIRenderParser(self.collector).parse("", self.req_dict(self.sys_cfg.data, ["ui_render"]), None, None)
 
         kb = self._get_btn_map()
         return ui_render, kb
@@ -57,7 +57,7 @@ class SysConfigExtractor(ValueExtractor):
             self.collector.add_complaint(complaint)
 
         return valid_doms
-
+"""
 @dataclass
 class UIRenderParser(ValueExtractor):
     data: dict[str, Any]
@@ -71,3 +71,4 @@ class UIRenderParser(ValueExtractor):
             inherit_base=False,
             inherit_domain=False,
         )
+"""
