@@ -2,46 +2,6 @@ from stdlib import dataclass, field, Generic, TypeVar, ItemsView
 from ...asset_ingestion import ErrorCollector, ValueExtractor, WrongType#, RenderParser, UIRenderParser, DomParser
 from core import Config
 
-class BaseConfigExtractor(ValueExtractor):
-
-    def _extract_map[T](
-        self, 
-        parse_cls: type[T], 
-        cfg: Config, 
-        parser_args: tuple,
-        search_key:str
-    ) -> NamedMap[T] | None:
-        if not cfg: return None
-        target_map = NamedMap(self.ec, parse_cls.entity_cls)
-
-        
-        try: raw_entries = self.opt_dict(cfg.data, [search_key], default={})
-        except WrongType: self.ec.add_complaint("Wrong type"); raw_entries = {}
-
-        args = parser_args or ()
-        for k, v in raw_entries.items():
-            target_map.set(k, parse_cls(self.ec).parse(k, v, *args))
-
-        return target_map
-
-    def _extract_single[T](
-        self, 
-        parse_cls: type[T], 
-        cfg: Config, 
-        parser_args: tuple,
-        search_key:str
-    ) -> T | None:
-        if not cfg: return None
-        
-        try: raw_entries = self.opt_dict(cfg.data, [search_key], default={})
-        except WrongType: self.ec.add_complaint("Wrong type"); raw_entries = {} # probably add complaint here
-        if not raw_entries: return None
-
-        args = parser_args or ()
-        item = parse_cls(self.ec).parse(search_key, raw_entries, *args)
-
-        return item
-
 T = TypeVar("T")
 
 @dataclass
@@ -77,7 +37,7 @@ class NamedMap(Generic[T]):
 
 T = TypeVar("T")
 @dataclass
-class ConfigExtractor(BaseConfigExtractor):
+class ConfigExtractor(ValueExtractor):
     ec: ErrorCollector
     configs: tuple[Config, ...]
 
@@ -93,6 +53,21 @@ class ConfigExtractor(BaseConfigExtractor):
             cfg_args = args_per_config[i] if i < len(args_per_config) else None
             extracted_map = self._extract_map(parse_cls, cfg, cfg_args, search_key)
             results.append(extracted_map)
+
+        return tuple(results)
+
+    def get_singles[T](
+        self, 
+        parse_cls: type[T], 
+        *args_per_config: tuple | None
+    ) -> tuple[T | None, ...]:
+        search_key = parse_cls.entity_cls.key_name
+        
+        results: list[T | None] = []
+        for i, cfg in enumerate(self.configs):
+            cfg_args = args_per_config[i] if i < len(args_per_config) else None
+            extracted_item = self._extract_single(parse_cls, cfg, cfg_args, search_key)
+            results.append(extracted_item)
 
         return tuple(results)
 
@@ -120,29 +95,20 @@ class ConfigExtractor(BaseConfigExtractor):
 
         return target_map
 
-    def get_singles[T](
+    def _extract_single[T](
         self, 
         parse_cls: type[T], 
-        *args_per_config: tuple | None
-    ) -> tuple[T | None, ...]:
-        search_key = parse_cls.entity_cls.key_name
+        cfg: Config, 
+        parser_args: tuple,
+        search_key:str
+    ) -> T | None:
+        if not cfg: return None
         
-        results: list[T | None] = []
-        for i, cfg in enumerate(self.configs):
-            cfg_args = args_per_config[i] if i < len(args_per_config) else None
-            extracted_item = self._extract_single(parse_cls, cfg, cfg_args, search_key)
-            results.append(extracted_item)
+        try: raw_entries = self.opt_dict(cfg.data, [search_key], default={})
+        except WrongType: self.ec.add_complaint("Wrong type"); raw_entries = {} # probably add complaint here
+        if not raw_entries: return None
 
-        return tuple(results)
+        args = parser_args or ()
+        item = parse_cls(self.ec).parse(search_key, raw_entries, *args)
 
-
-T = TypeVar("T")
-@dataclass
-class SysConfigExtractor(BaseConfigExtractor):
-    ec: ErrorCollector
-    sys_cfg: Config
-    
-    def get_one(self, parse_cls: type, args: tuple | None = None):
-        search_key = parse_cls.entity_cls.key_name
-        item = self._extract_single(parse_cls, self.sys_cfg, args, search_key)
         return item

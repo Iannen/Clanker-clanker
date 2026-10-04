@@ -2,12 +2,10 @@ from stdlib import StrEnum, dataclass
 from core import RepoItem, CorruptClanker, Config, Render, AssetPack, Keyboard
 from ...asset_ingestion import ConfigExtractor, FilelistParser, FilesetParser, FilelistValidator, FilesetValidator, CollisionDetector, Missing, Malformed, ErrorCollector, DomParser, ResolverParser, UIRenderParser, KeyboardParser, OverflowHandler
 
-
 class ClassificationResult(StrEnum):
     ALL_PRESENT = "all"
     NONE_PRESENT = "none"
     MIXED = "mix"
-
 
 class ItemClassifier:
     def __init__(self, ec: ErrorCollector):
@@ -45,8 +43,8 @@ class Assembler:
     def assemble(self, pud_res: ClassificationResult) ->  tuple[Render, Keyboard]:
         extractor = ConfigExtractor(self.collector, (self.clank_cfg, self.pud_cfg))
         clank_fl, pud_fl = extractor.get_maps(FilelistParser)
-        unified_fl = clank_fl | pud_fl if clank_fl and pud_fl else None
         clank_fs, pud_fs = extractor.get_maps(FilesetParser)
+        unified_fl = clank_fl | pud_fl if clank_fl and pud_fl else None
         unified_fs = clank_fs | pud_fs if clank_fs and pud_fs else None
         clank_br, pud_br = extractor.get_singles(ResolverParser, (clank_fs, clank_fl), (unified_fs, unified_fl))
         clank_doms, pud_doms = extractor.get_maps(DomParser, (clank_fs, clank_fl), (unified_fs, unified_fl))
