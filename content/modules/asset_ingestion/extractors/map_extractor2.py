@@ -216,52 +216,9 @@ class ResolverParser2(ValueExtractor):
 
         if res_type == "multi-document-retrieval": return MdResParser(self.collector).parse("", data, numap)
         if res_type == "repo_content": return RepoContentResParser(self.collector).parse("", data, numap)
-            #return self._repo_content(anchor, data, numap)
-        if res_type == "repo-manifest":
-            return self._repo_manifest(anchor, data, numap)
-        if res_type in ("kb_info", "kb_state"):
-            return KBStateResolver(anchor)
+        if res_type == "repo-manifest": return RepoManifestResParser(self.collector).parse("", data, numap)
+        if res_type in ("kb_info", "kb_state"): return KBStateResolver(anchor)
         raise ConfigAssembly(f"Unsupported resolver type: '{res_type}'")
-
-    def _md_res(self, anchor:str, data, numap) -> MultiDocResolver | None:
-        
-        try: dict = self.opt_list(data, ["files"], None)
-        except ConfigAssembly: dict = None
-        try: filelist_name = self.opt_str(data, ["files"], None)
-        except ConfigAssembly: filelist_name = None
-        
-        
-        if filelist_name is not None: filelist_obj = numap.get_entity(Filelist, filelist_name)
-        elif dict is not None: filelist_obj = FilelistParser2(self.collector).parse("", dict, numap)
-        else: raise Exception("bugg")
-        return MultiDocResolver(anchor=anchor, files=filelist_obj)
-
-    def _repo_content(self, anchor, data, numap) -> RepoContentResolver | None:
-        
-        fileset_key = self.opt_str(data, ["fileset"], [])
-        if fileset_key: return RepoContentResolver(anchor=anchor,fileset=numap.get_entity(Fileset, fileset_key))
-        fileset_obj = FilesetParser2(self.collector).parse("",data, numap)
-        return RepoContentResolver(anchor=anchor, fileset=fileset_obj)
-        
-
-    def _repo_manifest(self, anchor, data, numap: Numap) -> ManifestResolver | None:
-        if "pud_fileset" not in data and "shared_fileset" not in data:
-            raise ConfigAssembly(
-                f"Manifest resolver '{anchor}' must specify at least 'pud_fileset' or 'shared_fileset'"
-            )
-
-        pud_val = self.opt_str_or_dict(data, ["pud_fileset"], default={})
-        if isinstance(pud_val, str): pud_fileset_obj = numap.get_entity(Fileset, pud_val)
-        else: pud_fileset_obj = FilesetParser2(pud_val, self.collector).parse() if pud_val else Fileset(includes=[], excludes=[])
-        shared_val = self.opt_str_or_dict(data, ["shared_fileset"], default={})
-        if isinstance(shared_val, str): shared_fileset_obj = numap.get_entity(Fileset, shared_val)
-        else: shared_fileset_obj = FilesetParser2(shared_val, self.collector).parse() if shared_val else None
-
-        return ManifestResolver(
-            anchor=anchor,
-            pud_fileset=pud_fileset_obj,
-            shared_fileset=shared_fileset_obj,
-        )
 
 @dataclass 
 class MdResParser(ValueExtractor):
@@ -292,3 +249,28 @@ class RepoContentResParser(ValueExtractor):
         if fileset_key: return RepoContentResolver(anchor=anchor,fileset=numap.get_entity(Fileset, fileset_key))
         fileset_obj = FilesetParser2(self.ec).parse("",data, numap)
         return RepoContentResolver(anchor=anchor, fileset=fileset_obj)
+
+@dataclass
+class RepoManifestResParser(ValueExtractor):
+    ec: ErrorCollector
+    entity_cls: ClassVar[type[Entity]] = ManifestResolver
+
+    def parse(self, name: str, data: dict, numap: Numap) -> ManifestResolver | None:
+        anchor = self.req_str(data, ["id"])
+        if "pud_fileset" not in data and "shared_fileset" not in data:
+            raise ConfigAssembly(
+                f"Manifest resolver '{anchor}' must specify at least 'pud_fileset' or 'shared_fileset'"
+            )
+
+        pud_val = self.opt_str_or_dict(data, ["pud_fileset"], default={})
+        if isinstance(pud_val, str): pud_fileset_obj = numap.get_entity(Fileset, pud_val)
+        else: pud_fileset_obj = FilesetParser2(pud_val, self.ec).parse() if pud_val else Fileset(includes=[], excludes=[])
+        shared_val = self.opt_str_or_dict(data, ["shared_fileset"], default={})
+        if isinstance(shared_val, str): shared_fileset_obj = numap.get_entity(Fileset, shared_val)
+        else: shared_fileset_obj = FilesetParser2(shared_val, self.ec).parse() if shared_val else None
+
+        return ManifestResolver(
+            anchor=anchor,
+            pud_fileset=pud_fileset_obj,
+            shared_fileset=shared_fileset_obj,
+        )
