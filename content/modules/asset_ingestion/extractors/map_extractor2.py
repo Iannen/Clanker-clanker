@@ -57,25 +57,49 @@ class BaseParser2(ValueExtractor):
     entity_cls: ClassVar[type[Entity]]
 
     def parse(self, name: str, data: dict, numap: Numap) -> Any:
-        if not isinstance(data, dict):
-            self.ec.add_complaint(f"Expected dict for {self.entity_cls.__name__}, got {type(data).__name__}")
-            return None
-
         kwargs_out = {}
-        for f in fields(self.entity_cls):
-            key = f.name
-            
-            has_default = f.default is not MISSING or f.default_factory is not MISSING
-            type_args = get_args(f.type)
-            is_optional = has_default or (type(None) in type_args)
+
+        for field in fields(self.entity_cls):
+            key = field.name
+            raw_type = field.type
+
+            # Check defaults
+            has_default = field.default is not MISSING
+            has_factory = field.default_factory is not MISSING
+
+            # Unwrap Optional[T] / Union[T, None] to find the real type T
+            type_args = get_args(raw_type)
+            is_optional_type = type(None) in type_args
+            is_optional = has_default or has_factory or is_optional_type
+
+            # Unwrap the actual type if it's Optional
+            non_none_types = [t for t in type_args if t is not type(None)]
+            target_type = non_none_types[0] if non_none_types else raw_type
 
             if key not in data:
                 if not is_optional:
-                    self.ec.add_complaint(f"Missing required key '{key}' in {self.entity_cls.__name__}")
+                    self.ec.add_complaint(
+                        f"Missing required key '{key}' in {self.entity_cls.__name__}"
+                    )
                     continue
-                kwargs_out[key] = f.default if f.default is not MISSING else None
+
+                if has_default:
+                    kwargs_out[key] = field.default
+                elif has_factory:
+                    kwargs_out[key] = field.default_factory()
+                else:
+                    kwargs_out[key] = None
             else:
-                kwargs_out[key] = data[key]
+                raw_val = data[key]
+
+                if isinstance(target_type, type) and issubclass(target_type, Entity):
+                    out = numap.get_entity(target_type, raw_val)
+                    if not out:
+                        parser_cls = numap.get_parser(target_type)
+                        out = parser_cls(self.ec).parse(key, raw_val, numap)
+                else:
+                    out = data.get(key)
+                kwargs_out[key] = out
 
         return self.entity_cls(**kwargs_out)
 
