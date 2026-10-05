@@ -1,7 +1,7 @@
 from stdlib import StrEnum, dataclass
-from core import RepoItem, CorruptClanker, Config, Render, AssetPack, Keyboard
+from core import RepoItem, CorruptClanker, Config, Render, AssetPack, Keyboard, Filelist, Fileset, Domain
 from ...asset_ingestion import ConfigExtractor, FilelistParser, FilesetParser, FilelistValidator, FilesetValidator, CollisionDetector, Missing, Malformed, ErrorCollector, DomParser, ResolverParser, UIRenderParser, KeyboardParser, OverflowHandler
-#from ...asset_ingestion import Numap, NuConfigExtractor
+from ...asset_ingestion import Numap, NuConfigExtractor
 
 class ClassificationResult(StrEnum):
     ALL_PRESENT = "all"
@@ -42,12 +42,23 @@ class Assembler:
     pud_content_assets: AssetPack  | None
 
     def assemble(self, pud_res: ClassificationResult) ->  tuple[Render, Keyboard]:
-        #numap = Numap()
-        #nuextractor = NuConfigExtractor(self.collector)
-        #with_filelist = nuextractor.act_on(numap)
+        clank_numap = Numap()
+        clank_ext = NuConfigExtractor(self.collector, self.clank_cfg)
+        clank_ext.act_on(Filelist, clank_numap)
+        clank_ext.act_on(Fileset, clank_numap)
+        clank_ext.act_on(Domain, clank_numap)
+
+        pud_numap = Numap()
+        pud_ext = NuConfigExtractor(self.collector, self.pud_cfg)
+        pud_ext.act_on(Filelist, clank_numap)
+        pud_ext.act_on(Fileset, clank_numap)
+
+        val = 1
+
+
+
 
         extractor = ConfigExtractor(self.collector, (self.clank_cfg, self.pud_cfg))
-        # instantiate two maps on the outside, then pass them into each 'get_map' call to accumulate instances
         clank_fl, pud_fl = extractor.get_maps(FilelistParser)
         clank_fs, pud_fs = extractor.get_maps(FilesetParser)
         unified_fl = clank_fl | pud_fl if clank_fl and pud_fl else None
