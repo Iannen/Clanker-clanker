@@ -225,6 +225,23 @@ class ResolverParser2(ValueExtractor):
         raise ConfigAssembly(f"Unsupported resolver type: '{res_type}'")
 
 @dataclass 
+class MdResParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = MultiDocResolver
+"""
+    def parse(self, name: str, data: dict, numap: Numap) -> MultiDocResolver | None:
+        anchor = self.req_str(data, ["anchor"])
+        try: dict = self.opt_list(data, ["files"], None)
+        except ConfigAssembly: dict = None
+        try: filelist_name = self.opt_str(data, ["files"], None)
+        except ConfigAssembly: filelist_name = None
+        
+        
+        if filelist_name is not None: filelist_obj = numap.get_entity(Filelist, filelist_name)
+        elif dict is not None: filelist_obj = FilelistParser2(self.ec).parse("", dict, numap)
+        else: raise Exception("bugg")
+        return MultiDocResolver(anchor=anchor, files=filelist_obj)
+"""    
+"""
+@dataclass 
 class MdResParser(ValueExtractor):
     ec: ErrorCollector
     entity_cls: ClassVar[type[Entity]] = MultiDocResolver
@@ -241,7 +258,7 @@ class MdResParser(ValueExtractor):
         elif dict is not None: filelist_obj = FilelistParser2(self.ec).parse("", dict, numap)
         else: raise Exception("bugg")
         return MultiDocResolver(anchor=anchor, files=filelist_obj)
-
+"""
 @dataclass
 class RepoContentResParser(BaseParser2):
     entity_cls: ClassVar[type[Entity]] = RepoContentResolver
