@@ -67,16 +67,13 @@ class BaseParser2(ValueExtractor):
             key = field.name
             raw_type = field.type
 
-            # Check defaults
             has_default = field.default is not MISSING
             has_factory = field.default_factory is not MISSING
 
-            # Unwrap Optional[T] / Union[T, None] to find the real type T
             type_args = get_args(raw_type)
             is_optional_type = type(None) in type_args
             is_optional = has_default or has_factory or is_optional_type
 
-            # Unwrap the actual type if it's Optional
             non_none_types = [t for t in type_args if t is not type(None)]
             target_type = non_none_types[0] if non_none_types else raw_type
 
@@ -197,11 +194,20 @@ class RenderParser2(ValueExtractor):
             inherit_base=inherit_base,
             inherit_domain=inherit_domain,
         )
-
 @dataclass
 class UIRenderParser2(RenderParser2): 
     collector: ErrorCollector
     entity_cls: type = UIRender
+"""
+@dataclass
+class RenderParser2(BaseParser2): 
+    entity_cls: ClassVar[type[Entity]] = Render
+
+    def preprocess(self, data):
+        return data
+"""
+@dataclass
+class UIRenderParser2(RenderParser2): entity_cls: ClassVar[type[Entity]] = UIRender
 
 @dataclass
 class ResolverParser2(ValueExtractor):

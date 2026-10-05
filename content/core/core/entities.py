@@ -79,8 +79,8 @@ class KBStateResolver(Resolver):
 
 @dataclass
 class Render(Entity):
+    resolvers: list[Resolver] #= field(default_factory=list)
     template: str = "prompt_template"
-    resolvers: list[Resolver] = field(default_factory=list)
     inherit_base: bool = True
     inherit_domain: bool = True
 
