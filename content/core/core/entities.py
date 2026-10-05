@@ -66,7 +66,7 @@ class MultiDocResolver(Resolver):
 
 @dataclass
 class RepoContentResolver(Resolver):
-    fileset: Fileset = field(default_factory=Fileset)
+    fileset: Fileset # = field(default_factory=Fileset)
 
 @dataclass
 class ManifestResolver(Resolver):

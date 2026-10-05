@@ -28,7 +28,8 @@ class Numap:
     def get_entity(self, entity_cls: type, key: str) -> Entity | None:
         if not isinstance(entity_cls, type) or not issubclass(entity_cls, Entity):
             raise TypeError(f"Expected a subclass of Entity, got {entity_cls}")
-            
+        if not isinstance(key, str):
+            return None
         return self.entities.get((entity_cls, key))
 
     def get_parser(self, entity_cls: type) -> type:
@@ -56,7 +57,10 @@ class BaseParser2(ValueExtractor):
     ec: ErrorCollector
     entity_cls: ClassVar[type[Entity]]
 
+    def preprocess(self, data:dict): return data
+
     def parse(self, name: str, data: dict, numap: Numap) -> Any:
+        data = self.preprocess(data)
         kwargs_out = {}
 
         for field in fields(self.entity_cls):
@@ -239,16 +243,16 @@ class MdResParser(ValueExtractor):
         return MultiDocResolver(anchor=anchor, files=filelist_obj)
 
 @dataclass
-class RepoContentResParser(ValueExtractor):
-    ec: ErrorCollector
+class RepoContentResParser(BaseParser2):
     entity_cls: ClassVar[type[Entity]] = RepoContentResolver
-
-    def parse(self, name: str, data: dict, numap: Numap) -> RepoContentResolver | None:
-        anchor = self.req_str(data, ["anchor"])
-        fileset_key = self.opt_str(data, ["fileset"], [])
-        if fileset_key: return RepoContentResolver(anchor=anchor,fileset=numap.get_entity(Fileset, fileset_key))
-        fileset_obj = FilesetParser2(self.ec).parse("",data, numap)
-        return RepoContentResolver(anchor=anchor, fileset=fileset_obj)
+    def preprocess(self, data: dict) -> dict:
+            if "fileset" in data: return data
+            new_data = data.copy()
+            fileset = {}
+            if "includes" in new_data: fileset["includes"] = new_data.pop("includes")
+            if "excludes" in new_data: fileset["excludes"] = new_data.pop("excludes")
+            new_data["fileset"] = fileset
+            return new_data
 
 @dataclass
 class RepoManifestResParser(ValueExtractor):
