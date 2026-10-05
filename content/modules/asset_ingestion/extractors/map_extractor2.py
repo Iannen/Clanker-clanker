@@ -214,10 +214,9 @@ class ResolverParser2(ValueExtractor):
         res_type = self.req_str(data, ["type"])
         anchor = self.req_str(data, ["id"])
 
-        if res_type == "multi-document-retrieval":
-            return self._md_res(anchor, data, numap)            
-        if res_type == "repo_content":
-            return self._repo_content(anchor, data, numap)
+        if res_type == "multi-document-retrieval": return MdResParser(self.collector).parse("", data, numap)
+        if res_type == "repo_content": return RepoContentResParser(self.collector).parse("", data, numap)
+            #return self._repo_content(anchor, data, numap)
         if res_type == "repo-manifest":
             return self._repo_manifest(anchor, data, numap)
         if res_type in ("kb_info", "kb_state"):
@@ -238,10 +237,12 @@ class ResolverParser2(ValueExtractor):
         return MultiDocResolver(anchor=anchor, files=filelist_obj)
 
     def _repo_content(self, anchor, data, numap) -> RepoContentResolver | None:
+        
         fileset_key = self.opt_str(data, ["fileset"], [])
         if fileset_key: return RepoContentResolver(anchor=anchor,fileset=numap.get_entity(Fileset, fileset_key))
         fileset_obj = FilesetParser2(self.collector).parse("",data, numap)
         return RepoContentResolver(anchor=anchor, fileset=fileset_obj)
+        
 
     def _repo_manifest(self, anchor, data, numap: Numap) -> ManifestResolver | None:
         if "pud_fileset" not in data and "shared_fileset" not in data:
@@ -262,3 +263,32 @@ class ResolverParser2(ValueExtractor):
             shared_fileset=shared_fileset_obj,
         )
 
+@dataclass 
+class MdResParser(ValueExtractor):
+    ec: ErrorCollector
+    entity_cls: ClassVar[type[Entity]] = MultiDocResolver
+
+    def parse(self, name: str, data: dict, numap: Numap) -> MultiDocResolver | None:
+        anchor = self.req_str(data, ["id"])
+        try: dict = self.opt_list(data, ["files"], None)
+        except ConfigAssembly: dict = None
+        try: filelist_name = self.opt_str(data, ["files"], None)
+        except ConfigAssembly: filelist_name = None
+        
+        
+        if filelist_name is not None: filelist_obj = numap.get_entity(Filelist, filelist_name)
+        elif dict is not None: filelist_obj = FilelistParser2(self.ec).parse("", dict, numap)
+        else: raise Exception("bugg")
+        return MultiDocResolver(anchor=anchor, files=filelist_obj)
+
+@dataclass
+class RepoContentResParser(ValueExtractor):
+    ec: ErrorCollector
+    entity_cls: ClassVar[type[Entity]] = RepoContentResolver
+
+    def parse(self, name: str, data: dict, numap: Numap) -> RepoContentResolver | None:
+        anchor = self.req_str(data, ["id"])
+        fileset_key = self.opt_str(data, ["fileset"], [])
+        if fileset_key: return RepoContentResolver(anchor=anchor,fileset=numap.get_entity(Fileset, fileset_key))
+        fileset_obj = FilesetParser2(self.ec).parse("",data, numap)
+        return RepoContentResolver(anchor=anchor, fileset=fileset_obj)
