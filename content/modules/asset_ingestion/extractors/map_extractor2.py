@@ -212,7 +212,7 @@ class ResolverParser2(ValueExtractor):
 
     def parse(self, name, data, numap:Numap) -> Resolver | None:
         res_type = self.req_str(data, ["type"])
-        anchor = self.req_str(data, ["id"])
+        anchor = self.req_str(data, ["anchor"])
 
         if res_type == "multi-document-retrieval": return MdResParser(self.collector).parse("", data, numap)
         if res_type == "repo_content": return RepoContentResParser(self.collector).parse("", data, numap)
@@ -226,7 +226,7 @@ class MdResParser(ValueExtractor):
     entity_cls: ClassVar[type[Entity]] = MultiDocResolver
 
     def parse(self, name: str, data: dict, numap: Numap) -> MultiDocResolver | None:
-        anchor = self.req_str(data, ["id"])
+        anchor = self.req_str(data, ["anchor"])
         try: dict = self.opt_list(data, ["files"], None)
         except ConfigAssembly: dict = None
         try: filelist_name = self.opt_str(data, ["files"], None)
@@ -244,7 +244,7 @@ class RepoContentResParser(ValueExtractor):
     entity_cls: ClassVar[type[Entity]] = RepoContentResolver
 
     def parse(self, name: str, data: dict, numap: Numap) -> RepoContentResolver | None:
-        anchor = self.req_str(data, ["id"])
+        anchor = self.req_str(data, ["anchor"])
         fileset_key = self.opt_str(data, ["fileset"], [])
         if fileset_key: return RepoContentResolver(anchor=anchor,fileset=numap.get_entity(Fileset, fileset_key))
         fileset_obj = FilesetParser2(self.ec).parse("",data, numap)
@@ -256,7 +256,7 @@ class RepoManifestResParser(ValueExtractor):
     entity_cls: ClassVar[type[Entity]] = ManifestResolver
 
     def parse(self, name: str, data: dict, numap: Numap) -> ManifestResolver | None:
-        anchor = self.req_str(data, ["id"])
+        anchor = self.req_str(data, ["anchor"])
         if "pud_fileset" not in data and "shared_fileset" not in data:
             raise ConfigAssembly(
                 f"Manifest resolver '{anchor}' must specify at least 'pud_fileset' or 'shared_fileset'"

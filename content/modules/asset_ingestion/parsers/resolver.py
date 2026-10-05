@@ -23,7 +23,9 @@ class ResolverParser(ValueExtractor):
 
     def parse(self, name, data, fileset_map: NamedMap, filelist_map: NamedMap) -> Resolver | None:
         res_type = self.req_str(data, ["type"])
-        anchor = self.req_str(data, ["id"])
+        try: anchor = self.req_str(data, ["anchor"])
+        except ConfigAssembly:
+            str = "here we are"
 
         if res_type == "multi-document-retrieval":
             return self._md_res(anchor, data, filelist_map)            
