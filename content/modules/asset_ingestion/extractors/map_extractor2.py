@@ -126,13 +126,7 @@ class DomParser2(ValueExtractor):
         return [PromptParser2(self.ec).parse("", d, numap) for d in dicts]
 
 @dataclass
-class PromptParser2(ValueExtractor):
-    ec: ErrorCollector
-    def parse(self, name, data, numap: Numap) -> Prompt: 
-        return Prompt(
-            self.req_str(data, ["name"]), 
-            RenderParser2(self.ec).parse("", self.req_dict(data, ["render"]), numap)
-        )
+class PromptParser2(BaseParser2): entity_cls: ClassVar[type[Entity]] = Prompt
 
 @dataclass
 class FilelistParser2(ValueExtractor):
