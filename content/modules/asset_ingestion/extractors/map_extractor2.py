@@ -199,6 +199,7 @@ class UIRenderParser2(RenderParser2):
     collector: ErrorCollector
     entity_cls: type = UIRender
 """
+i need to make it deal with lists, dicts, anything it can encounter
 @dataclass
 class RenderParser2(BaseParser2): 
     entity_cls: ClassVar[type[Entity]] = Render

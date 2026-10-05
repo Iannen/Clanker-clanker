@@ -1,4 +1,4 @@
-from stdlib import dataclass, field, ClassVar, Type, re
+from stdlib import dataclass, ClassVar, Type, re
 
 class classproperty:
     def __init__(self, func):
@@ -11,26 +11,13 @@ class Entity:
     def key_name(cls) -> str:
         if hasattr(cls, "_key_name"):
             return cls._key_name
-        
-        # Inserts '_' before capital letters following lowercase/numbers, 
-        # or preceding another capital followed by lowercase (e.g. "HTTPRequest" -> "http_request")
+
         name = re.sub(r'(?<!^)(?=[A-Z][a-z])|(?<=[a-z0-9])(?=[A-Z])', '_', cls.__name__)
         return name.lower()
 
     @classproperty
     def plural_key(cls) -> str:
         return getattr(cls, "_plural_key", f"{cls.key_name}s")
-
-"""
-class Entity:
-    @classproperty
-    def key_name(cls) -> str:
-        return getattr(cls, "_key_name", cls.__name__.lower())
-
-    @classproperty
-    def plural_key(cls) -> str:
-        return getattr(cls, "_plural_key", f"{cls.key_name}s")
-"""
 
 @dataclass
 class TruncationSpec:
@@ -49,7 +36,7 @@ class File:
 
 @dataclass
 class Filelist(Entity):
-    files: list[File] = field(default_factory=list)
+    files: list[File] 
 
 @dataclass
 class Fileset(Entity):
@@ -62,15 +49,15 @@ class Resolver(Entity):
 
 @dataclass
 class MultiDocResolver(Resolver):
-    files: Filelist = field(default_factory=Filelist)
+    files: Filelist 
 
 @dataclass
 class RepoContentResolver(Resolver):
-    fileset: Fileset # = field(default_factory=Fileset)
+    fileset: Fileset 
 
 @dataclass
 class ManifestResolver(Resolver):
-    pud_fileset: Fileset = field(default_factory=Fileset)
+    pud_fileset: Fileset 
     shared_fileset: Fileset | None = None
 
 @dataclass
@@ -79,20 +66,20 @@ class KBStateResolver(Resolver):
 
 @dataclass
 class Render(Entity):
-    resolvers: list[Resolver] #= field(default_factory=list)
+    resolvers: list[Resolver] 
     template: str = "prompt_template"
     inherit_base: bool = True
     inherit_domain: bool = True
 
 @dataclass 
 class UIRender(Entity):
+    resolvers: list[Resolver] 
     template: str = "prompt_template"
-    resolvers: list[Resolver] = field(default_factory=list)
     inherit_base: bool = False
     inherit_domain: bool = False
 
 @dataclass
-class Prompt:
+class Prompt(Entity):
     name: str
     render: Render
 
@@ -108,7 +95,6 @@ class NewBtn: key: str
 class PromptButton(NewBtn): inhabitant: Prompt | None = None
 @dataclass
 class DomButton(NewBtn): inhabitant: Domain | None = None
-# i think these could be pruned, not sure
 @dataclass
 class SharedDomButton(DomButton): pass
 @dataclass
