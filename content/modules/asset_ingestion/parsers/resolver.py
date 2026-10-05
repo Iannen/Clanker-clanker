@@ -36,6 +36,7 @@ class ResolverParser(ValueExtractor):
         raise ConfigAssembly(f"Unsupported resolver type: '{res_type}'")
 
     def _md_res(self, anchor:str, data, filelist_map) -> MultiDocResolver | None:
+        
         try: dict = self.opt_list(data, ["files"], None)
         except ConfigAssembly: dict = None
         try: filelist_name = self.opt_str(data, ["files"], None)
@@ -50,12 +51,7 @@ class ResolverParser(ValueExtractor):
     def _repo_content(self, anchor, data, fileset_map) -> RepoContentResolver | None:
         fileset_key = self.opt_str(data, ["fileset"], [])
         if fileset_key: return RepoContentResolver(anchor=anchor,fileset=fileset_map.get(fileset_key))
-        fileset_val = {
-            "includes": self.req_list(data, ["includes"]),
-            "excludes": self.opt_list(data, ["excludes"], default=[]),
-        }
-        fileset_obj = FilesetParser(self.collector).parse("",fileset_val)
-
+        fileset_obj = FilesetParser(self.collector).parse("",data)
         return RepoContentResolver(anchor=anchor, fileset=fileset_obj)
 
     def _repo_manifest(self, anchor, data, fileset_map) -> ManifestResolver | None:

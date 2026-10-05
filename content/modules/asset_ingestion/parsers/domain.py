@@ -11,7 +11,7 @@ class DomParser(ValueExtractor):
             raw_prompts = self.req_list(data, ["prompts"])
             resolvers = [ResolverParser(self.ec).parse("", r, fileset_map, filelist_map)for r in raw_resolvers]
             prompts = self._build_prompts(raw_prompts, fileset_map, filelist_map)
-            return Domain(name=name, prompts=prompts, resolvers=resolvers) #name=name, 
+            return Domain(name=name, prompts=prompts, resolvers=resolvers)
             
     def _build_prompts(self, dicts: list[dict], fileset_map, filelist_map) -> list[Prompt]:
         return [PromptParser(self.ec).parse(d, fileset_map, filelist_map) for d in dicts]
@@ -20,5 +20,10 @@ class DomParser(ValueExtractor):
 class PromptParser(ValueExtractor):
     ec: ErrorCollector
     def parse(self, data, fileset_map, filelist_map) -> Prompt: 
-        return Prompt(self.req_str(data, ["name"]), RenderParser(self.ec).parse("", self.req_dict(data, ["render"]), fileset_map, filelist_map))
+        return Prompt(
+            self.req_str(data, ["name"]), 
+            RenderParser(self.ec).parse("", self.req_dict(data, ["render"]), 
+            fileset_map, filelist_map
+            )
+        )
         

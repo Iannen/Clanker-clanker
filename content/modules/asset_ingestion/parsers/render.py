@@ -21,6 +21,6 @@ class RenderParser(ValueExtractor):
         )
 
 @dataclass
-class UIRenderParser(RenderParser): #ValueExtractor
+class UIRenderParser(RenderParser): 
     collector: ErrorCollector
     entity_cls: type = UIRender

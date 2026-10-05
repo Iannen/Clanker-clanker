@@ -1,6 +1,7 @@
 from stdlib import StrEnum, dataclass
 from core import RepoItem, CorruptClanker, Config, Render, AssetPack, Keyboard
 from ...asset_ingestion import ConfigExtractor, FilelistParser, FilesetParser, FilelistValidator, FilesetValidator, CollisionDetector, Missing, Malformed, ErrorCollector, DomParser, ResolverParser, UIRenderParser, KeyboardParser, OverflowHandler
+#from ...asset_ingestion import Numap, NuConfigExtractor
 
 class ClassificationResult(StrEnum):
     ALL_PRESENT = "all"
@@ -41,7 +42,12 @@ class Assembler:
     pud_content_assets: AssetPack  | None
 
     def assemble(self, pud_res: ClassificationResult) ->  tuple[Render, Keyboard]:
+        #numap = Numap()
+        #nuextractor = NuConfigExtractor(self.collector)
+        #with_filelist = nuextractor.act_on(numap)
+
         extractor = ConfigExtractor(self.collector, (self.clank_cfg, self.pud_cfg))
+        # instantiate two maps on the outside, then pass them into each 'get_map' call to accumulate instances
         clank_fl, pud_fl = extractor.get_maps(FilelistParser)
         clank_fs, pud_fs = extractor.get_maps(FilesetParser)
         unified_fl = clank_fl | pud_fl if clank_fl and pud_fl else None

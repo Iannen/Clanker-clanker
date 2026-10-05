@@ -46,17 +46,24 @@ II. The pile
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 
 Backlog tail, Selected item/items:
-1. Refactor asset ingestion diagnostics and error handling flow
-    [ ] 'content/core/core/entities.py': Remove diagnostic types
-        - remove BaseCfg, MissingConfig, MalformedConfig, BaseAssetPack, and MissingAssetPack
-    [ ] 'content/modules/asset_ingestion/commons/error_collector.py': Add Complaint hierarchy and update ErrorCollector
-        - define abstract base class Complaint with to_string() method
-        - implement MissingConfig, MalformedConfig, and MissingAssetPack dataclasses inheriting Complaint
-        - update add_complaint and add_critical_complaint to accept str | Complaint and format automatically
-    [ ] 'content/modules/asset_ingestion/ingestion_service.py': Simplify ingestion error flow and context processing
-        - update _get_config and _get_asset_pack to take ErrorCollector, push Complaint directly on error, and return None
-        - update ClankerCtx and PudCtx to handle optional Config and AssetPack types directly
-        - remove isinstance checks for diagnostic objects across context processing methods
+Refactor asset ingestion diagnostics and error handling flow*
+    This is a massive undertaking
+    Much undocumented work as been done, reducing boilerplate and bringing clarity.
+    I will leave some thoughts here.
 
+1   The parsing of a config needs to be a recursive affair. 
+    Parse classes rely on a map that supplies instances or child parse classes
+    Parse class & map interaction
+        - read its entity class into 3 tuple of key, type and value
+            - members are either primitives which the parse class satisfies from its data dict
+            - if type is not an entity, then it resolves from data
+            - if type is an entity: 
+                - returns the entity or returns a parse class to tackle its instatiation
+    
+class Mapclass():
+    filelist_map 
+    collector: ErrorCollector
+    def set(self, entity_cls: type[Entity], key: str, value: Entity) -> None: ...
+    def set[E: Entity](self, entity_cls: type[E], data: str | Any) -> E | BaseParser | None: ...
 
 Backlog tail end
