@@ -57,7 +57,7 @@ class BaseParser2(ValueExtractor):
     ec: ErrorCollector
     entity_cls: ClassVar[type[Entity]]
 
-    def preprocess(self, data:dict): return data
+    def preprocess(self, data: dict): return data
 
     def parse(self, name: str, data: dict, numap: Numap) -> Any:
         data = self.preprocess(data)
@@ -68,11 +68,10 @@ class BaseParser2(ValueExtractor):
             raw_type = field.type
 
             has_default = field.default is not MISSING
-            has_factory = field.default_factory is not MISSING
 
             type_args = get_args(raw_type)
             is_optional_type = type(None) in type_args
-            is_optional = has_default or has_factory or is_optional_type
+            is_optional = has_default or is_optional_type
 
             non_none_types = [t for t in type_args if t is not type(None)]
             target_type = non_none_types[0] if non_none_types else raw_type
@@ -86,8 +85,6 @@ class BaseParser2(ValueExtractor):
 
                 if has_default:
                     kwargs_out[key] = field.default
-                elif has_factory:
-                    kwargs_out[key] = field.default_factory()
                 else:
                     kwargs_out[key] = None
             else:
@@ -103,7 +100,73 @@ class BaseParser2(ValueExtractor):
                 kwargs_out[key] = out
 
         return self.entity_cls(**kwargs_out)
+"""
+@dataclass
+class BaseParser2(ValueExtractor):
+    ec: ErrorCollector
+    entity_cls: ClassVar[type[Entity]]
 
+    def preprocess(self, data: dict): 
+        return data
+
+    def parse(self, name: str, data: dict, numap: Numap) -> Any:
+        data = self.preprocess(data)
+        kwargs_out = {}
+
+        for field in fields(self.entity_cls):
+            key = field.name
+            raw_type = field.type
+            has_default = field.default is not MISSING
+
+            if key not in data:
+                if not has_default and type(None) not in get_args(raw_type):
+                    self.ec.add_complaint(
+                        f"Missing required key '{key}' in {self.entity_cls.__name__}"
+                    )
+                    continue
+
+                kwargs_out[key] = field.default if has_default else None # probably not ok to give None
+            else:
+                kwargs_out[key] = self._parse_value(raw_type, data[key], numap, key)
+
+        return self.entity_cls(**kwargs_out)
+
+    def _parse_value(self, target_type: type, value: Any, numap: Numap, key_context: str) -> Any:
+        if value is None:
+            return None
+
+        args = get_args(target_type)
+        if args:
+            non_none = [t for t in args if t is not type(None)]
+            if len(non_none) == 1:
+                target_type = non_none[0]
+
+        origin = getattr(target_type, "__origin__", target_type)
+
+        if isinstance(target_type, type) and issubclass(target_type, Entity):
+            if isinstance(value, str):
+                entity = numap.get_entity(target_type, value)
+                if entity is not None:
+                    return entity
+            if isinstance(value, dict):
+                parser_cls = numap.get_parser(target_type)
+                if parser_cls:
+                    return parser_cls(self.ec).parse(key_context, value, numap)
+            return value
+
+        if origin is list and isinstance(value, list):
+            elem_type = get_args(target_type)[0] if get_args(target_type) else Any
+            return [self._parse_value(elem_type, item, numap, key_context) for item in value]
+
+        if origin is dict and isinstance(value, dict):
+            val_type = get_args(target_type)[1] if len(get_args(target_type)) > 1 else Any
+            return {
+                k: self._parse_value(val_type, v, numap, k)
+                for k, v in value.items()
+            }
+
+        return value
+"""
 @dataclass
 class FilesetParser2(BaseParser2): entity_cls: ClassVar[type[Entity]] = Fileset
 
@@ -176,7 +239,6 @@ class KeyboardParser2(ValueExtractor):
             pud_dom_btns={key: PudDomButton(key) for key in pud_keys},
             prompt_btns={key: PromptButton(key) for key in prompt_keys},
         )
-
 @dataclass
 class RenderParser2(ValueExtractor):
     collector: ErrorCollector
@@ -199,17 +261,17 @@ class UIRenderParser2(RenderParser2):
     collector: ErrorCollector
     entity_cls: type = UIRender
 """
-i need to make it deal with lists, dicts, anything it can encounter
+#i need to make it deal with lists, dicts, anything it can encounter
 @dataclass
 class RenderParser2(BaseParser2): 
     entity_cls: ClassVar[type[Entity]] = Render
 
     def preprocess(self, data):
         return data
-"""
+
 @dataclass
 class UIRenderParser2(RenderParser2): entity_cls: ClassVar[type[Entity]] = UIRender
-
+"""
 @dataclass
 class ResolverParser2(ValueExtractor):
     collector: ErrorCollector
