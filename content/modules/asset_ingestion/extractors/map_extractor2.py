@@ -233,27 +233,6 @@ class RepoContentResParser(BaseParser2):
             new_data["fileset"] = fileset
             return new_data
 
+
 @dataclass
-class RepoManifestResParser(ValueExtractor):
-    ec: ErrorCollector
-    entity_cls: ClassVar[type[Entity]] = ManifestResolver
-
-    def parse(self, name: str, data: dict, numap: Numap) -> ManifestResolver | None:
-        anchor = self.req_str(data, ["anchor"])
-        if "pud_fileset" not in data and "shared_fileset" not in data:
-            raise ConfigAssembly(
-                f"Manifest resolver '{anchor}' must specify at least 'pud_fileset' or 'shared_fileset'"
-            )
-
-        pud_val = self.opt_str_or_dict(data, ["pud_fileset"], default={})
-        if isinstance(pud_val, str): pud_fileset_obj = numap.get_entity(Fileset, pud_val)
-        else: pud_fileset_obj = FilesetParser2(pud_val, self.ec).parse() if pud_val else Fileset(includes=[], excludes=[])
-        shared_val = self.opt_str_or_dict(data, ["shared_fileset"], default={})
-        if isinstance(shared_val, str): shared_fileset_obj = numap.get_entity(Fileset, shared_val)
-        else: shared_fileset_obj = FilesetParser2(shared_val, self.ec).parse() if shared_val else None
-
-        return ManifestResolver(
-            anchor=anchor,
-            pud_fileset=pud_fileset_obj,
-            shared_fileset=shared_fileset_obj,
-        )
+class RepoManifestResParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = ManifestResolver
