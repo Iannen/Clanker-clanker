@@ -152,24 +152,25 @@ class RenderParser2(BaseParser2): entity_cls: ClassVar[type[Entity]] = Render
 class UIRenderParser2(RenderParser2): entity_cls: ClassVar[type[Entity]] = UIRender
 @dataclass
 class FilesetParser2(BaseParser2): entity_cls: ClassVar[type[Entity]] = Fileset
-
 @dataclass
-class DomParser2(ValueExtractor):
-    ec: ErrorCollector
-    entity_cls = Domain
-    def parse(self, name, data, numap:Numap) -> Domain:
-        with self.ec.path(name):
-            raw_resolvers = self.req_list(data, ["resolvers"])
-            raw_prompts = self.req_list(data, ["prompts"])
-            resolvers = [ResolverParser2(self.ec).parse("", r, numap)for r in raw_resolvers]
-            prompts = self._build_prompts(raw_prompts, numap)
-            return Domain(name=name, prompts=prompts, resolvers=resolvers)
-            
-    def _build_prompts(self, dicts: list[dict], numap) -> list[Prompt]:
-        return [PromptParser2(self.ec).parse("", d, numap) for d in dicts]
-
+class DomParser2(BaseParser2): entity_cls: ClassVar[type[Entity]] = Domain
 @dataclass
 class PromptParser2(BaseParser2): entity_cls: ClassVar[type[Entity]] = Prompt
+@dataclass
+class RepoManifestResParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = ManifestResolver
+@dataclass 
+class MdResParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = MultiDocResolver
+@dataclass
+class RepoContentResParser(BaseParser2):
+    entity_cls: ClassVar[type[Entity]] = RepoContentResolver
+    def preprocess(self, data: dict) -> dict:
+            if "fileset" in data: return data
+            new_data = data.copy()
+            fileset = {}
+            if "includes" in new_data: fileset["includes"] = new_data.pop("includes")
+            if "excludes" in new_data: fileset["excludes"] = new_data.pop("excludes")
+            new_data["fileset"] = fileset
+            return new_data
 
 @dataclass
 class FilelistParser2(ValueExtractor):
@@ -205,6 +206,12 @@ class FilelistParser2(ValueExtractor):
                 from_line=from_line,
                 up_to=up_to,
             )
+@dataclass
+class TruncSpecParser(BaseParser2):
+    entity_cls: ClassVar[type[Entity]] = RepoContentResolver
+    def preprocess(self, data: dict):
+        return data
+
 
 @dataclass
 class KeyboardParser2(ValueExtractor):
@@ -212,7 +219,6 @@ class KeyboardParser2(ValueExtractor):
     entity_cls: type = Keyboard
 
     def parse(self, name: str, data: dict) -> Keyboard:
-
         shared_keys = self.req_str(data, ["shared_domains_row"])
         pud_keys = self.req_str(data, ["pud_domains_row"])
         prompt_keys = self.req_str(data, ["prompts_row"])
@@ -238,21 +244,3 @@ class ResolverParser2(ValueExtractor):
         if res_type in ("kb_info", "kb_state"): return KBStateResolver(anchor)
         raise ConfigAssembly(f"Unsupported resolver type: '{res_type}'")
 
-@dataclass 
-class MdResParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = MultiDocResolver
-
-@dataclass
-class RepoContentResParser(BaseParser2):
-    entity_cls: ClassVar[type[Entity]] = RepoContentResolver
-    def preprocess(self, data: dict) -> dict:
-            if "fileset" in data: return data
-            new_data = data.copy()
-            fileset = {}
-            if "includes" in new_data: fileset["includes"] = new_data.pop("includes")
-            if "excludes" in new_data: fileset["excludes"] = new_data.pop("excludes")
-            new_data["fileset"] = fileset
-            return new_data
-
-
-@dataclass
-class RepoManifestResParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = ManifestResolver
