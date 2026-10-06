@@ -1,4 +1,4 @@
-from stdlib import dataclass, field, fields, MISSING, get_args, ClassVar, Any
+from stdlib import dataclass, field, fields, MISSING, get_args, ClassVar, Any, get_args, get_origin, Enum, auto, types, Field
 from core import Config, Entity, Domain, Filelist, Fileset, Keyboard, Render, UIRender, Resolver, Prompt, File, TruncationSpec, MultiDocResolver, ManifestResolver, RepoContentResolver, KBStateResolver, SharedDomButton, PudDomButton, PromptButton
 from core import ConfigAssembly
 from ...asset_ingestion import ValueExtractor, ErrorCollector
@@ -45,128 +45,111 @@ class NuConfigExtractor(ValueExtractor):
         if not self.cfg: return
         entities_dict = self.opt_dict(self.cfg.data, [entity_cls.plural_key],{})
         parse_cls = numap.get_parser(entity_cls)
-        flp = FilelistParser2
-        fsp = FilesetParser2
-        dp = DomParser2
         for name, entity_data in entities_dict.items():
             entity = parse_cls(self.collector).parse(name, entity_data, numap)
             numap.set_entity(name, entity)       
 
+class OuterType(Enum):
+    SINGLE = auto()
+    LIST = auto()
+    DICT = auto()
+
+
+@dataclass
+class EntityField:
+    name: str
+    data: Any
+    outer_type: OuterType
+    inner_type: type
+    default_value: Any = MISSING
+
+
 @dataclass
 class BaseParser2(ValueExtractor):
     ec: ErrorCollector
     entity_cls: ClassVar[type[Entity]]
 
-    def preprocess(self, data: dict): return data
-
-    def parse(self, name: str, data: dict, numap: Numap) -> Any:
-        data = self.preprocess(data)
-        kwargs_out = {}
-
-        for field in fields(self.entity_cls):
-            key = field.name
-            raw_type = field.type
-
-            has_default = field.default is not MISSING
-
-            type_args = get_args(raw_type)
-            is_optional_type = type(None) in type_args
-            is_optional = has_default or is_optional_type
-
-            non_none_types = [t for t in type_args if t is not type(None)]
-            target_type = non_none_types[0] if non_none_types else raw_type
-
-            if key not in data:
-                if not is_optional:
-                    self.ec.add_complaint(
-                        f"Missing required key '{key}' in {self.entity_cls.__name__}"
-                    )
-                    continue
-
-                if has_default:
-                    kwargs_out[key] = field.default
-                else:
-                    kwargs_out[key] = None
-            else:
-                raw_val = data[key]
-
-                if isinstance(target_type, type) and issubclass(target_type, Entity):
-                    out = numap.get_entity(target_type, raw_val)
-                    if not out:
-                        parser_cls = numap.get_parser(target_type)
-                        out = parser_cls(self.ec).parse(key, raw_val, numap)
-                else:
-                    out = data.get(key)
-                kwargs_out[key] = out
-
-        return self.entity_cls(**kwargs_out)
-"""
-@dataclass
-class BaseParser2(ValueExtractor):
-    ec: ErrorCollector
-    entity_cls: ClassVar[type[Entity]]
-
-    def preprocess(self, data: dict): 
+    def preprocess(self, data: dict):
         return data
 
     def parse(self, name: str, data: dict, numap: Numap) -> Any:
         data = self.preprocess(data)
         kwargs_out = {}
 
-        for field in fields(self.entity_cls):
-            key = field.name
-            raw_type = field.type
-            has_default = field.default is not MISSING
-
-            if key not in data:
-                if not has_default and type(None) not in get_args(raw_type):
-                    self.ec.add_complaint(
-                        f"Missing required key '{key}' in {self.entity_cls.__name__}"
-                    )
-                    continue
-
-                kwargs_out[key] = field.default if has_default else None # probably not ok to give None
-            else:
-                kwargs_out[key] = self._parse_value(raw_type, data[key], numap, key)
+        for raw_field in fields(self.entity_cls):
+            field = self._process_raw_field(raw_field, data)           
+            out = self._parse_value(field, numap)
+            if out is None and field.default_value is MISSING:
+                self.ec.add_complaint(f"Missing required key '{field.name}' in {self.entity_cls.__name__}")
+            elif out is None:
+                out = field.default_value
+            kwargs_out[field.name] = out
 
         return self.entity_cls(**kwargs_out)
 
-    def _parse_value(self, target_type: type, value: Any, numap: Numap, key_context: str) -> Any:
-        if value is None:
-            return None
+    def _process_raw_field(self, raw_field: Field, data) -> EntityField:
+        field_data = data.get(raw_field.name) if not isinstance(data, str) else data
+        raw_type = raw_field.type
+        
+        args = get_args(raw_type)
+        if get_origin(raw_type) is types.UnionType:
+            not_none = [t for t in args if t is not type(None)]
+            if len(not_none) == 1:
+                outer_type_hint = not_none[0]
+            else:
+                raise Exception(f"Only 'T' or 'T | None' supported, got: {raw_type}")
+        else:
+            outer_type_hint = raw_type
 
-        args = get_args(target_type)
-        if args:
-            non_none = [t for t in args if t is not type(None)]
-            if len(non_none) == 1:
-                target_type = non_none[0]
+        origin = get_origin(outer_type_hint)
 
-        origin = getattr(target_type, "__origin__", target_type)
+        if origin is None:
+            outer_type = OuterType.SINGLE
+            inner_type = outer_type_hint
+        elif origin is list:
+            elem_args = get_args(outer_type_hint)
+            outer_type = OuterType.LIST
+            inner_type = elem_args[0] if elem_args else Any
+        elif origin is dict:
+            dict_args = get_args(outer_type_hint)
+            outer_type = OuterType.DICT
+            inner_type = dict_args[1] if len(dict_args) > 1 else Any
+        else:
+            raise Exception(f"Unsupported origin type: {origin}")
 
-        if isinstance(target_type, type) and issubclass(target_type, Entity):
-            if isinstance(value, str):
-                entity = numap.get_entity(target_type, value)
-                if entity is not None:
-                    return entity
-            if isinstance(value, dict):
-                parser_cls = numap.get_parser(target_type)
-                if parser_cls:
-                    return parser_cls(self.ec).parse(key_context, value, numap)
-            return value
+        if raw_field.default is not MISSING:
+            default_value = raw_field.default
+        elif raw_field.default_factory is not MISSING:
+            default_value = raw_field.default_factory()
+        elif type(None) in args:
+            default_value = None
+        else:
+            default_value = MISSING
 
-        if origin is list and isinstance(value, list):
-            elem_type = get_args(target_type)[0] if get_args(target_type) else Any
-            return [self._parse_value(elem_type, item, numap, key_context) for item in value]
+        return EntityField(
+            name=raw_field.name,
+            outer_type=outer_type,
+            inner_type=inner_type,
+            default_value=default_value,
+            data=field_data,
+        )
 
-        if origin is dict and isinstance(value, dict):
-            val_type = get_args(target_type)[1] if len(get_args(target_type)) > 1 else Any
-            return {
-                k: self._parse_value(val_type, v, numap, k)
-                for k, v in value.items()
-            }
+    def _parse_value(self,field: EntityField,numap: Numap,) -> Any:
+        if not issubclass(field.inner_type, Entity): return field.data
+        if field.outer_type == OuterType.LIST:  return [self._get_entity("", d, field, numap) for d in field.data]
+        elif field.outer_type == OuterType.DICT:  raise Exception("We found a dict omg!")         
+        elif field.outer_type == OuterType.SINGLE: return self._get_entity(field.name, field.data, field, numap)
 
-        return value
-"""
+    def _get_entity(self, name, data, field: EntityField, numap:Numap):
+        e = numap.get_entity(field.inner_type, name)
+        if not e:
+            pc = numap.get_parser(field.inner_type)
+            return  pc(self.ec).parse(name, data, numap)
+
+@dataclass
+class RenderParser2(BaseParser2): entity_cls: ClassVar[type[Entity]] = Render
+@dataclass
+class UIRenderParser2(RenderParser2): entity_cls: ClassVar[type[Entity]] = UIRender
 @dataclass
 class FilesetParser2(BaseParser2): entity_cls: ClassVar[type[Entity]] = Fileset
 
@@ -239,39 +222,7 @@ class KeyboardParser2(ValueExtractor):
             pud_dom_btns={key: PudDomButton(key) for key in pud_keys},
             prompt_btns={key: PromptButton(key) for key in prompt_keys},
         )
-@dataclass
-class RenderParser2(ValueExtractor):
-    collector: ErrorCollector
-    entity_cls: type = Render
 
-    def parse(self, name: str, data: dict, numap: Numap) -> Render:
-        template = self.opt_str(data, ["template"], self.entity_cls.template)
-        inherit_base = self.opt_bool(data, ["inherit_base"], self.entity_cls.inherit_base)
-        inherit_domain = self.opt_bool(data, ["inherit_domain"], self.entity_cls.inherit_domain)
-        res_dicts = self.req_list(data, ["resolvers"])
-        resolvers = [ResolverParser2(self.collector).parse("", data, numap) for data in res_dicts]
-        return Render(
-            template=template,
-            resolvers=resolvers,
-            inherit_base=inherit_base,
-            inherit_domain=inherit_domain,
-        )
-@dataclass
-class UIRenderParser2(RenderParser2): 
-    collector: ErrorCollector
-    entity_cls: type = UIRender
-"""
-#i need to make it deal with lists, dicts, anything it can encounter
-@dataclass
-class RenderParser2(BaseParser2): 
-    entity_cls: ClassVar[type[Entity]] = Render
-
-    def preprocess(self, data):
-        return data
-
-@dataclass
-class UIRenderParser2(RenderParser2): entity_cls: ClassVar[type[Entity]] = UIRender
-"""
 @dataclass
 class ResolverParser2(ValueExtractor):
     collector: ErrorCollector

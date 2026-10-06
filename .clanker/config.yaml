@@ -26,11 +26,11 @@ filesets:
     ]}
 
   complaint_review: {includes: [
-      content/core/engine.py,
-      content/core/core,
-      content/core/engine_deps/ingestion.py,
-      content/modules/asset_ingestion/ingestion_service.py,
-      content/modules/asset_ingestion/commons]}
+    content/core/core/entities.py,
+    content/modules/asset_ingestion/extractors/map_extractor2.py,
+    content/a_lib/shared-assets/config-fragments/shared_cfg.yaml,
+    
+    ]}
 
 domains:
   core:
@@ -57,7 +57,7 @@ domains:
 
   ingestion:
     resolvers:
-      - { anchor: repo_content, type: repo_content, fileset: asset_ingestion }
+      - { anchor: repo_content, type: repo_content, fileset: complaint_review }
     prompts:
       - name: plan
         render:
