@@ -57,14 +57,16 @@ class OuterType(Enum):
     LIST = auto()
     DICT = auto()
 
-
 @dataclass
-class EntityField:
-    name: str
-    data: Any
+class NormalField:
+    key: str
+    value: Any
+@dataclass
+class EntityField(NormalField):    
     outer_type: OuterType
     inner_type: type
     default_value: Any = MISSING
+
 
 
 @dataclass
@@ -90,17 +92,16 @@ class BaseParser2(ValueExtractor):
             field = self._process_raw_field(raw_field, data)           
             out = self._parse_value(field, numap)
             if out is None and field.default_value is MISSING:
-                self.ec.add_complaint(f"Missing required key '{field.name}' in {self.entity_cls.__name__}")
+                self.ec.add_complaint(f"Missing required key '{field.key}' in {self.entity_cls.__name__}")
             elif out is None:
                 out = field.default_value
-            kwargs_out[field.name] = out
+            kwargs_out[field.key] = out
 
         return self.entity_cls(**kwargs_out)
 
     def _process_raw_field(self, raw_field: Field, data) -> EntityField:
         raw_field_name = raw_field.name
-        field_data = data.get(raw_field_name)
-
+        field_value = data.get(raw_field_name)
 
         raw_type = raw_field.type
         
@@ -130,32 +131,27 @@ class BaseParser2(ValueExtractor):
         else:
             raise Exception(f"Unsupported origin type: {origin}")
 
-        if raw_field.default is not MISSING:
-            default_value = raw_field.default
-        elif raw_field.default_factory is not MISSING:
-            default_value = raw_field.default_factory()
-        elif type(None) in args:
-            default_value = None
-        else:
-            default_value = MISSING
+        if type(None) in args: default_value = None
+        else: default_value = MISSING if raw_field.default is MISSING else raw_field.default
+
 
         return EntityField(
-            name=raw_field.name,
+            key=raw_field.name,
             outer_type=outer_type,
             inner_type=inner_type,
             default_value=default_value,
-            data=field_data,
+            value=field_value,
         )
 
     def _parse_value(self,field: EntityField,numap: Numap,) -> Any:
-        if not issubclass(field.inner_type, Entity): return field.data
-        if field.outer_type == OuterType.LIST:  return [self._get_entity("", d, field, numap) for d in field.data]
+        if not issubclass(field.inner_type, Entity): return field.value
+        if field.outer_type == OuterType.LIST:  return [self._get_entity("", d, field, numap) for d in field.value]
         elif field.outer_type == OuterType.DICT:  raise Exception("We found a dict omg!")         
-        elif field.outer_type == OuterType.SINGLE: return self._get_entity(field.name, field.data, field, numap)
+        elif field.outer_type == OuterType.SINGLE: return self._get_entity(field.key, field.value, field, numap)
 
     def _get_entity(self, name, data, field: EntityField, numap:Numap):
         e = numap.get_entity(field.inner_type, data)
-        if not e:
+        if not e and not isinstance(data, str):
             pc = numap.get_parser(field.inner_type)
             e = pc(self.ec).parse(name, data, numap)
         return e

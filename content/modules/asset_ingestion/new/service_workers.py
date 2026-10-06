@@ -53,10 +53,8 @@ class Assembler:
         pud_ext = NuConfigExtractor(self.collector, self.pud_cfg)
         pud_ext.act_on(Filelist, pud_numap)
         pud_ext.act_on(Fileset, pud_numap)
-        """
-        # if it cant find a value in map, it will attempt to parse with the value which is a str
+
         pud_ext.act_on(Domain, pud_numap)
-        """
         val = 1
 
         
