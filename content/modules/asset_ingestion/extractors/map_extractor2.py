@@ -74,7 +74,8 @@ class BaseParser2(ValueExtractor):
     def preprocess(self, data: dict):
         return data
 
-    def parse(self, name: str, data: dict, numap: Numap) -> Any:
+    def parse(self, name: str | None, data: dict, numap: Numap) -> Any:
+        if name: data["name"] = name
         data = self.preprocess(data)
         if not isinstance(data, dict):
             raise Exception("data is not dict")
@@ -152,7 +153,8 @@ class BaseParser2(ValueExtractor):
         e = numap.get_entity(field.inner_type, data)
         if not e:
             pc = numap.get_parser(field.inner_type)
-            return  pc(self.ec).parse(name, data, numap)
+            e = pc(self.ec).parse(name, data, numap)
+        return e
 
 @dataclass
 class RenderParser2(BaseParser2): entity_cls: ClassVar[type[Entity]] = Render
@@ -185,7 +187,7 @@ class FilelistParser2(BaseParser2):
     entity_cls: ClassVar[type[Entity]] = Filelist
 
     def parse(self, name, data, numap:Numap) -> Filelist:
-        files = [FileParser(self.ec).parse("", f, numap) for f in data]
+        files = [FileParser(self.ec).parse(None, f, numap) for f in data]
         return Filelist(files=files)
 
 
@@ -204,7 +206,7 @@ class FileParser(BaseParser2):
     def parse(self, name, data, numap:Numap) -> Filelist: 
         if isinstance(data, dict):
             filename = self.req_str(data, ["file"])
-            trunc_spec = TruncSpecParser(self.ec).parse("", data, numap)
+            trunc_spec = TruncSpecParser(self.ec).parse(None, data, numap)
             return File(name=filename, truncation_spec=trunc_spec)
         return File(name=self.req_str({"file": data}, ["file"]))
     """
@@ -257,9 +259,9 @@ class ResolverParser2(ValueExtractor):
         res_type = self.req_str(data, ["type"])
         anchor = self.req_str(data, ["anchor"])
 
-        if res_type == "multi-document-retrieval": return MdResParser(self.collector).parse("", data, numap)
-        if res_type == "repo_content": return RepoContentResParser(self.collector).parse("", data, numap)
-        if res_type == "repo-manifest": return RepoManifestResParser(self.collector).parse("", data, numap)
+        if res_type == "multi-document-retrieval": return MdResParser(self.collector).parse(None, data, numap)
+        if res_type == "repo_content": return RepoContentResParser(self.collector).parse(None, data, numap)
+        if res_type == "repo-manifest": return RepoManifestResParser(self.collector).parse(None, data, numap)
         if res_type in ("kb_info", "kb_state"): return KBStateResolver(anchor)
         raise ConfigAssembly(f"Unsupported resolver type: '{res_type}'")
 
