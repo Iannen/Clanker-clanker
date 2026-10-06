@@ -13,7 +13,7 @@ class FilelistParser(ValueExtractor):
 
     def _build_file(self, data: Any) -> File:
         if isinstance(data, dict):
-            filename = self.req_str(data, ["file"])
+            filename = self.req_str(data, ["name"])
             trunc_spec = self._build_truncation_spec(data)
             return File(name=filename, truncation_spec=trunc_spec)
         return File(name=self.req_str({"file": data}, ["file"]))

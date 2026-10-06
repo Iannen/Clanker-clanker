@@ -35,7 +35,9 @@ class Numap:
     def get_parser(self, entity_cls: type) -> type:
         if not isinstance(entity_cls, type) or not issubclass(entity_cls, Entity):
             raise TypeError(f"Expected a subclass of Entity, got {entity_cls}")
-        return self.parsers.get(entity_cls)
+        parse_cls = self.parsers.get(entity_cls)
+        if not parse_cls: raise Exception(f"No parse class registered for {entity_cls.__name__}")
+        return parse_cls
 
 @dataclass
 class NuConfigExtractor(ValueExtractor):
@@ -74,6 +76,9 @@ class BaseParser2(ValueExtractor):
 
     def parse(self, name: str, data: dict, numap: Numap) -> Any:
         data = self.preprocess(data)
+        if not isinstance(data, dict):
+            raise Exception("data is not dict")
+        
         kwargs_out = {}
 
         for raw_field in fields(self.entity_cls):
@@ -88,7 +93,10 @@ class BaseParser2(ValueExtractor):
         return self.entity_cls(**kwargs_out)
 
     def _process_raw_field(self, raw_field: Field, data) -> EntityField:
-        field_data = data.get(raw_field.name) if not isinstance(data, str) else data
+        raw_field_name = raw_field.name
+        field_data = data.get(raw_field_name)
+
+
         raw_type = raw_field.type
         
         args = get_args(raw_type)
@@ -141,7 +149,7 @@ class BaseParser2(ValueExtractor):
         elif field.outer_type == OuterType.SINGLE: return self._get_entity(field.name, field.data, field, numap)
 
     def _get_entity(self, name, data, field: EntityField, numap:Numap):
-        e = numap.get_entity(field.inner_type, name)
+        e = numap.get_entity(field.inner_type, data)
         if not e:
             pc = numap.get_parser(field.inner_type)
             return  pc(self.ec).parse(name, data, numap)
@@ -173,28 +181,45 @@ class RepoContentResParser(BaseParser2):
             return new_data
 
 @dataclass
-class FilelistParser2(ValueExtractor):
-    collector: ErrorCollector
-    entity_cls = Filelist
+class FilelistParser2(BaseParser2): 
+    entity_cls: ClassVar[type[Entity]] = Filelist
 
     def parse(self, name, data, numap:Numap) -> Filelist:
-        files = [self._build_file(f) for f in data]
+        files = [FileParser(self.ec).parse("", f, numap) for f in data]
         return Filelist(files=files)
 
-    def _build_file(self, data: Any) -> File:
+
+@dataclass 
+class FileParser(BaseParser2):
+    entity_cls: ClassVar[type[Entity]] = File
+    
+    def preprocess(self, data):
+        i = 2
+        # 'plan-mode.mode_instruction'
+        # {'file': 'project-history.history', 'tail_lines': 16}
+        if isinstance(data, str): return {"name": data}
+        return data
+
+    """
+    def parse(self, name, data, numap:Numap) -> Filelist: 
         if isinstance(data, dict):
             filename = self.req_str(data, ["file"])
-            trunc_spec = self._build_truncation_spec(data)
+            trunc_spec = TruncSpecParser(self.ec).parse("", data, numap)
             return File(name=filename, truncation_spec=trunc_spec)
         return File(name=self.req_str({"file": data}, ["file"]))
-
-    def _build_truncation_spec(self, data: dict[str, Any]) -> TruncationSpec | None:
+    """
+@dataclass
+class TruncSpecParser(BaseParser2):
+    entity_cls: ClassVar[type[Entity]] = RepoContentResolver
+    def preprocess(self, data: dict):
+        return data
+    def parse(self, name, data, numap:Numap) -> TruncationSpec:
         tail_lines = self.opt_int(data, ["tail_lines"], [])
         from_line = self.opt_str(data, ["from_line"], [])
         up_to = self.opt_str(data, ["up_to"], [])
 
         if tail_lines and (from_line or up_to):
-            self.collector.add_complaint("TruncationSpec conflict: tail_lines cannot be combined with from_line or up_to")
+            self.ec.add_complaint("TruncationSpec conflict: tail_lines cannot be combined with from_line or up_to")
             return None
 
         if tail_lines: return TruncationSpec(TruncationSpec.TYPE_TAIL, tail_lines)
@@ -206,12 +231,6 @@ class FilelistParser2(ValueExtractor):
                 from_line=from_line,
                 up_to=up_to,
             )
-@dataclass
-class TruncSpecParser(BaseParser2):
-    entity_cls: ClassVar[type[Entity]] = RepoContentResolver
-    def preprocess(self, data: dict):
-        return data
-
 
 @dataclass
 class KeyboardParser2(ValueExtractor):
