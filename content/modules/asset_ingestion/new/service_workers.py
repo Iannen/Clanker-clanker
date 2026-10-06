@@ -1,5 +1,5 @@
 from stdlib import StrEnum, dataclass
-from core import RepoItem, CorruptClanker, Config, Render, AssetPack, Keyboard, Filelist, Fileset, Domain
+from core import RepoItem, CorruptClanker, Config, Render, AssetPack, Keyboard, Filelist, Fileset, Domain, UIRender
 from ...asset_ingestion import ConfigExtractor, FilelistParser, FilesetParser, FilelistValidator, FilesetValidator, CollisionDetector, Missing, Malformed, ErrorCollector, DomParser, ResolverParser, UIRenderParser, KeyboardParser, OverflowHandler
 from ...asset_ingestion import Numap, NuConfigExtractor
 
@@ -43,22 +43,20 @@ class Assembler:
 
     def assemble(self, pud_res: ClassificationResult) ->  tuple[Render, Keyboard]:
         
-        clank_numap = Numap()
-        clank_ext = NuConfigExtractor(self.collector, self.clank_cfg)
-        clank_ext.act_on(Filelist, clank_numap)
-        clank_ext.act_on(Fileset, clank_numap)
-        clank_ext.act_on(Domain, clank_numap)
-        
-        pud_numap = Numap()
-        pud_ext = NuConfigExtractor(self.collector, self.pud_cfg)
-        pud_ext.act_on(Filelist, pud_numap)
-        pud_ext.act_on(Fileset, pud_numap)
+        numap = Numap()
+        clank_ext = NuConfigExtractor(numap, self.collector, self.clank_cfg)
+        clank_ext.extract_from_map(Filelist)
+        clank_ext.extract_from_map(Fileset)
+        clank_ext.extract_from_map(Domain)
 
-        pud_ext.act_on(Domain, pud_numap)
-        val = 1
+        pud_ext = NuConfigExtractor(numap, self.collector, self.pud_cfg)
+        pud_ext.extract_from_map(Filelist)
+        pud_ext.extract_from_map(Fileset)
+        pud_ext.extract_from_map(Domain)
 
-        
-
+        system_extractor = NuConfigExtractor(numap, self.collector, self.sys_cfg)
+        system_extractor.extract_single(UIRender)
+        #system_extractor.extract_single(Keyboard)
 
         extractor = ConfigExtractor(self.collector, (self.clank_cfg, self.pud_cfg))
         clank_fl, pud_fl = extractor.get_maps(FilelistParser)

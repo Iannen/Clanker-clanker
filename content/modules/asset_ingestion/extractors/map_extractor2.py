@@ -42,15 +42,24 @@ class Numap:
 
 @dataclass
 class NuConfigExtractor(ValueExtractor):
+    numap: Numap
     collector: ErrorCollector
     cfg: Config
-    def act_on(self, entity_cls: type, numap: Numap) -> None:
+    def extract_from_map(self, entity_cls: type) -> None:
         if not self.cfg: return
         entities_dict = self.opt_dict(self.cfg.data, [entity_cls.plural_key],{})
-        parse_cls = numap.get_parser(entity_cls)
+        parse_cls = self.numap.get_parser(entity_cls)
         for name, entity_data in entities_dict.items():
-            entity = parse_cls(self.collector).parse(name, entity_data, numap)
-            numap.set_entity(name, entity)       
+            entity = parse_cls(self.collector).parse(name, entity_data, self.numap)
+            self.numap.set_entity(name, entity)       
+    def extract_single(self, entity_cls: type) -> None:
+        if not self.cfg: return
+        entity_dict = self.opt_dict(self.cfg.data, [entity_cls.key_name],{})
+        parse_cls = self.numap.get_parser(entity_cls)
+        entity = parse_cls(self.collector).parse(entity_cls.key_name, entity_dict, self.numap)
+        self.numap.set_entity(entity_cls.key_name, entity)
+
+
 
 class OuterType(Enum):
     SINGLE = auto()
