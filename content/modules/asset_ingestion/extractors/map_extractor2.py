@@ -16,7 +16,8 @@ class Numap:
             Render: RenderParser2,
             UIRender: UIRenderParser2,
             Resolver: ResolverParser2,
-            Prompt: PromptParser2
+            Prompt: PromptParser2,
+            TruncationSpec: TruncSpecParser
         }
     )
 
@@ -75,8 +76,11 @@ class BaseParser2(ValueExtractor):
         return data
 
     def parse(self, name: str | None, data: dict, numap: Numap) -> Any:
-        if name: data["name"] = name
         data = self.preprocess(data)
+        if isinstance(data, str): raise Exception(f"data is : str which is '{data}' self class is '{self.__class__.__name__}' ")
+        if name: data["name"] = name
+        if isinstance(self, FileParser):
+            hook = "hook"
         if not isinstance(data, dict):
             raise Exception("data is not dict")
         
@@ -196,12 +200,13 @@ class FileParser(BaseParser2):
     entity_cls: ClassVar[type[Entity]] = File
     
     def preprocess(self, data):
-        i = 2
-        # 'plan-mode.mode_instruction'
-        # {'file': 'project-history.history', 'tail_lines': 16}
         if isinstance(data, str): return {"name": data}
-        return data
 
+        new_data = data.copy()
+        return {
+            "name": new_data.pop("name"),
+            "truncation_spec": new_data
+        }
     """
     def parse(self, name, data, numap:Numap) -> Filelist: 
         if isinstance(data, dict):
@@ -212,7 +217,7 @@ class FileParser(BaseParser2):
     """
 @dataclass
 class TruncSpecParser(BaseParser2):
-    entity_cls: ClassVar[type[Entity]] = RepoContentResolver
+    entity_cls: ClassVar[type[Entity]] = TruncationSpec
     def preprocess(self, data: dict):
         return data
     def parse(self, name, data, numap:Numap) -> TruncationSpec:

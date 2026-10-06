@@ -42,20 +42,24 @@ class Assembler:
     pud_content_assets: AssetPack  | None
 
     def assemble(self, pud_res: ClassificationResult) ->  tuple[Render, Keyboard]:
+        
         clank_numap = Numap()
         clank_ext = NuConfigExtractor(self.collector, self.clank_cfg)
         clank_ext.act_on(Filelist, clank_numap)
         clank_ext.act_on(Fileset, clank_numap)
         clank_ext.act_on(Domain, clank_numap)
-
+        
         pud_numap = Numap()
         pud_ext = NuConfigExtractor(self.collector, self.pud_cfg)
-        pud_ext.act_on(Filelist, clank_numap)
-        pud_ext.act_on(Fileset, clank_numap)
-
+        pud_ext.act_on(Filelist, pud_numap)
+        pud_ext.act_on(Fileset, pud_numap)
+        """
+        # if it cant find a value in map, it will attempt to parse with the value which is a str
+        pud_ext.act_on(Domain, pud_numap)
+        """
         val = 1
 
-
+        
 
 
         extractor = ConfigExtractor(self.collector, (self.clank_cfg, self.pud_cfg))

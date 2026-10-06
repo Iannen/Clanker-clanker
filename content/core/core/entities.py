@@ -20,7 +20,7 @@ class Entity:
         return getattr(cls, "_plural_key", f"{cls.key_name}s")
 
 @dataclass
-class TruncationSpec:
+class TruncationSpec(Entity):
     TYPE_TAIL: ClassVar[str] = "tail"
     TYPE_REGEX_RANGE: ClassVar[str] = "regex_range"
     type: str
@@ -29,7 +29,7 @@ class TruncationSpec:
     up_to: str | None = None
 
 @dataclass
-class File:
+class File(Entity):
     name: str
     truncation_spec: TruncationSpec | None = None
     path: str | None = None
