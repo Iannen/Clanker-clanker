@@ -25,13 +25,10 @@ class BaseParser2(ValueExtractor):
         return data
 
     def parse(self, name: str | None, data: dict, numap: Numap) -> Any:
-        data = self.preprocess(data)
-        if isinstance(data, str): raise Exception(f"data is : str which is '{data}' self class is '{self.__class__.__name__}' ")
+        if isinstance(data, str): data = self.preprocess(data)
+        elif isinstance(data, dict): data = self.preprocess(data.copy())
+        else: raise Exception("data is not dict nor dict")
         if name: data["name"] = name
-        if isinstance(self, FileParser):
-            hook = "hook"
-        if not isinstance(data, dict):
-            raise Exception("data is not dict")
         
         kwargs_out = {}
 
