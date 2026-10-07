@@ -1,6 +1,6 @@
 from stdlib import StrEnum, dataclass
 from core import RepoItem, CorruptClanker, Config, Render, AssetPack, Keyboard, Filelist, Fileset, UIRender, SharedBaseResolver, PudBaseResolver, SharedDomain, PudDomain
-from ...asset_ingestion import Missing, Malformed, ErrorCollector, OverflowHandler2, FilelistValidator2
+from ...asset_ingestion import Missing, Malformed, ErrorCollector, OverflowHandler2, FilelistValidator2, FilesetValidator2, CollisionDetector
 from ...asset_ingestion import Numap, NuConfigExtractor
 
 class ClassificationResult(StrEnum):
@@ -42,7 +42,7 @@ class Assembler:
     pud_content_assets: AssetPack  | None
 
     def assemble(self, pud_res: ClassificationResult) ->  tuple[Render, Keyboard]:
-        
+
         numap = Numap()
         clank_ext = NuConfigExtractor(numap, self.collector, self.clank_cfg)
         clank_ext.extract_from_map(Filelist)
@@ -67,28 +67,10 @@ class Assembler:
         list_validator.validate_clank(numap, self.clank_doc_assets, self.clank_cfg)
         list_validator.validate_pud(numap, self.pud_doc_assets, self.pud_cfg)        
 
-        """
-        extractor = ConfigExtractor(self.collector, (self.clank_cfg, self.pud_cfg))
-        clank_fl, pud_fl = extractor.get_maps(FilelistParser)
-        clank_fs, pud_fs = extractor.get_maps(FilesetParser)
-        unified_fl = clank_fl | pud_fl if clank_fl and pud_fl else None
-        unified_fs = clank_fs | pud_fs if clank_fs and pud_fs else None
-        clank_br, pud_br = extractor.get_singles(ResolverParser, (clank_fs, clank_fl), (unified_fs, unified_fl))
-        clank_doms, pud_doms = extractor.get_maps(DomParser, (clank_fs, clank_fl), (unified_fs, unified_fl))
-
-        sys_ext = ConfigExtractor(self.collector, (self.sys_cfg,))
-        ui_render, = sys_ext.get_singles(UIRenderParser,(clank_fs, clank_fl))
-        kb, = sys_ext.get_singles(KeyboardParser)
-
-        populated_kb = OverflowHandler(self.collector).do_it(clank_br, pud_br, clank_doms, pud_doms, kb)
-
-
-        list_validator = FilelistValidator(self.collector).validate_clank(clank_doms, self.clank_doc_assets, self.clank_cfg)
-        list_validator.validate_pud(pud_doms, self.pud_doc_assets, self.pud_cfg)        
-        fileset_validator = FilesetValidator(self.collector).validate_clank(clank_doms, self.clank_doc_assets, self.clank_cfg)
-        fileset_validator.validate_pud(pud_doms, self.pud_doc_assets, self.pud_cfg)      
+        fileset_validator = FilesetValidator2(self.collector)
+        fileset_validator.validate_pud(numap, self.pud_doc_assets, self.pud_cfg)      
+        fileset_validator.validate_clank(numap, self.clank_doc_assets, self.clank_cfg)
 
         CollisionDetector(self.collector).detect(self.clank_doc_assets) 
         CollisionDetector(self.collector).detect(self.pud_doc_assets)
-        """        
         return ui_render, populated_kb 

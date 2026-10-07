@@ -7,6 +7,7 @@ from .extractors.map_extractor2 import *
 from .validators.overflow_validator import *
 from .validators.overflow_validator2 import *
 from .validators.assets import *
+from .validators.fileset_validator import *
 from .validators.file_list import *
 from .validators.file_list_validator import *
 from .validators.collision_detector import *
