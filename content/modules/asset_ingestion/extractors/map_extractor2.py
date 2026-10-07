@@ -9,7 +9,6 @@ class Numap:
     entities: dict[tuple[type, str], Entity] = field(default_factory=dict)
     parsers: dict[type, type] = field(
         default_factory=lambda: {
-#            Domain: DomParser2,
             Filelist: FilelistParser2,
             Fileset: FilesetParser2,
             Keyboard: KeyboardParser2,
@@ -294,4 +293,3 @@ class ResolverParser2(ValueExtractor):
         if res_type == "repo-manifest": return RepoManifestResParser(self.collector).parse(None, data, numap)
         if res_type in ("kb_info", "kb_state"): return KBStateResolver(anchor)
         raise ConfigAssembly(f"Unsupported resolver type: '{res_type}'")
-
