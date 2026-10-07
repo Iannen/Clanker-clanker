@@ -13,7 +13,15 @@ class Numap:
         for cls in parsers_module.__dict__.values():
             if inspect.isclass(cls) and issubclass(cls, base_cls) and cls is not base_cls:
                 parser_inst = cls(ec)
-                self.parsers[parser_inst.entity_cls] = parser_inst
+                entity_cls = parser_inst.entity_cls
+
+                # Path 1: Register by Class
+                self.parsers[entity_cls] = parser_inst
+
+                # Path 2: Register by string 'type' member if present on entity class
+                if hasattr(entity_cls, "type") and isinstance(entity_cls.type, str):
+                    self.parsers[entity_cls.type] = parser_inst
+                
 
     def set_entity(self, name: str, entity: Entity, cls: type) -> None:
         if not isinstance(entity, (Entity, type(None))):
@@ -34,9 +42,7 @@ class Numap:
             if isinstance(entity, entity_cls)
         ]
 
-    def get_parser(self, entity_cls: type) -> type:
-        if not isinstance(entity_cls, type) or not issubclass(entity_cls, Entity):
-            raise TypeError(f"Expected a subclass of Entity, got {entity_cls}")
+    def get_parser(self, entity_cls: type | str) -> type:
         parser = self.parsers.get(entity_cls)
         if not parser: raise Exception(f"No parse class registered for {entity_cls.__name__}")
         return parser

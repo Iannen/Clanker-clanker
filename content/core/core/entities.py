@@ -59,15 +59,18 @@ class PudBaseResolver(MultiDocResolver): pass
 
 @dataclass
 class RepoContentResolver(Resolver):
+    type = "repo-content"
     fileset: Fileset 
 
 @dataclass
 class ManifestResolver(Resolver):
+    type = "repo-manifest"
     pud_fileset: Fileset 
     shared_fileset: Fileset | None = None
 
 @dataclass
 class KBStateResolver(Resolver):
+    type = "ui-resolver"
     anchor: str = "kb_info"
 
 @dataclass

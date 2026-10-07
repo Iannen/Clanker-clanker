@@ -42,7 +42,8 @@ class BaseParser2[T: Entity](ValueExtractor):
         if name: data["name"] = name
         
         kwargs_out = {}
-
+        if isinstance(self, UIResParser):
+            hook = "hook"
         for raw_field in fields(self.entity_cls):
             field = self._process_raw_field(raw_field, data)           
             out = self._parse_value(field, numap)
@@ -111,6 +112,7 @@ class BaseParser2[T: Entity](ValueExtractor):
             e = parser.parse(name, data, numap)
         return e
 
+class UIResParser(BaseParser2[KBStateResolver]): pass
 class RenderParser2(BaseParser2[Render]): pass
 class UIRenderParser2(BaseParser2[UIRender]): pass
 class FilesetParser2(BaseParser2[Fileset]): pass
@@ -170,25 +172,6 @@ class KeyboardParser2(BaseParser2[Keyboard]):
             prompt_btns={key: PromptButton(key) for key in prompt_keys},
         )
 
-
 class ResolverParser2(BaseParser2[Resolver]):
     def parse(self, name, data, numap: Numap) -> Resolver | None:
-        res_type = self.req_str(data, ["type"])
-        anchor = self.req_str(data, ["anchor"])
-        if res_type == "multi-document-retrieval": return numap.get_parser(MultiDocResolver).parse(None, data, numap)
-        if res_type == "repo-content": return RepoContentResParser(self.ec).parse(None, data, numap)
-        if res_type == "repo-manifest": return RepoManifestResParser(self.ec).parse(None, data, numap)
-        if res_type in ("kb_info", "kb_state"): return KBStateResolver(anchor)
-        raise ConfigAssembly(f"Unsupported resolver type: '{res_type}'")
-
-"""
-class ResolverParser2(BaseParser2[Resolver]):
-    def parse(self, name, data, numap:Numap) -> Resolver | None:
-        res_type = self.req_str(data, ["type"])
-        anchor = self.req_str(data, ["anchor"])
-        if res_type == "multi-document-retrieval": return MdResParser(self.ec).parse(None, data, numap)
-        if res_type == "repo_content": return RepoContentResParser(self.ec).parse(None, data, numap)
-        if res_type == "repo-manifest": return RepoManifestResParser(self.ec).parse(None, data, numap)
-        if res_type in ("kb_info", "kb_state"): return KBStateResolver(anchor)
-        raise ConfigAssembly(f"Unsupported resolver type: '{res_type}'")
-"""
+        return numap.get_parser(self.req_str(data, ["type"])).parse(name, data, numap)

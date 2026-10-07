@@ -3,7 +3,7 @@ ui_render:
   inherit_base: false
   inherit_domain: false
   resolvers:
-    - { anchor: ui, type: kb_info }
+    - { anchor: ui, type: ui-resolver }
 button_rows:
   shared_domains_row: '1234567890'
   pud_domains_row: qwerty
