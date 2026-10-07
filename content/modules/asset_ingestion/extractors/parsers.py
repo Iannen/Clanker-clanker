@@ -36,9 +36,10 @@ class BaseParser2[T: Entity](ValueExtractor):
         return data
 
     def parse(self, name: str | None, data: dict, numap: Numap) -> Any:
-        if isinstance(data, str): data = self.preprocess(data)
+        if isinstance(data, (str, type(None))): data = self.preprocess(data)
         elif isinstance(data, dict): data = self.preprocess(data.copy())
-        else: raise Exception("data is not dict nor dict")
+        else: 
+            raise Exception("data is not dict nor string")
         if name: data["name"] = name
         
         kwargs_out = {}
@@ -141,19 +142,8 @@ class FileParser(BaseParser2[File]):
 
 class TruncSpecParser(BaseParser2[TruncationSpec]):
     def preprocess(self, data: dict):
+        if not data: return {}
         return data
-    def parse(self, name, data, numap:Numap) -> TruncationSpec:
-        tail_lines = self.opt_int(data, ["tail_lines"], [])
-        from_line = self.opt_str(data, ["from_line"], [])
-        up_to = self.opt_str(data, ["up_to"], [])
-
-        if tail_lines and (from_line or up_to):
-            self.ec.add_complaint("TruncationSpec conflict: tail_lines cannot be combined with from_line or up_to")
-            return None
-        if tail_lines: return TruncationSpec(TruncationSpec.TYPE_TAIL, tail_lines, None, None)
-
-        if from_line or up_to:
-            return TruncationSpec(TruncationSpec.TYPE_REGEX_RANGE,None,from_line,up_to)
 
 class KeyboardParser2(BaseParser2[Keyboard]):
     def parse(self, name: str, data: dict, Numap: Numap) -> Keyboard:

@@ -4,64 +4,48 @@ class SystemKeys:
     DELIM = "§"
 
 class ContentShaper:
-    def normalize_file_spec(self, item: str | dict) -> tuple[str, int | None]:
-        if isinstance(item, dict):
-            return item.get("file", ""), item.get("tail_lines")
-        return item, None
-
+    
     def apply_truncation(self, content: str, spec: TruncationSpec | None) -> str:
         if spec is None:
             return content
 
-        if spec.type == TruncationSpec.TYPE_TAIL:
-            if spec.tail_lines is not None:
-                lines = content.splitlines()
-                if len(lines) > spec.tail_lines:
-                    return "**truncated**\n" + "\n".join(lines[-spec.tail_lines:])
-            return content
+        lines = content.splitlines()
 
-        if spec.type == TruncationSpec.TYPE_REGEX_RANGE:
-            lines = content.splitlines()
+        # Step 1: Cut everything above 'from_line'
+        if spec.from_line:
+            lines = self._cut_before_regex(lines, spec.from_line)
 
-            if spec.from_line is not None:
-                try:
-                    pattern = re.compile(spec.from_line)
-                except re.error as e:
-                    raise ConfigAssembly(f"Invalid regex for 'from_line': '{spec.from_line}' ({e})")
-                
-                match_idx = None
-                for idx, line in enumerate(lines):
-                    if pattern.search(line):
-                        match_idx = idx
-                        break
+        # Step 2: Cut everything from 'up_to' onwards
+        if spec.up_to:
+            lines = self._cut_from_regex(lines, spec.up_to)
 
-                if match_idx is None:
-                    raise ConfigAssembly(
-                        f"Truncation pattern 'from_line' ({spec.from_line}) matched no lines in content"
-                    )
-                lines = lines[match_idx:]
+        # Step 3: Take last N lines
+        if spec.tail_lines is not None and len(lines) > spec.tail_lines:
+            return "**truncated**\n" + "\n".join(lines[-spec.tail_lines:])
 
-            if spec.up_to is not None:
-                try:
-                    pattern = re.compile(spec.up_to)
-                except re.error as e:
-                    raise ConfigAssembly(f"Invalid regex for 'up_to': '{spec.up_to}' ({e})")
+        return "\n".join(lines)
 
-                match_idx = None
-                for idx, line in enumerate(lines):
-                    if pattern.search(line):
-                        match_idx = idx
-                        break
 
-                if match_idx is None:
-                    raise ConfigAssembly(
-                        f"Truncation pattern 'up_to' ({spec.up_to}) matched no lines in content"
-                    )
-                lines = lines[:match_idx]
+    def _find_match_idx(self, lines: list[str], pattern_str: str) -> int | None:
+        try:
+            pattern = re.compile(pattern_str)
+        except re.error:
+            return None
 
-            return "\n".join(lines)
+        for idx, line in enumerate(lines):
+            if pattern.search(line):
+                return idx
+        return None
 
-        return content
+
+    def _cut_before_regex(self, lines: list[str], pattern_str: str) -> list[str]:
+        idx = self._find_match_idx(lines, pattern_str)
+        return lines if idx is None else lines[idx:]
+
+
+    def _cut_from_regex(self, lines: list[str], pattern_str: str) -> list[str]:
+        idx = self._find_match_idx(lines, pattern_str)
+        return lines if idx is None else lines[:idx]
 
     def shape_button_replacements(self, btn: NewBtn, label: str, template: str) -> dict[str, str]:
         lines = template.strip("\n").splitlines()

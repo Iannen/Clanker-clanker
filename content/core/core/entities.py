@@ -1,4 +1,4 @@
-from stdlib import dataclass, ClassVar, Type, re
+from stdlib import dataclass, Type, re
 
 class classproperty:
     def __init__(self, func):
@@ -21,9 +21,6 @@ class Entity:
 
 @dataclass
 class TruncationSpec(Entity):
-    TYPE_TAIL: ClassVar[str] = "tail"
-    TYPE_REGEX_RANGE: ClassVar[str] = "regex_range"
-    type: str
     tail_lines: int | None
     from_line: str | None
     up_to: str | None
