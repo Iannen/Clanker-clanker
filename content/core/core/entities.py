@@ -24,15 +24,15 @@ class TruncationSpec(Entity):
     TYPE_TAIL: ClassVar[str] = "tail"
     TYPE_REGEX_RANGE: ClassVar[str] = "regex_range"
     type: str
-    tail_lines: int | None = None
-    from_line: str | None = None
-    up_to: str | None = None
+    tail_lines: int | None
+    from_line: str | None
+    up_to: str | None
 
 @dataclass
 class File(Entity):
     name: str
-    truncation_spec: TruncationSpec | None = None
-    path: str | None = None
+    truncation_spec: TruncationSpec | None
+    path: str | None
 
 @dataclass
 class Filelist(Entity):
@@ -66,7 +66,7 @@ class RepoContentResolver(Resolver):
 class ManifestResolver(Resolver):
     type = "repo-manifest"
     pud_fileset: Fileset 
-    shared_fileset: Fileset | None = None
+    shared_fileset: Fileset | None
 
 @dataclass
 class KBStateResolver(Resolver):
@@ -106,9 +106,9 @@ class PudDomain(Domain): pass
 @dataclass 
 class NewBtn: key: str
 @dataclass
-class PromptButton(NewBtn): inhabitant: Prompt | None = None
+class PromptButton(NewBtn): inhabitant: Prompt | None
 @dataclass
-class DomButton(NewBtn): inhabitant: Domain | None = None
+class DomButton(NewBtn): inhabitant: Domain | None
 @dataclass
 class SharedDomButton(DomButton): pass
 @dataclass

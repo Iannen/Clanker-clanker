@@ -150,20 +150,16 @@ class TruncSpecParser(BaseParser2[TruncationSpec]):
         if tail_lines and (from_line or up_to):
             self.ec.add_complaint("TruncationSpec conflict: tail_lines cannot be combined with from_line or up_to")
             return None
-        if tail_lines: return TruncationSpec(TruncationSpec.TYPE_TAIL, tail_lines)
+        if tail_lines: return TruncationSpec(TruncationSpec.TYPE_TAIL, tail_lines, None, None)
 
         if from_line or up_to:
-            return TruncationSpec(
-                type=TruncationSpec.TYPE_REGEX_RANGE,
-                from_line=from_line,
-                up_to=up_to,
-            )
+            return TruncationSpec(TruncationSpec.TYPE_REGEX_RANGE,None,from_line,up_to)
 
 class KeyboardParser2(BaseParser2[Keyboard]):
     def parse(self, name: str, data: dict, Numap: Numap) -> Keyboard:
-        shared_btns = [SharedDomButton(key) for key in self.req_str(data, ["shared_domains_row"])]
-        pud_btns = [PudDomButton(key) for key in self.req_str(data, ["pud_domains_row"])]
-        prompt_btns = [PromptButton(key) for key in self.req_str(data, ["prompts_row"])]
+        shared_btns = [SharedDomButton(key, None) for key in self.req_str(data, ["shared_domains_row"])]
+        pud_btns = [PudDomButton(key, None) for key in self.req_str(data, ["pud_domains_row"])]
+        prompt_btns = [PromptButton(key, None) for key in self.req_str(data, ["prompts_row"])]
         return Keyboard({btn.key: btn for btn in shared_btns + pud_btns + prompt_btns}, None)
 
 class ResolverParser2(BaseParser2[Resolver]):
