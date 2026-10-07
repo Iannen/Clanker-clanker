@@ -16,9 +16,8 @@ class EntityField(NormalField):
     inner_type: type
     default_value: Any = MISSING
 
-@dataclass
 class BaseParser2(ValueExtractor):
-    ec: ErrorCollector
+    def __init__(self, ec: ErrorCollector): self.ec=ec
     entity_cls: ClassVar[type[Entity]]
 
     def preprocess(self, data: dict):
@@ -100,36 +99,22 @@ class BaseParser2(ValueExtractor):
             e = pc(self.ec).parse(name, data, numap)
         return e
 
-@dataclass
 class RenderParser2(BaseParser2): entity_cls: ClassVar[type[Entity]] = Render
-@dataclass
 class UIRenderParser2(RenderParser2): entity_cls: ClassVar[type[Entity]] = UIRender
-@dataclass
 class FilesetParser2(BaseParser2): entity_cls: ClassVar[type[Entity]] = Fileset
-#@dataclass
-#class DomParser2(BaseParser2): entity_cls: ClassVar[type[Entity]] = Domain
-@dataclass
 class PromptParser2(BaseParser2): entity_cls: ClassVar[type[Entity]] = Prompt
-@dataclass
 class RepoManifestResParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = ManifestResolver
-@dataclass 
 class MdResParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = MultiDocResolver
-@dataclass
 class SharedBaseResParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = SharedBaseResolver
-@dataclass
 class PudBaseResParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = PudBaseResolver
-@dataclass
 class SharedDomParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = SharedDomain
-@dataclass
 class PudDomParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = PudDomain
-@dataclass
 class RepoContentResParser(BaseParser2):
     entity_cls: ClassVar[type[Entity]] = RepoContentResolver
     def preprocess(self, data: dict) -> dict:
             if "fileset" in data: return data
             return {"fileset": data}
 
-@dataclass
 class FilelistParser2(BaseParser2): 
     # the baseparser needs a way to distinguish str which are data and str which are mapkeys
     entity_cls: ClassVar[type[Entity]] = Filelist
@@ -139,7 +124,6 @@ class FilelistParser2(BaseParser2):
         return Filelist(files=files)
 
 
-@dataclass 
 class FileParser(BaseParser2):
     entity_cls: ClassVar[type[Entity]] = File
     
@@ -147,7 +131,6 @@ class FileParser(BaseParser2):
         if isinstance(data, str): return {"name": data}
         return {"name": data.get("name"),"truncation_spec": data}
 
-@dataclass
 class TruncSpecParser(BaseParser2):
     entity_cls: ClassVar[type[Entity]] = TruncationSpec
     def preprocess(self, data: dict):
@@ -171,7 +154,6 @@ class TruncSpecParser(BaseParser2):
                 up_to=up_to,
             )
 
-@dataclass
 class KeyboardParser2(BaseParser2):
     entity_cls: ClassVar[type[Entity]] = Keyboard
 
@@ -186,7 +168,6 @@ class KeyboardParser2(BaseParser2):
             prompt_btns={key: PromptButton(key) for key in prompt_keys},
         )
 
-@dataclass
 class ResolverParser2(BaseParser2):
     entity_cls: ClassVar[type[Entity]] = Resolver
 
