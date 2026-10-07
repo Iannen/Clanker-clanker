@@ -164,7 +164,7 @@ class KeyboardParser2(BaseParser2[Keyboard]):
         shared_btns = [SharedDomButton(key) for key in self.req_str(data, ["shared_domains_row"])]
         pud_btns = [PudDomButton(key) for key in self.req_str(data, ["pud_domains_row"])]
         prompt_btns = [PromptButton(key) for key in self.req_str(data, ["prompts_row"])]
-        return Keyboard({btn.key: btn for btn in shared_btns + pud_btns + prompt_btns})
+        return Keyboard({btn.key: btn for btn in shared_btns + pud_btns + prompt_btns}, None)
 
 class ResolverParser2(BaseParser2[Resolver]):
     def parse(self, name, data, numap: Numap) -> Resolver | None:

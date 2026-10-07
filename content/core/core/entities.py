@@ -117,7 +117,7 @@ class PudDomButton(DomButton): pass
 @dataclass
 class Keyboard(Entity):
     buttons: dict[str, NewBtn]
-    selected_dom_btn: DomButton | None = None
+    selected_dom_btn: DomButton | None
 
     def get_btns(self, cls: Type[NewBtn] | None = None) -> list[NewBtn]:
         if cls is None:
