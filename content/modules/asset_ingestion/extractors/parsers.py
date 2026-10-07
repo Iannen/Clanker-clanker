@@ -1,7 +1,7 @@
 from stdlib import dataclass, field, fields, MISSING, get_args, ClassVar, Any, get_args, get_origin, Enum, auto, types, Field
 from types import get_original_bases
 from typing import get_args, get_origin
-from ...asset_ingestion import ValueExtractor, ErrorCollector
+from ...asset_ingestion import ValueExtractor, ErrorCollector, Numap
 from core import ConfigAssembly, Entity, Filelist, Fileset, Keyboard, Render, UIRender, Resolver, Prompt, File, TruncationSpec, MultiDocResolver, ManifestResolver, RepoContentResolver, KBStateResolver, SharedDomButton, PudDomButton, PromptButton, SharedBaseResolver, PudBaseResolver, SharedDomain, PudDomain
 
 class OuterType(Enum):
@@ -107,8 +107,8 @@ class BaseParser2[T: Entity](ValueExtractor):
     def _get_entity(self, name, data, field: EntityField, numap:Numap):
         e = numap.get_entity(field.inner_type, data)
         if not e and not isinstance(data, str):
-            pc = numap.get_parser(field.inner_type)
-            e = pc(self.ec).parse(name, data, numap)
+            parser = numap.get_parser(field.inner_type)
+            e = parser.parse(name, data, numap)
         return e
 
 class RenderParser2(BaseParser2[Render]): pass
@@ -170,6 +170,18 @@ class KeyboardParser2(BaseParser2[Keyboard]):
             prompt_btns={key: PromptButton(key) for key in prompt_keys},
         )
 
+
+class ResolverParser2(BaseParser2[Resolver]):
+    def parse(self, name, data, numap: Numap) -> Resolver | None:
+        res_type = self.req_str(data, ["type"])
+        anchor = self.req_str(data, ["anchor"])
+        if res_type == "multi-document-retrieval": return numap.get_parser(MultiDocResolver).parse(None, data, numap)
+        if res_type == "repo_content": return RepoContentResParser(self.ec).parse(None, data, numap)
+        if res_type == "repo-manifest": return RepoManifestResParser(self.ec).parse(None, data, numap)
+        if res_type in ("kb_info", "kb_state"): return KBStateResolver(anchor)
+        raise ConfigAssembly(f"Unsupported resolver type: '{res_type}'")
+
+"""
 class ResolverParser2(BaseParser2[Resolver]):
     def parse(self, name, data, numap:Numap) -> Resolver | None:
         res_type = self.req_str(data, ["type"])
@@ -179,3 +191,4 @@ class ResolverParser2(BaseParser2[Resolver]):
         if res_type == "repo-manifest": return RepoManifestResParser(self.ec).parse(None, data, numap)
         if res_type in ("kb_info", "kb_state"): return KBStateResolver(anchor)
         raise ConfigAssembly(f"Unsupported resolver type: '{res_type}'")
+"""

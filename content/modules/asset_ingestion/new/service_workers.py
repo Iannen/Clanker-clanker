@@ -43,7 +43,7 @@ class Assembler:
 
     def assemble(self, pud_res: ClassificationResult) ->  tuple[Render, Keyboard]:
 
-        numap = Numap()
+        numap = Numap(self.collector)
         clank_ext = NuConfigExtractor(numap, self.collector, self.clank_cfg)
         clank_ext.extract_from_map(Filelist)
         clank_ext.extract_from_map(Fileset)
