@@ -135,7 +135,6 @@ class FilelistParser2(BaseParser2[Filelist]):
         return Filelist(files=files)
 
 class FileParser(BaseParser2[File]):
-    
     def preprocess(self, data):
         if isinstance(data, str): return {"name": data}
         return {"name": data.get("name"),"truncation_spec": data}
@@ -162,15 +161,10 @@ class TruncSpecParser(BaseParser2[TruncationSpec]):
 
 class KeyboardParser2(BaseParser2[Keyboard]):
     def parse(self, name: str, data: dict, Numap: Numap) -> Keyboard:
-        shared_keys = self.req_str(data, ["shared_domains_row"])
-        pud_keys = self.req_str(data, ["pud_domains_row"])
-        prompt_keys = self.req_str(data, ["prompts_row"])
-
-        return Keyboard(
-            shared_dom_btns={key: SharedDomButton(key) for key in shared_keys},
-            pud_dom_btns={key: PudDomButton(key) for key in pud_keys},
-            prompt_btns={key: PromptButton(key) for key in prompt_keys},
-        )
+        shared_btns = [SharedDomButton(key) for key in self.req_str(data, ["shared_domains_row"])]
+        pud_btns = [PudDomButton(key) for key in self.req_str(data, ["pud_domains_row"])]
+        prompt_btns = [PromptButton(key) for key in self.req_str(data, ["prompts_row"])]
+        return Keyboard({btn.key: btn for btn in shared_btns + pud_btns + prompt_btns})
 
 class ResolverParser2(BaseParser2[Resolver]):
     def parse(self, name, data, numap: Numap) -> Resolver | None:

@@ -15,10 +15,8 @@ class Numap:
                 parser_inst = cls(ec)
                 entity_cls = parser_inst.entity_cls
 
-                # Path 1: Register by Class
                 self.parsers[entity_cls] = parser_inst
 
-                # Path 2: Register by string 'type' member if present on entity class
                 if hasattr(entity_cls, "type") and isinstance(entity_cls.type, str):
                     self.parsers[entity_cls.type] = parser_inst
                 

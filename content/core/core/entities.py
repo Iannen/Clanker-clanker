@@ -116,27 +116,19 @@ class PudDomButton(DomButton): pass
 
 @dataclass
 class Keyboard(Entity):
-    shared_dom_btns: dict[str, SharedDomButton]
-    pud_dom_btns: dict[str, PudDomButton]
-    prompt_btns: dict[str, PromptButton]
+    buttons: dict[str, NewBtn]
     selected_dom_btn: DomButton | None = None
+
     def get_btns(self, cls: Type[NewBtn] | None = None) -> list[NewBtn]:
-        all_btns = [
-            *self.shared_dom_btns.values(),
-            *self.pud_dom_btns.values(),
-            *self.prompt_btns.values(),
-        ]
         if cls is None:
-            return all_btns
-        return [btn for btn in all_btns if isinstance(btn, cls)]
-    def get(self, key: str, default: NewBtn | None = None) -> NewBtn | None:
-        return (
-            self.shared_dom_btns.get(key)
-            or self.pud_dom_btns.get(key)
-            or self.prompt_btns.get(key, default)
-        )
-    def set_selected_dom_btn(self, btn:DomButton):
-        self.selected_dom_btn=btn
+            return list(self.buttons.values())
+        return [btn for btn in self.buttons.values() if isinstance(btn, cls)]
+
+    def get(self, key: str) -> NewBtn | None:
+        return self.buttons.get(key)
+
+    def set_selected_dom_btn(self, btn: DomButton):
+        self.selected_dom_btn = btn
 
 
 @dataclass
