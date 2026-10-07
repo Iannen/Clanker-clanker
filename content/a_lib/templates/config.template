@@ -11,4 +11,4 @@ domains:
         render:
           resolvers:
             - { anchor: prompt_fragments, type: multi-document-retrieval, files: [config.yaml, system_cfg.yaml, shared_cfg.yaml, config-development-mode.mode_instruction, config-dev-output.output_instruction] }
-            - { anchor: repo_content, type: repo_content, fileset: empty }
+            - { anchor: repo_content, type: repo-content, fileset: empty }

@@ -49,6 +49,7 @@ class Resolver(Entity):
 
 @dataclass
 class MultiDocResolver(Resolver):
+    type = "multi-document-retrieval"
     files: Filelist 
 
 @dataclass

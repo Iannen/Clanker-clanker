@@ -176,7 +176,7 @@ class ResolverParser2(BaseParser2[Resolver]):
         res_type = self.req_str(data, ["type"])
         anchor = self.req_str(data, ["anchor"])
         if res_type == "multi-document-retrieval": return numap.get_parser(MultiDocResolver).parse(None, data, numap)
-        if res_type == "repo_content": return RepoContentResParser(self.ec).parse(None, data, numap)
+        if res_type == "repo-content": return RepoContentResParser(self.ec).parse(None, data, numap)
         if res_type == "repo-manifest": return RepoManifestResParser(self.ec).parse(None, data, numap)
         if res_type in ("kb_info", "kb_state"): return KBStateResolver(anchor)
         raise ConfigAssembly(f"Unsupported resolver type: '{res_type}'")

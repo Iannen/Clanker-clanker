@@ -30,11 +30,11 @@ shared_domains:
           render:
             resolvers:
               - { anchor: domain_fragments, type: multi-document-retrieval, files: [config-development-mode.mode_instruction] }
-              - { anchor: repo_content, type: repo_content, fileset: content-dir }
+              - { anchor: repo_content, type: repo-content, fileset: content-dir }
 
     readme:
       resolvers:
-        - { anchor: repo_content, type: repo_content, includes: [README.md] } 
+        - { anchor: repo_content, type: repo-content, includes: [README.md] } 
       prompts:
         - name: structure
           render:
@@ -55,7 +55,7 @@ shared_domains:
           render:
             resolvers:
               - { anchor: prompt_fragments, type: multi-document-retrieval, files: [north-star-mode.mode_instruction] }
-              - { anchor: repo_content, type: repo_content, fileset: content-dir }
+              - { anchor: repo_content, type: repo-content, fileset: content-dir }
 
     config-dev:
       resolvers:
@@ -65,7 +65,7 @@ shared_domains:
           render:
             resolvers:
               - { anchor: prompt_fragments, type: multi-document-retrieval, files: [] }
-              - { anchor: repo_content, type: repo_content, fileset: content-dir }
+              - { anchor: repo_content, type: repo-content, fileset: content-dir }
 
     debloat:
       resolvers:
@@ -75,7 +75,7 @@ shared_domains:
           render:
             resolvers:
               - { anchor: prompt_fragments, type: multi-document-retrieval, files: [debloat-instructions.md] }
-              - { anchor: repo_content, type: repo_content, fileset: content-dir }
+              - { anchor: repo_content, type: repo-content, fileset: content-dir }
 
     presentation:
       resolvers:
@@ -84,5 +84,5 @@ shared_domains:
         - name: debloat
           render:
             resolvers:
-              - { anchor: repo_content, type: repo_content, fileset: presentation }
+              - { anchor: repo_content, type: repo-content, fileset: presentation }
 
