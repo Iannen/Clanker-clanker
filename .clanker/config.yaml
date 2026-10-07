@@ -5,8 +5,7 @@ filesets:
   core: {includes: [content/core]}
 
   asset_ingestion: {includes: [
-    content/modules/asset_ingestion/parsers,
-    content/core/core/entities.py]}
+    content/modules/asset_ingestion]}
 
   cfg_validation: {includes: [
     content/core/entities.py,  
@@ -57,7 +56,7 @@ pud_domains:
 
   ingestion:
     resolvers:
-      - { anchor: repo_content, type: repo_content, fileset: complaint_review }
+      - { anchor: repo_content, type: repo_content, fileset: asset_ingestion }
     prompts:
       - name: plan
         render:
