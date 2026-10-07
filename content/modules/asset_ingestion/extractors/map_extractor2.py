@@ -1,18 +1,25 @@
 from stdlib import dataclass, field, inspect
 from core import Entity, Config
 from ...asset_ingestion import ValueExtractor, ErrorCollector
+from types import get_original_bases
+from typing import get_args, get_origin
 
 def _load_parsers() -> dict[type, type]:
     import modules.asset_ingestion.extractors.parsers as parsers_module
     base_cls = parsers_module.BaseParser2
-    return {
-        cls.entity_cls: cls
-        for cls in parsers_module.__dict__.values()
-        if inspect.isclass(cls)
-        and issubclass(cls, base_cls)
-        and cls is not base_cls
-        and hasattr(cls, "entity_cls")
-    }
+    parsers = {}
+
+    for cls in parsers_module.__dict__.values():
+        if inspect.isclass(cls) and issubclass(cls, base_cls) and cls is not base_cls:
+            for base in get_original_bases(cls):
+                origin = get_origin(base)
+                if origin is not None and issubclass(origin, base_cls):
+                    args = get_args(base)
+                    if args and isinstance(args[0], type):
+                        parsers[args[0]] = cls
+                        break
+
+    return parsers
 
 @dataclass
 class Numap:

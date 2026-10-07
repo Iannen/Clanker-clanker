@@ -1,6 +1,9 @@
 from stdlib import dataclass, field, fields, MISSING, get_args, ClassVar, Any, get_args, get_origin, Enum, auto, types, Field
+from types import get_original_bases
+from typing import get_args, get_origin
 from ...asset_ingestion import ValueExtractor, ErrorCollector
 from core import ConfigAssembly, Entity, Filelist, Fileset, Keyboard, Render, UIRender, Resolver, Prompt, File, TruncationSpec, MultiDocResolver, ManifestResolver, RepoContentResolver, KBStateResolver, SharedDomButton, PudDomButton, PromptButton, SharedBaseResolver, PudBaseResolver, SharedDomain, PudDomain
+
 class OuterType(Enum):
     SINGLE = auto()
     LIST = auto()
@@ -16,9 +19,18 @@ class EntityField(NormalField):
     inner_type: type
     default_value: Any = MISSING
 
-class BaseParser2(ValueExtractor):
-    def __init__(self, ec: ErrorCollector): self.ec=ec
-    entity_cls: ClassVar[type[Entity]]
+class BaseParser2[T: Entity](ValueExtractor):
+    def __init__(self, ec: ErrorCollector):
+        self.ec = ec
+        for base in get_original_bases(self.__class__):
+            origin = get_origin(base)
+            if origin is not None and issubclass(origin, BaseParser2):
+                args = get_args(base)
+                if args and isinstance(args[0], type):
+                    self.entity_cls: type[T] = args[0]
+                    break
+        else:
+            raise AttributeError(f"Could not determine target entity class for {self.__class__.__name__}")
 
     def preprocess(self, data: dict):
         return data
@@ -99,40 +111,34 @@ class BaseParser2(ValueExtractor):
             e = pc(self.ec).parse(name, data, numap)
         return e
 
-class RenderParser2(BaseParser2): entity_cls: ClassVar[type[Entity]] = Render
-class UIRenderParser2(RenderParser2): entity_cls: ClassVar[type[Entity]] = UIRender
-class FilesetParser2(BaseParser2): entity_cls: ClassVar[type[Entity]] = Fileset
-class PromptParser2(BaseParser2): entity_cls: ClassVar[type[Entity]] = Prompt
-class RepoManifestResParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = ManifestResolver
-class MdResParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = MultiDocResolver
-class SharedBaseResParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = SharedBaseResolver
-class PudBaseResParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = PudBaseResolver
-class SharedDomParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = SharedDomain
-class PudDomParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = PudDomain
-class RepoContentResParser(BaseParser2):
-    entity_cls: ClassVar[type[Entity]] = RepoContentResolver
+class RenderParser2(BaseParser2[Render]): pass
+class UIRenderParser2(BaseParser2[UIRender]): pass
+class FilesetParser2(BaseParser2[Fileset]): pass
+class PromptParser2(BaseParser2[Prompt]): pass
+class RepoManifestResParser(BaseParser2[ManifestResolver]): pass
+class MdResParser(BaseParser2[MultiDocResolver]): pass
+class SharedBaseResParser(BaseParser2[SharedBaseResolver]): pass
+class PudBaseResParser(BaseParser2[PudBaseResolver]): pass
+class SharedDomParser(BaseParser2[SharedDomain]): pass
+class PudDomParser(BaseParser2[PudDomain]): pass
+class RepoContentResParser(BaseParser2[RepoContentResolver]):
     def preprocess(self, data: dict) -> dict:
             if "fileset" in data: return data
             return {"fileset": data}
 
-class FilelistParser2(BaseParser2): 
+class FilelistParser2(BaseParser2[Filelist]): 
     # the baseparser needs a way to distinguish str which are data and str which are mapkeys
-    entity_cls: ClassVar[type[Entity]] = Filelist
-
     def parse(self, name, data, numap:Numap) -> Filelist:
         files = [FileParser(self.ec).parse(None, f, numap) for f in data]
         return Filelist(files=files)
 
-
-class FileParser(BaseParser2):
-    entity_cls: ClassVar[type[Entity]] = File
+class FileParser(BaseParser2[File]):
     
     def preprocess(self, data):
         if isinstance(data, str): return {"name": data}
         return {"name": data.get("name"),"truncation_spec": data}
 
-class TruncSpecParser(BaseParser2):
-    entity_cls: ClassVar[type[Entity]] = TruncationSpec
+class TruncSpecParser(BaseParser2[TruncationSpec]):
     def preprocess(self, data: dict):
         return data
     def parse(self, name, data, numap:Numap) -> TruncationSpec:
@@ -143,9 +149,7 @@ class TruncSpecParser(BaseParser2):
         if tail_lines and (from_line or up_to):
             self.ec.add_complaint("TruncationSpec conflict: tail_lines cannot be combined with from_line or up_to")
             return None
-
         if tail_lines: return TruncationSpec(TruncationSpec.TYPE_TAIL, tail_lines)
-            
 
         if from_line or up_to:
             return TruncationSpec(
@@ -154,9 +158,7 @@ class TruncSpecParser(BaseParser2):
                 up_to=up_to,
             )
 
-class KeyboardParser2(BaseParser2):
-    entity_cls: ClassVar[type[Entity]] = Keyboard
-
+class KeyboardParser2(BaseParser2[Keyboard]):
     def parse(self, name: str, data: dict, Numap: Numap) -> Keyboard:
         shared_keys = self.req_str(data, ["shared_domains_row"])
         pud_keys = self.req_str(data, ["pud_domains_row"])
@@ -168,13 +170,10 @@ class KeyboardParser2(BaseParser2):
             prompt_btns={key: PromptButton(key) for key in prompt_keys},
         )
 
-class ResolverParser2(BaseParser2):
-    entity_cls: ClassVar[type[Entity]] = Resolver
-
+class ResolverParser2(BaseParser2[Resolver]):
     def parse(self, name, data, numap:Numap) -> Resolver | None:
         res_type = self.req_str(data, ["type"])
         anchor = self.req_str(data, ["anchor"])
-
         if res_type == "multi-document-retrieval": return MdResParser(self.ec).parse(None, data, numap)
         if res_type == "repo_content": return RepoContentResParser(self.ec).parse(None, data, numap)
         if res_type == "repo-manifest": return RepoManifestResParser(self.ec).parse(None, data, numap)
