@@ -72,7 +72,10 @@ class GateInspector:
 
         self._write_report_file()
         self.write_console_report()
-        return self.run_result.outcome == Outcome.PASS
+        assert_conclusion = all(outcome == Outcome.PASS for outcome in [res.outcome for res in self.run_result.assert_suite_results]) 
+        file_analysis_conclusion = all(outcome == Outcome.PASS for outcome in [res.outcome for res in self.run_result.file_analysis_results]) 
+        return assert_conclusion
+        #return self.run_result.outcome == Outcome.PASS
 
     def _write_report_file(self) -> None:
         html_report_file = self.reports_dir / f"{self.run_result.name}.html"

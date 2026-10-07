@@ -17,3 +17,4 @@ import types
 from enum import StrEnum, Enum, auto
 from itertools import zip_longest
 from collections.abc import ItemsView
+import inspect
