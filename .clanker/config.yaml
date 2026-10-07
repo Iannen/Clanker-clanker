@@ -32,7 +32,7 @@ filesets:
     
     ]}
 
-domains:
+pud_domains:
   core:
     resolvers:
       - { anchor: repo_content, type: repo_content, fileset: core } 

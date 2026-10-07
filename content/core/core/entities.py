@@ -52,6 +52,11 @@ class MultiDocResolver(Resolver):
     files: Filelist 
 
 @dataclass
+class SharedBaseResolver(MultiDocResolver): pass
+@dataclass
+class PudBaseResolver(MultiDocResolver): pass
+
+@dataclass
 class RepoContentResolver(Resolver):
     fileset: Fileset 
 
@@ -88,6 +93,11 @@ class Domain(Entity):
     name: str
     prompts: list[Prompt]
     resolvers: list[Resolver]
+
+@dataclass 
+class SharedDomain(Domain): pass
+@dataclass 
+class PudDomain(Domain): pass
 
 @dataclass 
 class NewBtn: key: str

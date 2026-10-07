@@ -1,6 +1,6 @@
 from stdlib import StrEnum, dataclass
-from core import RepoItem, CorruptClanker, Config, Render, AssetPack, Keyboard, Filelist, Fileset, Domain, UIRender
-from ...asset_ingestion import ConfigExtractor, FilelistParser, FilesetParser, FilelistValidator, FilesetValidator, CollisionDetector, Missing, Malformed, ErrorCollector, DomParser, ResolverParser, UIRenderParser, KeyboardParser, OverflowHandler
+from core import RepoItem, CorruptClanker, Config, Render, AssetPack, Keyboard, Filelist, Fileset, UIRender, SharedBaseResolver, PudBaseResolver, SharedDomain, PudDomain
+from ...asset_ingestion import Missing, Malformed, ErrorCollector, OverflowHandler2, FilelistValidator2
 from ...asset_ingestion import Numap, NuConfigExtractor
 
 class ClassificationResult(StrEnum):
@@ -47,17 +47,27 @@ class Assembler:
         clank_ext = NuConfigExtractor(numap, self.collector, self.clank_cfg)
         clank_ext.extract_from_map(Filelist)
         clank_ext.extract_from_map(Fileset)
-        clank_ext.extract_from_map(Domain)
+        clank_ext.extract_from_map(SharedDomain)
+        clank_ext.extract_single(SharedBaseResolver)
 
         pud_ext = NuConfigExtractor(numap, self.collector, self.pud_cfg)
         pud_ext.extract_from_map(Filelist)
         pud_ext.extract_from_map(Fileset)
-        pud_ext.extract_from_map(Domain)
+        pud_ext.extract_from_map(PudDomain)
+        pud_ext.extract_single(PudBaseResolver)
 
         system_extractor = NuConfigExtractor(numap, self.collector, self.sys_cfg)
         system_extractor.extract_single(UIRender)
-        #system_extractor.extract_single(Keyboard)
+        system_extractor.extract_single(Keyboard)
 
+        populated_kb = OverflowHandler2(self.collector).do_it(numap)
+        ui_render = numap.get_entity(UIRender, UIRender.key_name)
+        
+        list_validator = FilelistValidator2(self.collector)
+        list_validator.validate_clank(numap, self.clank_doc_assets, self.clank_cfg)
+        list_validator.validate_pud(numap, self.pud_doc_assets, self.pud_cfg)        
+
+        """
         extractor = ConfigExtractor(self.collector, (self.clank_cfg, self.pud_cfg))
         clank_fl, pud_fl = extractor.get_maps(FilelistParser)
         clank_fs, pud_fs = extractor.get_maps(FilesetParser)
@@ -72,6 +82,7 @@ class Assembler:
 
         populated_kb = OverflowHandler(self.collector).do_it(clank_br, pud_br, clank_doms, pud_doms, kb)
 
+
         list_validator = FilelistValidator(self.collector).validate_clank(clank_doms, self.clank_doc_assets, self.clank_cfg)
         list_validator.validate_pud(pud_doms, self.pud_doc_assets, self.pud_cfg)        
         fileset_validator = FilesetValidator(self.collector).validate_clank(clank_doms, self.clank_doc_assets, self.clank_cfg)
@@ -79,5 +90,5 @@ class Assembler:
 
         CollisionDetector(self.collector).detect(self.clank_doc_assets) 
         CollisionDetector(self.collector).detect(self.pud_doc_assets)
-        
+        """        
         return ui_render, populated_kb 

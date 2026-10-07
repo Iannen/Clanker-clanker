@@ -1,5 +1,5 @@
 from stdlib import dataclass, field, fields, MISSING, get_args, ClassVar, Any, get_args, get_origin, Enum, auto, types, Field
-from core import Config, Entity, Domain, Filelist, Fileset, Keyboard, Render, UIRender, Resolver, Prompt, File, TruncationSpec, MultiDocResolver, ManifestResolver, RepoContentResolver, KBStateResolver, SharedDomButton, PudDomButton, PromptButton
+from core import Config, Entity, Filelist, Fileset, Keyboard, Render, UIRender, Resolver, Prompt, File, TruncationSpec, MultiDocResolver, ManifestResolver, RepoContentResolver, KBStateResolver, SharedDomButton, PudDomButton, PromptButton, SharedBaseResolver, PudBaseResolver, SharedDomain, PudDomain
 from core import ConfigAssembly
 from ...asset_ingestion import ValueExtractor, ErrorCollector
 
@@ -9,7 +9,7 @@ class Numap:
     entities: dict[tuple[type, str], Entity] = field(default_factory=dict)
     parsers: dict[type, type] = field(
         default_factory=lambda: {
-            Domain: DomParser2,
+#            Domain: DomParser2,
             Filelist: FilelistParser2,
             Fileset: FilesetParser2,
             Keyboard: KeyboardParser2,
@@ -17,14 +17,18 @@ class Numap:
             UIRender: UIRenderParser2,
             Resolver: ResolverParser2,
             Prompt: PromptParser2,
-            TruncationSpec: TruncSpecParser
+            TruncationSpec: TruncSpecParser,
+            SharedBaseResolver: SharedBaseResParser,
+            PudBaseResolver: PudBaseResParser,
+            SharedDomain: SharedDomParser,
+            PudDomain: PudDomParser
         }
     )
 
-    def set_entity(self, name: str, entity: Entity) -> None:
-        if not isinstance(entity, Entity):
+    def set_entity(self, name: str, entity: Entity, cls: type) -> None:
+        if not isinstance(entity, (Entity, type(None))):
             raise TypeError(f"Expected an instance of Entity, got {type(entity).__name__}")
-        self.entities[(type(entity), name)] = entity
+        self.entities[(cls, name)] = entity
 
     def get_entity(self, entity_cls: type, key: str) -> Entity | None:
         if not isinstance(entity_cls, type) or not issubclass(entity_cls, Entity):
@@ -32,6 +36,13 @@ class Numap:
         if not isinstance(key, str):
             return None
         return self.entities.get((entity_cls, key))
+
+    def get_entities(self, entity_cls: type) -> list[Entity]:
+        return [
+            entity
+            for entity in self.entities.values()
+            if isinstance(entity, entity_cls)
+        ]
 
     def get_parser(self, entity_cls: type) -> type:
         if not isinstance(entity_cls, type) or not issubclass(entity_cls, Entity):
@@ -51,13 +62,15 @@ class NuConfigExtractor(ValueExtractor):
         parse_cls = self.numap.get_parser(entity_cls)
         for name, entity_data in entities_dict.items():
             entity = parse_cls(self.collector).parse(name, entity_data, self.numap)
-            self.numap.set_entity(name, entity)       
+            self.numap.set_entity(name, entity, entity_cls)       
     def extract_single(self, entity_cls: type) -> None:
         if not self.cfg: return
         entity_dict = self.opt_dict(self.cfg.data, [entity_cls.key_name],{})
-        parse_cls = self.numap.get_parser(entity_cls)
-        entity = parse_cls(self.collector).parse(entity_cls.key_name, entity_dict, self.numap)
-        self.numap.set_entity(entity_cls.key_name, entity)
+        if not entity_dict: entity = None
+        else:
+            parse_cls = self.numap.get_parser(entity_cls)
+            entity = parse_cls(self.collector).parse(entity_cls.key_name, entity_dict, self.numap)
+        self.numap.set_entity(entity_cls.key_name, entity, entity_cls)
 
 
 
@@ -171,14 +184,22 @@ class RenderParser2(BaseParser2): entity_cls: ClassVar[type[Entity]] = Render
 class UIRenderParser2(RenderParser2): entity_cls: ClassVar[type[Entity]] = UIRender
 @dataclass
 class FilesetParser2(BaseParser2): entity_cls: ClassVar[type[Entity]] = Fileset
-@dataclass
-class DomParser2(BaseParser2): entity_cls: ClassVar[type[Entity]] = Domain
+#@dataclass
+#class DomParser2(BaseParser2): entity_cls: ClassVar[type[Entity]] = Domain
 @dataclass
 class PromptParser2(BaseParser2): entity_cls: ClassVar[type[Entity]] = Prompt
 @dataclass
 class RepoManifestResParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = ManifestResolver
 @dataclass 
 class MdResParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = MultiDocResolver
+@dataclass
+class SharedBaseResParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = SharedBaseResolver
+@dataclass
+class PudBaseResParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = SharedBaseResolver
+@dataclass
+class SharedDomParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = SharedDomain
+@dataclass
+class PudDomParser(BaseParser2): entity_cls: ClassVar[type[Entity]] = PudDomain
 @dataclass
 class RepoContentResParser(BaseParser2):
     entity_cls: ClassVar[type[Entity]] = RepoContentResolver
@@ -245,11 +266,10 @@ class TruncSpecParser(BaseParser2):
             )
 
 @dataclass
-class KeyboardParser2(ValueExtractor):
-    collector: ErrorCollector
+class KeyboardParser2(BaseParser2):
     entity_cls: type = Keyboard
 
-    def parse(self, name: str, data: dict) -> Keyboard:
+    def parse(self, name: str, data: dict, Numap: Numap) -> Keyboard:
         shared_keys = self.req_str(data, ["shared_domains_row"])
         pud_keys = self.req_str(data, ["pud_domains_row"])
         prompt_keys = self.req_str(data, ["prompts_row"])
