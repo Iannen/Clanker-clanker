@@ -127,15 +127,11 @@ class RepoContentResParser(BaseParser2):
     entity_cls: ClassVar[type[Entity]] = RepoContentResolver
     def preprocess(self, data: dict) -> dict:
             if "fileset" in data: return data
-            new_data = data.copy()
-            fileset = {}
-            if "includes" in new_data: fileset["includes"] = new_data.pop("includes")
-            if "excludes" in new_data: fileset["excludes"] = new_data.pop("excludes")
-            new_data["fileset"] = fileset
-            return new_data
+            return {"fileset": data}
 
 @dataclass
 class FilelistParser2(BaseParser2): 
+    # the baseparser needs a way to distinguish str which are data and str which are mapkeys
     entity_cls: ClassVar[type[Entity]] = Filelist
 
     def parse(self, name, data, numap:Numap) -> Filelist:
@@ -149,20 +145,8 @@ class FileParser(BaseParser2):
     
     def preprocess(self, data):
         if isinstance(data, str): return {"name": data}
+        return {"name": data.get("name"),"truncation_spec": data}
 
-        new_data = data.copy()
-        return {
-            "name": new_data.pop("name"),
-            "truncation_spec": new_data
-        }
-    """
-    def parse(self, name, data, numap:Numap) -> Filelist: 
-        if isinstance(data, dict):
-            filename = self.req_str(data, ["file"])
-            trunc_spec = TruncSpecParser(self.ec).parse(None, data, numap)
-            return File(name=filename, truncation_spec=trunc_spec)
-        return File(name=self.req_str({"file": data}, ["file"]))
-    """
 @dataclass
 class TruncSpecParser(BaseParser2):
     entity_cls: ClassVar[type[Entity]] = TruncationSpec
