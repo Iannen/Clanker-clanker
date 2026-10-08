@@ -1,5 +1,5 @@
 from stdlib import re
-from core import TruncationSpec, ConfigAssembly, NewBtn
+from core import TruncationSpec, NewBtn
 class SystemKeys:
     DELIM = "§"
 

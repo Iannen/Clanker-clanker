@@ -1,22 +1,20 @@
-from stdlib import dataclass, field, inspect
+from stdlib import dataclass, inspect, Any
 from core import Entity, Config
 from ...asset_ingestion import ValueExtractor, ErrorCollector
-from types import get_original_bases
-from typing import get_args, get_origin
 
 def build_parser_map(ec: Any) -> dict[type | str, Any]:
-    import core.core.entities as entities_module
-    import modules.asset_ingestion.extractors.parsers as parsers_module
+    from core import entities
+    from ...asset_ingestion import parsers
 
-    entity_base_cls = entities_module.Entity
-    parse_base_cls = parsers_module.BaseParser2
+    entity_base_cls = entities.Entity
+    parse_base_cls = parsers.BaseParser2
 
     entity_classes = [
-        obj for obj in entities_module.__dict__.values()
+        obj for obj in entities.__dict__.values()
         if inspect.isclass(obj) and issubclass(obj, entity_base_cls) and obj is not entity_base_cls
     ]
     parse_classes = [
-        obj for obj in parsers_module.__dict__.values()
+        obj for obj in parsers.__dict__.values()
         if inspect.isclass(obj) and issubclass(obj, parse_base_cls) and obj is not parse_base_cls
     ]
     parsers: dict[type | str, Any] = {}

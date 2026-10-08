@@ -1,8 +1,6 @@
-from stdlib import dataclass, field, fields, MISSING, get_args, ClassVar, Any, get_args, get_origin, Enum, auto, types, Field
-from types import get_original_bases
-from typing import get_args, get_origin
+from stdlib import dataclass, field, fields, MISSING, get_args, Any, get_args, get_origin, Enum, auto, types, Field, get_args, get_origin
 from ...asset_ingestion import ValueExtractor, ErrorCollector, Numap
-from core import ConfigAssembly, Entity, Filelist, Fileset, Keyboard, Render, UIRender, Resolver, Prompt, File, TruncationSpec, MultiDocResolver, ManifestResolver, RepoContentResolver, KBStateResolver, SharedDomButton, PudDomButton, PromptButton, SharedBaseResolver, PudBaseResolver, SharedDomain, PudDomain
+from core import Entity, Filelist, Keyboard, Resolver, File, RepoContentResolver, SharedDomButton, PudDomButton, PromptButton
 
 class OuterType(Enum):
     SINGLE = auto()
@@ -85,7 +83,6 @@ class BaseParser2(ValueExtractor):
         else:
             default_value = MISSING
 
-
         return EntityField(
             key=raw_field.name,
             outer_type=outer_type,
@@ -130,6 +127,11 @@ class RepoContentResParser(BaseParser2):
             if "fileset" in data: return data
             return {"fileset": data}
 
+class ResolverParser2(BaseParser2):
+    entity_cls = Resolver
+    def parse(self, name, data, numap: Numap) -> Resolver | None:
+        return numap.get_parser(self.req_str(data, ["type"])).parse(name, data, numap)
+
 class KeyboardParser2(BaseParser2):
     entity_cls = Keyboard
     def parse(self, name: str, data: dict, Numap: Numap) -> Keyboard:
@@ -137,8 +139,3 @@ class KeyboardParser2(BaseParser2):
         pud_btns = [PudDomButton(key, None) for key in self.req_str(data, ["pud_domains_row"])]
         prompt_btns = [PromptButton(key, None) for key in self.req_str(data, ["prompts_row"])]
         return Keyboard({btn.key: btn for btn in shared_btns + pud_btns + prompt_btns}, None)
-
-class ResolverParser2(BaseParser2):
-    entity_cls = Resolver
-    def parse(self, name, data, numap: Numap) -> Resolver | None:
-        return numap.get_parser(self.req_str(data, ["type"])).parse(name, data, numap)
