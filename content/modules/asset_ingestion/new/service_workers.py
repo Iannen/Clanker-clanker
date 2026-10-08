@@ -61,11 +61,17 @@ class Assembler:
         system_extractor.extract_single(Keyboard)
 
         ui_render, populated_kb = OverflowHandler2(self.collector).do_it(numap)
-        #ui_render = numap.get_entity(UIRender, UIRender.key_name)
-        
-        list_validator = FilelistValidator2(self.collector)
-        list_validator.validate_clank(numap, self.clank_doc_assets, self.clank_cfg)
-        list_validator.validate_pud(numap, self.pud_doc_assets, self.pud_cfg)        
+
+        list_validator = FilelistValidator2(
+            self.collector,
+            self.clank_doc_assets,
+            self.clank_cfg,
+            self.pud_doc_assets,
+            self.pud_cfg,
+            numap
+        )
+        list_validator.validate_clank()
+        list_validator.validate_pud()        
 
         fileset_validator = FilesetValidator2(self.collector)
         fileset_validator.validate_pud(numap, self.pud_doc_assets, self.pud_cfg)      
