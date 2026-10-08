@@ -1,5 +1,5 @@
 from stdlib import dataclass, field, fields, MISSING, get_args, Any, get_args, get_origin, Enum, auto, types, Field, get_args, get_origin
-from ...asset_ingestion import ValueExtractor, ErrorCollector, Numap
+from ...asset_ingestion import ErrorCollector, Numap 
 from core import Entity, Filelist, Keyboard, Resolver, File, RepoContentResolver, SharedDomButton, PudDomButton, PromptButton
 
 class OuterType(Enum):
@@ -16,7 +16,7 @@ class EntityField:
     inner_type: type
     default_value: Any = MISSING
 
-class BaseParser2(ValueExtractor):
+class BaseParser2:
     def __init__(self, ec: ErrorCollector):
         self.ec = ec
 
@@ -130,12 +130,13 @@ class RepoContentResParser(BaseParser2):
 class ResolverParser2(BaseParser2):
     entity_cls = Resolver
     def parse(self, name, data, numap: Numap) -> Resolver | None:
-        return numap.get_parser(self.req_str(data, ["type"])).parse(name, data, numap)
+        return numap.get_parser(data.get("type")).parse(name, data, numap)
 
 class KeyboardParser2(BaseParser2):
     entity_cls = Keyboard
-    def parse(self, name: str, data: dict, Numap: Numap) -> Keyboard:
-        shared_btns = [SharedDomButton(key, None) for key in self.req_str(data, ["shared_domains_row"])]
-        pud_btns = [PudDomButton(key, None) for key in self.req_str(data, ["pud_domains_row"])]
-        prompt_btns = [PromptButton(key, None) for key in self.req_str(data, ["prompts_row"])]
+    def parse(self, name: str, data: dict, Numap: Numap) -> Keyboard:       
+        shared_btns = [SharedDomButton(key, None) for key in data.get("shared_domains_row")]
+        pud_btns = [PudDomButton(key, None) for key in data.get("pud_domains_row")]
+        prompt_btns = [PromptButton(key, None) for key in data.get("prompts_row")]
+        
         return Keyboard({btn.key: btn for btn in shared_btns + pud_btns + prompt_btns}, None)

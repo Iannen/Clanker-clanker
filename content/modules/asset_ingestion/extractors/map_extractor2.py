@@ -1,6 +1,6 @@
 from stdlib import dataclass, inspect, Any
 from core import Entity, Config
-from ...asset_ingestion import ValueExtractor, ErrorCollector
+from ...asset_ingestion import ErrorCollector
 
 def build_parser_map(ec: Any) -> dict[type | str, Any]:
     from core import entities
@@ -67,7 +67,7 @@ class Numap:
         return parser
 
 @dataclass
-class NuConfigExtractor(ValueExtractor):
+class NuConfigExtractor:
     numap: Numap
     collector: ErrorCollector
     cfg: Config
