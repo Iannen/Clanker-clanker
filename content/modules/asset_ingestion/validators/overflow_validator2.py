@@ -1,6 +1,6 @@
 from stdlib import dataclass
 from ...asset_ingestion import ErrorCollector, Numap
-from core import Keyboard, Resolver, SharedDomButton, PudDomButton, Domain, NewBtn, SharedBaseResolver, PudBaseResolver, SharedDomain, PudDomain
+from core import Keyboard, Resolver, SharedDomButton, PudDomButton, Domain, NewBtn, SharedBaseResolver, PudBaseResolver, SharedDomain, PudDomain, UIRender
 @dataclass 
 class OverflowHandler2:
     ec: ErrorCollector
@@ -9,8 +9,8 @@ class OverflowHandler2:
     # discard overflowing domains
     # discard overflowing prompts
     # return finished kb
-    def do_it(self, numap: Numap) -> Keyboard | None:
-        if not numap.get_entity(Keyboard, Keyboard.key_name): return None # we can still check prompts overflow if not kb
+    def do_it(self, numap: Numap) -> tuple[UIRender | None, Keyboard | None]:
+        if not numap.get_entity(Keyboard, Keyboard.key_name): return None, None # we can still check prompts overflow if not kb
 
         baseres = self._get_proper_baseres(numap)
         clank_doms = numap.get_entities(SharedDomain)
@@ -22,7 +22,8 @@ class OverflowHandler2:
         if clank_doms: self._handle_domain_overflow(clank_doms, shared_dom_btns, baseres)
         if pud_doms: self._handle_domain_overflow(pud_doms, pud_dom_btns, baseres)
 
-        return kb
+        ui_render = numap.get_entity(UIRender, UIRender.key_name)
+        return ui_render, kb
 
     def _get_proper_baseres(self, numap: Numap) -> Resolver:
         #if no clank br complain

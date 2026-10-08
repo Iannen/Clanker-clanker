@@ -50,7 +50,7 @@ class IngestionServiceImpl(IngestionService):
         for req in [*ClankerAssets.templates, *ClankerAssets.layouts]: clank_classifier.classify(self._get_file_req(req))
         for req in [*PudAssets.Directories, *PudAssets.Files, *PudAssets.Documentation]: pud_classifier.classify(self._get_file_req(req))
 
-        assember = Assembler(
+        assembler = Assembler(
             ec, 
             clank_classifier.classify(self._get_config(ClankerAssets.Configs.shared_cfg)),
             clank_classifier.classify(self._get_config(ClankerAssets.Configs.sys_cfg)),
@@ -62,7 +62,7 @@ class IngestionServiceImpl(IngestionService):
         clank_classifier.complain() 
         pud_result = pud_classifier.evaluate()
         if pud_result is ClassificationResult.MIXED: pud_classifier.complain() 
-        ui_render, kb = assember.assemble(pud_result)
+        ui_render, kb = assembler.assemble(pud_result)
 
         
         if ec.has_crits(): return TerminateResult(ec) 
