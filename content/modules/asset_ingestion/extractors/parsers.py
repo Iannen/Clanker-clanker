@@ -18,19 +18,9 @@ class EntityField:
     inner_type: type
     default_value: Any = MISSING
 
-class BaseParser2[T: Entity](ValueExtractor):
-    # given that the numap registry instantiates all of these, I bet it could fish out the entity class much more easily that the instance can while it is instantiating itself
+class BaseParser2(ValueExtractor):
     def __init__(self, ec: ErrorCollector):
         self.ec = ec
-        for base in get_original_bases(self.__class__):
-            origin = get_origin(base)
-            if origin is not None and issubclass(origin, BaseParser2):
-                args = get_args(base)
-                if args and isinstance(args[0], type):
-                    self.entity_cls: type[T] = args[0]
-                    break
-        else:
-            raise AttributeError(f"Could not determine target entity class for {self.__class__.__name__}")
 
     def preprocess(self, data: dict):
         return data
@@ -43,8 +33,7 @@ class BaseParser2[T: Entity](ValueExtractor):
         if name: data["name"] = name
         
         kwargs_out = {}
-        if isinstance(self, UIRenderParser2):
-            hook = "hook"
+
         for raw_field in fields(self.entity_cls):
             field:EntityField = self._process_raw_field(raw_field, data)   
             out = self._parse_value(field, numap)
@@ -122,42 +111,34 @@ class BaseParser2[T: Entity](ValueExtractor):
             e = parser.parse(name, data, numap)
         return e
 
-class UIResParser(BaseParser2[KBStateResolver]): pass
-class RenderParser2(BaseParser2[Render]): pass
-class UIRenderParser2(BaseParser2[UIRender]): pass
-class FilesetParser2(BaseParser2[Fileset]): pass
-class PromptParser2(BaseParser2[Prompt]): pass
-class RepoManifestResParser(BaseParser2[ManifestResolver]): pass
-class MdResParser(BaseParser2[MultiDocResolver]): pass
-class SharedBaseResParser(BaseParser2[SharedBaseResolver]): pass
-class PudBaseResParser(BaseParser2[PudBaseResolver]): pass
-class SharedDomParser(BaseParser2[SharedDomain]): pass
-class PudDomParser(BaseParser2[PudDomain]): pass
-class TruncSpecParser(BaseParser2[TruncationSpec]): pass
-
-class FilelistParser2(BaseParser2[Filelist]): 
+class FilelistParser2(BaseParser2): 
+    entity_cls = Filelist
     def preprocess(self, data: dict) -> dict:
         return {"files": [{"name": file} if isinstance(file, str) else file for file in data]}
 
-class FileParser(BaseParser2[File]):
+class FileParser(BaseParser2):
+    entity_cls = File
     def preprocess(self, data: dict) -> dict:
         return {
             "name": data.pop("name"),
             "truncation_spec": data if data else None
         }
 
-class RepoContentResParser(BaseParser2[RepoContentResolver]):
+class RepoContentResParser(BaseParser2):
+    entity_cls = RepoContentResolver
     def preprocess(self, data: dict) -> dict:
             if "fileset" in data: return data
             return {"fileset": data}
 
-class KeyboardParser2(BaseParser2[Keyboard]):
+class KeyboardParser2(BaseParser2):
+    entity_cls = Keyboard
     def parse(self, name: str, data: dict, Numap: Numap) -> Keyboard:
         shared_btns = [SharedDomButton(key, None) for key in self.req_str(data, ["shared_domains_row"])]
         pud_btns = [PudDomButton(key, None) for key in self.req_str(data, ["pud_domains_row"])]
         prompt_btns = [PromptButton(key, None) for key in self.req_str(data, ["prompts_row"])]
         return Keyboard({btn.key: btn for btn in shared_btns + pud_btns + prompt_btns}, None)
 
-class ResolverParser2(BaseParser2[Resolver]):
+class ResolverParser2(BaseParser2):
+    entity_cls = Resolver
     def parse(self, name, data, numap: Numap) -> Resolver | None:
         return numap.get_parser(self.req_str(data, ["type"])).parse(name, data, numap)

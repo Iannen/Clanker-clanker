@@ -4,22 +4,45 @@ from ...asset_ingestion import ValueExtractor, ErrorCollector
 from types import get_original_bases
 from typing import get_args, get_origin
 
+def build_parser_map(ec: Any) -> dict[type | str, Any]:
+    import core.core.entities as entities_module
+    import modules.asset_ingestion.extractors.parsers as parsers_module
+
+    entity_base_cls = entities_module.Entity
+    parse_base_cls = parsers_module.BaseParser2
+
+    entity_classes = [
+        obj for obj in entities_module.__dict__.values()
+        if inspect.isclass(obj) and issubclass(obj, entity_base_cls) and obj is not entity_base_cls
+    ]
+    parse_classes = [
+        obj for obj in parsers_module.__dict__.values()
+        if inspect.isclass(obj) and issubclass(obj, parse_base_cls) and obj is not parse_base_cls
+    ]
+    parsers: dict[type | str, Any] = {}
+
+    def _register(entity_cls: type, parser_inst: Any) -> None:
+        parsers[entity_cls] = parser_inst
+        if hasattr(entity_cls, "type") and isinstance(entity_cls.type, str):
+            parsers[entity_cls.type] = parser_inst
+
+    for cls in parse_classes:
+        parser_inst = cls(ec)
+        if parser_inst.entity_cls:
+            _register(parser_inst.entity_cls, parser_inst)
+
+    for cls in entity_classes:
+        if cls not in parsers:
+            parser_inst = parse_base_cls(ec)
+            parser_inst.entity_cls = cls
+            _register(cls, parser_inst)
+
+    return parsers
+
 class Numap:
     def __init__(self, ec: Any):
         self.entities: dict[tuple[type, str], Entity] = {}
-        import modules.asset_ingestion.extractors.parsers as parsers_module
-        base_cls = parsers_module.BaseParser2
-        self.parsers = {}
-        for cls in parsers_module.__dict__.values():
-            if inspect.isclass(cls) and issubclass(cls, base_cls) and cls is not base_cls:
-                parser_inst = cls(ec)
-                entity_cls = parser_inst.entity_cls
-
-                self.parsers[entity_cls] = parser_inst
-
-                if hasattr(entity_cls, "type") and isinstance(entity_cls.type, str):
-                    self.parsers[entity_cls.type] = parser_inst
-                
+        self.parsers = build_parser_map(ec)
 
     def set_entity(self, name: str, entity: Entity, cls: type) -> None:
         if not isinstance(entity, (Entity, type(None))):
