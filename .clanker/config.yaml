@@ -2,7 +2,7 @@ system:
   test_command: "python3 -B content/test/ship_gate.py"
 
 filesets:
-  core: {includes: [content/core]}
+  core: {includes: [content/core, osaur]}
 
   asset_ingestion: {includes: [
     content/modules/asset_ingestion]}

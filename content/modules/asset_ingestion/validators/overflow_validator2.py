@@ -44,7 +44,7 @@ class OverflowHandler2:
             for dom in overflow_doms:
                 complaint += f"\n\tDomain '{dom.name}' was discarded."
 
-            self.collector.add_complaint(complaint)
+            self.ec.add_complaint(complaint)
         for dom, btn in zip(dom_list, buttons):
             dom.resolvers.append(baseres)
             btn.inhabitant = dom

@@ -17,7 +17,7 @@ class FilelistValidator2:
         doms = self.numap.get_entities(SharedDomain)
         reqs: list[Req] = self._get_reqs(doms, self.clank_cfg)
         self.shared_map = {p.rsplit("/", 1)[-1]: f"{PathTokens.SHARED}/{p}" for p in self.clank_doc_assets.paths}
-        self.pud_map = {p.rsplit("/", 1)[-1]: f"{PathTokens.SHARED}/{p}" for p in self.pud_doc_assets.paths} if self.pud_doc_assets else {}
+        self.pud_map = {p.rsplit("/", 1)[-1]: f"{PathTokens.PUD}/{p}" for p in self.pud_doc_assets.paths} if self.pud_doc_assets else {}
         self.combined_map = self.pud_map | self.shared_map
 
         for req in reqs:
@@ -38,7 +38,7 @@ class FilelistValidator2:
             else:
                 self._remove_file(req)
 
-    def _get_reqs(self, doms: list[Domain], cfg: Config) -> list[tuple[File, str]]:
+    def _get_reqs(self, doms: list[Domain], cfg: Config) -> list[Req]:
         reqs: list[Req] = []
 
         for dom in doms:

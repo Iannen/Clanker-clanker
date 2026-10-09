@@ -1,126 +1,69 @@
-from core import Domain, ManifestResolver, RepoContentResolver, AssetPack, Config, SharedDomain, PudDomain, Prompt
+from core import Domain, ManifestResolver, RepoContentResolver, AssetPack, Config, Prompt, Fileset, Resolver
 from stdlib import dataclass
 from ...asset_ingestion import ErrorCollector, Numap
+
 @dataclass
 class FilesetValidator2:
-    collector: ErrorCollector
+    ec: ErrorCollector
+    numap: Numap
+    clank_cfg: Config
+    clank_doc_assets: AssetPack
+    pud_cfg: Config
+    pud_doc_assets: AssetPack
+    pud_content_assets: AssetPack
 
-    def validate_clank(self, numap: Numap, shared_assets: AssetPack | None, cfg: Config | None): 
-        self.clank_cfg = cfg
-        self.clank_doms = numap.get_entities(SharedDomain)
-        self.clank_assets = shared_assets
-        return self
-
-    def validate_pud(self, numap: Numap, pud_assets: AssetPack | None, cfg: Config | None):
-        doms = numap.get_entities(PudDomain)
-        if not (getattr(self, "clank_assets", None) and getattr(self, "clank_doms", None) and getattr(self, "clank_cfg", None) and doms and pud_assets and cfg):
-            return
-        pud_reqs = self._extract_filesets_that_target_pud(doms)
-        for include_path, context in pud_reqs:
-            has_match = any(
-                self._is_parent_or_equal(asset_path, include_path)
-                for asset_path in pud_assets.paths
-            )
-            if not has_match:
-                self._report_unbacked_include(
-                    cfg.name, cfg.name, include_path, context
-                )
-
-        shared_reqs = self._extract_filesets_that_target_shared(self.clank_doms)
-        for include_path, context in shared_reqs:
-            has_match = any(
-                self._is_parent_or_equal(asset_path, include_path)
-                for asset_path in self.clank_assets.paths
-            )
-            if not has_match:
-                self._report_unbacked_include(
-                    cfg.name, self.clank_cfg.name, include_path, context
-                )
-
-    def _report_unbacked_include(self,config_name: str,target_name: str,include_path: str,context: str,) -> None:
-        with self.collector.path(config_name):
-            self.collector.add_complaint(
-                f"asset include '{include_path}' (<{context}>) was not found in {target_name}"
-            )
-
-    def _is_parent_or_equal(self, asset_path: str, include_path: str) -> bool:
-        if asset_path == include_path:
-            return True
-        prefix = include_path if include_path.endswith("/") else f"{include_path}/"
-        return asset_path.startswith(prefix)
-
-    def _extract_filesets_that_target_pud(self, doms: list[Domain]) -> list[tuple[str, str]]:
-        reqs: list[tuple[str, str]] = []
-
-        for dom in doms:
-            for resolver in getattr(dom, "resolvers", []):
-                if isinstance(resolver, RepoContentResolver):
-                    for inc in getattr(resolver.fileset, "includes", []):
-                        context = f"domain={dom.name}, resolver=RepoContentResolver, include={inc}"
-                        reqs.append((inc, context))
-                elif isinstance(resolver, ManifestResolver):
-                    for inc in getattr(resolver.pud_fileset, "includes", []):
-                        context = f"domain={dom.name}, resolver=ManifestResolver, fileset=pud_fileset, include={inc}"
-                        reqs.append((inc, context))
-
-            for prompt in getattr(dom, "prompts", []):
-                for resolver in getattr(prompt.render, "resolvers", []):
-                    if isinstance(resolver, RepoContentResolver):
-                        for inc in getattr(resolver.fileset, "includes", []):
-                            context = f"domain={dom.name}, prompt={prompt.name}, resolver=RepoContentResolver, include={inc}"
-                            reqs.append((inc, context))
-                    elif isinstance(resolver, ManifestResolver):
-                        for inc in getattr(resolver.pud_fileset, "includes", []):
-                            context = f"domain={dom.name}, prompt={prompt.name}, resolver=ManifestResolver, fileset=pud_fileset, include={inc}"
-                            reqs.append((inc, context))
-
+    def _reqs_from_fileset(self, cls: type[NewReq], dom: Domain, fileset: Fileset, prompt: Prompt | None = None) -> list[NewReq]:
+        reqs = [cls(dom, fileset, s, fileset.includes, prompt) for s in fileset.includes]
+        if fileset.excludes:
+            reqs.extend(cls(dom, fileset, s, fileset.excludes, prompt) for s in fileset.excludes)
         return reqs
 
-    def _extract_filesets_that_target_shared(self, doms: list[Domain]) -> list[tuple[str, str]]:
-        reqs: list[tuple[str, str]] = []
-
-        for dom in doms:
-            for resolver in getattr(dom, "resolvers", []):
-                if isinstance(resolver, ManifestResolver) and getattr(resolver, "shared_fileset", None) is not None:
-                    for inc in getattr(resolver.shared_fileset, "includes", []):
-                        context = f"domain={dom.name}, resolver=ManifestResolver, fileset=shared_fileset, include={inc}"
-                        reqs.append((inc, context))
-
-            for prompt in getattr(dom, "prompts", []):
-                for resolver in getattr(prompt.render, "resolvers", []):
-                    if isinstance(resolver, ManifestResolver) and getattr(resolver, "shared_fileset", None) is not None:
-                        for inc in getattr(resolver.shared_fileset, "includes", []):
-                            context = f"domain={dom.name}, prompt={prompt.name}, resolver=ManifestResolver, fileset=shared_fileset, include={inc}"
-                            reqs.append((inc, context))
-
+    def _reqs_from_resolvers(self, resolvers: list[Resolver], dom: Domain, prompt: Prompt | None = None) -> list[NewReq]:
+        reqs = []
+        for res in resolvers:
+            if isinstance(res, ManifestResolver):
+                reqs.extend(self._reqs_from_fileset(FromPud, dom, res.pud_fileset, prompt))
+                reqs.extend(self._reqs_from_fileset(FromShared, dom, res.shared_fileset, prompt))
+            elif isinstance(res, RepoContentResolver):
+                reqs.extend(self._reqs_from_fileset(FromPud, dom, res.fileset, prompt))
         return reqs
 
-    def _get_reqs(self, doms: list[Domain]):
+    def _get_reqs(self, doms: list[Domain]) -> list[NewReq]:
+        reqs: list[NewReq] = []
         for dom in doms:
-            for manres in [p for p in dom.resolvers if isinstance(p, (ManifestResolver))]:
-                i = 2
-            for repores in [p for p in dom.resolvers if isinstance(p, (RepoContentResolver))]:
-                i = 2
+            reqs.extend(self._reqs_from_resolvers(dom.resolvers, dom))
             for prompt in dom.prompts:
-                for manres in [p for p in prompt.render.resolvers if isinstance(p, (ManifestResolver))]:
-                    i = 2
-                for repores in [p for p in prompt.render.resolvers if isinstance(p, (RepoContentResolver))]:
-                    i = 2
+                reqs.extend(self._reqs_from_resolvers(prompt.render.resolvers, dom, prompt))
+        return reqs
 
+    def validate(self):
+        doms = self.numap.get_entities(Domain)
+        reqs = self._get_reqs(doms)
+        for req in reqs:
+            match req:
+                case FromPud():
+                    if self.pud_content_assets:
+                        if not any(p.startswith(req.subject) for p in self.pud_content_assets.paths):
+                            self._remove_subject(req, "pud content assetpack")
+                case FromShared():
+                    if self.clank_doc_assets:
+                        if not any(p.startswith(req.subject) for p in self.clank_doc_assets.paths):
+                            self._remove_subject(req, "shared assetpack")
 
+    def _remove_subject(self, req: NewReq, assetpack_name: str):
+        self.ec.add_complaint(f"subject removed: '{req.subject}' not found in {assetpack_name}")
+        req.target_container.remove(req.subject)
 
 @dataclass
-class FSReq:
-    cfg: Config
+class NewReq:
     dom: Domain
-    include: str
-
-@dataclass 
-class MReq(FSReq): 
-    mdr: ManifestResolver
+    fileset: Fileset
+    subject: str
+    target_container: list[str]
     prompt: Prompt | None = None
 
-@dataclass 
-class CReq(FSReq): 
-    mdr: RepoContentResolver
-    prompt: Prompt | None = None
+@dataclass
+class FromPud(NewReq): pass
+
+@dataclass
+class FromShared(NewReq): pass
