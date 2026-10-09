@@ -953,3 +953,13 @@ CXXVII: ASSET INGESTION STREAMLINING AND DOMAIN-INTERPRETIVE PARSING
     Reflection:
     - Moving toward dynamic reflection reduced module size below 32k characters while preserving path validation, self-healing UI slot allocation, and runtime config processing.
     - Formally capturing this milestone re-establishes backlog visibility and disciplined change control for subsequent development work.
+
+CXXVIII: ERROR COLLECTOR INTERFACE PRUNING AND PATTERN MATCHING FIX
+    Purpose: Clean up vestigial ErrorCollector methods and ensure correct complaint type handling.
+    - The ErrorCollector retained unused methods from prior multi-instance architectures and contained invalid pattern matching syntax in its complaint acceptance handler.
+    Actions:
+    - Removed unused `merge()`, `set_complaints()`, and `set_critical_complaints()` methods from `ErrorCollector`.
+    - Preserved `get_complaints()` and `get_critical_complaints()` methods to remain compliant with the external `Report` interface contract.
+    - Corrected pattern matching syntax in `accept()` to match class instances (`case Soft():` and `case Critical():`).
+    Reflection:
+    - Eliminating dead methods aligns ErrorCollector's API with its single-instance reference model while maintaining full backward compatibility with external report consumers.

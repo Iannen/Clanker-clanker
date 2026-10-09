@@ -32,12 +32,6 @@ class ErrorCollector(Report):
     def add_critical_complaint(self, message: str) -> None:
         self._critical_complaints.append(self._format_message(message))
 
-    def set_complaints(self, complaints: list[str]) -> None:
-        self._complaints = complaints
-
-    def set_critical_complaints(self, critical_complaints: list[str]) -> None:
-        self._critical_complaints = critical_complaints
-
     def get_complaints(self) -> list[str]:
         return self._complaints
 
@@ -47,20 +41,14 @@ class ErrorCollector(Report):
     def has_crits(self) -> bool:
         return len(self._critical_complaints) > 0
 
-    def merge(self, other: ErrorCollector) -> None:
-        merged_collector = ErrorCollector()
-        merged_collector.set_complaints(self.get_complaints() + other.get_complaints())
-        merged_collector.set_critical_complaints(self.get_critical_complaints() + other.get_critical_complaints())
-        return merged_collector
-
-    def accept(self, compl: Complaint):
-        match(compl):
-            case(Critical()): self.add_critical_complaint(compl.to_string())
-            case(Soft): self.add_complaint(compl.to_string())
+    def accept(self, compl: "Complaint") -> None:
+        match compl:
+            case Critical(): self.add_critical_complaint(compl.to_string())
+            case Soft(): self.add_complaint(compl.to_string())
 
 class Complaint(ABC):
     @abstractmethod
-    def to_string(self): ...
+    def to_string(self) -> str: ...
 
 class Critical(Complaint): pass
 class Soft(Complaint): pass

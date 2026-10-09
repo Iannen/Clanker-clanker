@@ -47,31 +47,4 @@ II. The pile
 
 Backlog tail, Selected item/items:
 
-1. Prune unused methods and fix pattern matching in ErrorCollector
-    [ ] 'content/modules/asset_ingestion/commons/error_collector.py': Remove vestigial collector methods and correct Complaint case handling
-        - eliminate unused `merge()`, `set_complaints()`, and `set_critical_complaints()` methods
-        - retain `get_complaints()` and `get_critical_complaints()` to satisfy the external `Report` interface contract
-        - fix pattern matching in `accept()` for `Soft` complaint instances (`case Soft():` instead of `case(Soft):`)
-
 Backlog tail end
-Refactor asset ingestion diagnostics and error handling flow*
-    This is a massive undertaking
-    Much undocumented work as been done, reducing boilerplate and bringing clarity.
-    I will leave some thoughts here.
-
-1   The parsing of a config needs to be a recursive affair. 
-    Parse classes rely on a map that supplies instances or child parse classes
-    Parse class & map interaction
-        - read its entity class into 3 tuple of key, type and value
-            - members are either primitives which the parse class satisfies from its data dict
-            - if type is not an entity, then it resolves from data
-            - if type is an entity: 
-                - returns the entity or returns a parse class to tackle its instatiation
-    
-class Mapclass():
-    filelist_map 
-    collector: ErrorCollector
-    def set(self, entity_cls: type[Entity], key: str, value: Entity) -> None: ...
-    def set[E: Entity](self, entity_cls: type[E], data: str | Any) -> E | BaseParser | None: ...
-
-
