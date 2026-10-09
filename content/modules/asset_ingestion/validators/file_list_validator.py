@@ -11,8 +11,6 @@ class FilelistValidator2:
     pud_cfg: Config
     numap: Numap
 
-    # it turns out that clank must be allowed to source documents from pud, such as north star documents and the like.
-    # so I must differentiate library assets from other assets to constrain clank, probably via more entities and that
     def validate_clank(self):
         doms = self.numap.get_entities(SharedDomain)
         reqs: list[Req] = self._get_reqs(doms, self.clank_cfg)

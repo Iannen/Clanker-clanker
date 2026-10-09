@@ -996,3 +996,15 @@ CXXXI: SIMPLIFIED ITEM CLASSIFIER COMPLAINT TRACKING
     - Updated `complain()` to iterate over `self.complaints` when registering complaints with `ErrorCollector`.
     Reflection:
     - Unifying diagnostic tracking reduces internal state complexity while preserving strict type validation and exact downstream evaluation semantics.
+
+CXXXII: REFACTORED REPOITEM INHERITANCE HIERARCHY AND ASSETPACK FIELD SEMANTICS
+    Purpose: Clean up RepoItem base attributes to match domain-level usage across subclasses and eliminate unused or mismatched fields.
+    - RepoItem historically carried `name` and `path` attributes that were inappropriate or unused for certain descendants like AssetPack, which operates on path tokens and collection manifests rather than single files.
+    Actions:
+    - Converted `RepoItem` in `entities.py` into a base passclass for item classification.
+    - Updated `Config` and `Filereq` dataclasses to explicitly declare their fields (`name`, `path`, and `content`/`data`).
+    - Refactored `AssetPack` to drop the unused `path` field and replace `name` with `token: str`.
+    - Updated `IngestionServiceImpl._get_asset_pack` in `ingestion_service.py` to instantiate `AssetPack` without dummy path parameters.
+    - Updated `CollisionDetector` in `collision_detector.py` to use `asset_pack.token` for full path formatting and eliminated the redundant `else` branch during path resolution.
+    Reflection:
+    - Aligning class contracts with actual usage simplifies model construction, removes dummy parameter boilerplate during ingestion, and prevents attribute bloat in base abstractions.

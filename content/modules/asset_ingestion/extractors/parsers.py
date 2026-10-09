@@ -126,12 +126,12 @@ class FileParser(BaseParser2):
 class RepoContentResParser(BaseParser2):
     entity_cls = RepoContentResolver
     def preprocess(self, data: dict) -> dict:
-            if "fileset" in data: return data
-            return {
-                "anchor": data.pop("anchor", None),
-                "type": data.pop("type", None),
-                "fileset": data
-            }
+        if "fileset" in data: return data
+        return {
+            "anchor": data.pop("anchor", None),
+            "type": data.pop("type", None),
+            "fileset": data
+        }
 
 class ResolverParser2(BaseParser2):
     entity_cls = Resolver
