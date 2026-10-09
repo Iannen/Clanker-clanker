@@ -963,3 +963,13 @@ CXXVIII: ERROR COLLECTOR INTERFACE PRUNING AND PATTERN MATCHING FIX
     - Corrected pattern matching syntax in `accept()` to match class instances (`case Soft():` and `case Critical():`).
     Reflection:
     - Eliminating dead methods aligns ErrorCollector's API with its single-instance reference model while maintaining full backward compatibility with external report consumers.
+
+CXXIX: TYPED DOMAIN OVERFLOW COMPLAINT INTRODUCED IN OVERFLOW HANDLER
+    Purpose: Transition domain overflow error reporting in OverflowHandler2 from raw string formatting to a structured, typed complaint entity.
+    - Formatting error strings directly inside domain validators couples logic with presentation concerns and drops structured domain context prematurely.
+    Actions:
+    - Defined `DomainOverflow` as a typed `Soft` complaint dataclass alongside `ErrorCollector` in `error_collector.py`, storing rich entity references (`buttons: list[NewBtn]` and `discarded_domains: list[Domain]`).
+    - Implemented `to_string()` on `DomainOverflow` to calculate received and slot limits dynamically and format the human-readable output on demand.
+    - Updated `OverflowHandler2` to emit `DomainOverflow` via `self.ec.accept()`, removing raw string concatenation in the validator and resolving an attribute reference typo (`self.collector` -> `self.ec`).
+    Reflection:
+    - Storing raw domain objects directly on complaint instances eliminates state duplication while preserving full diagnostic context for downstream consumers without losing compatibility with the Report interface contract.

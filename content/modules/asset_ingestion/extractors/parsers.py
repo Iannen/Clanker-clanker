@@ -31,12 +31,14 @@ class BaseParser2:
         if name: data["name"] = name
         
         kwargs_out = {}
-
+        if self.entity_cls is RepoContentResolver:
+            hook = "hook"
         for raw_field in fields(self.entity_cls):
             field:EntityField = self._process_raw_field(raw_field, data)   
             out = self._parse_value(field, numap)
             if out is None and field.default_value is MISSING:
-                self.ec.add_complaint(f"Missing required key '{field.key}' in {self.entity_cls.__name__}")
+                complaint_str = f"Missing required key '{field.key}' in {self.entity_cls.__name__}"
+                self.ec.add_complaint(complaint_str)
             elif out is None:
                 out = field.default_value
             kwargs_out[field.key] = out
@@ -125,7 +127,11 @@ class RepoContentResParser(BaseParser2):
     entity_cls = RepoContentResolver
     def preprocess(self, data: dict) -> dict:
             if "fileset" in data: return data
-            return {"fileset": data}
+            return {
+                "anchor": data.pop("anchor", None),
+                "type": data.pop("type", None),
+                "fileset": data
+            }
 
 class ResolverParser2(BaseParser2):
     entity_cls = Resolver
