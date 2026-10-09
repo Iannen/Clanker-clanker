@@ -137,6 +137,5 @@ class Config(RepoItem): data: dict
 
 @dataclass
 class AssetPack(RepoItem):
-    name: str
-    roots: list[str]
     paths: list[str]
+    resolved_map: dict[str, str]

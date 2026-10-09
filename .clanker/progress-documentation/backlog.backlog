@@ -50,22 +50,4 @@ I am looking to create a typed complain system. my current target is the complai
 But now I must agree with myself what is the proper way to deal with a None value in an entity which results from the incoming data simply not having a value.
 Do I assign None to it, and let the caller of the parser (another parser most likely), decide the fate of the lacking resultant instance?
 
-1. Refactor AssetPack and CollisionDetector to build unified filename lookup map
-    [ ] 'core': Streamline AssetPack entity definition
-        - Remove unused 'root' and 'roots' fields from AssetPack
-        - Add 'resolved_map: dict[str, str]' field to AssetPack
-    [ ] 'content/modules/asset_ingestion/ingestion_service.py': Update AssetPack instantiation
-        - Pass empty dict '{}' for resolved_map in _get_asset_pack
-        - Remove 'root' and 'roots' arguments from AssetPack constructor call
-    [ ] 'content/modules/asset_ingestion/commons/error_collector.py': Add typed complaint for filename collision
-        - Define FilenameCollision(Soft) dataclass with filename, paths, and chosen_path fields
-    [ ] 'content/modules/asset_ingestion/validators/collision_detector.py': Refactor CollisionDetector
-        - Update process method to accept AssetPack and populate asset_pack.resolved_map
-        - Emit typed FilenameCollision complaint to ErrorCollector when duplicates occur
-        - Pick winning path deterministically and prepend asset_pack.token to form full path in resolved_map
-    [ ] 'content/modules/asset_ingestion/validators/file_list_validator.py': Simplify FilelistValidator2 map lookup
-        - Remove redundant path-splitting and local map-building logic
-        - Consume pre-populated resolved_map directly from clank_doc_assets and pud_doc_assets
-    [ ] 'content/modules/asset_ingestion/new/service_workers.py': Wire CollisionDetector before validation
-        - Execute CollisionDetector on clank_doc_assets and pud_doc_assets prior to running FilelistValidator2
 Backlog tail end

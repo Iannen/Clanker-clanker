@@ -1,5 +1,5 @@
 from stdlib import dataclass
-from core import Domain, File, MultiDocResolver, PathTokens, AssetPack, Config, SharedDomain, PudDomain, Prompt
+from core import Domain, File, MultiDocResolver, AssetPack, Config, SharedDomain, PudDomain, Prompt
 from ...asset_ingestion import ErrorCollector, Numap
 
 @dataclass
@@ -16,8 +16,8 @@ class FilelistValidator2:
     def validate_clank(self):
         doms = self.numap.get_entities(SharedDomain)
         reqs: list[Req] = self._get_reqs(doms, self.clank_cfg)
-        self.shared_map = {p.rsplit("/", 1)[-1]: f"{PathTokens.SHARED}/{p}" for p in self.clank_doc_assets.paths}
-        self.pud_map = {p.rsplit("/", 1)[-1]: f"{PathTokens.PUD}/{p}" for p in self.pud_doc_assets.paths} if self.pud_doc_assets else {}
+        self.shared_map = self.clank_doc_assets.resolved_map if self.clank_doc_assets else {}
+        self.pud_map = self.pud_doc_assets.resolved_map if self.pud_doc_assets else {}
         self.combined_map = self.pud_map | self.shared_map
 
         for req in reqs:

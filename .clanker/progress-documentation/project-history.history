@@ -973,3 +973,15 @@ CXXIX: TYPED DOMAIN OVERFLOW COMPLAINT INTRODUCED IN OVERFLOW HANDLER
     - Updated `OverflowHandler2` to emit `DomainOverflow` via `self.ec.accept()`, removing raw string concatenation in the validator and resolving an attribute reference typo (`self.collector` -> `self.ec`).
     Reflection:
     - Storing raw domain objects directly on complaint instances eliminates state duplication while preserving full diagnostic context for downstream consumers without losing compatibility with the Report interface contract.
+
+CXXX: UNIFIED FILENAME LOOKUP MAP AND TYPED COLLISION COMPLAINT INGESTION
+    Purpose: Consolidate duplicate asset path-splitting logic and introduce a typed complaint for filename collisions during asset ingestion.
+    - Duplicate path-splitting across `CollisionDetector` and `FilelistValidator2` caused double work and risk of silent path overwrites on collisions.
+    Actions:
+    - Streamlined `AssetPack` in `entities.py` by removing unused `root`/`roots` attributes and adding a `resolved_map: dict[str, str]` container field.
+    - Introduced `FilenameCollision` as a typed `Soft` complaint dataclass in `error_collector.py` holding `filename`, `paths`, and `chosen_path`.
+    - Refactored `CollisionDetector` to populate `asset_pack.resolved_map` with deterministic winner paths prefixed by `asset_pack.name` (`token`), emitting `FilenameCollision` complaints when collisions occur.
+    - Simplified `FilelistValidator2` to consume `resolved_map` directly from asset packs, removing redundant local map-building and path-splitting logic.
+    - Updated `Assembler` in `service_workers.py` to execute `CollisionDetector` prior to running `FilelistValidator2`.
+    Reflection:
+    - Shifting indexing and collision resolution into a single upfront detector pass enforces a single source of truth for resolved asset paths while ensuring downstream validators consume clean, unambiguous file references.

@@ -64,6 +64,19 @@ class Missing(Critical):
     def to_string(self): return f"{self.__class__.__name__}: '{self.name}' not found at '{self.paths}'"
 
 @dataclass(slots=True)
+class FilenameCollision(Soft):
+    filename: str
+    paths: list[str]
+    chosen_path: str
+
+    def to_string(self) -> str:
+        formatted_paths = ", ".join(f"'{p}'" for p in sorted(self.paths))
+        return (
+            f"Filename collision detected for '{self.filename}'. Coexisting paths: {formatted_paths}\n"
+            f"\tDefaulted to using: '{self.chosen_path}'"
+        )
+
+@dataclass(slots=True)
 class DomainOverflow(Soft):
     buttons: list["NewBtn"]
     discarded_domains: list["Domain"]

@@ -62,6 +62,10 @@ class Assembler:
 
         ui_render, populated_kb = OverflowHandler2(self.collector).do_it(numap)
 
+        detector = CollisionDetector(self.collector)
+        detector.detect(self.clank_doc_assets)
+        detector.detect(self.pud_doc_assets)
+
         list_validator = FilelistValidator2(
             self.collector,
             self.clank_doc_assets,
@@ -83,7 +87,4 @@ class Assembler:
             self.pud_content_assets,
         )
         fileset_validator.validate()
-
-        CollisionDetector(self.collector).detect(self.clank_doc_assets) 
-        CollisionDetector(self.collector).detect(self.pud_doc_assets)
-        return ui_render, populated_kb 
+        return ui_render, populated_kb
