@@ -73,8 +73,7 @@ class Assembler:
             self.pud_cfg,
             numap
         )
-        list_validator.validate_clank()
-        list_validator.validate_pud()        
+        list_validator.validate()
 
         fileset_validator = FilesetValidator2(
             self.collector,

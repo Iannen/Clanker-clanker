@@ -1,5 +1,6 @@
 from stdlib import contextmanager, Generator, ABC, abstractmethod, dataclass
 from core.engine_deps import Report
+from core import Config, File
 
 class ErrorCollector(Report):
     def __init__(self) -> None:
@@ -89,3 +90,15 @@ class DomainOverflow(Soft):
         for dom in self.discarded_domains:
             msg += f"\n\tDomain '{dom.name}' was discarded."
         return msg
+
+@dataclass(slots=True)
+class UnsatisfiedFiles(Soft):
+    cfg: Config
+    files: list[File]
+
+    def to_string(self) -> str:
+        files_str = "\n\t- ".join(f"'{f.name}'" for f in self.files)
+        return (
+            f"Config '{self.cfg.name}': Removed {len(self.files)} file reference(s) "
+            f"unsatisfied by asset packs:\n\t- {files_str}"
+        )
