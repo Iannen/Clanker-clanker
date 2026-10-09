@@ -18,20 +18,10 @@ class CollisionDetector:
         resolved: dict[str, str] = {}
 
         for filename, paths in filename_to_paths.items():
-            full_paths = [f"{asset_pack.name}/{p}" for p in paths]
-            if len(paths) > 1:
-                winner_path = sorted(paths, key=lambda p: (p.count("/"), p))[0]
-                winner_full = f"{asset_pack.name}/{winner_path}"
-
-                self.collector.accept(
-                    FilenameCollision(
-                        filename=filename,
-                        paths=full_paths,
-                        chosen_path=winner_full,
-                    )
-                )
-                resolved[filename] = winner_full
-            else:
-                resolved[filename] = full_paths[0]
+            full_paths = [f"{asset_pack.token}/{p}" for p in paths]
+            winner_path = sorted(full_paths, key=lambda p: (p.count("/"), p))[0]
+            if len(full_paths) > 1:
+                self.collector.accept(FilenameCollision(filename,full_paths,winner_path,))
+            resolved[filename] = winner_path
 
         asset_pack.resolved_map = resolved

@@ -128,14 +128,18 @@ class Keyboard(Entity):
         self.selected_dom_btn = btn
 
 
+class RepoItem: pass
+
 @dataclass
-class RepoItem: name: str; path: str
+class Filereq(RepoItem):
+    name: str; path: str; content: str
+
 @dataclass
-class Filereq(RepoItem): content: str
-@dataclass
-class Config(RepoItem): data: dict
+class Config(RepoItem):
+    name: str; path: str; data: dict
 
 @dataclass
 class AssetPack(RepoItem):
+    token: str
     paths: list[str]
     resolved_map: dict[str, str]

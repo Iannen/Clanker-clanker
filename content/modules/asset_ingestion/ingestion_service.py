@@ -27,7 +27,7 @@ class IngestionServiceImpl(IngestionService):
     cfg_ingestor: ConfigParserPort
 
     def _get_asset_pack(self, token: str, roots) -> AssetPack | Missing:
-        try: return AssetPack(token, "", self.files.get_dir_manifest(token, roots), {})
+        try: return AssetPack(token, self.files.get_dir_manifest(token, roots), {})
         except NoSuchFile: return Missing(token, roots)
 
     def _get_config(self, config: StrEnum) -> Config | Missing | Malformed:
