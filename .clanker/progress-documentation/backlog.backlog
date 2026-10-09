@@ -46,7 +46,13 @@ II. The pile
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 
 Backlog tail, Selected item/items:
-Let us simply evaluate the state of ingestion system
+
+1. Prune unused methods and fix pattern matching in ErrorCollector
+    [ ] 'content/modules/asset_ingestion/commons/error_collector.py': Remove vestigial collector methods and correct Complaint case handling
+        - eliminate unused `merge()`, `set_complaints()`, and `set_critical_complaints()` methods
+        - retain `get_complaints()` and `get_critical_complaints()` to satisfy the external `Report` interface contract
+        - fix pattern matching in `accept()` for `Soft` complaint instances (`case Soft():` instead of `case(Soft):`)
+
 Backlog tail end
 Refactor asset ingestion diagnostics and error handling flow*
     This is a massive undertaking
