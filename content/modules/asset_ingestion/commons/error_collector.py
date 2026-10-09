@@ -62,3 +62,17 @@ class Malformed(Critical):
 class Missing(Critical):
     name: str; paths: str | list[str]
     def to_string(self): return f"{self.__class__.__name__}: '{self.name}' not found at '{self.paths}'"
+
+@dataclass(slots=True)
+class DomainOverflow(Soft):
+    buttons: list["NewBtn"]
+    discarded_domains: list["Domain"]
+
+    def to_string(self) -> str:
+        row_keys = [btn.key for btn in self.buttons if hasattr(btn, "key")]
+        accepted_count = sum(len(btn.domains) for btn in self.buttons if hasattr(btn, "domains"))
+        received_count = accepted_count + len(self.discarded_domains)
+        msg = f"Domain overflow in row '{row_keys}': received {received_count} domains, but only {accepted_count} slots are available."
+        for dom in self.discarded_domains:
+            msg += f"\n\tDomain '{dom.name}' was discarded."
+        return msg

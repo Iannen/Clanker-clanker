@@ -1,5 +1,5 @@
 from stdlib import dataclass
-from ...asset_ingestion import ErrorCollector, Numap
+from ...asset_ingestion import ErrorCollector, Numap, DomainOverflow
 from core import Keyboard, Resolver, SharedDomButton, PudDomButton, Domain, NewBtn, SharedBaseResolver, PudBaseResolver, SharedDomain, PudDomain, UIRender
 @dataclass 
 class OverflowHandler2:
@@ -34,17 +34,11 @@ class OverflowHandler2:
 
     def _handle_domain_overflow(self, domains: list[Domain], buttons: list[NewBtn], baseres) -> list[Domain]:
         row_keys = [btn.key for btn in buttons]
-        dom_list = domains
         slot_limit = len(buttons)
-        valid_doms = dom_list[:slot_limit]
-        overflow_doms = dom_list[slot_limit:]
+        valid_doms = domains[:slot_limit]
+        overflow_doms = domains[slot_limit:]
 
-        if overflow_doms:
-            complaint = f"Domain overflow in row '{row_keys}': received {len(dom_list)} domains, but only {slot_limit} slots are available."
-            for dom in overflow_doms:
-                complaint += f"\n\tDomain '{dom.name}' was discarded."
-
-            self.ec.add_complaint(complaint)
-        for dom, btn in zip(dom_list, buttons):
+        if overflow_doms: self.ec.accept(DomainOverflow(buttons,overflow_doms))
+        for dom, btn in zip(domains, buttons):
             dom.resolvers.append(baseres)
             btn.inhabitant = dom
