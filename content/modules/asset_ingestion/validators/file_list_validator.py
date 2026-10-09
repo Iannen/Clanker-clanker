@@ -18,10 +18,26 @@ class FilelistValidator2:
         self._validate_domain_group(self.pud_cfg, self.numap.get_entities(PudDomain))
 
     def _validate_domain_group(self, cfg: Config, doms: list[Domain]) -> None:
-        reqs = self._get_reqs(doms, cfg)
+        reqs = self._get_reqs(doms)
         unsatisfied = self._handle_reqs(reqs)
         if unsatisfied:
             self._handle_unsatisfied(cfg, unsatisfied)
+
+    def _get_reqs(self, doms: list[Domain]) -> list[Req]:
+        reqs: list[Req] = []
+
+        for dom in doms:
+            for res in dom.resolvers:
+                if isinstance(res, MultiDocResolver):
+                    for file_item in res.files.files:
+                        reqs.append(Req(dom, res, file_item))
+
+            for prompt in dom.prompts:
+                for res in prompt.render.resolvers:
+                    if isinstance(res, MultiDocResolver):
+                        for file_item in res.files.files:
+                            reqs.append(Req(dom, res, file_item, prompt))
+        return reqs
 
     def _handle_reqs(self, reqs: list[Req]) -> list[Req]:
         unsatisfied: list[Req] = []
@@ -33,22 +49,6 @@ class FilelistValidator2:
                 unsatisfied.append(req)
         return unsatisfied
 
-    def _get_reqs(self, doms: list[Domain], cfg: Config) -> list[Req]:
-        reqs: list[Req] = []
-
-        for dom in doms:
-            for res in dom.resolvers:
-                if isinstance(res, MultiDocResolver):
-                    for file_item in res.files.files:
-                        reqs.append(Req(cfg, dom, res, file_item))
-
-            for prompt in dom.prompts:
-                for res in prompt.render.resolvers:
-                    if isinstance(res, MultiDocResolver):
-                        for file_item in res.files.files:
-                            reqs.append(Req(cfg, dom, res, file_item, prompt))
-        return reqs
-
     def _handle_unsatisfied(self, cfg: Config, unsatisfied: list[Req]):
         files = [req.file for req in unsatisfied]
         self.ec.accept(UnsatisfiedFiles(cfg, files))
@@ -57,7 +57,6 @@ class FilelistValidator2:
 
 @dataclass
 class Req:
-    cfg: Config
     dom: Domain
     mdr: MultiDocResolver
     file: File
