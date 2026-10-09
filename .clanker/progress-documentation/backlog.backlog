@@ -46,8 +46,5 @@ II. The pile
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 
 Backlog tail, Selected item/items:
-I am looking to create a typed complain system. my current target is the complaint made by the baseparser.
-But now I must agree with myself what is the proper way to deal with a None value in an entity which results from the incoming data simply not having a value.
-Do I assign None to it, and let the caller of the parser (another parser most likely), decide the fate of the lacking resultant instance?
-
+let us investigate the repoitem inheritance hierarchy.
 Backlog tail end

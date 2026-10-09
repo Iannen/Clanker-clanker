@@ -1,7 +1,7 @@
 from stdlib import StrEnum, dataclass
 from core import RepoItem, CorruptClanker, Config, Render, AssetPack, Keyboard, Filelist, Fileset, UIRender, SharedBaseResolver, PudBaseResolver, SharedDomain, PudDomain
-from ...asset_ingestion import Missing, Malformed, ErrorCollector, OverflowHandler2, FilelistValidator2, FilesetValidator2, CollisionDetector
-from ...asset_ingestion import Numap, NuConfigExtractor
+from ...asset_ingestion import ErrorCollector, OverflowHandler2, FilelistValidator2, FilesetValidator2, CollisionDetector
+from ...asset_ingestion import Numap, NuConfigExtractor, Complaint
 
 class ClassificationResult(StrEnum):
     ALL_PRESENT = "all"
@@ -11,17 +11,16 @@ class ClassificationResult(StrEnum):
 class ItemClassifier:
     def __init__(self, ec: ErrorCollector):
         self.ec = ec
-        self.present, self.missing, self.malformed = [], [], []
+        self.present, self.complaints = [], []
 
     def classify(self, item):
-        if isinstance(item, RepoItem): self.present.append(item); return item 
-        if isinstance(item, Missing):  self.missing.append(item); return None
-        if isinstance(item, Malformed): self.malformed.append(item); return None
+        if isinstance(item, RepoItem): self.present.append(item); return item
+        if isinstance(item, Complaint): self.complaints.append(item); return None
         raise TypeError(f"ItemClassifier cannot classify object of type {type(item).__name__}: {item!r}")
 
     def evaluate(self) -> ClassificationResult:
         has_present = bool(self.present)
-        has_invalid = bool(self.missing or self.malformed)
+        has_invalid = bool(self.complaints)
 
         if not has_present and not has_invalid: raise CorruptClanker(f"{type(self).__name__} was supplied no items to classify")
         if has_present and has_invalid: return ClassificationResult.MIXED
@@ -29,7 +28,7 @@ class ItemClassifier:
         return ClassificationResult.NONE_PRESENT
 
     def complain(self):
-        for c in self.missing + self.malformed:  self.ec.accept(c)
+        for c in self.complaints: self.ec.accept(c)
 
 @dataclass
 class Assembler:

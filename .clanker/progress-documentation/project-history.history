@@ -985,3 +985,14 @@ CXXX: UNIFIED FILENAME LOOKUP MAP AND TYPED COLLISION COMPLAINT INGESTION
     - Updated `Assembler` in `service_workers.py` to execute `CollisionDetector` prior to running `FilelistValidator2`.
     Reflection:
     - Shifting indexing and collision resolution into a single upfront detector pass enforces a single source of truth for resolved asset paths while ensuring downstream validators consume clean, unambiguous file references.
+
+CXXXI: SIMPLIFIED ITEM CLASSIFIER COMPLAINT TRACKING
+    Purpose: Streamline invalid item state tracking within ItemClassifier by unifying missing and malformed complaints.
+    - Differentiating missing and malformed items in separate internal collections was redundant, as both serve as invalid inputs evaluated identically by the classifier.
+    Actions:
+    - Replaced `self.missing` and `self.malformed` list attributes with a single `self.complaints` collection on `ItemClassifier`.
+    - Refactored `classify()` to validate inputs against `Complaint` directly, storing all non-`RepoItem` diagnostic instances into `self.complaints`.
+    - Simplified `evaluate()` to check `bool(self.complaints)` for detecting mixed or invalid classification states.
+    - Updated `complain()` to iterate over `self.complaints` when registering complaints with `ErrorCollector`.
+    Reflection:
+    - Unifying diagnostic tracking reduces internal state complexity while preserving strict type validation and exact downstream evaluation semantics.
