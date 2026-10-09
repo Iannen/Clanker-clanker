@@ -1,4 +1,4 @@
-from core import Domain, ManifestResolver, RepoContentResolver, AssetPack, Config, SharedDomain, PudDomain
+from core import Domain, ManifestResolver, RepoContentResolver, AssetPack, Config, SharedDomain, PudDomain, Prompt
 from stdlib import dataclass
 from ...asset_ingestion import ErrorCollector, Numap
 @dataclass
@@ -12,9 +12,9 @@ class FilesetValidator2:
         return self
 
     def validate_pud(self, numap: Numap, pud_assets: AssetPack | None, cfg: Config | None):
+        doms = numap.get_entities(PudDomain)
         if not (getattr(self, "clank_assets", None) and getattr(self, "clank_doms", None) and getattr(self, "clank_cfg", None) and doms and pud_assets and cfg):
             return
-        doms = numap.get_entities(PudDomain)
         pud_reqs = self._extract_filesets_that_target_pud(doms)
         for include_path, context in pud_reqs:
             has_match = any(
@@ -50,50 +50,77 @@ class FilesetValidator2:
         return asset_path.startswith(prefix)
 
     def _extract_filesets_that_target_pud(self, doms: list[Domain]) -> list[tuple[str, str]]:
-        #doms = list(doms.values())
         reqs: list[tuple[str, str]] = []
 
-        #for dom in doms:
-        for name, dom in doms.items():
+        for dom in doms:
             for resolver in getattr(dom, "resolvers", []):
                 if isinstance(resolver, RepoContentResolver):
                     for inc in getattr(resolver.fileset, "includes", []):
-                        context = f"domain={name}, resolver=RepoContentResolver, include={inc}"
+                        context = f"domain={dom.name}, resolver=RepoContentResolver, include={inc}"
                         reqs.append((inc, context))
                 elif isinstance(resolver, ManifestResolver):
                     for inc in getattr(resolver.pud_fileset, "includes", []):
-                        context = f"domain={name}, resolver=ManifestResolver, fileset=pud_fileset, include={inc}"
+                        context = f"domain={dom.name}, resolver=ManifestResolver, fileset=pud_fileset, include={inc}"
                         reqs.append((inc, context))
 
             for prompt in getattr(dom, "prompts", []):
                 for resolver in getattr(prompt.render, "resolvers", []):
                     if isinstance(resolver, RepoContentResolver):
                         for inc in getattr(resolver.fileset, "includes", []):
-                            context = f"domain={name}, prompt={prompt.name}, resolver=RepoContentResolver, include={inc}"
+                            context = f"domain={dom.name}, prompt={prompt.name}, resolver=RepoContentResolver, include={inc}"
                             reqs.append((inc, context))
                     elif isinstance(resolver, ManifestResolver):
                         for inc in getattr(resolver.pud_fileset, "includes", []):
-                            context = f"domain={name}, prompt={prompt.name}, resolver=ManifestResolver, fileset=pud_fileset, include={inc}"
+                            context = f"domain={dom.name}, prompt={prompt.name}, resolver=ManifestResolver, fileset=pud_fileset, include={inc}"
                             reqs.append((inc, context))
 
         return reqs
 
     def _extract_filesets_that_target_shared(self, doms: list[Domain]) -> list[tuple[str, str]]:
-        #doms = list(doms.values())
         reqs: list[tuple[str, str]] = []
 
-        for dom in doms.items():
+        for dom in doms:
             for resolver in getattr(dom, "resolvers", []):
                 if isinstance(resolver, ManifestResolver) and getattr(resolver, "shared_fileset", None) is not None:
                     for inc in getattr(resolver.shared_fileset, "includes", []):
-                        context = f"domain={name}, resolver=ManifestResolver, fileset=shared_fileset, include={inc}"
+                        context = f"domain={dom.name}, resolver=ManifestResolver, fileset=shared_fileset, include={inc}"
                         reqs.append((inc, context))
 
             for prompt in getattr(dom, "prompts", []):
                 for resolver in getattr(prompt.render, "resolvers", []):
                     if isinstance(resolver, ManifestResolver) and getattr(resolver, "shared_fileset", None) is not None:
                         for inc in getattr(resolver.shared_fileset, "includes", []):
-                            context = f"domain={name}, prompt={prompt.name}, resolver=ManifestResolver, fileset=shared_fileset, include={inc}"
+                            context = f"domain={dom.name}, prompt={prompt.name}, resolver=ManifestResolver, fileset=shared_fileset, include={inc}"
                             reqs.append((inc, context))
 
         return reqs
+
+    def _get_reqs(self, doms: list[Domain]):
+        for dom in doms:
+            for manres in [p for p in dom.resolvers if isinstance(p, (ManifestResolver))]:
+                i = 2
+            for repores in [p for p in dom.resolvers if isinstance(p, (RepoContentResolver))]:
+                i = 2
+            for prompt in dom.prompts:
+                for manres in [p for p in prompt.render.resolvers if isinstance(p, (ManifestResolver))]:
+                    i = 2
+                for repores in [p for p in prompt.render.resolvers if isinstance(p, (RepoContentResolver))]:
+                    i = 2
+
+
+
+@dataclass
+class FSReq:
+    cfg: Config
+    dom: Domain
+    include: str
+
+@dataclass 
+class MReq(FSReq): 
+    mdr: ManifestResolver
+    prompt: Prompt | None = None
+
+@dataclass 
+class CReq(FSReq): 
+    mdr: RepoContentResolver
+    prompt: Prompt | None = None

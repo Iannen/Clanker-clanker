@@ -74,8 +74,8 @@ class Assembler:
         list_validator.validate_pud()        
 
         fileset_validator = FilesetValidator2(self.collector)
-        fileset_validator.validate_pud(numap, self.pud_doc_assets, self.pud_cfg)      
         fileset_validator.validate_clank(numap, self.clank_doc_assets, self.clank_cfg)
+        fileset_validator.validate_pud(numap, self.pud_doc_assets, self.pud_cfg)      
 
         CollisionDetector(self.collector).detect(self.clank_doc_assets) 
         CollisionDetector(self.collector).detect(self.pud_doc_assets)

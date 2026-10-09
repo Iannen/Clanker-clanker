@@ -42,16 +42,16 @@ class FilelistValidator2:
         reqs: list[Req] = []
 
         for dom in doms:
-            for resolver in dom.resolvers:
-                if isinstance(resolver, MultiDocResolver):
-                    for file_item in resolver.files.files:
-                        reqs.append(Req(cfg, dom, resolver, file_item))
+            for res in dom.resolvers:
+                if isinstance(res, MultiDocResolver):
+                    for file_item in res.files.files:
+                        reqs.append(Req(cfg, dom, res, file_item))
 
-            for prompt in getattr(dom, "prompts", []):
-                for resolver in prompt.render.resolvers:
-                    if isinstance(resolver, MultiDocResolver):
-                        for file_item in resolver.files.files:
-                            reqs.append(Req(cfg, dom, resolver, file_item, prompt))
+            for prompt in dom.prompts:
+                for res in prompt.render.resolvers:
+                    if isinstance(res, MultiDocResolver):
+                        for file_item in res.files.files:
+                            reqs.append(Req(cfg, dom, res, file_item, prompt))
         return reqs
 
     def _remove_file(self, req: Req):
