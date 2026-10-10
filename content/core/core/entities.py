@@ -137,9 +137,11 @@ class Filereq(RepoItem):
 @dataclass
 class Config(RepoItem):
     name: str; path: str; data: dict
-
+"""
 @dataclass
 class AssetPack(RepoItem):
     token: str
     paths: list[str]
     resolved_map: dict[str, str]
+    rejected: dict[str, list[str]]
+"""

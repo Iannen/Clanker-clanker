@@ -1019,3 +1019,14 @@ CXXXIV: ADDED TYPED COMPLAINT CLASS AND STREAMLINED VALIDATOR REQUEST CLASSES
     - Pruned unused fields (`dom`, `prompt`) from `Req` and streamlined instantiation calls in `FilelistValidator2`.
     Reflection:
     - Removing dead attributes from internal helper classes simplifies object instantiation and reduces noise, while typed complaint classes maintain a consistent pattern across validators.
+
+CXXXV: REFACTORED ASSET PACK TO ENCAPSULATE PATH RESOLUTION AND ELIMINATE COLLISION DETECTOR
+    Purpose: Encapsulate path resolution and collision collection logic within AssetPack to make models smarter, simplify service architecture, and eliminate redundant intermediary detector passes.
+    - AssetPack previously acted as a passive data structure while external detectors performed all path calculations and side-effect generation, requiring external coordination for error collection.
+    Actions:
+    - Refactored AssetPack in error_collector.py from a dataclass into a regular class with an explicit __init__ that precomputes resolved_map and generates FilenameCollision complaints directly.
+    - Updated IngestionServiceImpl._get_asset_pack in ingestion_service.py to instantiate AssetPack without redundant empty dict arguments.
+    - Updated FilelistValidator2 in file_list_validator.py to aggregate and ingest pre-baked complaints directly from the asset packs.
+    - Deleted the obsolete CollisionDetector module entirely to reduce architectural bloat.
+    Reflection:
+    - Self-contained domain models that handle their own structural derivation reduce external code complexity, while delegating complaint ingestion directly to validators simplifies the service workflow.

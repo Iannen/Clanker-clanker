@@ -13,11 +13,6 @@ II. The pile
 - it depends upon a getchar call to write first frame. 
    
 7. Validator classes of ingestion:
-    - Collisiondetector: validate & process pud and clank filelist assets
-        - populate the assetspack map of filename -> <locationtoken>filepaths 
-        - if several paths end with same filename, pick a winner, inform by complaint of discarded paths
-    - 
-
 
 
 1. Add next numeral line to history output instructions
@@ -26,5 +21,5 @@ II. The pile
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 
 Backlog tail, Selected item/items:
-let us make a typed complaint class for the benefit of file list validator
+lets look at the assetpack class
 Backlog tail end

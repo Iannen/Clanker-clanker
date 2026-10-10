@@ -1,7 +1,7 @@
 from stdlib import StrEnum, dataclass
-from core import RepoItem, CorruptClanker, Config, Render, AssetPack, Keyboard, Filelist, Fileset, UIRender, SharedBaseResolver, PudBaseResolver, SharedDomain, PudDomain
-from ...asset_ingestion import ErrorCollector, OverflowHandler2, FilelistValidator2, FilesetValidator2, CollisionDetector
-from ...asset_ingestion import Numap, NuConfigExtractor, Complaint
+from core import RepoItem, CorruptClanker, Config, Render, Keyboard, Filelist, Fileset, UIRender, SharedBaseResolver, PudBaseResolver, SharedDomain, PudDomain
+from ...asset_ingestion import ErrorCollector, OverflowHandler2, FilelistValidator2, FilesetValidator2
+from ...asset_ingestion import Numap, NuConfigExtractor, Complaint, AssetPack
 
 class ClassificationResult(StrEnum):
     ALL_PRESENT = "all"
@@ -60,10 +60,6 @@ class Assembler:
         system_extractor.extract_single(Keyboard)
 
         ui_render, populated_kb = OverflowHandler2(self.collector).do_it(numap)
-
-        detector = CollisionDetector(self.collector)
-        detector.detect(self.clank_doc_assets)
-        detector.detect(self.pud_doc_assets)
 
         list_validator = FilelistValidator2(
             self.collector,

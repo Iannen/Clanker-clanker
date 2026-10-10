@@ -1,6 +1,27 @@
-from stdlib import contextmanager, Generator, ABC, abstractmethod, dataclass
+from stdlib import contextmanager, Generator, ABC, abstractmethod, dataclass, defaultdict
 from core.engine_deps import Report
-from core import Config, File
+from core import Config, File, RepoItem
+
+class AssetPack(RepoItem):
+    def __init__(self, token: str, paths: list[str]):
+        self.token = token
+        self.paths = paths
+        self.resolved_map: dict[str, str] = {}
+        self.complaints: list[FilenameCollision] = []
+
+        filename_to_paths: dict[str, list[str]] = defaultdict(list)
+        for path_str in self.paths:
+            filename = path_str.rsplit("/", 1)[-1]
+            filename_to_paths[filename].append(path_str)
+
+        for filename, raw_paths in filename_to_paths.items():
+            full_paths = [f"{self.token}/{p}" for p in raw_paths]
+            winner_path = sorted(full_paths, key=lambda p: (p.count("/"), p))[0]
+            
+            self.resolved_map[filename] = winner_path
+            
+            if len(full_paths) > 1:
+                self.complaints.append(FilenameCollision(filename, full_paths, winner_path))
 
 class ErrorCollector(Report):
     def __init__(self) -> None:

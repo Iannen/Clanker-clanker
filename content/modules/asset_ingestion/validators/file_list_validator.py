@@ -1,6 +1,6 @@
 from stdlib import dataclass
-from core import Domain, File, MultiDocResolver, AssetPack, Config, SharedDomain, PudDomain
-from ...asset_ingestion import ErrorCollector, Numap, UnsatisfiedFiles
+from core import Domain, File, MultiDocResolver, Config, SharedDomain, PudDomain
+from ...asset_ingestion import ErrorCollector, Numap, UnsatisfiedFiles, AssetPack
 
 @dataclass
 class FilelistValidator2:
@@ -13,6 +13,9 @@ class FilelistValidator2:
 
     def validate(self):
         if not (self.clank_doc_assets and self.clank_cfg and self.pud_doc_assets and self.pud_cfg): return
+
+        for complaint in self.clank_doc_assets.complaints + self.pud_doc_assets.complaints: self.ec.accept(complaint)
+
         self.combined_map = self.pud_doc_assets.resolved_map | self.clank_doc_assets.resolved_map
         self._validate_domain_group(self.clank_cfg, self.numap.get_entities(SharedDomain))
         self._validate_domain_group(self.pud_cfg, self.numap.get_entities(PudDomain))
