@@ -1008,3 +1008,14 @@ CXXXII: REFACTORED REPOITEM INHERITANCE HIERARCHY AND ASSETPACK FIELD SEMANTICS
     - Updated `CollisionDetector` in `collision_detector.py` to use `asset_pack.token` for full path formatting and eliminated the redundant `else` branch during path resolution.
     Reflection:
     - Aligning class contracts with actual usage simplifies model construction, removes dummy parameter boilerplate during ingestion, and prevents attribute bloat in base abstractions.
+
+CXXXIV: ADDED TYPED COMPLAINT CLASS AND STREAMLINED VALIDATOR REQUEST CLASSES
+    Purpose: Standardize error aggregation with typed complaint classes and clean up unused fields from validator helper request structures.
+    - Validators previously passed unused contextual references (such as domains and prompts) into internal request dataclasses, and fileset validation lacked a structured, batched complaint mechanism.
+    Actions:
+    - Added the `UnsatisfiedFilesetSubjects` typed complaint class inheriting from `Soft` in `error_collector.py` to format batched subject removal messages.
+    - Refactored `FilesetValidator2` in `fileset_validator.py` to aggregate unsatisfied checks and handle them via batch dispatch.
+    - Pruned unused fields (`dom`, `fileset`, `prompt`) from `NewReq` and streamlined helper signatures in `FilesetValidator2`.
+    - Pruned unused fields (`dom`, `prompt`) from `Req` and streamlined instantiation calls in `FilelistValidator2`.
+    Reflection:
+    - Removing dead attributes from internal helper classes simplifies object instantiation and reduces noise, while typed complaint classes maintain a consistent pattern across validators.

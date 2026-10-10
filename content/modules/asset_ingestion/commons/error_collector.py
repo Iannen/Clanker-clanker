@@ -102,3 +102,14 @@ class UnsatisfiedFiles(Soft):
             f"Config '{self.cfg.name}': Removed {len(self.files)} file reference(s) "
             f"unsatisfied by asset packs:\n\t- {files_str}"
         )
+
+@dataclass(slots=True)
+class UnsatisfiedFilesetSubjects(Soft):
+    assetpack_name: str
+    subjects: list[str]
+
+    def to_string(self) -> str:
+        subjects_str = "\n\t- ".join(f"'{s}'" for s in self.subjects)
+        return (
+            f"Asset pack '{self.assetpack_name}': Removed {len(self.subjects)} unsatisfied subject(s):\n\t- {subjects_str}"
+        )

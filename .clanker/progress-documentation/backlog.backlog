@@ -12,33 +12,13 @@ II. The pile
 [BUG] Testsystem does not always produce two frames
 - it depends upon a getchar call to write first frame. 
    
-7. Landingzone for Validation / complaint ideas
-    complaint categories:
-        1. soft shared
-            - filesets & filelist of shared cfg must be declared in shared cfg
-        2. critical shared
-        3. soft pud
-            - filesets & filelist of pud cfg must be declared in shared or pud cfg
-            - filelist members must be sourcable from pud or shared
-        4. critical pud
+7. Validator classes of ingestion:
+    - Collisiondetector: validate & process pud and clank filelist assets
+        - populate the assetspack map of filename -> <locationtoken>filepaths 
+        - if several paths end with same filename, pick a winner, inform by complaint of discarded paths
+    - 
 
-    Perhaps I need collector for each of the various complaint paths, then i aggregate them before i return 'true' ec
-        - for instance when i extract domains, it is not known to the extractor if a missing set is a pud or shared complaint
 
-    - manifest resolver must check if fileset is declared in pud_cfg with fallback to shared_cfg
-        - so shared_cfg can declare defaults for it, which the pud_cfg can override
-        - if not present, then complain
-    - MD asset collision, fallback and absense
-        - Files of Filelist, subject to the md resolver, referenced by name in Filelists, must follow these rules
-            - there can be no pud internal or shared internal naming collisions
-                - <pud>/onepath/file.txt and <pud>/another/file.txt is a violation
-                    - because name is the same, it is pud internal collision. the same rule applies to shared internals
-                - <pud>/onepath/file.txt and <shared>/another/file.txt is OK
-                    - this is fine. the system uses fallback from pud to shared
-        - so we need to validate that the files mentioned
-            - exist in one or both repos
-            - but are unique internally in any repo they exist
-        - then manifest resolver can do less work
 
 1. Add next numeral line to history output instructions
     [ ] 'a_lib/templates/documentation/backlog.template': Update history output instruction format
