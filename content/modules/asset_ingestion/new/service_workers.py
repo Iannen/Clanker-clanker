@@ -72,10 +72,7 @@ class Assembler:
         fileset_validator = FilesetValidator2(
             self.collector,
             numap,
-            self.clank_cfg,
             self.clank_doc_assets,
-            self.pud_cfg,
-            self.pud_doc_assets,
             self.pud_content_assets,
         )
         fileset_validator.validate()

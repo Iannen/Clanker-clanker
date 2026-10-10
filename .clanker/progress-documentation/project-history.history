@@ -1051,3 +1051,13 @@ CXXXVII: SIMPLIFIED FILELIST VALIDATOR AND STREAMLINED UNSATISFIED FILES COMPLAI
     - Updated Assembler.assemble in service_workers.py to match the simplified FilelistValidator2 instantiation signature.
     Reflection:
     - Leveraging flat entity queries massively reduces validator size and complexity, establishing a clean interim state before implementing full two-way weakref graph diagnostics later.
+
+CXXXVIII: STREAMLINED FILESET VALIDATOR VIA DIRECT NUMAP RESOLVER QUERIES
+    Purpose: Refactor FilesetValidator2 to query ManifestResolver and RepoContentResolver entities directly through numap, eliminating complex domain-group traversal and unused dependencies.
+    - Previous validation required manual, nested traversal through Domain and Prompt entity hierarchies, along with carrying unused configuration parameters.
+    Actions:
+    - Updated FilesetValidator2 in fileset_validator.py to fetch ManifestResolver and RepoContentResolver instances globally via numap.get_entities().
+    - Removed unused configuration and asset pack dependencies from FilesetValidator2 initialization and streamlined Assembler.assemble instantiation.
+    - Optimized missing asset classification and filtering using declarative list comprehensions.
+    Reflection:
+    - Directly querying domain-specific resolvers from the flat numap registry mirrors the pattern established by other refactored validators, removing unnecessary architectural coupling and boilerplate traversal code.
