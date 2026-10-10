@@ -1,4 +1,4 @@
-from stdlib import contextmanager, Generator, ABC, abstractmethod, dataclass, defaultdict
+from stdlib import contextmanager, Generator, ABC, abstractmethod, dataclass, defaultdict, Field
 from core.engine_deps import Report
 from core import File
 
@@ -142,4 +142,17 @@ class UnsatisfiedFilesetSubjects(Soft):
         subjects_str = "\n\t- ".join(f"'{s}'" for s in self.subjects)
         return (
             f"Asset pack '{self.assetpack_name}': Removed {len(self.subjects)} unsatisfied subject(s):\n\t- {subjects_str}"
+        )
+
+@dataclass(slots=True)
+class MissingEntityFields(Soft):
+    entity_cls: type
+    missing_fields: list[Field]
+    data: dict
+
+    def to_string(self) -> str:
+        fields_str = ", ".join(f"'{f.name}'" for f in self.missing_fields)
+        return (
+            f"Failed to instantiate '{self.entity_cls.__name__}' due to missing required field(s): {fields_str}\n"
+            f"\tReceived data: {self.data}"
         )

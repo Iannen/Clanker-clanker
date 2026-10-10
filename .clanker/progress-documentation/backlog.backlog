@@ -22,4 +22,7 @@ II. The pile
 
 Backlog tail, Selected item/items:
 
+I want two things now
+1. weakref on the graph
+    - so i can have full diagnostics for when a validator removes something
 Backlog tail end

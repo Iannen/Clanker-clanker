@@ -1061,3 +1061,14 @@ CXXXVIII: STREAMLINED FILESET VALIDATOR VIA DIRECT NUMAP RESOLVER QUERIES
     - Optimized missing asset classification and filtering using declarative list comprehensions.
     Reflection:
     - Directly querying domain-specific resolvers from the flat numap registry mirrors the pattern established by other refactored validators, removing unnecessary architectural coupling and boilerplate traversal code.
+
+CXXXIX: AGGREGATED MISSING ENTITY FIELDS COMPLAINTS IN PARSERS
+    Purpose: Improve error diagnostics and data integrity by aggregating missing required field errors during parsing and preventing the instantiation of malformed entities.
+    - Previous parser behavior logged individual missing key complaints but still proceeded to instantiate entities with None values, violating non-nullable type hints and causing downstream issues.
+    Actions:
+    - Added the MissingEntityFields soft complaint class to error_collector.py to format missing field details alongside received data.
+    - Updated EntityField in parsers.py to store the underlying raw Field reference.
+    - Refactored BaseParser2.parse to collect unsatisfied required fields during field iteration, emit a single aggregated MissingEntityFields complaint via the error collector, and return None early to block instantiation.
+    - Updated list parsing in _parse_value using the walrus operator to automatically filter out None values resulting from failed child entity parses.
+    Reflection:
+    - Aggregating missing field checks directly inside the parser keeps validation self-contained and clean, completely preventing downstream runtime crashes or type-hint violations caused by half-baked entities.

@@ -1,5 +1,5 @@
 from stdlib import dataclass, field, fields, MISSING, get_args, Any, get_args, get_origin, Enum, auto, types, Field, get_args, get_origin
-from ...asset_ingestion import ErrorCollector, Numap 
+from ...asset_ingestion import ErrorCollector, Numap, MissingEntityFields
 from core import Entity, Filelist, Keyboard, Resolver, File, RepoContentResolver, SharedDomButton, PudDomButton, PromptButton
 
 class OuterType(Enum):
@@ -14,6 +14,7 @@ class EntityField:
     outer_type: OuterType
     outer_type_nullable: bool
     inner_type: type
+    raw_field: Field
     default_value: Any = MISSING
 
 class BaseParser2:
@@ -31,17 +32,20 @@ class BaseParser2:
         if name: data["name"] = name
         
         kwargs_out = {}
+        unsatisfied_fields = []
         if self.entity_cls is RepoContentResolver:
             hook = "hook"
         for raw_field in fields(self.entity_cls):
             field:EntityField = self._process_raw_field(raw_field, data)   
             out = self._parse_value(field, numap)
             if out is None and field.default_value is MISSING:
-                complaint_str = f"Missing required key '{field.key}' in {self.entity_cls.__name__}"
-                self.ec.add_complaint(complaint_str)
+                unsatisfied_fields.append(field.raw_field)
             elif out is None:
                 out = field.default_value
             kwargs_out[field.key] = out
+        if unsatisfied_fields:
+            self.ec.accept(MissingEntityFields(self.entity_cls, unsatisfied_fields, data))
+            return None
         entity = self.entity_cls(**kwargs_out)
         numap.register(entity)
         return entity
@@ -91,6 +95,7 @@ class BaseParser2:
             outer_type=outer_type,
             outer_type_nullable=outer_type_nullable,
             inner_type=inner_type,
+            raw_field=raw_field,
             default_value=default_value,
             value=field_value,
         )
@@ -98,7 +103,7 @@ class BaseParser2:
     def _parse_value(self,field: EntityField,numap: Numap,) -> Any:
         if field.outer_type_nullable and field.value is None: return None
         if not issubclass(field.inner_type, Entity): return field.value
-        if field.outer_type == OuterType.LIST:  return [self._get_entity("", d, field, numap) for d in field.value]
+        if field.outer_type == OuterType.LIST:  return [e for d in field.value if (e := self._get_entity("", d, field, numap)) is not None]
         elif field.outer_type == OuterType.DICT:  raise Exception("We found a dict omg!")         
         elif field.outer_type == OuterType.SINGLE: return self._get_entity(field.key, field.value, field, numap)
 
