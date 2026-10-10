@@ -126,22 +126,3 @@ class Keyboard(Entity):
 
     def set_selected_dom_btn(self, btn: DomButton):
         self.selected_dom_btn = btn
-
-
-class RepoItem: pass
-
-@dataclass
-class Filereq(RepoItem):
-    name: str; path: str; content: str
-
-@dataclass
-class Config(RepoItem):
-    name: str; path: str; data: dict
-"""
-@dataclass
-class AssetPack(RepoItem):
-    token: str
-    paths: list[str]
-    resolved_map: dict[str, str]
-    rejected: dict[str, list[str]]
-"""

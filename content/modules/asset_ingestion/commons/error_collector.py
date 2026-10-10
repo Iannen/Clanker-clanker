@@ -1,13 +1,23 @@
 from stdlib import contextmanager, Generator, ABC, abstractmethod, dataclass, defaultdict
 from core.engine_deps import Report
-from core import Config, File, RepoItem
+from core import File
+
+class RepoItem: pass
+
+@dataclass
+class Filereq(RepoItem):
+    name: str; path: str; content: str
+
+@dataclass
+class Config(RepoItem):
+    name: str; path: str; data: dict
 
 class AssetPack(RepoItem):
     def __init__(self, token: str, paths: list[str]):
         self.token = token
         self.paths = paths
         self.resolved_map: dict[str, str] = {}
-        self.complaints: list[FilenameCollision] = []
+        self.collisions: list[FilenameCollision] = []
 
         filename_to_paths: dict[str, list[str]] = defaultdict(list)
         for path_str in self.paths:
@@ -21,7 +31,7 @@ class AssetPack(RepoItem):
             self.resolved_map[filename] = winner_path
             
             if len(full_paths) > 1:
-                self.complaints.append(FilenameCollision(filename, full_paths, winner_path))
+                self.collisions.append(FilenameCollision(filename, full_paths, winner_path))
 
 class ErrorCollector(Report):
     def __init__(self) -> None:

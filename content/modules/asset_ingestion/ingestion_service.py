@@ -1,24 +1,8 @@
 from stdlib import dataclass, StrEnum
-from core import (
-    CorruptClanker,
-    ClankerAssets,
-    PudAssets,
-    PathTokens,
-    RepoContract,
-    Config,
-    Filereq,
-)
+from core import CorruptClanker, ClankerAssets, PudAssets, PathTokens, RepoContract
 from core.engine_deps import IngestionService, NoSuchFile, DiskPort, ConfigParseError, ConfigParserPort, StartResult, ClankerizeResult, TerminateResult
 
-from . import (
-    ErrorCollector,
-    Malformed,
-    Missing,
-    ItemClassifier,
-    Assembler,
-    ClassificationResult,
-    AssetPack
-)
+from . import ErrorCollector, Malformed, Missing, ItemClassifier, Assembler, ClassificationResult, AssetPack, Config, Filereq
 
 
 @dataclass(slots=True)

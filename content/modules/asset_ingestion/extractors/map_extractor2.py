@@ -1,6 +1,6 @@
 from stdlib import dataclass, inspect, Any
-from core import Entity, Config
-from ...asset_ingestion import ErrorCollector
+from core import Entity
+from ...asset_ingestion import ErrorCollector, Config
 
 def build_parser_map(ec: Any) -> dict[type | str, Any]:
     from core import entities
