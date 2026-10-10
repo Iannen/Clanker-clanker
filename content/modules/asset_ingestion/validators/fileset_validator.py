@@ -1,6 +1,7 @@
 from core import ManifestResolver, RepoContentResolver, Fileset
 from stdlib import dataclass
-from ...asset_ingestion import ErrorCollector, Numap, UnsatisfiedFilesetSubjects, AssetPack
+from ...asset_ingestion import ErrorCollector, Numap, AssetPack
+from core.engine_deps.ingestion import UnsatisfiedFilesetSubjects
 
 @dataclass
 class FilesetValidator2:

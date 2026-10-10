@@ -1,6 +1,7 @@
 from stdlib import dataclass
 from core import File, MultiDocResolver
-from ...asset_ingestion import ErrorCollector, Numap, UnsatisfiedFiles, AssetPack
+from core.engine_deps.ingestion import UnsatisfiedFiles
+from ...asset_ingestion import ErrorCollector, Numap, AssetPack
 
 @dataclass
 class FilelistValidator2:

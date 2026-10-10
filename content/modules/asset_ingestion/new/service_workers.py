@@ -1,7 +1,8 @@
 from stdlib import StrEnum, dataclass
 from core import CorruptClanker, Render, Keyboard, Filelist, Fileset, UIRender, SharedBaseResolver, PudBaseResolver, SharedDomain, PudDomain
 from ...asset_ingestion import ErrorCollector, OverflowHandler2, FilelistValidator2, FilesetValidator2
-from ...asset_ingestion import Numap, NuConfigExtractor, Complaint, AssetPack, RepoItem, Config
+from ...asset_ingestion import Numap, NuConfigExtractor, AssetPack, RepoItem, Config
+from core.engine_deps.ingestion import Complaint
 
 class ClassificationResult(StrEnum):
     ALL_PRESENT = "all"

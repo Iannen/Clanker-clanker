@@ -1072,3 +1072,15 @@ CXXXIX: AGGREGATED MISSING ENTITY FIELDS COMPLAINTS IN PARSERS
     - Updated list parsing in _parse_value using the walrus operator to automatically filter out None values resulting from failed child entity parses.
     Reflection:
     - Aggregating missing field checks directly inside the parser keeps validation self-contained and clean, completely preventing downstream runtime crashes or type-hint violations caused by half-baked entities.
+
+CXL: STREAMLINED ERROR COLLECTOR AND PRUNED UNUSED HELPERS
+    Purpose: Improve error collection design, decouple formatting responsibility from complaint dataclasses, and clean up codebase cleanliness by storing complaints in dedicated collections.
+    - Previous ErrorCollector implementation maintained manual path stack tracking and string-based addition helpers that were entirely unused by extractors and validators.
+    Actions:
+    - Relocated all complaint classes (Critical, Soft, and their subclasses) up to `content/core/engine_deps/ingestion.py`.
+    - Refactored ErrorCollector in error_collector.py to maintain separate `_soft_complaints` and `_critical_complaints` lists.
+    - Updated accept() to match on complaint types and store the complaint objects directly.
+    - Pruned unused path-tracking methods (`push_path`, `pop_path`, `path` context manager) and manual addition methods.
+    - Updated `get_complaints()` and `get_critical_complaints()` to build string lists on-demand.
+    Reflection:
+    - Centralizing complaint definitions and eliminating dead helper code simplifies the error collector, paving the way to strip `to_string` formatting methods and shift user feedback rendering entirely to `TUIServiceImpl`.

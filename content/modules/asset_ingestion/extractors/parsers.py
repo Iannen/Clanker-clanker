@@ -1,5 +1,6 @@
 from stdlib import dataclass, field, fields, MISSING, get_args, Any, get_args, get_origin, Enum, auto, types, Field, get_args, get_origin
-from ...asset_ingestion import ErrorCollector, Numap, MissingEntityFields
+from ...asset_ingestion import ErrorCollector, Numap
+from core.engine_deps.ingestion import MissingEntityFields
 from core import Entity, Filelist, Keyboard, Resolver, File, RepoContentResolver, SharedDomButton, PudDomButton, PromptButton
 
 class OuterType(Enum):
