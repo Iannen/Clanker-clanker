@@ -64,9 +64,7 @@ class Assembler:
         list_validator = FilelistValidator2(
             self.collector,
             self.clank_doc_assets,
-            self.clank_cfg,
             self.pud_doc_assets,
-            self.pud_cfg,
             numap
         )
         list_validator.validate()

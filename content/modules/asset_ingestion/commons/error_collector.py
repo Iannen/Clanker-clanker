@@ -124,13 +124,12 @@ class DomainOverflow(Soft):
 
 @dataclass(slots=True)
 class UnsatisfiedFiles(Soft):
-    cfg: Config
     files: list[File]
 
     def to_string(self) -> str:
         files_str = "\n\t- ".join(f"'{f.name}'" for f in self.files)
         return (
-            f"Config '{self.cfg.name}': Removed {len(self.files)} file reference(s) "
+            f"Removed {len(self.files)} file reference(s) "
             f"unsatisfied by asset packs:\n\t- {files_str}"
         )
 

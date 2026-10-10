@@ -1041,3 +1041,13 @@ CXXXVI: REFACTORED NUMAP AND PARSERS TO SUPPORT FLAT ENTITY REGISTRATION AND POL
     - Updated `KeyboardParser2.parse` to explicitly register internal button components and the keyboard instance itself.
     Reflection:
     - Centralizing registration during the parsing phase ensures that all entity creation pathways contribute to the flat registry, simplifying downstream validation without requiring complex structural graph traversals.
+
+CXXXVII: SIMPLIFIED FILELIST VALIDATOR AND STREAMLINED UNSATISFIED FILES COMPLAINTS
+    Purpose: Streamline file list validation by querying MultiDocResolvers directly through Numap, eliminating complex domain-group traversal helpers.
+    - Previous traversal required manual drilling into domains and prompts to find resolvers, creating heavy architectural coupling.
+    Actions:
+    - Updated UnsatisfiedFiles in error_collector.py to remove the Config dependency and simplify its complaint reporting format.
+    - Rewrote FilelistValidator2 in file_list_validator.py to fetch MultiDocResolvers globally via Numap and validate file lists directly against the combined asset map.
+    - Updated Assembler.assemble in service_workers.py to match the simplified FilelistValidator2 instantiation signature.
+    Reflection:
+    - Leveraging flat entity queries massively reduces validator size and complexity, establishing a clean interim state before implementing full two-way weakref graph diagnostics later.
