@@ -40,10 +40,16 @@ def build_parser_map(ec: Any) -> dict[type | str, Any]:
 class Numap:
     def __init__(self, ec: Any):
         self.entities: dict[tuple[type, str], Entity] = {}
+        self.all_entities: list[Entity] = []
         self.parsers = build_parser_map(ec)
 
+    def register(self, entity: Entity) -> None:
+        if not isinstance(entity, Entity):
+            raise TypeError(f"Expected an instance of Entity, got {type(entity).__name__}")
+        self.all_entities.append(entity)
+
     def set_entity(self, name: str, entity: Entity, cls: type) -> None:
-        if not isinstance(entity, (Entity, type(None))):
+        if not isinstance(entity, Entity):
             raise TypeError(f"Expected an instance of Entity, got {type(entity).__name__}")
         self.entities[(cls, name)] = entity
 
@@ -51,15 +57,11 @@ class Numap:
         if not isinstance(entity_cls, type) or not issubclass(entity_cls, Entity):
             raise TypeError(f"Expected a subclass of Entity, got {entity_cls}")
         if not isinstance(key, str):
-            return None
+            return None # smell
         return self.entities.get((entity_cls, key))
-
+    
     def get_entities(self, entity_cls: type) -> list[Entity]:
-        return [
-            entity
-            for entity in self.entities.values()
-            if isinstance(entity, entity_cls)
-        ]
+        return [entity for entity in self.all_entities if isinstance(entity, entity_cls)]
 
     def get_parser(self, entity_cls: type | str) -> type:
         parser = self.parsers.get(entity_cls)
@@ -78,10 +80,9 @@ class NuConfigExtractor:
         parser = self.numap.get_parser(entity_cls)
         for name, entity_data in entities_dict.items():
             entity = parser.parse(name, entity_data, self.numap)
-            self.numap.set_entity(name, entity, entity_cls)       
+            self.numap.set_entity(name, entity, entity_cls)
     def extract_single(self, entity_cls: type) -> None:
         if not self.cfg: return
-        #entity_dict = self.opt_dict(self.cfg.data, [entity_cls.key_name],{})
         entity_dict = self.cfg.data.get(entity_cls.key_name)
         if not entity_dict: return
         parser = self.numap.get_parser(entity_cls)

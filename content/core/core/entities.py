@@ -101,7 +101,7 @@ class SharedDomain(Domain): pass
 class PudDomain(Domain): pass
 
 @dataclass 
-class NewBtn: key: str
+class NewBtn(Entity): key: str
 @dataclass
 class PromptButton(NewBtn): inhabitant: Prompt | None
 @dataclass

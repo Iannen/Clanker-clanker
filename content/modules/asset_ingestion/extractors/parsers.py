@@ -43,6 +43,7 @@ class BaseParser2:
                 out = field.default_value
             kwargs_out[field.key] = out
         entity = self.entity_cls(**kwargs_out)
+        numap.register(entity)
         return entity
 
     def _process_raw_field(self, raw_field: Field, data) -> EntityField:
@@ -140,9 +141,11 @@ class ResolverParser2(BaseParser2):
 
 class KeyboardParser2(BaseParser2):
     entity_cls = Keyboard
-    def parse(self, name: str, data: dict, Numap: Numap) -> Keyboard:       
-        shared_btns = [SharedDomButton(key, None) for key in data.get("shared_domains_row")]
-        pud_btns = [PudDomButton(key, None) for key in data.get("pud_domains_row")]
-        prompt_btns = [PromptButton(key, None) for key in data.get("prompts_row")]
-        
-        return Keyboard({btn.key: btn for btn in shared_btns + pud_btns + prompt_btns}, None)
+    def parse(self, name: str, data: dict, numap: Numap) -> Keyboard:       
+        shared_btns = [SharedDomButton(key, None) for key in data.get("shared_domains_row", [])]
+        pud_btns = [PudDomButton(key, None) for key in data.get("pud_domains_row", [])]
+        prompt_btns = [PromptButton(key, None) for key in data.get("prompts_row", [])]
+                    
+        keyboard = Keyboard({btn.key: btn for btn in shared_btns + pud_btns + prompt_btns}, None)
+        for item in shared_btns + pud_btns + prompt_btns + [keyboard]: numap.register(item)
+        return keyboard

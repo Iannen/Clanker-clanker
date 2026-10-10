@@ -1030,3 +1030,14 @@ CXXXV: REFACTORED ASSET PACK TO ENCAPSULATE PATH RESOLUTION AND ELIMINATE COLLIS
     - Deleted the obsolete CollisionDetector module entirely to reduce architectural bloat.
     Reflection:
     - Self-contained domain models that handle their own structural derivation reduce external code complexity, while delegating complaint ingestion directly to validators simplifies the service workflow.
+
+CXXXVI: REFACTORED NUMAP AND PARSERS TO SUPPORT FLAT ENTITY REGISTRATION AND POLYMORPHIC QUERYING
+    Purpose: Decouple entity lookups from deep graph traversal by introducing flat instance tracking alongside named entity mapping, enabling direct type-based queries for downstream validation stages.
+    - Numap previously relied on a composite tuple key `(cls, name)` for all storage, making class-level collection lookups dependent on a linear scan of values.
+    Actions:
+    - Updated Numap in map_extractor2.py to maintain `named_entities` for exact string keys and `all_entities` as a flat list of registered instances.
+    - Implemented a `register` method on Numap and updated `set_entity` and `get_entities` to utilize the flat list with `isinstance` inheritance support.
+    - Updated `BaseParser2.parse` to automatically register all standard entity instances upon creation.
+    - Updated `KeyboardParser2.parse` to explicitly register internal button components and the keyboard instance itself.
+    Reflection:
+    - Centralizing registration during the parsing phase ensures that all entity creation pathways contribute to the flat registry, simplifying downstream validation without requiring complex structural graph traversals.
