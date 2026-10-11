@@ -36,6 +36,7 @@ class File(Entity):
 
 @dataclass
 class Filelist(Entity):
+    name: str | None
     files: list[File] 
 
 @dataclass

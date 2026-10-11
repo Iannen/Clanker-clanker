@@ -20,14 +20,6 @@ II. The pile
         - append a trailing 'Next item numeral: <FOLLOWING_ROMAN_NUMERAL>' marker to history output instructions
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 
-
-1. Implement centralized entity association tracking and cleanup via Numap
-    [ ] 'core/numap.py': Add association registration and pruning mechanisms
-        - Maintain a registry mapping target entities to their cleanup callbacks
-        - Implement a prune method to execute all registered cleanup lambdas and remove the entity from the Numap
-    [ ] 'content/modules/asset_ingestion/...': Register removal callbacks during parsing
-        - Register a cleanup lambda with the Numap whenever a container references a target entity
-
 Backlog tail, Selected item/items:
-
+let us revise the filelist validator in light of recent prune capabilities implemented in the numap
 Backlog tail end

@@ -42,6 +42,21 @@ class Numap:
         self.entities: dict[tuple[type, str], Entity] = {}
         self.all_entities: list[Entity] = []
         self.parsers = build_parser_map(ec)
+        self.cleanup_registry: dict[int, list[Any]] = {}
+
+    def register_cleanup(self, entity: Entity, callback: Any) -> None:
+        if not isinstance(entity, Entity):
+            raise TypeError(f"Expected an instance of Entity, got {type(entity).__name__}")
+        self.cleanup_registry.setdefault(id(entity), []).append(callback)
+
+    def prune(self, target: Entity | list[Entity]) -> None:
+        if isinstance(target, Entity):
+            callbacks = self.cleanup_registry.pop(id(target), [])
+            for cb in callbacks:
+                cb()
+        else:
+            for entity in list(target):
+                self.prune(entity)
 
     def register(self, entity: Entity) -> None:
         if not isinstance(entity, Entity):

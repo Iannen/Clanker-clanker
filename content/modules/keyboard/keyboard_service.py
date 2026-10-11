@@ -38,7 +38,7 @@ class KBServiceImpl(KBService):
 
         lone_resolver = MultiDocResolver(
             anchor="prompt_fragments",
-            files=Filelist(files=instruction_files)
+            files=Filelist(None, files=instruction_files)
         )
 
         ephemeral_render = Render(

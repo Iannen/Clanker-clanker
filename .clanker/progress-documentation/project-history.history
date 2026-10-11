@@ -1107,3 +1107,13 @@ CLII: INTRODUCED PARSERCTX AND ANCESTOR LINEAGE TRACKING
     - Updated NuConfigExtractor in map_extractor2.py to assign the source Config as the ancestor for top-level extracted entities.
     Reflection:
     - Encapsulating parsing state into a dedicated context object alongside explicit ancestor lineage linking provides the foundational structure needed for precise error reporting, rollback logic, and dependency inspection.
+
+CLIII: INTRODUCED CENTRALIZED ENTITY ASSOCIATION TRACKING AND CLEANUP VIA NUMAP
+    Purpose: Enable automated entity cleanup and relationship management through Numap, preventing dangling references and protecting against manual iteration-mutation traps.
+    - Standard Python dataclasses are unhashable by default, requiring object identity keys (`id(entity)`) for reliable registry mapping.
+    - Developers needed a safe, uniform mechanism to prune single entities or child collections without manual collection-copy boilerplate.
+    Actions:
+    - Added an object-identity-based `cleanup_registry` and a polymorphic `prune` method to `Numap` in `map_extractor2.py` that safely handles single entities or copies iterables during batch operations.
+    - Updated `BaseParser2.parse()` in `parsers.py` to inspect parsed entity fields post-instantiation using filtered comprehensions and automatically register cleanup/removal callbacks with `Numap` for atomic and list-based child entity references.
+    Reflection:
+    - Moving lifecycle cleanup and collection management directly into `Numap` eliminates manual teardown code, protects the codebase from iteration-skipping bugs, and ensures robust relationship hygiene.

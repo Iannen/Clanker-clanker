@@ -33,3 +33,4 @@ class FilelistValidator2:
 
         if unsatisfied_files:
             self.ec.accept(UnsatisfiedFiles(unsatisfied_files))
+

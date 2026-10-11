@@ -82,6 +82,14 @@ class BaseParser2:
         for inst in ctx.instantiated_instances:
             inst.set_ancestor(entity)
         numap.register(entity)
+
+        for field in [f for f in ctx.fields if f.value not in (Absent, None) and issubclass(f.inner_type, Entity)]:
+            if field.outer_type == atomic:
+                numap.register_cleanup(field.value, lambda e=entity, f=field.key: setattr(e, f, None))
+            elif field.outer_type == list:
+                for child in field.value:
+                    numap.register_cleanup(child, lambda e=entity, f=field.key, c=child: getattr(e, f).remove(c) if c in getattr(e, f) else None)
+
         return entity
 
     def _parse_value(self, field: EntityField, data: dict, numap: Numap, ctx: ParserCtx) -> None:
