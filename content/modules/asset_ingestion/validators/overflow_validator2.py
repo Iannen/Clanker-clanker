@@ -22,7 +22,6 @@ class OverflowHandler2:
 
         if clank_doms: self._handle_domain_overflow(clank_doms, shared_dom_btns, baseres)
         if pud_doms: self._handle_domain_overflow(pud_doms, pud_dom_btns, baseres)
-
         ui_render = numap.get_entity(UIRender, UIRender.key_name)
         return ui_render, kb
 

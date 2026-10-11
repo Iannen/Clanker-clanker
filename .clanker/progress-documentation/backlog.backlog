@@ -30,20 +30,4 @@ II. The pile
 
 Backlog tail, Selected item/items:
 
-2. Introduce ParserCtx and thread through parser methods for tracking parse state
-    [x] 'content/modules/asset_ingestion/extractors/parsers.py': Define ParserCtx and integrate into parsing flow
-        - Define ParserCtx class to track fields, unsatisfied fields, instantiated instances, and fetched instances
-        - Instantiate ParserCtx in BaseParser2.parse() and thread it through helper methods
-        - Populate context collections during value parsing and entity resolution
-        
-3. Implement ancestor lineage tracking for diagnostic reporting
-    [ ] 'core/entity.py': Add support for tracking parent/ancestor references on entities
-        - Store a direct reference to the parent/ancestor entity
-        - Enable traversing the ancestor chain upward for diagnostic message rendering
-    [ ] 'content/modules/asset_ingestion/extractors/map_extractor2.py': Stamp root entities with configuration ancestry
-        - Record the pre-existing Config as the direct ancestor of extracted top-level entities
-    [ ] 'content/modules/asset_ingestion/extractors/parsers.py': Wire parent-child ancestry during parsing
-        - Collect child entities instantiated during field parsing
-        - Stamp the newly instantiated parent entity as the ancestor of its children upon creation
-
 Backlog tail end

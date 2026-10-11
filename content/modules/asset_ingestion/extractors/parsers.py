@@ -79,7 +79,8 @@ class BaseParser2:
             return None
 
         entity = self.entity_cls(**{f.key: f.value for f in ctx.fields})
-        # and here we set ancestor / parent of new entities created?
+        for inst in ctx.instantiated_instances:
+            inst.set_ancestor(entity)
         numap.register(entity)
         return entity
 

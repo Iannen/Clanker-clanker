@@ -1095,3 +1095,15 @@ CLI: REFACTORED BASEPARSER2 AND ENTITYFIELD ARCHITECTURE
     - Streamlined BaseParser2 by delegating raw field inspection directly to EntityField instantiation and simplifying _parse_value to utilize pre-computed defaults.
     Reflection:
     - Moving field analysis and configuration metadata inside EntityField transforms it into an intelligent domain object, significantly slimming down BaseParser2 and improving overall code cohesion and maintainability.
+
+CLII: INTRODUCED PARSERCTX AND ANCESTOR LINEAGE TRACKING
+    Purpose: Establish robust parse state tracking via ParserCtx and build ancestor/lineage hierarchies across entities and source configurations for improved diagnostic reporting.
+    - Previous parsers lacked structured parse-state encapsulation and did not track parent-child or entity-to-config relationships.
+    Actions:
+    - Defined the ParserCtx class in parsers.py to track fields, unsatisfied fields, instantiated instances, and fetched instances during parsing.
+    - Threaded ParserCtx through BaseParser2.parse() and its value-parsing and entity-resolution helper methods.
+    - Added a set_ancestor method on the base Entity class in core/entity.py to support parent/ancestor reference tracking.
+    - Updated BaseParser2.parse() to automatically set the ancestor of all instantiated sub-entities upon a successful go-ahead.
+    - Updated NuConfigExtractor in map_extractor2.py to assign the source Config as the ancestor for top-level extracted entities.
+    Reflection:
+    - Encapsulating parsing state into a dedicated context object alongside explicit ancestor lineage linking provides the foundational structure needed for precise error reporting, rollback logic, and dependency inspection.

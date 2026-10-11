@@ -1,4 +1,4 @@
-from stdlib import dataclass, Type, re
+from stdlib import dataclass, Type, re, Any
 
 class classproperty:
     def __init__(self, func):
@@ -7,6 +7,9 @@ class classproperty:
         return self.func(owner)
 
 class Entity:
+    def set_ancestor(self, ancestor: Any) -> None:
+        self.ancestor = ancestor
+
     @classproperty
     def key_name(cls) -> str:
         if hasattr(cls, "_key_name"):

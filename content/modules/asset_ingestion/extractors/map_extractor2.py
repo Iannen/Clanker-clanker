@@ -80,11 +80,15 @@ class NuConfigExtractor:
         parser = self.numap.get_parser(entity_cls)
         for name, entity_data in entities_dict.items():
             entity = parser.parse(name, entity_data, self.numap)
-            self.numap.set_entity(name, entity, entity_cls)
+            if entity is not None:
+                entity.set_ancestor(self.cfg)
+                self.numap.set_entity(name, entity, entity_cls)
     def extract_single(self, entity_cls: type) -> None:
         if not self.cfg: return
         entity_dict = self.cfg.data.get(entity_cls.key_name)
         if not entity_dict: return
         parser = self.numap.get_parser(entity_cls)
         entity = parser.parse(entity_cls.key_name, entity_dict, self.numap)
-        self.numap.set_entity(entity_cls.key_name, entity, entity_cls)
+        if entity is not None:
+            entity.set_ancestor(self.cfg)
+            self.numap.set_entity(entity_cls.key_name, entity, entity_cls)
