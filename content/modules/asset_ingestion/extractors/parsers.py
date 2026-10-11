@@ -1,22 +1,45 @@
-from stdlib import dataclass, field, fields, MISSING, get_args, Any, get_args, get_origin, Enum, auto, types, Field, get_args, get_origin
+from stdlib import field, fields, MISSING, get_args, Any, get_args, get_origin, types, Field, get_args, get_origin
 from ...asset_ingestion import ErrorCollector, Numap
 from core.engine_deps.ingestion import MissingEntityFields
 from core import Entity, Filelist, Keyboard, Resolver, File, RepoContentResolver, SharedDomButton, PudDomButton, PromptButton
 
-class OuterType(Enum):
-    SINGLE = auto()
-    LIST = auto()
-    DICT = auto()
+class Absent: pass
+class atomic: pass
 
-@dataclass
-class EntityField:    
-    key: str
-    value: Any
-    outer_type: OuterType
-    outer_type_nullable: bool
-    inner_type: type
-    raw_field: Field
-    default_value: Any = MISSING
+class EntityField:
+    def __init__(self, raw_field: Field):
+        self.raw_field = raw_field
+        self.key = raw_field.name
+        self.value = Absent
+        outer_type_hint = self._extract_nullability(raw_field)
+        self._extract_types(outer_type_hint)
+        self._resolve_default(raw_field)
+
+    def _extract_nullability(self, raw_field: Field) -> Any:
+        raw_type = raw_field.type
+        outer_args = get_args(raw_type)
+        self.outer_type_nullable = type(None) in outer_args
+        outer_type_hint = raw_type
+        if get_origin(raw_type) is types.UnionType:
+            not_none = [t for t in outer_args if t is not type(None)]
+            if len(not_none) == 1:
+                outer_type_hint = not_none[0]
+            else:
+                raise Exception(f"Only 'T' or 'T | None' supported, got: {raw_type}")            
+        return outer_type_hint
+    
+    def _extract_types(self, outer_type_hint: Any):
+        origin = get_origin(outer_type_hint)
+        inner_args = get_args(outer_type_hint)         
+        self.outer_type = origin if origin else atomic
+        self.inner_type = inner_args[0] if origin is list else inner_args[1] if origin is dict else outer_type_hint
+        if origin is not None and origin not in (list, dict): raise Exception(f"Unsupported origin type: {origin}")
+
+    def _resolve_default(self, raw_field: Field):
+        v = Absent
+        if raw_field.default is not MISSING: v = raw_field.default
+        elif self.outer_type_nullable: v = None
+        self.default_value = v
 
 class BaseParser2:
     def __init__(self, ec: ErrorCollector):
@@ -26,91 +49,45 @@ class BaseParser2:
         return data
 
     def parse(self, name: str | None, data: dict, numap: Numap) -> Any:
-        if isinstance(data, (str, type(None), list)): data = self.preprocess(data)
-        elif isinstance(data, dict): data = self.preprocess(data.copy())
+        if isinstance(data, (str, type(None), list)):
+            data = self.preprocess(data)
+        elif isinstance(data, dict):
+            data = self.preprocess(data.copy())
         else: 
             raise Exception("data is not dict, string nor list")
-        if name: data["name"] = name
+        if name:
+            data["name"] = name
         
-        kwargs_out = {}
+        fields_list: list[EntityField] = []
         unsatisfied_fields = []
-        if self.entity_cls is RepoContentResolver:
-            hook = "hook"
+
         for raw_field in fields(self.entity_cls):
-            field:EntityField = self._process_raw_field(raw_field, data)   
-            out = self._parse_value(field, numap)
-            if out is None and field.default_value is MISSING:
+            field = EntityField(raw_field)
+            self._parse_value(field, data, numap)
+            
+            if field.value is Absent:
                 unsatisfied_fields.append(field.raw_field)
-            elif out is None:
-                out = field.default_value
-            kwargs_out[field.key] = out
+
+            fields_list.append(field)
+
         if unsatisfied_fields:
             self.ec.accept(MissingEntityFields(self.entity_cls, unsatisfied_fields, data))
             return None
-        entity = self.entity_cls(**kwargs_out)
+
+        entity = self.entity_cls(**{f.key: f.value for f in fields_list})
         numap.register(entity)
         return entity
 
-    def _process_raw_field(self, raw_field: Field, data) -> EntityField:
-        raw_field_name = raw_field.name
-        field_value = data.get(raw_field_name)
+    def _parse_value(self, field: EntityField, data: dict, numap: Numap) -> None:
+        field_data = data.get(field.key)
 
-        raw_type = raw_field.type
-        
-        args = get_args(raw_type)
-        outer_type_nullable = type(None) in args
-        if get_origin(raw_type) is types.UnionType:
-            not_none = [t for t in args if t is not type(None)]
-            if len(not_none) == 1:
-                outer_type_hint = not_none[0]
-            else:
-                raise Exception(f"Only 'T' or 'T | None' supported, got: {raw_type}")
-        else:
-            outer_type_hint = raw_type
+        if field_data is None: field.value = field.default_value
+        elif not issubclass(field.inner_type, Entity): field.value = field_data
+        elif field.outer_type == list: field.value = [e for d in field_data if (e := self._get_entity("", d, field, numap)) is not None]
+        elif field.outer_type == dict: raise Exception("We found a dict omg!")         
+        elif field.outer_type == atomic: field.value = self._get_entity(field.key, field_data, field, numap)
 
-        origin = get_origin(outer_type_hint)
-
-        if origin is None:
-            outer_type = OuterType.SINGLE
-            inner_type = outer_type_hint
-        elif origin is list:
-            elem_args = get_args(outer_type_hint)
-            outer_type = OuterType.LIST
-            inner_type = elem_args[0] if elem_args else Any
-        elif origin is dict:
-            dict_args = get_args(outer_type_hint)
-            outer_type = OuterType.DICT
-            inner_type = dict_args[1] if len(dict_args) > 1 else Any
-        else:
-            raise Exception(f"Unsupported origin type: {origin}")
-
-        if raw_field.default is not MISSING:
-            default_value = raw_field.default
-        elif outer_type_nullable:
-            default_value = None
-        else:
-            default_value = MISSING
-
-        return EntityField(
-            key=raw_field.name,
-            outer_type=outer_type,
-            outer_type_nullable=outer_type_nullable,
-            inner_type=inner_type,
-            raw_field=raw_field,
-            default_value=default_value,
-            value=field_value,
-        )
-
-    def _parse_value(self,field: EntityField,numap: Numap,) -> Any:
-        if field.outer_type_nullable and field.value is None: return None
-        if not issubclass(field.inner_type, Entity): return field.value
-        if field.outer_type == OuterType.LIST:  return [e for d in field.value if (e := self._get_entity("", d, field, numap)) is not None]
-        elif field.outer_type == OuterType.DICT:  raise Exception("We found a dict omg!")         
-        elif field.outer_type == OuterType.SINGLE: return self._get_entity(field.key, field.value, field, numap)
-
-    def _get_entity(self, name, data, field: EntityField, numap:Numap):
-        if self.entity_cls is File:
-            hook = "hook"
+    def _get_entity(self, name, data, field: EntityField, numap: Numap):
         e = numap.get_entity(field.inner_type, data)
         if not e and not isinstance(data, str):
             parser = numap.get_parser(field.inner_type)

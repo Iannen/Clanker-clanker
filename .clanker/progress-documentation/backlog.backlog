@@ -20,9 +20,31 @@ II. The pile
         - append a trailing 'Next item numeral: <FOLLOWING_ROMAN_NUMERAL>' marker to history output instructions
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 
+
+1. Implement centralized entity association tracking and cleanup via Numap
+    [ ] 'core/numap.py': Add association registration and pruning mechanisms
+        - Maintain a registry mapping target entities to their cleanup callbacks
+        - Implement a prune method to execute all registered cleanup lambdas and remove the entity from the Numap
+    [ ] 'content/modules/asset_ingestion/...': Register removal callbacks during parsing
+        - Register a cleanup lambda with the Numap whenever a container references a target entity
+
+2. Implement ancestor lineage tracking for diagnostic reporting
+    [ ] 'core/entity.py': Add support for tracking parent/ancestor references on entities
+        - Store a direct reference to the parent/ancestor entity
+        - Enable traversing the ancestor chain upward for diagnostic message rendering
+    [ ] 'content/modules/asset_ingestion/extractors/map_extractor2.py': Stamp root entities with configuration ancestry
+        - Record the pre-existing Config as the direct ancestor of extracted top-level entities
+    [ ] 'content/modules/asset_ingestion/extractors/parsers.py': Wire parent-child ancestry during parsing
+        - Collect child entities instantiated during field parsing
+        - Stamp the newly instantiated parent entity as the ancestor of its children upon creation
+
 Backlog tail, Selected item/items:
 
-I want two things now
-1. weakref on the graph
-    - so i can have full diagnostics for when a validator removes something
+3. Refactor BaseParser2 and EntityField architecture, type metadata, and sentinel handling
+    [ ] 'content/modules/asset_ingestion/extractors/parsers.py': Encapsulate field inspection and type metadata logic within a self-contained EntityField class
+        [x] Move nullability, origin types, and default resolution into EntityField.__init__ helper methods
+        [x] Eliminate the OuterType enum in favor of native Python collections (list, dict) and the atomic marker class
+        [x] Replace dataclasses.MISSING with the custom Absent sentinel class to fix init signature errors and missing field checks
+        [x] Streamline BaseParser2 by delegating raw field parsing and structure directly to EntityField instantiation
+
 Backlog tail end
