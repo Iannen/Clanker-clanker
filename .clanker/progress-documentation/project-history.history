@@ -1117,3 +1117,14 @@ CLIII: INTRODUCED CENTRALIZED ENTITY ASSOCIATION TRACKING AND CLEANUP VIA NUMAP
     - Updated `BaseParser2.parse()` in `parsers.py` to inspect parsed entity fields post-instantiation using filtered comprehensions and automatically register cleanup/removal callbacks with `Numap` for atomic and list-based child entity references.
     Reflection:
     - Moving lifecycle cleanup and collection management directly into `Numap` eliminates manual teardown code, protects the codebase from iteration-skipping bugs, and ensures robust relationship hygiene.
+
+CLIV: REVISED FILELIST VALIDATOR TO LEVERAGE NUMAP PRUNING
+    Purpose: Simplify file list validation and decouple it from `MultiDocResolver` structures by utilizing `Numap`'s built-in cleanup and prune mechanisms.
+    - Navigating and mutating container structures manually introduced unnecessary coupling and complexity.
+    - `Numap`'s object-identity-based cleanup registry automatically detaches pruned child entities from parent collections upon batch pruning.
+    Actions:
+    - Refactored `FilelistValidator2` in `file_list_validator.py` to retrieve all `File` entities directly via `numap.get_entities(File)`.
+    - Removed traversal and manual splicing of `MultiDocResolver` instances.
+    - Delegated unsatisfied file removal to `numap.prune(unsatisfied_files)` to automatically trigger parent collection cleanup.
+    Reflection:
+    - Direct retrieval and batch pruning of domain entities decouple validators from container traversal, significantly streamlining data pipelines and improving system modularity.
