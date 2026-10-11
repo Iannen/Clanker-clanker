@@ -1084,3 +1084,14 @@ CXL: STREAMLINED ERROR COLLECTOR AND PRUNED UNUSED HELPERS
     - Updated `get_complaints()` and `get_critical_complaints()` to build string lists on-demand.
     Reflection:
     - Centralizing complaint definitions and eliminating dead helper code simplifies the error collector, paving the way to strip `to_string` formatting methods and shift user feedback rendering entirely to `TUIServiceImpl`.
+
+CLI: REFACTORED BASEPARSER2 AND ENTITYFIELD ARCHITECTURE
+    Purpose: Encapsulate field inspection, type metadata extraction, and default resolution into a self-contained EntityField class to decouple schema parsing logic and clean up BaseParser2.
+    - Previous implementation relied on procedural field inspection in BaseParser2, tightly coupling type analysis and data extraction.
+    Actions:
+    - Converted EntityField into a self-contained class with modular initialization helper methods (_extract_nullability, _extract_types, _resolve_default).
+    - Eliminated the legacy OuterType enum in favor of native Python collections (list, dict) and the atomic marker class.
+    - Replaced dataclasses.MISSING with a custom Absent sentinel class to resolve init signature errors and simplify missing field checks.
+    - Streamlined BaseParser2 by delegating raw field inspection directly to EntityField instantiation and simplifying _parse_value to utilize pre-computed defaults.
+    Reflection:
+    - Moving field analysis and configuration metadata inside EntityField transforms it into an intelligent domain object, significantly slimming down BaseParser2 and improving overall code cohesion and maintainability.

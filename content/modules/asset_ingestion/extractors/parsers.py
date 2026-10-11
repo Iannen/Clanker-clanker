@@ -41,6 +41,13 @@ class EntityField:
         elif self.outer_type_nullable: v = None
         self.default_value = v
 
+class ParserCtx:
+    def __init__(self, entity_cls: type[Entity]):
+        self.fields: list[EntityField] = [EntityField(raw_field) for raw_field in fields(entity_cls)]
+        self.unsatisfied_fields: list[Field] = []
+        self.instantiated_instances: list[Entity] = []
+        self.fetched_instances: list[Entity] = []
+
 class BaseParser2:
     def __init__(self, ec: ErrorCollector):
         self.ec = ec
@@ -58,40 +65,42 @@ class BaseParser2:
         if name:
             data["name"] = name
         
-        fields_list: list[EntityField] = []
-        unsatisfied_fields = []
+        ctx = ParserCtx(self.entity_cls)
 
-        for raw_field in fields(self.entity_cls):
-            field = EntityField(raw_field)
-            self._parse_value(field, data, numap)
+        for field in ctx.fields:
+            self._parse_value(field, data, numap, ctx)
             
             if field.value is Absent:
-                unsatisfied_fields.append(field.raw_field)
+                ctx.unsatisfied_fields.append(field.raw_field)
 
-            fields_list.append(field)
-
-        if unsatisfied_fields:
-            self.ec.accept(MissingEntityFields(self.entity_cls, unsatisfied_fields, data))
+        if ctx.unsatisfied_fields:
+            # this becomes the rollback. we must destroy fresh entities, but i think this is less of a concern at present.
+            self.ec.accept(MissingEntityFields(self.entity_cls, ctx.unsatisfied_fields, data))
             return None
 
-        entity = self.entity_cls(**{f.key: f.value for f in fields_list})
+        entity = self.entity_cls(**{f.key: f.value for f in ctx.fields})
+        # and here we set ancestor / parent of new entities created?
         numap.register(entity)
         return entity
 
-    def _parse_value(self, field: EntityField, data: dict, numap: Numap) -> None:
+    def _parse_value(self, field: EntityField, data: dict, numap: Numap, ctx: ParserCtx) -> None:
         field_data = data.get(field.key)
 
         if field_data is None: field.value = field.default_value
         elif not issubclass(field.inner_type, Entity): field.value = field_data
-        elif field.outer_type == list: field.value = [e for d in field_data if (e := self._get_entity("", d, field, numap)) is not None]
+        elif field.outer_type == list: field.value = [e for d in field_data if (e := self._get_entity("", d, field, numap, ctx)) is not None]
         elif field.outer_type == dict: raise Exception("We found a dict omg!")         
-        elif field.outer_type == atomic: field.value = self._get_entity(field.key, field_data, field, numap)
+        elif field.outer_type == atomic: field.value = self._get_entity(field.key, field_data, field, numap, ctx)
 
-    def _get_entity(self, name, data, field: EntityField, numap: Numap):
+    def _get_entity(self, name, data, field: EntityField, numap: Numap, ctx: ParserCtx):
         e = numap.get_entity(field.inner_type, data)
-        if not e and not isinstance(data, str):
+        if e is not None:
+            ctx.fetched_instances.append(e)
+        elif not isinstance(data, str):
             parser = numap.get_parser(field.inner_type)
             e = parser.parse(name, data, numap)
+            if e is not None:
+                ctx.instantiated_instances.append(e)
         return e
 
 class FilelistParser2(BaseParser2): 
