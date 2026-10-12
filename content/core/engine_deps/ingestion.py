@@ -5,6 +5,8 @@ class Report(ABC):
     @abstractmethod
     def get_complaints(self) -> list[str]: ...
     @abstractmethod
+    def get_all_complaints(self) -> list[Soft]: ...
+    @abstractmethod
     def get_critical_complaints(self) -> list[str]: ...
 
 @dataclass(slots=True, frozen=True)
@@ -74,13 +76,7 @@ class DomainOverflow(Soft):
 @dataclass(slots=True)
 class UnsatisfiedFiles(Soft):
     files: list[File]
-
-    def to_string(self) -> str:
-        files_str = "\n\t- ".join(f"'{f.name}'" for f in self.files)
-        return (
-            f"Removed {len(self.files)} file reference(s) "
-            f"unsatisfied by asset packs:\n\t- {files_str}"
-        )
+    def to_string(self): pass 
 
 @dataclass(slots=True)
 class UnsatisfiedFilesetSubjects(Soft):

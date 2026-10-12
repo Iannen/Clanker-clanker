@@ -1,6 +1,6 @@
 from core import ActionResult, ProgramExit, UserDecline, UserQuestions
 from core.engine_deps import TUIService, IOControl, TerminalPort, Affirmative, Declined, Report
-from ..tui import TUIQuestions
+from ..tui import TUIQuestions, ComplaintsFormatter
 
 class TUIServiceImpl(TUIService):
     def __init__(self, io_bridge: TerminalPort) -> None:
@@ -10,8 +10,9 @@ class TUIServiceImpl(TUIService):
         self.io_bridge.write(f"{ui_string}\n")
 
     def confirm_start(self, report: Report) -> type[Affirmative] | type[Declined]:
-        softs = report.get_complaints()
-        prompt_msg = TUIQuestions.complaints_proceed(softs)
+        softs = report.get_all_complaints()
+        formatted_softs = [ComplaintsFormatter.format(c) for c in softs]
+        prompt_msg = TUIQuestions.complaints_proceed(formatted_softs)
         instructions = "Press [Ctrl+D] to proceed, or [ESC/Ctrl+C] to decline.\n> "
         base_msg = f"\n{prompt_msg}\n{instructions}"
         self.io_bridge.write(base_msg)

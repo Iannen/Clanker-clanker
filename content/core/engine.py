@@ -17,15 +17,10 @@ class AppEngine:
     kb_service: KBService
 
     def run(self) -> str:       
-        """
-        Have to deal with report.
-        I think I send it to io, and receive in return 
-
-        Also I think actionresult becomes a dto baseclass, for when services get back to engine about something. 
-        """
         res = self.session.get_runtime_config()
         match res:
             case StartResult(): 
+                
                 Declined()
                 Affirmative()
                 """

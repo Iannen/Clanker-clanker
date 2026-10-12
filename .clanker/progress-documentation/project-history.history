@@ -1154,3 +1154,17 @@ CLVI: IMPLEMENTED `¤` SIGIL SYNTAX FOR PARSER LOOKUPS AND STREAMLINED PARSER PR
     Reflection:
     - Explicit syntax eliminates structural ambiguity cleanly and deterministically, removing the need for error-prone heuristic inference.
     - Stripping out redundant preprocessor wrappers significantly simplifies the parser core and aligns data flows robustly with the entity graph.
+
+CLVII: IMPLEMENTED TUI BOOT CONFIRMATION FLOW AND EXTRACTED COMPLAINTS FORMATTER
+    Purpose: Isolate presentation concerns from core logic by delegating boot warning confirmations and complaint string formatting to the TUI module.
+    - Core domain and engine logic should remain free from UI prompt fragments, message formatting rules, and string representation logic.
+    - Standardizing user feedback mechanisms via explicit response signal classes keeps the engine flow transparent and type-safe.
+    Actions:
+    - Created `content/modules/tui/questions.py` to house presentation-specific prompts and formatting fragments, decoupling them from `core`.
+    - Introduced explicit `Affirmative` and `Declined` pass classes in `engine_deps/tui.py` and updated `TUIService.confirm_start()` to return these signals.
+    - Implemented boot confirmation flow in `AppEngine` to conditionally prompt the user via TUI when the start report contains soft complaints.
+    - Created `ComplaintsFormatter` in the TUI module utilizing Python pattern matching (`match`/`case`) to handle complaint string generation incrementally, starting with `UnsatisfiedFiles`.
+    - Removed presentation `to_string()` methods from `UnsatisfiedFiles` in `ingestion.py` to keep domain entities pure data holders.
+    Reflection:
+    - Delegating string rendering and conditional interactive prompts to the TUI layer successfully declutters core engine and entity implementations.
+    - Incremental migration of complaint formatters provides a safe, low-risk path to transition all remaining complaint types away from domain models.
