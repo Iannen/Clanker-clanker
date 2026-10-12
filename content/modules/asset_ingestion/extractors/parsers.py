@@ -1,7 +1,7 @@
 from stdlib import field, fields, MISSING, get_args, Any, get_args, get_origin, types, Field, get_args, get_origin
 from ...asset_ingestion import ErrorCollector, Numap
 from core.engine_deps.ingestion import MissingEntityFields
-from core import Entity, Filelist, Keyboard, Resolver, File, RepoContentResolver, SharedDomButton, PudDomButton, PromptButton
+from core import Entity, Filelist, Keyboard, Resolver, File, RepoContentResolver, SharedDomButton, PudDomButton, PromptButton, PudFileset, SharedFileset
 
 class Absent: pass
 class atomic: pass
@@ -142,7 +142,7 @@ class ResolverParser2(BaseParser2):
 
 class KeyboardParser2(BaseParser2):
     entity_cls = Keyboard
-    def parse(self, name: str, data: dict, numap: Numap) -> Keyboard:       
+    def parse(self, name: str, data: dict, numap: Numap) -> Keyboard:        
         shared_btns = [SharedDomButton(key, None) for key in data.get("shared_domains_row", [])]
         pud_btns = [PudDomButton(key, None) for key in data.get("pud_domains_row", [])]
         prompt_btns = [PromptButton(key, None) for key in data.get("prompts_row", [])]
@@ -150,3 +150,21 @@ class KeyboardParser2(BaseParser2):
         keyboard = Keyboard({btn.key: btn for btn in shared_btns + pud_btns + prompt_btns}, None)
         for item in shared_btns + pud_btns + prompt_btns + [keyboard]: numap.register(item)
         return keyboard
+
+class PudFilesetParser(BaseParser2):
+    entity_cls = PudFileset
+    def preprocess(self, data: dict) -> dict:
+        if "includes" in data:
+            data["includes"] = [{"value": item} if isinstance(item, str) else item for item in data["includes"]]
+        if data.get("excludes"):
+            data["excludes"] = [{"value": item} if isinstance(item, str) else item for item in data["excludes"]]
+        return data
+
+class SharedFilesetParser(BaseParser2):
+    entity_cls = SharedFileset
+    def preprocess(self, data: dict) -> dict:
+        if "includes" in data:
+            data["includes"] = [{"value": item} if isinstance(item, str) else item for item in data["includes"]]
+        if data.get("excludes"):
+            data["excludes"] = [{"value": item} if isinstance(item, str) else item for item in data["excludes"]]
+        return data

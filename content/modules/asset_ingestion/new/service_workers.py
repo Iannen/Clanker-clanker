@@ -1,5 +1,5 @@
 from stdlib import StrEnum, dataclass
-from core import CorruptClanker, Render, Keyboard, Filelist, Fileset, UIRender, SharedBaseResolver, PudBaseResolver, SharedDomain, PudDomain
+from core import CorruptClanker, Render, Keyboard, Filelist, Fileset, UIRender, SharedBaseResolver, PudBaseResolver, SharedDomain, PudDomain, PudFileset, SharedFileset
 from ...asset_ingestion import ErrorCollector, OverflowHandler2, FilelistValidator2, FilesetValidator2
 from ...asset_ingestion import Numap, NuConfigExtractor, AssetPack, RepoItem, Config
 from core.engine_deps.ingestion import Complaint
@@ -47,12 +47,16 @@ class Assembler:
         clank_ext = NuConfigExtractor(numap, self.collector, self.clank_cfg)
         clank_ext.extract_from_map(Filelist)
         clank_ext.extract_from_map(Fileset)
+        clank_ext.extract_from_map(PudFileset)
+        clank_ext.extract_from_map(SharedFileset)
         clank_ext.extract_from_map(SharedDomain)
         clank_ext.extract_single(SharedBaseResolver)
 
         pud_ext = NuConfigExtractor(numap, self.collector, self.pud_cfg)
         pud_ext.extract_from_map(Filelist)
         pud_ext.extract_from_map(Fileset)
+        pud_ext.extract_from_map(PudFileset)
+        pud_ext.extract_from_map(SharedFileset)
         pud_ext.extract_from_map(PudDomain)
         pud_ext.extract_single(PudBaseResolver)
 

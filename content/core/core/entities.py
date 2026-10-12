@@ -40,9 +40,20 @@ class Filelist(Entity):
     files: list[File] 
 
 @dataclass
+class FilesetItem(Entity):
+    value: str
+
+@dataclass
 class Fileset(Entity):
-    includes: list[str]
-    excludes: list[str] | None
+    name: str | None
+    includes: list[FilesetItem]
+    excludes: list[FilesetItem] | None
+
+@dataclass
+class PudFileset(Fileset): pass
+
+@dataclass
+class SharedFileset(Fileset): pass
 
 @dataclass
 class Resolver(Entity):
@@ -61,13 +72,13 @@ class PudBaseResolver(MultiDocResolver): pass
 @dataclass
 class RepoContentResolver(Resolver):
     type = "repo-content"
-    fileset: Fileset 
+    fileset: PudFileset 
 
 @dataclass
 class ManifestResolver(Resolver):
     type = "repo-manifest"
-    pud_fileset: Fileset 
-    shared_fileset: Fileset | None
+    pud_fileset: PudFileset 
+    shared_fileset: SharedFileset | None
 
 @dataclass
 class KBStateResolver(Resolver):

@@ -4,7 +4,7 @@ system:
 filelists:
   osaurlist: [osaur1, osaur2]
 
-filesets:
+pud_filesets:
   core: {includes: [content/core, osaur]}
 
   asset_ingestion: {includes: [
@@ -30,8 +30,7 @@ filesets:
   complaint_review: {includes: [
     content/core/core/entities.py,
     content/modules/asset_ingestion/extractors/map_extractor2.py,
-    content/a_lib/shared-assets/config-fragments/shared_cfg.yaml,
-    
+    content/a_lib/shared-assets/config-fragments/shared_cfg.yaml,    
     ]}
 
 pud_domains:

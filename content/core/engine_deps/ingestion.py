@@ -1,4 +1,4 @@
-from stdlib import ABC, abstractmethod, dataclass, Field
+from stdlib import ABC, abstractmethod, dataclass, Field, Any
 from core import Render, Keyboard, File
 
 class Report(ABC):
@@ -84,7 +84,7 @@ class UnsatisfiedFiles(Soft):
 
 @dataclass(slots=True)
 class UnsatisfiedFilesetSubjects(Soft):
-    assetpack_name: str
+    assetpack: Any
     subjects: list[str]
 
     def to_string(self) -> str:

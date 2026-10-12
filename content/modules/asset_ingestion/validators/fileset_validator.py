@@ -1,4 +1,4 @@
-from core import ManifestResolver, RepoContentResolver, Fileset
+from core import PudFileset, SharedFileset, FilesetItem
 from stdlib import dataclass
 from ...asset_ingestion import ErrorCollector, Numap, AssetPack
 from core.engine_deps.ingestion import UnsatisfiedFilesetSubjects
@@ -10,51 +10,28 @@ class FilesetValidator2:
     clank_doc_assets: AssetPack 
     pud_content_assets: AssetPack 
 
-    def _reqs_from_fileset(self, cls: type[NewReq], fileset: Fileset) -> list[NewReq]:
-        subjects = fileset.includes + fileset.excludes if fileset.excludes else fileset.includes
-        reqs = [cls(s, fileset.includes) for s in fileset.includes]
-        if fileset.excludes:
-            reqs.extend(cls(s, fileset.excludes) for s in fileset.excludes)
-        return reqs
-
     def validate(self):
-        reqs: list[NewReq] = []
+        items = self.numap.get_entities(FilesetItem)
+        from_pud = [item for item in items if isinstance(item.ancestor, PudFileset)]
+        from_clank = [item for item in items if isinstance(item.ancestor, SharedFileset)]
 
-        for res in self.numap.get_entities(ManifestResolver):
-            reqs.extend(self._reqs_from_fileset(FromPud, res.pud_fileset))
-            reqs.extend(self._reqs_from_fileset(FromShared, res.shared_fileset))
+        pud_unsatisfied: list[FilesetItem] = []
+        shared_unsatisfied: list[FilesetItem] = []
 
-        for res in self.numap.get_entities(RepoContentResolver):
-            reqs.extend(self._reqs_from_fileset(FromPud, res.fileset))
+        if self.pud_content_assets:
+            for item in from_pud:
+                if not any(p.startswith(item.value) for p in self.pud_content_assets.paths):
+                        pud_unsatisfied.append(item)
 
-        pud_unsatisfied = [
-            req for req in reqs
-            if isinstance(req, FromPud) and self.pud_content_assets
-            and not any(p.startswith(req.subject) for p in self.pud_content_assets.paths)
-        ]
-        shared_unsatisfied = [
-            req for req in reqs
-            if isinstance(req, FromShared) and self.clank_doc_assets
-            and not any(p.startswith(req.subject) for p in self.clank_doc_assets.paths)
-        ]
+        if self.clank_doc_assets:
+            for item in from_clank:
+                if not any(p.startswith(item.value) for p in self.clank_doc_assets.paths):
+                        shared_unsatisfied.append(item)
 
-        self._handle_unsatisfied("pud content assetpack", pud_unsatisfied)
-        self._handle_unsatisfied("shared assetpack", shared_unsatisfied)
+        if pud_unsatisfied:
+            self.ec.accept(UnsatisfiedFilesetSubjects(self.pud_content_assets, pud_unsatisfied))
+            self.numap.prune(pud_unsatisfied)
 
-    def _handle_unsatisfied(self, assetpack_name: str, unsatisfied: list[NewReq]):
-        if not unsatisfied: return
-        subjects = [req.subject for req in unsatisfied]
-        self.ec.accept(UnsatisfiedFilesetSubjects(assetpack_name, subjects))
-        for req in unsatisfied:
-            req.target_container.remove(req.subject)
-
-@dataclass
-class NewReq:
-    subject: str
-    target_container: list[str]
-
-@dataclass
-class FromPud(NewReq): pass
-
-@dataclass
-class FromShared(NewReq): pass
+        if shared_unsatisfied:
+            self.ec.accept(UnsatisfiedFilesetSubjects(self.clank_doc_assets, shared_unsatisfied))
+            self.numap.prune(shared_unsatisfied)

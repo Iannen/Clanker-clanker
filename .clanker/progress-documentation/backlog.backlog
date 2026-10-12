@@ -21,12 +21,5 @@ II. The pile
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 
 Backlog tail, Selected item/items:
-2. Refactor fileset validator to leverage Numap entity pruning and ancestor tracking
-    [ ] 'content/modules/asset_ingestion/extractors/parsers.py': Introduce FilesetItem leaf entities and specialized fileset parsing
-        - Define FilesetItem and specialized fileset parsers to convert raw include/exclude strings into tracked child entities
-        - Establish proper ancestor linkage to distinguish Pud versus Shared fileset origins
-    [ ] 'content/modules/asset_ingestion/validators/fileset_validator.py': Refactor FilesetValidator2 to use direct entity retrieval and Numap pruning
-        - Query all FilesetItem entities via numap.get_entities(FilesetItem)
-        - Filter unsatisfied items using ancestor type checks (PudFileset vs SharedFileset)
-        - Delegate unsatisfied item removal to numap.prune() to automatically clean up parent collections
+the parser needs to distinguish between a string which is a lookup value and a string which is to be provided to the next parser as data.
 Backlog tail end

@@ -1128,3 +1128,16 @@ CLIV: REVISED FILELIST VALIDATOR TO LEVERAGE NUMAP PRUNING
     - Delegated unsatisfied file removal to `numap.prune(unsatisfied_files)` to automatically trigger parent collection cleanup.
     Reflection:
     - Direct retrieval and batch pruning of domain entities decouple validators from container traversal, significantly streamlining data pipelines and improving system modularity.
+
+CLV: REFACTORED FILESET MODEL, PARSER, AND VALIDATOR USING SUBCLASSED LEAF ENTITIES AND NUMAP PRUNING
+    Purpose: Modernize fileset entities, custom parsing pipelines, and validation mechanics to leverage specialized leaf types and automated `Numap` pruning.
+    - Raw string manipulation and manual container mutation in fileset validators lacked type safety and created tight coupling.
+    - Specialized fileset subclasses and `FilesetItem` leaf entities enable granular tracking and automated relationship hygiene via `Numap`.
+    Actions:
+    - Introduced specialized `PudFileset` and `SharedFileset` entities along with the leaf entity `FilesetItem`, and updated `RepoContentResolver` and `ManifestResolver` accordingly.
+    - Implemented custom parsers (`PudFilesetParser` and `SharedFilesetParser`) with preprocessing logic to transform raw string lists into `FilesetItem` entities.
+    - Refactored `FilesetValidator2` to query specialized filesets directly via `numap.get_entities`, validate subjects against asset packs, and delegate collection cleanup to `numap.prune()`.
+    - Aligned downstream `RenderService` and `UnsatisfiedFilesetSubjects` error reports with the new entity graph shape.
+    Reflection:
+    - Wrapping strings into first-class leaf entities bridges the gap between raw configuration data and entity graphs, unlocking robust automated pruning.
+    - An ongoing architectural challenge for `BaseParser2` is cleanly distinguishing whether a raw configuration value represents a key lookup versus inline data for a child parser.
