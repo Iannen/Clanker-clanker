@@ -1,5 +1,4 @@
 from stdlib import ABC, abstractmethod
-from core import Notice, Fatal
 
 class IOControl:
     ACCEPTED = "accepted"
@@ -9,7 +8,7 @@ class IOControl:
     ACCEPT_KEY = "\x04"
     BACKSPACE_KEYS = ("\x7f", "\x08")
 
-class TerminalFailure(Fatal): leaf_ex = True
+class TerminalFailure(Exception): pass
 
 class TerminalPort(ABC):
     @abstractmethod
@@ -25,10 +24,10 @@ class TerminalPort(ABC):
     def get_acceptance(self, required_phrase: str | None) -> tuple[str, str]: ...  # raises: TerminalFailure
 
 
-class NoSuchFile(Notice): leaf_ex = True
-class AssetExists(Notice): leaf_ex = True
-class FileAccessError(Fatal): leaf_ex = True
-class InvalidPathToken(Fatal): leaf_ex = True
+class NoSuchFile(Exception): pass
+class AssetExists(Exception): pass
+class FileAccessError(Exception): pass
+class InvalidPathToken(Exception): pass
 
 class DiskPort(ABC):
     @abstractmethod

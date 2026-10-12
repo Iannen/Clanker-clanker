@@ -21,12 +21,5 @@ II. The pile
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 
 Backlog tail, Selected item/items:
-1. Implement single `¤` prefix syntax to distinguish lookup values from inline data strings in the parser
-    [x] 'content/modules/asset_ingestion/extractors/parsers.py': Update `_get_entity` to process `¤` prefix
-        - Check if data is a string starting with `¤`, strip the sigil, and perform `numap.get_entity()` lookup
-        - Route strings without `¤` as inline data to sub-parsers for instantiation
-    [x] '*yaml': Align YAML configuration files to use `¤` for reference lookups
-    [x] 'content/modules/asset_ingestion/extractors/parsers.py': Clean up and streamline parser implementations and preprocessors (FilesetItemparser, FileParser)
-
 
 Backlog tail end
