@@ -38,16 +38,3 @@ class TerminateGracefully(ActionResult):
     def __init__(self, message: str = ActionResult.MSG_DEFAULT):
         super().__init__(message)
         
-class UserQuestions:
-    REQUIRED_PHRASE = "yes"
-    INIT_REPO = "Directory not initialized as clank repo - clankerize?"
-    CONFIRMATION_INSTRUCTIONS = "Type '{required_phrase}' and press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n> "
-    CONFIRMATION_INVALID_ERR = "Invalid confirmation. Expected '{required_phrase}', got '{value}'. Try again.\n"
-
-    @classmethod
-    def overflow_proceed(cls, dof_report: str) -> str:
-        return f"{dof_report}\nDo you wish to proceed with overflowed domains trimmed?"
-
-    @classmethod
-    def complaints_proceed(cls, complaints: list[str]) -> str:
-        return f"{"\n".join(complaints)}\nProceed anyway?"

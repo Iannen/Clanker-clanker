@@ -2,8 +2,6 @@
 from stdlib import dataclass
 from core import (
     ActionResult,
-    UserQuestions,
-    UserDecline,
     ProgramExit,
     HotPromptRequested,
 )
@@ -16,7 +14,7 @@ class AppEngine:
     renderer: RenderService
     kb_service: KBService
 
-    def run(self) -> str:       
+    def run(self) -> str:        
         res = self.session.get_runtime_config()
         match res:
             case StartResult(): 
@@ -25,23 +23,11 @@ class AppEngine:
                         return ActionResult.MSG_DECLINED_BOOTSTRAP
                 
             case ClankerizeResult():
-                # pass report to io.confirmclankerize, who asks user if he wants to clankerize if complaints
-                # returns an actionresult for each of (yes/nocomplaint) or no
-                try:
-                    self.io.get_confirmation(
-                        UserQuestions.INIT_REPO, UserQuestions.REQUIRED_PHRASE
-                    )
-                except UserDecline:
+                if self.io.confirm_clankerize(res.report) is Declined:
                     return ActionResult.MSG_DECLINED_INIT
                 res = self.session.initialize_workspace()
             case TerminateResult():
-                # so it becomes a 'tell the user this shit' method on io, returning only a single actionresult
-                all_crits = res.report.get_critical_complaints()
-                all_softs = res.report.get_complaints()
-                msg = "Critical errors:\n" + "\n".join(all_crits)
-                if all_softs:
-                    msg += "\nSoft complaints:\n" + "\n".join(all_softs)
-                return msg                
+                return self.io.inform_termination(res.report)      
 
         self.renderer.set_ui_render(res.ui_render)
         self.kb_service.setup(res.kb)

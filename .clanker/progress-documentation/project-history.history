@@ -1180,3 +1180,15 @@ CLVIII: MIGRATED REMAINING COMPLAINT PRESENTATION LOGIC TO TUI COMPLAINTS FORMAT
     Reflection:
     - Completely decoupled core ingestion models from presentation formatting details, improving separation of concerns.
     - Exhaustive pattern matching makes the TUI formatting layer explicit and maintainable.
+
+CLIX: IMPLEMENTED TUI SERVICE CONFIRM_CLANKERIZE AND INFORM_TERMINATION METHODS
+    Purpose: Move repository initialization confirmation and termination-phase complaint reporting into the TUI service layer to keep the core engine strictly decoupled from terminal IO and raw formatting details.
+    - Core engine workflows should delegate all interactive prompts and display responsibilities to the TUI abstraction.
+    - Consolidating `confirm_clankerize` and `inform_termination` within `TUIService` and `TUIServiceImpl` standardizes the handling of `ClankerizeResult` and `TerminateResult`.
+    Actions:
+    - Added abstract methods `confirm_clankerize(self, report: Report)` and `inform_termination(self, report: Report)` to the `TUIService` interface in `content/core/engine_deps/tui.py`.
+    - Implemented both methods in `TUIServiceImpl` (`content/modules/tui/tui_service.py`), leveraging `ComplaintsFormatter` and structured acceptance loops.
+    - Updated `AppEngine.run()` in `content/core/engine.py` to route `ClankerizeResult` through `self.io.confirm_clankerize()` and `TerminateResult` through `self.io.inform_termination()`.
+    Reflection:
+    - Successfully removed manual complaint formatting and direct confirmation calls from the core engine loop.
+    - Further hardens the architecture by ensuring all user-facing terminal output and confirmation patterns flow exclusively through well-defined TUI ports.

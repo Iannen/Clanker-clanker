@@ -14,14 +14,11 @@ II. The pile
    
 7. Validator classes of ingestion:
 
-
 1. Add next numeral line to history output instructions
     [ ] 'a_lib/templates/documentation/backlog.template': Update history output instruction format
         - append a trailing 'Next item numeral: <FOLLOWING_ROMAN_NUMERAL>' marker to history output instructions
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 
 Backlog tail, Selected item/items:
-
-we now look into the engine interaction with tuiservice for purpose of a clankerize result.
 
 Backlog tail end
