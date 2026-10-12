@@ -1,19 +1,11 @@
 system:
   test_command: "python3 -B content/test/ship_gate.py"
 
-filelists:
-  osaurlist: [osaur1, osaur2]
-
 pud_filesets:
   core: {includes: [content/core]}
 
   asset_ingestion: {includes: [
     content/modules/asset_ingestion]}
-
-  cfg_validation: {includes: [
-    content/core/entities.py,  
-    content/a_lib/shared-assets/config-fragments, 
-    .clanker/config.yaml]}
 
   presentation: {includes: [
     content/core,

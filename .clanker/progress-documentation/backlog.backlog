@@ -22,6 +22,12 @@ II. The pile
 
 Backlog tail, Selected item/items:
 
-let us make it so that tuiservice does no string business whatsoever. he simply passes the report to the formatter, receives some object in return (which is a string but the service does not need to  know this), which he passes to the adapter who then displays it.
+1. Refactor ComplaintsFormatter and TUIService to delegate all prompt string assembly to the formatter
+    [x] 'content/modules/tui/formatter.py': Add Report support to ComplaintsFormatter to build complete confirmation messages
+        - Import Report from core.engine_deps and TUIQuestions from .questions
+        - Update format method to accept Report instances, format their soft complaints, apply TUIQuestions.complaints_proceed, and append user instructions
+    [x] 'content/modules/tui/tui_service.py': Delegate confirmation string generation entirely to ComplaintsFormatter
+        - Call ComplaintsFormatter.format(report) inside confirm_start to receive the fully assembled message
+        - Remove inline f-strings, list comprehensions, and TUIQuestions dependencies from TUIServiceImpl.confirm_start
 
 Backlog tail end

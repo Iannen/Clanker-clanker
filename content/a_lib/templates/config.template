@@ -1,11 +1,10 @@
 pud_filesets:
   core: { includes: [content]}
-  content: { includes: [content, .clanker]}
 
 domains:
   analysis:
     resolvers:
-      - { anchor: domain_fragments, type: repo-manifest, pud_fileset: ¤ content, shared_fileset: ¤ clanker-shared-assets }
+      - { anchor: domain_fragments, type: repo-manifest, pud_fileset: ¤ content-dir, shared_fileset: ¤ clanker-shared-assets }
     prompts:
       - name: init
         render:

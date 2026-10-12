@@ -7,7 +7,7 @@ from core import (
     ProgramExit,
     HotPromptRequested,
 )
-from core.engine_deps import IngestionService, KBService, RenderService, TUIService, StartResult, ClankerizeResult, TerminateResult, Declined, Affirmative
+from core.engine_deps import IngestionService, KBService, RenderService, TUIService, StartResult, ClankerizeResult, TerminateResult, Declined
 
 @dataclass(slots=True)
 class AppEngine:
@@ -20,14 +20,10 @@ class AppEngine:
         res = self.session.get_runtime_config()
         match res:
             case StartResult(): 
-                
-                Declined()
-                Affirmative()
-                """
                 if res.report.get_complaints():
                     if self.io.confirm_start(res.report) is Declined:
                         return ActionResult.MSG_DECLINED_BOOTSTRAP
-                """
+                
             case ClankerizeResult():
                 # pass report to io.confirmclankerize, who asks user if he wants to clankerize if complaints
                 # returns an actionresult for each of (yes/nocomplaint) or no

@@ -7,7 +7,7 @@ shared_base_resolver:
 
 pud_filesets:
   content-dir: {includes: [content]}
-  empty: {includes: [], excludes: [.git]}
+  empty: {includes: []}
   presentation: {includes: []}
 
 shared_filesets:

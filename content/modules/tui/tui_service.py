@@ -1,6 +1,6 @@
 from core import ActionResult, ProgramExit, UserDecline, UserQuestions
 from core.engine_deps import TUIService, IOControl, TerminalPort, Affirmative, Declined, Report
-from ..tui import TUIQuestions, ComplaintsFormatter
+from ..tui import ComplaintsFormatter
 
 class TUIServiceImpl(TUIService):
     def __init__(self, io_bridge: TerminalPort) -> None:
@@ -10,20 +10,13 @@ class TUIServiceImpl(TUIService):
         self.io_bridge.write(f"{ui_string}\n")
 
     def confirm_start(self, report: Report) -> type[Affirmative] | type[Declined]:
-        softs = report.get_all_complaints()
-        formatted_softs = [ComplaintsFormatter.format(c) for c in softs]
-        prompt_msg = TUIQuestions.complaints_proceed(formatted_softs)
-        instructions = "Press [Ctrl+D] to proceed, or [ESC/Ctrl+C] to decline.\n> "
-        base_msg = f"\n{prompt_msg}\n{instructions}"
-        self.io_bridge.write(base_msg)
-        while True:
-            status, value = self.io_bridge.get_acceptance(None)
-            if status == IOControl.ACCEPTED:
-                return Affirmative
-            if status == IOControl.DECLINED:
-                return Declined
-            if status == IOControl.INVALID:
-                self.io_bridge.write(base_msg)
+        msg = ComplaintsFormatter.format(report)
+        self.io_bridge.write(msg)
+        status, value = self.io_bridge.get_acceptance(None)
+        if status == IOControl.ACCEPTED:
+            return Affirmative
+        if status == IOControl.DECLINED:
+            return Declined
 
     def to_clipboard(self, text_content: str) -> ActionResult:
         lines_count = self.io_bridge.to_clipboard(text_content)
