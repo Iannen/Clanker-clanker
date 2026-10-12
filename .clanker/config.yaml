@@ -36,63 +36,63 @@ pud_filesets:
 pud_domains:
   core:
     resolvers:
-      - { anchor: repo_content, type: repo-content, fileset: core } 
+      - { anchor: repo_content, type: repo-content, fileset: ¤ core } 
 
     prompts:
       - name: plan
         render:
           resolvers:
-            - { anchor: prompt_fragments, type: multi-document-retrieval, files: plan_mode_instructions }
-            - { anchor: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant }
+            - { anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ plan_mode_instructions }
+            - { anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant }
       - name: impl
         render:
           resolvers:
-            - {anchor: prompt_fragments, type: multi-document-retrieval, files: do_mode_instructions}
-            - { anchor: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant }
+            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ do_mode_instructions}
+            - { anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant }
 
       - name: drain
         render:
           resolvers:
-            - {anchor: prompt_fragments, type: multi-document-retrieval, files: doc_management_mode_instructions}
-            - {anchor: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant }
+            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_management_mode_instructions}
+            - {anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant }
 
   ingestion:
     resolvers:
-      - { anchor: repo_content, type: repo-content, fileset: asset_ingestion }
+      - { anchor: repo_content, type: repo-content, fileset: ¤ asset_ingestion }
     prompts:
       - name: plan
         render:
           resolvers:
-            - { anchor: prompt_fragments, type: multi-document-retrieval, files: plan_mode_instructions }
-            - { anchor: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant }
+            - { anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ plan_mode_instructions }
+            - { anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant }
       - name: impl
         render:
           resolvers:
-            - {anchor: prompt_fragments, type: multi-document-retrieval, files: do_mode_instructions}
-            - { anchor: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant }
+            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ do_mode_instructions}
+            - { anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant }
 
       - name: drain
         render:
           resolvers:
-            - {anchor: prompt_fragments, type: multi-document-retrieval, files: doc_management_mode_instructions}
-            - {anchor: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant}
+            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_management_mode_instructions}
+            - {anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant}
 
   test:
     resolvers:
-      - { anchor: repo_content, type: repo-content, fileset: test_harness}
+      - { anchor: repo_content, type: repo-content, fileset: ¤ test_harness}
     prompts:
       - name: plan
         render:
           resolvers:
-            - { anchor: prompt_fragments, type: multi-document-retrieval, files: plan_mode_instructions }
-            - { anchor: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant}
+            - { anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ plan_mode_instructions }
+            - { anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant}
       - name: impl
         render:
           resolvers:
-            - {anchor: prompt_fragments, type: multi-document-retrieval, files: do_mode_instructions}
-            - { anchor: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant}
+            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ do_mode_instructions}
+            - { anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant}
       - name: drain
         render:
           resolvers:
-            - {anchor: prompt_fragments, type: multi-document-retrieval, files: doc_management_mode_instructions}
-            - {anchor: domain_fragments, type: multi-document-retrieval, files: backlog_at_consultant}
+            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_management_mode_instructions}
+            - {anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant}

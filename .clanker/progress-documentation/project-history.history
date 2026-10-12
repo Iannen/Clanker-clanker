@@ -1141,3 +1141,16 @@ CLV: REFACTORED FILESET MODEL, PARSER, AND VALIDATOR USING SUBCLASSED LEAF ENTIT
     Reflection:
     - Wrapping strings into first-class leaf entities bridges the gap between raw configuration data and entity graphs, unlocking robust automated pruning.
     - An ongoing architectural challenge for `BaseParser2` is cleanly distinguishing whether a raw configuration value represents a key lookup versus inline data for a child parser.
+
+CLVI: IMPLEMENTED `¤` SIGIL SYNTAX FOR PARSER LOOKUPS AND STREAMLINED PARSER PREPROCESSORS
+    Purpose: Resolve configuration ambiguity between entity lookup references and inline data strings using a dedicated sigil.
+    - Raw strings in configuration structures were inherently ambiguous, forcing parser logic to guess whether a string represented a registry pointer or inline instantiation data.
+    - Relying on shape-based inference failed for single-field leaf entities, leading to brittle preprocessor workarounds.
+    Actions:
+    - Introduced the `¤` sigil prefix convention to explicitly denote entity lookup references.
+    - Updated `BaseParser2._get_entity` to check for, strip, and trim the `¤` prefix when performing `numap.get_entity()` lookups, seamlessly routing non-prefixed strings to sub-parsers for inline instantiation.
+    - Aligned YAML configuration files to explicitly use the `¤` sigil for reference lookups.
+    - Streamlined `parsers.py` by removing redundant dictionary-wrapping preprocessors and introducing specialized `FilesetItemparser` and refined `FileParser` logic.
+    Reflection:
+    - Explicit syntax eliminates structural ambiguity cleanly and deterministically, removing the need for error-prone heuristic inference.
+    - Stripping out redundant preprocessor wrappers significantly simplifies the parser core and aligns data flows robustly with the entity graph.

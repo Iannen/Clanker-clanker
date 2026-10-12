@@ -27,12 +27,12 @@ shared_domains:
         - name: only m
           render:
             resolvers:
-              - { anchor: domain_fragments, type: repo-manifest, pud_fileset: content-dir, shared_fileset: clanker-shared-assets }
+              - { anchor: domain_fragments, type: repo-manifest, pud_fileset: ¤ content-dir, shared_fileset: ¤clanker-shared-assets }
         - name: core
           render:
             resolvers:
               - { anchor: domain_fragments, type: multi-document-retrieval, files: [config-development-mode.mode_instruction] }
-              - { anchor: repo_content, type: repo-content, fileset: content-dir }
+              - { anchor: repo_content, type: repo-content, fileset: ¤ content-dir }
 
     readme:
       resolvers:
@@ -57,7 +57,7 @@ shared_domains:
           render:
             resolvers:
               - { anchor: prompt_fragments, type: multi-document-retrieval, files: [north-star-mode.mode_instruction] }
-              - { anchor: repo_content, type: repo-content, fileset: content-dir }
+              - { anchor: repo_content, type: repo-content, fileset: ¤ content-dir }
 
     config-dev:
       resolvers:
@@ -67,7 +67,7 @@ shared_domains:
           render:
             resolvers:
               - { anchor: prompt_fragments, type: multi-document-retrieval, files: [] }
-              - { anchor: repo_content, type: repo-content, fileset: content-dir }
+              - { anchor: repo_content, type: repo-content, fileset: ¤ content-dir }
 
     debloat:
       resolvers:
@@ -77,7 +77,7 @@ shared_domains:
           render:
             resolvers:
               - { anchor: prompt_fragments, type: multi-document-retrieval, files: [debloat-instructions.md] }
-              - { anchor: repo_content, type: repo-content, fileset: content-dir }
+              - { anchor: repo_content, type: repo-content, fileset: ¤ content-dir }
 
     presentation:
       resolvers:
@@ -86,5 +86,5 @@ shared_domains:
         - name: debloat
           render:
             resolvers:
-              - { anchor: repo_content, type: repo-content, fileset: presentation }
+              - { anchor: repo_content, type: repo-content, fileset: ¤ presentation }
 

@@ -1,7 +1,7 @@
 from stdlib import field, fields, MISSING, get_args, Any, get_args, get_origin, types, Field, get_args, get_origin
 from ...asset_ingestion import ErrorCollector, Numap
 from core.engine_deps.ingestion import MissingEntityFields
-from core import Entity, Filelist, Keyboard, Resolver, File, RepoContentResolver, SharedDomButton, PudDomButton, PromptButton, PudFileset, SharedFileset
+from core import Entity, Filelist, Keyboard, Resolver, File, RepoContentResolver, SharedDomButton, PudDomButton, PromptButton, FilesetItem
 
 class Absent: pass
 class atomic: pass
@@ -63,7 +63,9 @@ class BaseParser2:
         else: 
             raise Exception("data is not dict, string nor list")
         if name:
-            data["name"] = name
+            try: data["name"] = name
+            except Exception as e:
+                pass
         
         ctx = ParserCtx(self.entity_cls)
 
@@ -93,6 +95,7 @@ class BaseParser2:
         return entity
 
     def _parse_value(self, field: EntityField, data: dict, numap: Numap, ctx: ParserCtx) -> None:
+
         field_data = data.get(field.key)
 
         if field_data is None: field.value = field.default_value
@@ -102,10 +105,13 @@ class BaseParser2:
         elif field.outer_type == atomic: field.value = self._get_entity(field.key, field_data, field, numap, ctx)
 
     def _get_entity(self, name, data, field: EntityField, numap: Numap, ctx: ParserCtx):
-        e = numap.get_entity(field.inner_type, data)
-        if e is not None:
-            ctx.fetched_instances.append(e)
-        elif not isinstance(data, str):
+        e = None
+        if isinstance(data, str) and data.startswith("¤"):
+            lookup_key = data[1:].lstrip()
+            e = numap.get_entity(field.inner_type, lookup_key)
+            if e is not None:
+                ctx.fetched_instances.append(e)
+        else:
             parser = numap.get_parser(field.inner_type)
             e = parser.parse(name, data, numap)
             if e is not None:
@@ -114,16 +120,13 @@ class BaseParser2:
 
 class FilelistParser2(BaseParser2): 
     entity_cls = Filelist
-    def preprocess(self, data: dict) -> dict:
-        return {"files": [{"name": file} if isinstance(file, str) else file for file in data]}
+    def preprocess(self, data: dict) -> dict: return {"files": data}
 
 class FileParser(BaseParser2):
     entity_cls = File
     def preprocess(self, data: dict) -> dict:
-        return {
-            "name": data.pop("name"),
-            "truncation_spec": data if data else None
-        }
+        if isinstance(data, str): return {"name": data}
+        return {"name": data.pop("name"), "truncation_spec": data if data else None}
 
 class RepoContentResParser(BaseParser2):
     entity_cls = RepoContentResolver
@@ -134,6 +137,10 @@ class RepoContentResParser(BaseParser2):
             "type": data.pop("type", None),
             "fileset": data
         }
+
+class FilesetItemparser(BaseParser2):
+    entity_cls = FilesetItem
+    def preprocess(self, data): return {"value":data}
 
 class ResolverParser2(BaseParser2):
     entity_cls = Resolver
@@ -150,21 +157,3 @@ class KeyboardParser2(BaseParser2):
         keyboard = Keyboard({btn.key: btn for btn in shared_btns + pud_btns + prompt_btns}, None)
         for item in shared_btns + pud_btns + prompt_btns + [keyboard]: numap.register(item)
         return keyboard
-
-class PudFilesetParser(BaseParser2):
-    entity_cls = PudFileset
-    def preprocess(self, data: dict) -> dict:
-        if "includes" in data:
-            data["includes"] = [{"value": item} if isinstance(item, str) else item for item in data["includes"]]
-        if data.get("excludes"):
-            data["excludes"] = [{"value": item} if isinstance(item, str) else item for item in data["excludes"]]
-        return data
-
-class SharedFilesetParser(BaseParser2):
-    entity_cls = SharedFileset
-    def preprocess(self, data: dict) -> dict:
-        if "includes" in data:
-            data["includes"] = [{"value": item} if isinstance(item, str) else item for item in data["includes"]]
-        if data.get("excludes"):
-            data["excludes"] = [{"value": item} if isinstance(item, str) else item for item in data["excludes"]]
-        return data
