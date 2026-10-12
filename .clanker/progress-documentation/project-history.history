@@ -1168,3 +1168,15 @@ CLVII: IMPLEMENTED TUI BOOT CONFIRMATION FLOW AND EXTRACTED COMPLAINTS FORMATTER
     Reflection:
     - Delegating string rendering and conditional interactive prompts to the TUI layer successfully declutters core engine and entity implementations.
     - Incremental migration of complaint formatters provides a safe, low-risk path to transition all remaining complaint types away from domain models.
+
+CLVIII: MIGRATED REMAINING COMPLAINT PRESENTATION LOGIC TO TUI COMPLAINTS FORMATTER
+    Purpose: Centralize all complaint string presentation logic inside the TUI `ComplaintsFormatter` and remove `to_string()` methods from core `Complaint` classes to preserve pure data models.
+    - Core domain entities should hold raw data rather than UI-formatting strings.
+    - Exhaustive pattern matching in the TUI module provides a unified, clean place to handle string generation for all complaint subclasses.
+    Actions:
+    - Removed `to_string()` methods from all critical and soft complaint classes (`Malformed`, `Missing`, `FilenameCollision`, `DomainOverflow`, `UnsatisfiedFiles`, `UnsatisfiedFilesetSubjects`, and `MissingEntityFields`) in `content/core/engine_deps/ingestion.py`.
+    - Expanded `ComplaintsFormatter._format_complaint` in `content/modules/tui/formatter.py` to explicitly pattern-match against all complaint subclasses.
+    - Cleaned up module imports and dropped fallback `hasattr(complaint, "to_string")` checks.
+    Reflection:
+    - Completely decoupled core ingestion models from presentation formatting details, improving separation of concerns.
+    - Exhaustive pattern matching makes the TUI formatting layer explicit and maintainable.

@@ -38,13 +38,13 @@ class ErrorCollector(Report):
         self._critical_complaints: list[Critical] = []
 
     def get_complaints(self) -> list[str]:
-        return ["complaint\n" for c in self._soft_complaints]
+        return ["soft\n" for c in self._soft_complaints]
 
     def get_all_complaints(self) -> list[Soft]:
         return self._soft_complaints+self._critical_complaints
 
     def get_critical_complaints(self) -> list[str]:
-        return [c.to_string() for c in self._critical_complaints]
+        return ["crit\n" for c in self._critical_complaints]
 
     def has_crits(self) -> bool:
         return len(self._critical_complaints) > 0
