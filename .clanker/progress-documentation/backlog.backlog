@@ -22,4 +22,17 @@ II. The pile
 
 Backlog tail, Selected item/items:
 
+1. Implement TUI boot confirmation flow and extract TUI question module
+    [x] 'content/modules/tui/questions.py': Create file for TUI-specific questions and formatters
+        - Define prompt text structures and layout templates for boot/complaint confirmations
+    [x] 'content/core/engine_deps/tui.py': Update TUIService interface and define response signals
+        - Define naked pass classes `Affirmative` and `Declined`
+        - Add `confirm_start(report)` abstract method returning `Affirmative | Declined`
+    [x] 'content/modules/tui/tui_service.py': Implement boot confirmation service method
+        - Format soft complaints into a readable message prompt using TUI questions
+        - Handle acceptance using standard control keys and return the appropriate signal class
+    [x] 'content/core/engine.py': Wire engine boot branch to conditional TUI confirmation
+        - Gate the confirmation call based on whether the start report contains complaints
+        - Handle `Affirmative` and `Declined` responses to either continue setup or return a declined message
+
 Backlog tail end

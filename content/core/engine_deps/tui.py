@@ -1,5 +1,8 @@
-from stdlib import ABC, abstractmethod
+from stdlib import ABC, abstractmethod, Any
 from core import ActionResult
+
+class Affirmative: pass
+class Declined: pass
 
 class TUIService(ABC):
     @abstractmethod
@@ -10,3 +13,5 @@ class TUIService(ABC):
     def get_key(self) -> str: ...
     @abstractmethod
     def get_confirmation(self, prompt_msg: str, required_phrase: str) -> None: ...
+    @abstractmethod
+    def confirm_start(self, report: Any) -> type[Affirmative] | type[Declined]: ...

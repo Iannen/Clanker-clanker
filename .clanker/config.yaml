@@ -5,7 +5,7 @@ filelists:
   osaurlist: [osaur1, osaur2]
 
 pud_filesets:
-  core: {includes: [content/core, osaur]}
+  core: {includes: [content/core]}
 
   asset_ingestion: {includes: [
     content/modules/asset_ingestion]}
@@ -27,16 +27,14 @@ pud_filesets:
         content/test/visitors,
     ]}
 
-  complaint_review: {includes: [
-    content/core/core/entities.py,
-    content/modules/asset_ingestion/extractors/map_extractor2.py,
-    content/a_lib/shared-assets/config-fragments/shared_cfg.yaml,    
-    ]}
+  report_to_user: {includes: [
+    content/core,
+    content/modules/tui]}
 
 pud_domains:
-  core:
+  report_to_user:
     resolvers:
-      - { anchor: repo_content, type: repo-content, fileset: ¤ core } 
+      - { anchor: repo_content, type: repo-content, fileset: ¤ report_to_user } 
 
     prompts:
       - name: plan

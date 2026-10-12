@@ -90,7 +90,7 @@ class UnsatisfiedFilesetSubjects(Soft):
     def to_string(self) -> str:
         subjects_str = "\n\t- ".join(f"'{s}'" for s in self.subjects)
         return (
-            f"Asset pack '{self.assetpack_name}': Removed {len(self.subjects)} unsatisfied subject(s):\n\t- {subjects_str}"
+            f"Asset pack '{self.assetpack.token}': Removed {len(self.subjects)} unsatisfied subject(s):\n\t- {subjects_str}"
         )
 
 @dataclass(slots=True)
