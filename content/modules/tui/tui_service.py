@@ -1,4 +1,4 @@
-from core import ActionResult, ProgramExit
+from core import ActionResult
 from core.engine_deps import (
     TUIService,
     IOControl,
@@ -6,6 +6,7 @@ from core.engine_deps import (
     ExitResult,
     StartConfirmed,
     ClankerizeConfirmed,
+    Command,
     Report,
 )
 from ..tui import TUIQuestions
@@ -35,13 +36,13 @@ class TUIServiceImpl(TUIService):
         self.io_bridge.get_acceptance(question)
         return ExitResult("Program could not start")
 
-    def to_clipboard(self, text_content: str) -> ActionResult:
+    def to_clipboard(self, text_content: str) -> ActionResult: # this goes to Renderservice, which becomes promptservice
         lines_count = self.io_bridge.to_clipboard(text_content)
         char_count = len(text_content)
         return ActionResult(ActionResult.COPIED_TO_CLIPBOARD.format(lines=lines_count, chars=char_count))
 
-    def get_key(self) -> str:
+    def get_cmd(self) -> Command | ExitResult:
         ch = self.io_bridge.read_char()
         if ch in IOControl.ABORT_KEYS:
-            raise ProgramExit
-        return ch.lower()
+            return ExitResult(ActionResult.MSG_DEFAULT)
+        return Command(char=ch.lower())

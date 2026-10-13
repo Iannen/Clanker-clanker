@@ -1217,3 +1217,14 @@ CLXI: ENCAPSULATED TUI VALIDATION AND RETRY LOGIC VIA TYPED QUESTION OBJECTS
     Reflection:
     - Successfully removes all low-level input loop and error-formatting responsibilities from `TUIService`, leaving a clean orchestration layer.
     - Encapsulating interaction logic within the adapter and model boundary sets up a robust port abstraction that can be swapped out easily for future frontend implementations.
+
+CLXII: ELIMINATED EXCEPTION RAISING IN GET_CMD VIA TYPED RESULT RETURN VALUES
+    Purpose: Remove reliance on exception raising for routine control flow (such as user aborts during key reading) and replace it with explicit, typed return types.
+    - Standardize control flow by letting service methods return explicit result entities instead of interrupting execution via exceptions.
+    Actions:
+    - Updated `Command` with `@dataclass` and changed `TUIService.get_cmd`'s signature to return `Command | ExitResult` in `content/core/engine_deps/tui.py`.
+    - Refactored `TUIServiceImpl.get_cmd` in `content/modules/tui/tui_service.py` to return an `ExitResult` on abort keys instead of raising `ProgramExit`, and wrap valid input in a `Command`.
+    - Cleaned up `AppEngine.run` in `content/core/engine.py` to handle `ExitResult` directly and pass extracted characters into `kb_service.handle_key`.
+    Reflection:
+    - Makes the main event loop significantly more predictable by avoiding exception-driven control flow for routine user actions.
+    - Reinforces the pattern of using typed result objects across engine boundaries.

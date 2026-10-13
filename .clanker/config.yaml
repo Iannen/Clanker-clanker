@@ -20,9 +20,11 @@ pud_filesets:
     ]}
 
   report_to_user: {includes: [
-    content/adapters/terminal/linux.py,
-    content/core/engine_deps/ports.py,
-    content/modules/tui]}
+    content/core,
+    content/modules/keyboard,
+    content/modules/render_pipeline,
+    content/modules/tui
+    ]}
 
 pud_domains:
   report_to_user:
