@@ -1,4 +1,4 @@
-from stdlib import ABC, abstractmethod, Any
+from stdlib import ABC, abstractmethod, Any, dataclass
 from core.engine_deps import Result
 from core import ActionResult
 
@@ -13,17 +13,14 @@ class TUIService(ABC):
     @abstractmethod
     def get_key(self) -> str: ...
     @abstractmethod
-    def get_confirmation(self, prompt_msg: str, required_phrase: str) -> None: ...
+    def confirm_start(self, report: Any) -> "StartConfirmed | StartDeclined": ...
     @abstractmethod
-    def confirm_start(self, report: Any) -> type[Affirmative] | type[Declined]: ...
+    def confirm_clankerize(self, report: Any) -> "ClankerizeConfirmed | ClankerizeDeclined": ...
     @abstractmethod
-    def confirm_clankerize(self, report: Any) -> type[Affirmative] | type[Declined]: ...
-    @abstractmethod
-    def inform_termination(self, report: Any) -> str: ...
+    def inform_termination(self, report: Any) -> "TerminationInfo": ...
 
-class ExitResult(Result): pass
+@dataclass
+class ExitResult(Result): exit_msg: str
 class StartConfirmed(Result): pass
-class StartDeclined(ExitResult): msg: str = "User declined program start"
-class ClankerizeDeclined(ExitResult): msg: str = "User declined to clankerize project"
 class ClankerizeConfirmed(Result): pass
-class TerminationInfo(ExitResult): msg: str = "Program could not start"
+

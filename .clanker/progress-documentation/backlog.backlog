@@ -24,15 +24,7 @@ II. The pile
 
 Backlog tail, Selected item/items:
 
-1. Refactor pre-loop TUI service responses to return typed result objects and streamline engine control flow
-    [ ] 'content/modules/tui/tui_service.py': Update pre-loop methods to return typed results
-        - Modify confirm_start to return StartConfirmed or StartDeclined
-        - Modify confirm_clankerize to return ClankerizeConfirmed or ClankerizeDeclined
-        - Modify inform_termination to return TerminationInfo containing the exit message
-            - the method must also display the report to the user! all 3 methods do this.
-    [ ] 'content/core/engine.py': Streamline bootstrap and TUI confirmation handling in AppEngine.run()
-        - Store TUI service return values instead of immediate returns
-        - Prior to entering main loop, check if the result type inherits from ExitResult to return its message
-        - Proceed with renderer setup and keyboard configuration if no exit result is triggered
+we are going to make TUIQuestions a dependency of tuiservice which it instantiates on init. it will encapsulate 'UserQuestions'. the service only deals with TUIQuestions, not UserQuestions
+to do this properly, we must first start with the io_bridge and its implementation. it must encapsulate the business of retries in the case the user gets it wrong. the return method of the adapter will be boolean true false.
 
 Backlog tail end

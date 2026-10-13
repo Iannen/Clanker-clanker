@@ -1192,3 +1192,15 @@ CLIX: IMPLEMENTED TUI SERVICE CONFIRM_CLANKERIZE AND INFORM_TERMINATION METHODS
     Reflection:
     - Successfully removed manual complaint formatting and direct confirmation calls from the core engine loop.
     - Further hardens the architecture by ensuring all user-facing terminal output and confirmation patterns flow exclusively through well-defined TUI ports.
+
+CLX: REFACTORED PRE-LOOP TUI SERVICE RESPONSES AND STREAMLINED ENGINE CONTROL FLOW
+    Purpose: Standardize pre-loop TUI service responses to return typed result objects and eliminate ad-hoc return handling in the core application engine.
+    - Core engine bootstrap and initialization workflows should rely on explicit, typed result abstractions rather than scattered string codes or loose type checks.
+    - Encapsulating exit messages and confirmation statuses within result classes improves decoupling and maintainability.
+    Actions:
+    - Defined dataclass-based result types (`StartConfirmed`, `StartDeclined`, `ClankerizeConfirmed`, `ClankerizeDeclined`, `TerminationInfo`) inheriting from `Result` or `ExitResult` in `content/core/engine_deps/tui.py`.
+    - Updated `TUIServiceImpl` (`content/modules/tui/tui_service.py`) so pre-loop methods return typed results, with `confirm_start` automatically returning `StartConfirmed` when no complaints exist, and `inform_termination` displaying the report via `display()` before returning a `TerminationInfo` instance.
+    - Streamlined `AppEngine.run()` (`content/core/engine.py`) to store TUI service return values, check against `ExitResult` inheritance, and cleanly return exit messages prior to entering the main execution loop.
+    Reflection:
+    - Polymorphic handling of exit results via `ExitResult` significantly cleans up engine control flow and separates presentation message strings from core orchestration logic.
+    - Full encapsulation of pre-loop feedback and prompt responses inside the TUI service layer further hardens the boundary between terminal IO and the core engine.
