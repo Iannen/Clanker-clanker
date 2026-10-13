@@ -24,25 +24,12 @@ II. The pile
 
 Backlog tail, Selected item/items:
 
-1. Eliminate HotPromptRequested exception and make engine oblivious to hotprompts
-    [x] 'content/core/engine.py': Remove HotPromptRequested exception handling and simplify command handling loop
-        - Remove `HotPromptRequested` from imports
-        - Eliminate the `try/except HotPromptRequested` block in the main loop so the engine uniformly handles whatever `RenderContext` or `ActionResult` `kb_service.handle_key` returns
-    [x] 'content/modules/keyboard/keyboard_service.py': Handle hotprompt generation internally and return render context directly
-        - Replace `raise HotPromptRequested` in `_handle_prompt_btn` with an internal private method call that builds and returns the ephemeral hotprompt `RenderContext`
-        - Ensure `self.last_prompt` is reset appropriately when a hotprompt is triggered
-    [x] 'content/core/core/exceptions.py': Remove the unused HotPromptRequested exception definition
-        - Delete the `HotPromptRequested` exception class and check exports to ensure it is fully cleaned up
-
-2. Define unified Result types in engine_deps and implement them across keyboard service and engine
-    [x] 'content/core/engine_deps/keyboard.py': Define unified Result classes and update KBService interface
-        - Introduce result subclasses (e.g., `ActionResult` / `ActionFeedbackResult`, `PromptRenderResult`, `HotPromptRenderResult`) wrapping actions or render contexts
-        - Update `KBService` abstract methods: rename `handle_key` to `handle_cmd(self, cmd: Command) -> Result`
-    [x] 'content/modules/keyboard/keyboard_service.py': Update KBServiceImpl to return single Result objects
-        - Refactor `handle_key` to `handle_cmd(self, cmd: Command) -> Result`
-        - Wrap normal prompt render contexts, hot prompt render contexts, and action messages into their respective Result subclasses
-    [x] 'content/core/engine.py': Update AppEngine run loop to consume unified Result objects
-        - Pass `cmd_result` into `self.kb_service.handle_cmd(cmd_result)`
-        - Dispatch on the returned `Result` type to either update `action_res` or render the prompt and send it to the clipboard
+1. Detach UI rendering business from RenderService and make it the business of TUIService
+    [ ] 'content/core/engine.py': Update AppEngine to configure and pass ui_render to TUIService instead of RenderService
+    [ ] 'content/core/engine_deps/render.py': Remove UI render configuration and render_ui methods from the RenderService interface
+    [ ] 'content/core/engine_deps/tui.py': Add UI render configuration and render_ui methods to the TUIService interface
+    [ ] 'content/modules/render_pipeline/render_service.py': Remove UI rendering state, methods, and button resolution logic
+    [ ] 'content/modules/tui/tui_service.py': Inject DiskPort alongside TerminalPort and implement the UI rendering logic migrated from RenderService
+    [ ] 'content/clanker.py': give TUIService the diskport so it can get the layouts it needs.
 
 Backlog tail end

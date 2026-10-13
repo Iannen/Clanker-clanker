@@ -1228,3 +1228,15 @@ CLXII: ELIMINATED EXCEPTION RAISING IN GET_CMD VIA TYPED RESULT RETURN VALUES
     Reflection:
     - Makes the main event loop significantly more predictable by avoiding exception-driven control flow for routine user actions.
     - Reinforces the pattern of using typed result objects across engine boundaries.
+
+CLXIII: ELIMINATED HOTPROMPT EXCEPTIONS AND UNIFIED KEYBOARD COMMAND HANDLING WITH TYPED RESULTS
+    Purpose: Remove out-of-band exception raising for hotprompts and replace multi-value return tuples with a clean, unified Result object hierarchy for keyboard command handling.
+    - Encapsulate hotprompt detection and generation entirely within the keyboard service, keeping the main engine completely oblivious to hotprompts.
+    - Transition keyboard command processing from a dual-value tuple return to a single polymorphic Result type.
+    Actions:
+    - Removed the `HotPromptRequested` exception and its try/except blocks from `AppEngine.run` in `content/core/engine.py`.
+    - Introduced `ActionFeedbackResult` and `PromptRenderResult` inheriting from `Result` in `content/core/engine_deps/keyboard.py`, and updated `KBService` to define `handle_cmd(self, cmd: Command) -> Result`.
+    - Refactored `KBServiceImpl` in `content/modules/keyboard/keyboard_service.py` to handle repeat prompt triggers internally via `_get_hot_prompt_context()` and wrap all outputs into explicit `Result` instances.
+    Reflection:
+    - Significantly streamlines the engine event loop, making state dispatch and rendering predictable and uniform.
+    - Adheres strongly to the architecture of using explicit typed result objects across subsystem boundaries rather than relying on exceptions or ambiguous return tuples.
