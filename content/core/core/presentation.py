@@ -1,6 +1,3 @@
-#from stdlib import dataclass
-#from core.engine_deps import Report
-
 #Actionresult is deprecated, and will be phased out
 
 class ActionResult:
@@ -18,19 +15,3 @@ class ActionResult:
     def __init__(self, message: str):
         self.message = message
         
-"""
-class Result:
-    @property
-    def type(self) -> type: return type(self)
-
-@dataclass
-class IngestionResult(Result): report = Report
-@dataclass
-class StartResult(IngestionResult):
-    kb: Keyboard
-    ui_render: Render
-@dataclass
-class ClankerizeResult(IngestionResult): pass
-@dataclass
-class TerminateResult(IngestionResult): pass
-"""

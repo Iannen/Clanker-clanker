@@ -1,4 +1,5 @@
 from stdlib import ABC, abstractmethod, Any
+from core.engine_deps import Result
 from core import ActionResult
 
 class Affirmative: pass
@@ -19,3 +20,10 @@ class TUIService(ABC):
     def confirm_clankerize(self, report: Any) -> type[Affirmative] | type[Declined]: ...
     @abstractmethod
     def inform_termination(self, report: Any) -> str: ...
+
+class ExitResult(Result): pass
+class StartConfirmed(Result): pass
+class StartDeclined(ExitResult): msg: str = "User declined program start"
+class ClankerizeDeclined(ExitResult): msg: str = "User declined to clankerize project"
+class ClankerizeConfirmed(Result): pass
+class TerminationInfo(ExitResult): msg: str = "Program could not start"

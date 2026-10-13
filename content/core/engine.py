@@ -16,18 +16,17 @@ class AppEngine:
 
     def run(self) -> str:        
         bootstrap_res = self.session.get_runtime_config()
-        res = type(bootstrap_res)
 
-        if res is StartResult and bootstrap_res.report.get_complaints():
+        if bootstrap_res.type is StartResult and bootstrap_res.report.get_complaints():
             if self.io.confirm_start(bootstrap_res.report) is Declined:
                 return ActionResult.MSG_DECLINED_BOOTSTRAP     
 
-        if res is ClankerizeResult:
+        elif bootstrap_res.type is ClankerizeResult:
             if self.io.confirm_clankerize(bootstrap_res.report) is Declined:
                 return ActionResult.MSG_DECLINED_INIT
             bootstrap_res = self.session.initialize_workspace()
 
-        if res is TerminateResult:
+        elif bootstrap_res.type is TerminateResult:
             return self.io.inform_termination(bootstrap_res.report)
 
         self.renderer.set_ui_render(bootstrap_res.ui_render)
