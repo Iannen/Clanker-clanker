@@ -25,6 +25,5 @@ II. The pile
 Backlog tail, Selected item/items:
 
 we are going to make TUIQuestions a dependency of tuiservice which it instantiates on init. it will encapsulate 'UserQuestions'. the service only deals with TUIQuestions, not UserQuestions
-to do this properly, we must first start with the io_bridge and its implementation. it must encapsulate the business of retries in the case the user gets it wrong. the return method of the adapter will be boolean true false.
 
 Backlog tail end

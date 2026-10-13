@@ -8,7 +8,7 @@ from core.engine_deps import (
     ClankerizeConfirmed,
     Report,
 )
-from ..tui import TUIQuestions, UserQuestions
+from ..tui import TUIQuestions
 
 class TUIServiceImpl(TUIService):
     def __init__(self, io_bridge: TerminalPort) -> None:
@@ -18,39 +18,21 @@ class TUIServiceImpl(TUIService):
         self.io_bridge.write(f"{ui_string}\n")
 
     def confirm_start(self, report: Report) -> StartConfirmed | ExitResult:
-        if not report.get_all_complaints(): return StartConfirmed
-        prompt_msg = TUIQuestions.start_confirmation(report)
-        instructions = "Press [Ctrl+D] to proceed, or [ESC/Ctrl+C] to decline.\n> "
-        base_msg = f"\n{prompt_msg}\n{instructions}"
-        self.io_bridge.write(base_msg)
-        status, value = self.io_bridge.get_acceptance(None)
-        if status == IOControl.ACCEPTED:
+        if not report.get_all_complaints(): return StartConfirmed()
+        question = TUIQuestions.start_confirmation(report)
+        if self.io_bridge.get_acceptance(question):
             return StartConfirmed()
-        if status == IOControl.DECLINED:
-            return ExitResult("User declined program start")
+        return ExitResult("User declined program start")
 
     def confirm_clankerize(self, report: Report) -> ClankerizeConfirmed | ExitResult:
-        prompt_msg = TUIQuestions.clankerize_confirmation(report)
-        instructions = UserQuestions.CONFIRMATION_INSTRUCTIONS.format(required_phrase=UserQuestions.REQUIRED_PHRASE)
-        base_msg = f"\n{prompt_msg}\n{instructions}"
-        self.io_bridge.write(base_msg)
-        while True:
-            status, value = self.io_bridge.get_acceptance(UserQuestions.REQUIRED_PHRASE)
-            if status == IOControl.ACCEPTED:
-                return ClankerizeConfirmed()
-            if status == IOControl.DECLINED:
-                return ExitResult("User declined to clankerize project")
-            if status == IOControl.INVALID:
-                err = UserQuestions.CONFIRMATION_INVALID_ERR.format(required_phrase=UserQuestions.REQUIRED_PHRASE, value=value)
-                self.io_bridge.write(base_msg + err + "> ")
+        question = TUIQuestions.clankerize_confirmation(report)
+        if self.io_bridge.get_acceptance(question):
+            return ClankerizeConfirmed()
+        return ExitResult("User declined to clankerize project")
 
     def inform_termination(self, report: Report) -> ExitResult:
-        all_crits = report.get_critical_complaints()
-        all_softs = report.get_complaints()
-        msg = "Critical errors:\n" + "\n".join(all_crits)
-        if all_softs:
-            msg += "\nSoft complaints:\n" + "\n".join(all_softs)
-        self.display(msg)
+        question = TUIQuestions.termination_acknowledgment(report)
+        self.io_bridge.get_acceptance(question)
         return ExitResult("Program could not start")
 
     def to_clipboard(self, text_content: str) -> ActionResult:

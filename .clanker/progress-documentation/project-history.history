@@ -1204,3 +1204,16 @@ CLX: REFACTORED PRE-LOOP TUI SERVICE RESPONSES AND STREAMLINED ENGINE CONTROL FL
     Reflection:
     - Polymorphic handling of exit results via `ExitResult` significantly cleans up engine control flow and separates presentation message strings from core orchestration logic.
     - Full encapsulation of pre-loop feedback and prompt responses inside the TUI service layer further hardens the boundary between terminal IO and the core engine.
+
+CLXI: ENCAPSULATED TUI VALIDATION AND RETRY LOGIC VIA TYPED QUESTION OBJECTS
+    Purpose: Shift terminal I/O, prompt writing, validation loops, and retry management down from the service layer into the terminal adapter using a strongly-typed Question object.
+    - TUIService should act purely as an orchestrator rather than managing manual prompt printing, inline loops, or error string formatting.
+    - Abstracting prompt definitions and acceptance behaviors into a typed boundary decouples core service logic from terminal-specific constraints, paving the way for alternative frontends (such as a browser-based UI).
+    Actions:
+    - Introduced a typed `Question` dataclass in `content/modules/tui/questions.py` and updated `TUIQuestions` factory methods (`start_confirmation`, `clankerize_confirmation`, `termination_acknowledgment`) to return `Question` instances.
+    - Updated `TerminalPort.get_acceptance` in `content/core/engine_deps/ports.py` to accept a `Question` object and return a boolean (`bool`).
+    - Refactored `LinuxTerminalAdapter.get_acceptance` in `content/adapters/terminal/linux.py` to internally handle message writing, instruction rendering, keypress/text entry loops, validation retries, buffer resetting, and boolean return values.
+    - Streamlined `TUIServiceImpl` in `content/modules/tui/tui_service.py` to delegate prompt execution directly to `io_bridge.get_acceptance(question)` and consume the boolean result.
+    Reflection:
+    - Successfully removes all low-level input loop and error-formatting responsibilities from `TUIService`, leaving a clean orchestration layer.
+    - Encapsulating interaction logic within the adapter and model boundary sets up a robust port abstraction that can be swapped out easily for future frontend implementations.

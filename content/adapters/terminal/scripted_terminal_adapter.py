@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field, asdict
 from typing import Optional
 from pathlib import Path
+import sys
 import json
 import os
 from core.engine_deps import TerminalPort, IOControl, TerminalFailure
@@ -74,29 +75,49 @@ class ScriptedTerminalAdapter(TerminalPort):
         except Exception as ex:
             raise TerminalFailure from ex
 
-    def get_acceptance(self, required_phrase: str | None) -> tuple[str, str]:
-        if required_phrase is None:
-            while True:
-                ch = self.read_char()
-                if ch in IOControl.ABORT_KEYS:
-                    return (IOControl.DECLINED, "")
-                if ch == IOControl.ACCEPT_KEY:
-                    return (IOControl.ACCEPTED, "")
+    def get_acceptance(self, question: object) -> bool:
+        try:
+            base_msg = f"\n{question.message}\n{question.instructions}"
+            self.write(base_msg)
+            
+            if question.required_phrase is None:
+                while True:
+                    ch = self.read_char()
+                    if ch in IOControl.ABORT_KEYS:
+                        return False
+                    if ch == IOControl.ACCEPT_KEY:
+                        return True
 
-        buffer = ""
-        while True:
-            ch = self.read_char()
-            if ch in IOControl.ABORT_KEYS:
-                return (IOControl.DECLINED, "")
-            if ch == IOControl.ACCEPT_KEY:
-                if buffer == required_phrase:
-                    return (IOControl.ACCEPTED, "")
-                return (IOControl.INVALID, buffer)
-            if ch in IOControl.BACKSPACE_KEYS:
-                if len(buffer) > 0:
-                    buffer = buffer[:-1]
-            elif ch.isprintable():
-                buffer += ch
+            while True:
+                buffer = ""
+                while True:
+                    ch = self.read_char()
+                    if ch in IOControl.ABORT_KEYS:
+                        return False
+                    if ch == IOControl.ACCEPT_KEY:
+                        if buffer == question.required_phrase:
+                            sys.stdout.write("\n")
+                            sys.stdout.flush()
+                            return True
+                        break
+                    if ch in IOControl.BACKSPACE_KEYS:
+                        if len(buffer) > 0:
+                            buffer = buffer[:-1]
+                            sys.stdout.write("\b \b")
+                            sys.stdout.flush()
+                    elif ch.isprintable():
+                        buffer += ch
+                        sys.stdout.write(ch)
+                        sys.stdout.flush()
+                
+                err = question.error_template.format(
+                    required_phrase=question.required_phrase, value=buffer
+                )
+                self.write(f"{base_msg}{err}> ")
+        except TerminalFailure:
+            raise
+        except (OSError, UnicodeError) as ex:
+            raise TerminalFailure from ex
 
     def end_test(self, exit_msg: str) -> None:
         try:

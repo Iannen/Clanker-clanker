@@ -3,7 +3,7 @@ import os
 import sys
 import termios
 import tty
-from core.engine_deps import TerminalPort, IOControl, TerminalFailure
+from core.engine_deps import TerminalPort, IOControl, TerminalFailure, Question
 
 class LinuxTerminalAdapter(TerminalPort):
     def to_clipboard(self, text_content: str) -> int:
@@ -43,36 +43,45 @@ class LinuxTerminalAdapter(TerminalPort):
         except (termios.error, OSError, EOFError) as ex:
             raise TerminalFailure from ex
 
-    def get_acceptance(self, required_phrase: str | None) -> tuple[str, str]:
+    def get_acceptance(self, question: Question) -> bool:
         try:
-            if required_phrase is None:
+            base_msg = f"\n{question.message}\n{question.instructions}"
+            self.write(base_msg)
+            
+            if question.required_phrase is None:
                 while True:
                     ch = self.read_char()
                     if ch in IOControl.ABORT_KEYS:
-                        return (IOControl.DECLINED, "")
+                        return False
                     if ch == IOControl.ACCEPT_KEY:
-                        return (IOControl.ACCEPTED, "")
+                        return True
 
-            buffer = ""
             while True:
-                ch = self.read_char()
-                if ch in IOControl.ABORT_KEYS:
-                    return (IOControl.DECLINED, "")
-                if ch == IOControl.ACCEPT_KEY:
-                    if buffer == required_phrase:
-                        sys.stdout.write("\n")
+                buffer = ""
+                while True:
+                    ch = self.read_char()
+                    if ch in IOControl.ABORT_KEYS:
+                        return False
+                    if ch == IOControl.ACCEPT_KEY:
+                        if buffer == question.required_phrase:
+                            sys.stdout.write("\n")
+                            sys.stdout.flush()
+                            return True
+                        break
+                    if ch in IOControl.BACKSPACE_KEYS:
+                        if len(buffer) > 0:
+                            buffer = buffer[:-1]
+                            sys.stdout.write("\b \b")
+                            sys.stdout.flush()
+                    elif ch.isprintable():
+                        buffer += ch
+                        sys.stdout.write(ch)
                         sys.stdout.flush()
-                        return (IOControl.ACCEPTED, "")
-                    return (IOControl.INVALID, buffer)
-                if ch in IOControl.BACKSPACE_KEYS:
-                    if len(buffer) > 0:
-                        buffer = buffer[:-1]
-                        sys.stdout.write("\b \b")
-                        sys.stdout.flush()
-                elif ch.isprintable():
-                    buffer += ch
-                    sys.stdout.write(ch)
-                    sys.stdout.flush()
+                
+                err = question.error_template.format(
+                    required_phrase=question.required_phrase, value=buffer
+                )
+                self.write(f"{base_msg}{err}> ")
         except TerminalFailure:
             raise
         except (OSError, UnicodeError) as ex:

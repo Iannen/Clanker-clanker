@@ -1,7 +1,20 @@
-from core.engine_deps import Report, MissingEntityFields, UnsatisfiedFiles, Missing, Malformed, UnsatisfiedFilesetSubjects, FilenameCollision, DomainOverflow, Complaint
+from core.engine_deps import Report, MissingEntityFields, UnsatisfiedFiles, Missing, Malformed, UnsatisfiedFilesetSubjects, FilenameCollision, DomainOverflow, Complaint, Question
 
 class TUIQuestions:
     PROCEED_QUESTION = "Proceed anyway?"
+
+    @classmethod
+    def termination_acknowledgment(cls, report: Report) -> Question:
+        all_crits = report.get_critical_complaints()
+        all_softs = report.get_complaints()
+        msg = "Critical errors:\n" + "\n".join(all_crits)
+        if all_softs:
+            msg += "\nSoft complaints:\n" + "\n".join(all_softs)
+        return Question(
+            message=msg,
+            required_phrase=None,
+            instructions="Press any key to exit.\n> "
+        )
 
     @classmethod
     def complaints_proceed(cls, complaints: list[str]) -> str:
@@ -9,20 +22,30 @@ class TUIQuestions:
         return f"{complaints_str}\n{cls.PROCEED_QUESTION}"
 
     @classmethod
-    def start_confirmation(cls, report: Report) -> str:
+    def start_confirmation(cls, report: Report) -> Question:
         softs = report.get_all_complaints()
-        formatted_softs = [ComplaintsFormatter._format_complaint(c) for c in softs]
-        return cls.complaints_proceed(formatted_softs)
+        prompt_msg = cls.complaints_proceed([ComplaintsFormatter._format_complaint(c) for c in softs])
+        return Question(
+            message=prompt_msg,
+            required_phrase=None,
+            instructions="Press [Ctrl+D] to proceed, or [ESC/Ctrl+C] to decline.\n> "
+        )
 
     @classmethod
-    def clankerize_confirmation(cls, report: Report) -> str:
+    def clankerize_confirmation(cls, report: Report) -> Question:
         softs = report.get_all_complaints()
         parts = []
         if softs:
             formatted_softs = [ComplaintsFormatter._format_complaint(c) for c in softs]
             parts.append("\n".join(formatted_softs))
         parts.append(UserQuestions.INIT_REPO)
-        return "\n".join(parts)
+        prompt_msg = "\n".join(parts)
+        return Question(
+            message=prompt_msg,
+            required_phrase=UserQuestions.REQUIRED_PHRASE,
+            instructions=UserQuestions.CONFIRMATION_INSTRUCTIONS.format(required_phrase=UserQuestions.REQUIRED_PHRASE),
+            error_template=UserQuestions.CONFIRMATION_INVALID_ERR
+        )
 
 class ComplaintsFormatter:
     @classmethod

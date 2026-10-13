@@ -1,4 +1,4 @@
-from stdlib import ABC, abstractmethod
+from stdlib import ABC, abstractmethod, dataclass
 
 class IOControl:
     ACCEPTED = "accepted"
@@ -9,6 +9,13 @@ class IOControl:
     BACKSPACE_KEYS = ("\x7f", "\x08")
 
 class TerminalFailure(Exception): pass
+
+@dataclass
+class Question:
+    message: str
+    required_phrase: str | None = None
+    instructions: str = ""
+    error_template: str | None = None
 
 class TerminalPort(ABC):
     @abstractmethod
@@ -21,7 +28,7 @@ class TerminalPort(ABC):
     def read_char(self) -> str: ...  # raises: TerminalFailure
 
     @abstractmethod
-    def get_acceptance(self, required_phrase: str | None) -> tuple[str, str]: ...  # raises: TerminalFailure
+    def get_acceptance(self, question: Question) -> bool: ...  # raises: TerminalFailure
 
 
 class NoSuchFile(Exception): pass
