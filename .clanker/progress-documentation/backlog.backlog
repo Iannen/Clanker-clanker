@@ -12,13 +12,18 @@ II. The pile
 [BUG] Testsystem does not always produce two frames
 - it depends upon a getchar call to write first frame. 
    
-7. Validator classes of ingestion:
-
 1. Add next numeral line to history output instructions
     [ ] 'a_lib/templates/documentation/backlog.template': Update history output instruction format
         - append a trailing 'Next item numeral: <FOLLOWING_ROMAN_NUMERAL>' marker to history output instructions
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 
+2. thoughdump
+    - Renderservice should not have anything to do with UI render. Renderservice should be the 'make prompts for LLM' service.
+        - it should receive the promptctx thing from kb (data) service via the engine, and push it to clipboard via dedicated port
+    - TUIService encapsulates incoming and outcoming communication with the user. the exit messages the engine uses should originate from here.
+
 Backlog tail, Selected item/items:
+
+let us get a handle on that which is returned to the engine by is services
 
 Backlog tail end

@@ -1,3 +1,8 @@
+#from stdlib import dataclass
+#from core.engine_deps import Report
+
+#Actionresult is deprecated, and will be phased out
+
 class ActionResult:
     BOOTSTRAP_SUCCESS = "Bootstrap completed successfully"
     NO_PROMPT_BOUND = "No prompt assigned to key '{key}'"
@@ -12,29 +17,20 @@ class ActionResult:
 
     def __init__(self, message: str):
         self.message = message
-
-
-class DoBootstrap(ActionResult):
-    def __init__(self, message: str = ActionResult.BOOTSTRAP_SUCCESS):
-        super().__init__(message)
-
-
-class OfferBootstrapWithComplaints(ActionResult):
-    def __init__(self, message: str = ActionResult.BOOTSTRAP_SUCCESS):
-        super().__init__(message)
-
-
-class OfferClankerize(ActionResult):
-    def __init__(self, message: str = ActionResult.MSG_DECLINED_INIT):
-        super().__init__(message)
-
-
-class OfferClankerizeWithComplaints(ActionResult):
-    def __init__(self, message: str = ActionResult.MSG_DECLINED_INIT):
-        super().__init__(message)
-
-
-class TerminateGracefully(ActionResult):
-    def __init__(self, message: str = ActionResult.MSG_DEFAULT):
-        super().__init__(message)
         
+"""
+class Result:
+    @property
+    def type(self) -> type: return type(self)
+
+@dataclass
+class IngestionResult(Result): report = Report
+@dataclass
+class StartResult(IngestionResult):
+    kb: Keyboard
+    ui_render: Render
+@dataclass
+class ClankerizeResult(IngestionResult): pass
+@dataclass
+class TerminateResult(IngestionResult): pass
+"""

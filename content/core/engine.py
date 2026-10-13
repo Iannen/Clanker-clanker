@@ -15,22 +15,23 @@ class AppEngine:
     kb_service: KBService
 
     def run(self) -> str:        
-        res = self.session.get_runtime_config()
-        match res:
-            case StartResult(): 
-                if res.report.get_complaints():
-                    if self.io.confirm_start(res.report) is Declined:
-                        return ActionResult.MSG_DECLINED_BOOTSTRAP
-                
-            case ClankerizeResult():
-                if self.io.confirm_clankerize(res.report) is Declined:
-                    return ActionResult.MSG_DECLINED_INIT
-                res = self.session.initialize_workspace()
-            case TerminateResult():
-                return self.io.inform_termination(res.report)      
+        bootstrap_res = self.session.get_runtime_config()
+        res = type(bootstrap_res)
 
-        self.renderer.set_ui_render(res.ui_render)
-        self.kb_service.setup(res.kb)
+        if res is StartResult and bootstrap_res.report.get_complaints():
+            if self.io.confirm_start(bootstrap_res.report) is Declined:
+                return ActionResult.MSG_DECLINED_BOOTSTRAP     
+
+        if res is ClankerizeResult:
+            if self.io.confirm_clankerize(bootstrap_res.report) is Declined:
+                return ActionResult.MSG_DECLINED_INIT
+            bootstrap_res = self.session.initialize_workspace()
+
+        if res is TerminateResult:
+            return self.io.inform_termination(bootstrap_res.report)
+
+        self.renderer.set_ui_render(bootstrap_res.ui_render)
+        self.kb_service.setup(bootstrap_res.kb)
         action_res = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)            
 
         try:
