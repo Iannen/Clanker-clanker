@@ -1,7 +1,6 @@
-#!/usr/bin/env -S python3 -B
 from stdlib import dataclass
 from core import ActionResult
-from core.engine_deps import IngestionService, KBService, RenderService, TUIService, StartResult, ClankerizeResult, TerminateResult, ExitResult, ClankerizeConfirmed
+from core.engine_deps import IngestionService, KBService, RenderService, TUIService, StartResult, ClankerizeResult, TerminateResult, ExitResult, ClankerizeConfirmed, PromptRenderResult
 
 @dataclass(slots=True)
 class AppEngine:
@@ -35,9 +34,8 @@ class AppEngine:
             self.io.display(ui_render)
             cmd_result = self.io.get_cmd()
             if cmd_result.type is ExitResult: return cmd_result.exit_msg
-            new_action_res, prompt_render_ctx = self.kb_service.handle_key(cmd_result.char)
-            if new_action_res is not None:
-                action_res = new_action_res
-            elif prompt_render_ctx is not None:
-                rendered_text = self.renderer.render_prompt(prompt_render_ctx)
+            data_res = self.kb_service.handle_cmd(cmd_result)
+            if data_res.type is PromptRenderResult:
+                rendered_text = self.renderer.render_prompt(data_res.ctx)
                 action_res = self.io.to_clipboard(rendered_text)
+            else: action_res = data_res

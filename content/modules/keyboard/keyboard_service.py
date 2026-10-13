@@ -8,7 +8,7 @@ from core import (
     DomButton,
     PromptButton,
 )
-from core.engine_deps import KBService, RenderContext, UIRenderContext
+from core.engine_deps import KBService, RenderContext, UIRenderContext, Command, Result, ActionFeedbackResult, PromptRenderResult, NullCommandResult, DomainSelectedResult, UninhabitatedDomainResult, UninhabitatedPromptResult
 
 class KBServiceImpl(KBService):
     def setup(self,kb: Keyboard) -> None:
@@ -52,31 +52,31 @@ class KBServiceImpl(KBService):
             kb=self.kb,
             render=ephemeral_render,
         )
-        self.last_prompt = None
 
-    def handle_key(self, key: str) -> tuple[ActionResult | None, RenderContext | None]:
-        btn = self.kb.get(key)
-        if btn is None: res = ActionResult(ActionResult.UNBOUND_KEY.format(key=key)) # here we should say 'not a key in system'
+    def handle_cmd(self, cmd: Command) -> Result:
+        btn = self.kb.get(cmd.char)
+        if btn is None:
+            return NullCommandResult(ActionResult(ActionResult.UNBOUND_KEY.format(key=cmd.char)))
         match(btn):
-            case(DomButton()): res, ctx = self._handle_dom_btn(btn)
-            case(PromptButton()): res, ctx = self._handle_prompt_btn(btn)
-        return res, ctx
+            case(DomButton()): return self._handle_dom_btn(btn)
+            case(PromptButton()): return self._handle_prompt_btn(btn)
 
-    def _handle_dom_btn(self, btn): # dont deal with uninhabitated domprompts, tests let slip
+    def _handle_dom_btn(self, btn) -> ActionFeedbackResult:
         self.kb.set_selected_dom_btn(btn)
         self.last_prompt = None    
         prompt_btns = self.kb.get_btns(PromptButton)
         for p_ptn in prompt_btns: p_ptn.inhabitant = None
+        if not btn.inhabitant:
+            return UninhabitatedDomainResult(ActionResult.KEY_EMPTY)
         for prompt_btn, prompt in zip(prompt_btns, btn.inhabitant.prompts):
             prompt_btn.inhabitant = prompt
-        res = ActionResult(ActionResult.DOMAIN_SELECTED.format(domain=btn.inhabitant.name, key=btn.key))
-        return res, None
+        return DomainSelectedResult(ActionResult.DOMAIN_SELECTED.format(domain=btn.inhabitant.name, key=btn.key))
 
-    def _handle_prompt_btn(self, btn):
-        if self.last_prompt and btn.inhabitant == self.last_prompt:
-            return None, self._get_hot_prompt_context()
+    def _handle_prompt_btn(self, btn) -> PromptRenderResult | ActionFeedbackResult:
+        if self.last_prompt is not None and btn.inhabitant == self.last_prompt:
+            return PromptRenderResult(self._get_hot_prompt_context())
         self.last_prompt = btn.inhabitant
-        res, ctx = None, None
-        if btn.inhabitant is None: res = ActionResult(ActionResult.UNBOUND_KEY.format(key=btn.key))
-        else:ctx = RenderContext(self.kb,btn.inhabitant.render,)
-        return res, ctx
+        if btn.inhabitant is None:
+            return UninhabitatedPromptResult(ActionResult.UNBOUND_KEY.format(key=btn.key))
+        ctx = RenderContext(self.kb, btn.inhabitant.render)
+        return PromptRenderResult(ctx)

@@ -1,14 +1,5 @@
 from core import ActionResult
-from core.engine_deps import (
-    TUIService,
-    IOControl,
-    TerminalPort,
-    ExitResult,
-    StartConfirmed,
-    ClankerizeConfirmed,
-    Command,
-    Report,
-)
+from core.engine_deps import TUIService, IOControl, TerminalPort, ExitResult, StartConfirmed, ClankerizeConfirmed, Command, Report
 from ..tui import TUIQuestions
 
 class TUIServiceImpl(TUIService):
