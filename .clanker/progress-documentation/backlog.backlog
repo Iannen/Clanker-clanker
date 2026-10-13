@@ -27,4 +27,14 @@ Backlog tail, Selected item/items:
 let us eliminate this hotprompt exception thing. we can just have the service return the prompt, encapsulating the business of returning a normal or hot prompt.
 let us also take the opportunity the to declare a proper set of Result type objects. the engine will pass the command it gets from io service to the kb service, getting a result object back which it investigates the type of (i think perhaps there are only two types? the ones which need get passed to renderservice, and the ones which are passed to io on the next loop)
 
+1. Eliminate HotPromptRequested exception and make engine oblivious to hotprompts
+    [ ] 'content/core/engine.py': Remove HotPromptRequested exception handling and simplify command handling loop
+        - Remove `HotPromptRequested` from imports
+        - Eliminate the `try/except HotPromptRequested` block in the main loop so the engine uniformly handles whatever `RenderContext` or `ActionResult` `kb_service.handle_key` returns
+    [ ] 'content/modules/keyboard/keyboard_service.py': Handle hotprompt generation internally and return render context directly
+        - Replace `raise HotPromptRequested` in `_handle_prompt_btn` with an internal private method call that builds and returns the ephemeral hotprompt `RenderContext`
+        - Ensure `self.last_prompt` is reset appropriately when a hotprompt is triggered
+    [ ] 'content/core/core/exceptions.py': Remove the unused HotPromptRequested exception definition
+        - Delete the `HotPromptRequested` exception class and check exports to ensure it is fully cleaned up
+
 Backlog tail end

@@ -1,7 +1,6 @@
 from core import (
     ActionResult,
     Filelist,
-    HotPromptRequested,
     MultiDocResolver,
     Prompt,
     Render,
@@ -20,7 +19,8 @@ class KBServiceImpl(KBService):
         return UIRenderContext(
             kb=self.kb
         )
-    def get_hot_prompt_context(self) -> RenderContext:
+
+    def _get_hot_prompt_context(self) -> RenderContext:
         template = self.last_prompt.render.template
         domain_resolvers = self.kb.selected_dom_btn.inhabitant.resolvers
         prompt_resolvers = self.last_prompt.render.resolvers
@@ -52,6 +52,7 @@ class KBServiceImpl(KBService):
             kb=self.kb,
             render=ephemeral_render,
         )
+        self.last_prompt = None
 
     def handle_key(self, key: str) -> tuple[ActionResult | None, RenderContext | None]:
         btn = self.kb.get(key)
@@ -63,7 +64,7 @@ class KBServiceImpl(KBService):
 
     def _handle_dom_btn(self, btn): # dont deal with uninhabitated domprompts, tests let slip
         self.kb.set_selected_dom_btn(btn)
-        self.last_prompt = None   
+        self.last_prompt = None    
         prompt_btns = self.kb.get_btns(PromptButton)
         for p_ptn in prompt_btns: p_ptn.inhabitant = None
         for prompt_btn, prompt in zip(prompt_btns, btn.inhabitant.prompts):
@@ -72,7 +73,8 @@ class KBServiceImpl(KBService):
         return res, None
 
     def _handle_prompt_btn(self, btn):
-        if self.last_prompt is not None and btn.inhabitant == self.last_prompt: raise HotPromptRequested
+        if self.last_prompt and btn.inhabitant == self.last_prompt:
+            return None, self._get_hot_prompt_context()
         self.last_prompt = btn.inhabitant
         res, ctx = None, None
         if btn.inhabitant is None: res = ActionResult(ActionResult.UNBOUND_KEY.format(key=btn.key))

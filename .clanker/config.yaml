@@ -23,7 +23,13 @@ pud_filesets:
     content/core,
     content/modules/keyboard,
     content/modules/render_pipeline,
-    content/modules/tui
+    content/modules/tui], excludes: [
+      content/core/core/constants.py,
+      content/core/core/presentation.py,
+      content/core/engine_deps/ingestion.py,
+      content/core/core/exceptions.py,
+      content/modules/tui/formatter.py,
+      content/modules/tui/questions.py
     ]}
 
 pud_domains:
