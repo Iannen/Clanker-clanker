@@ -25,11 +25,16 @@ II. The pile
 Backlog tail, Selected item/items:
 
 1. Detach UI rendering business from RenderService and make it the business of TUIService
-    [x] Give tui service access to diskport
+    [ ] TUIService abc and implementation
+        - add set_ui_render method to receive bootstrap_res.ui_render from AppEngine
+    [ ] RenderService abc and implementation': 
+        - remove set_ui_render method
     [ ] 'content/core/engine.py': Update AppEngine to configure and pass ui_render to TUIService instead of RenderService
-    [ ] 'content/core/engine_deps/render.py': Remove UI render configuration and render_ui methods from the RenderService interface
-    [ ] 'content/core/engine_deps/tui.py': Add UI render configuration and render_ui methods to the TUIService interface
-    [ ] 'content/modules/render_pipeline/render_service.py': Remove UI rendering state, methods, and button resolution logic
+    [ ] TUIService abc and implementation
+        - change signature of display method:
+            - def display(self, ctx: UIRenderContext, msg: ActionFeedbackResult) -> str: ...
+        - duplicate all logic of renderservice pertaining to rendering the ui on tuiservice helpers. 
+    [ ] 'content/core/engine.py': Update AppEngine to pass ui_render_ctx and action res to tuiservice directly
 
 
 Backlog tail end
