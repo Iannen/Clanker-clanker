@@ -24,16 +24,12 @@ class AppEngine:
         if isinstance(tui_res, StartResult):
             start_res = tui_res
 
-        
-        # after the loop, if loop or otherwise, should I pass the ui_render to kb instead of to io? i think io always depends upon the ui render context anyway, which comes from kb 
-        # if i do, then i can just pass the result to kb, and then engine does not see the internals of any result (i think)
-        self.io.set_ui_render(start_res.ui_render)
-        self.kb_service.setup(start_res.kb)
-        action_res = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)      
+        self.kb_service.setup(start_res)
+        action_res = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)
 
         while True:
-            ui_render_ctx = self.kb_service.get_ui_context()
-            self.io.display(ui_render_ctx, action_res)
+            ui_data = self.kb_service.get_ui_context()
+            self.io.display(ui_data, action_res)
             cmd_result = self.io.get_cmd()
             if cmd_result.type is ExitResult: return cmd_result.exit_msg
             data_res = self.kb_service.handle_cmd(cmd_result)

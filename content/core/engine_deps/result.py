@@ -24,7 +24,7 @@ class PromptService(ABC):
 
 class KBService(ABC):
     @abstractmethod
-    def setup(self, kb: Keyboard) -> None: ...
+    def setup(self, start_res: StartResult) -> None: ...
     @abstractmethod
     def handle_cmd(self, cmd: Command) -> Result: ...
     @abstractmethod
@@ -55,7 +55,9 @@ class RenderContext:
     render: Render
 
 @dataclass
-class UIRenderContext: kb: Keyboard
+class UIRenderContext:
+    kb: Keyboard
+    ui_render: Render
 
 @dataclass
 class ActionFeedbackResult(Result): message: ActionResult
@@ -83,7 +85,7 @@ class ClankerizeResult(IngestionResult): pass
 @dataclass
 class TerminateResult(IngestionResult): pass
 
-# the stuff the results may harbour, which are not entities
+# the stuff the results may harbor, which are not entities
 
 class Report(ABC):
     @abstractmethod

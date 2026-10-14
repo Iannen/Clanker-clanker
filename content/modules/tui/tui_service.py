@@ -9,15 +9,12 @@ class TUIServiceImpl(TUIService):
 
     def __post_init__(self) -> None:
         self.shaper: ContentShaper = ContentShaper()
-        self._ui_render: Render | None = None
 
     def set_ui_render(self, ui_render: Render) -> None:
-        self._ui_render = ui_render
+        pass
 
     def display(self, ctx: UIRenderContext, msg: ActionResult) -> None:
-        if self._ui_render is None:
-            raise CorruptClanker("UI render spec has not been configured.")
-        template = self._get_template(self._ui_render)
+        template = self._get_template(ctx.ui_render)
         repl_map = self._res_ui(ctx.kb)
         repl_map["msg"] = self.shaper.shape_action_result(msg.message)
         ui_string = self._hydrate(template, repl_map)

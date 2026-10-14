@@ -11,13 +11,15 @@ from core import (
 from core.engine_deps import KBService, RenderContext, UIRenderContext, Command, Result, ActionFeedbackResult, PromptRenderResult, NullCommandResult, DomainSelectedResult, UninhabitatedDomainResult, UninhabitatedPromptResult
 
 class KBServiceImpl(KBService):
-    def setup(self,kb: Keyboard) -> None:
-        self.kb: Keyboard = kb
+    def setup(self, start_res) -> None:
+        self.kb: Keyboard = start_res.kb
+        self.ui_render: Render = start_res.ui_render
         self.last_prompt: Prompt | None = None
 
     def get_ui_context(self) -> UIRenderContext:
         return UIRenderContext(
-            kb=self.kb
+            kb=self.kb,
+            ui_render=self.ui_render
         )
 
     def _get_hot_prompt_context(self) -> RenderContext:
