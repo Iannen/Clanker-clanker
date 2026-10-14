@@ -1,6 +1,6 @@
 from stdlib import dataclass
 from core import ActionResult, Render, Keyboard, DomButton, PromptButton, CorruptClanker, ClankerAssets
-from core.engine_deps import TUIService, IOControl, TerminalPort, DiskPort, StartResult, ExitResult, Command, UIRenderContext, NoSuchFile, ClankerizeResult, TerminateResult
+from core.engine_deps import TUIService, IOControl, TerminalPort, DiskPort, StartResult, ExitResult, UserDeclinedStart, UserDeclinedClankerize, StartupFailed, UserAborted, Command, UIRenderContext, NoSuchFile, ClankerizeResult, TerminateResult
 from ..tui import TUIQuestions, ContentShaper
 @dataclass
 class TUIServiceImpl(TUIService):
@@ -57,21 +57,21 @@ class TUIServiceImpl(TUIService):
             question = TUIQuestions.start_confirmation(bootstrap_res.report)
             if self.io_bridge.get_acceptance(question):
                 return bootstrap_res
-            return ExitResult("User declined program start")
+            return UserDeclinedStart()
 
         if isinstance(bootstrap_res, ClankerizeResult):
             question = TUIQuestions.clankerize_confirmation(bootstrap_res.report)
             if self.io_bridge.get_acceptance(question):
                 return bootstrap_res
-            return ExitResult("User declined to clankerize project")
+            return UserDeclinedClankerize()
 
         if isinstance(bootstrap_res, TerminateResult):
             question = TUIQuestions.termination_acknowledgment(bootstrap_res.report)
             self.io_bridge.get_acceptance(question)
-            return ExitResult("Program could not start")
+            return StartupFailed()
 
     def get_cmd(self) -> Command | ExitResult:
         ch = self.io_bridge.read_char()
         if ch in IOControl.ABORT_KEYS:
-            return ExitResult(ActionResult.MSG_DEFAULT)
+            return UserAborted()
         return Command(char=ch.lower())

@@ -39,28 +39,15 @@ class Result:
     @property
     def types(self) -> tuple[type, ...]: return type(self).__mro__
 
-@dataclass
-class ExitResult(Result): exit_msg: str
-class StartConfirmed(Result): pass
-class ClankerizeConfirmed(Result): pass
+
+class ExitResult: exit_msg: str = ""
+class UserDeclinedStart(ExitResult): exit_msg = "Bootstrap declined by user"
+class UserDeclinedClankerize(ExitResult): exit_msg = "User declined to clankerize project"
+class StartupFailed(ExitResult): exit_msg = "Program could not start"
+class UserAborted(ExitResult): exit_msg = "Program exited"
+
 @dataclass
 class Command(Result): char: str
-
-class Affirmative(Result): pass
-class Declined(Result): pass
-
-@dataclass
-class RenderContext:
-    kb: Keyboard
-    render: Render
-
-@dataclass
-class UIRenderContext:
-    kb: Keyboard
-    ui_render: Render
-
-@dataclass
-class ActionFeedbackResult(Result): message: ActionResult
 
 @dataclass 
 class NullCommandResult(Result): message: ActionResult
@@ -70,9 +57,10 @@ class DomainSelectedResult(Result): message: ActionResult
 class UninhabitatedDomainResult(Result): message: ActionResult
 
 @dataclass
-class PromptRenderResult(Result): ctx: RenderContext
-@dataclass
 class UninhabitatedPromptResult(Result): message: ActionResult
+
+@dataclass
+class PromptRenderResult(Result): ctx: RenderContext
 
 @dataclass
 class IngestionResult(Result): report: Report
@@ -86,6 +74,16 @@ class ClankerizeResult(IngestionResult): pass
 class TerminateResult(IngestionResult): pass
 
 # the stuff the results may harbor, which are not entities
+
+@dataclass
+class RenderContext:
+    kb: Keyboard
+    render: Render
+
+@dataclass
+class UIRenderContext:
+    kb: Keyboard
+    ui_render: Render
 
 class Report(ABC):
     @abstractmethod

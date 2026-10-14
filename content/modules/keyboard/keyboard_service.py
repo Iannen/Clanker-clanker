@@ -8,7 +8,7 @@ from core import (
     DomButton,
     PromptButton,
 )
-from core.engine_deps import KBService, RenderContext, UIRenderContext, Command, Result, ActionFeedbackResult, PromptRenderResult, NullCommandResult, DomainSelectedResult, UninhabitatedDomainResult, UninhabitatedPromptResult
+from core.engine_deps import KBService, RenderContext, UIRenderContext, Command, Result, PromptRenderResult, NullCommandResult, DomainSelectedResult, UninhabitatedDomainResult, UninhabitatedPromptResult
 
 class KBServiceImpl(KBService):
     def setup(self, start_res) -> None:
@@ -63,7 +63,7 @@ class KBServiceImpl(KBService):
             case(DomButton()): return self._handle_dom_btn(btn)
             case(PromptButton()): return self._handle_prompt_btn(btn)
 
-    def _handle_dom_btn(self, btn) -> ActionFeedbackResult:
+    def _handle_dom_btn(self, btn):
         self.kb.set_selected_dom_btn(btn)
         self.last_prompt = None    
         prompt_btns = self.kb.get_btns(PromptButton)
@@ -74,7 +74,7 @@ class KBServiceImpl(KBService):
             prompt_btn.inhabitant = prompt
         return DomainSelectedResult(ActionResult.DOMAIN_SELECTED.format(domain=btn.inhabitant.name, key=btn.key))
 
-    def _handle_prompt_btn(self, btn) -> PromptRenderResult | ActionFeedbackResult:
+    def _handle_prompt_btn(self, btn) -> PromptRenderResult:
         if self.last_prompt is not None and btn.inhabitant == self.last_prompt:
             return PromptRenderResult(self._get_hot_prompt_context())
         self.last_prompt = btn.inhabitant

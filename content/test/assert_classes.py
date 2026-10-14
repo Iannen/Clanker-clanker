@@ -3,6 +3,7 @@ from typing import Callable, Self
 
 from core.engine_deps import IOControl
 from core import RepoContract, ActionResult
+from core.engine_deps import UserDeclinedClankerize
 from adapters.terminal.scripted_terminal_adapter import TestSequenceEnded
 from base_classes import AssertSuite
 
@@ -64,7 +65,7 @@ class EmptyRepoTests(AssertSuite):
     def assert_abort_keys_decline_init(self, actions: ActionsFactory) -> list["TestContainer"]:
         return [
             actions.create_test([key]) \
-                .expect.exit_msg_contains(ActionResult.MSG_DECLINED_INIT)
+                .expect.exit_msg_contains(UserDeclinedClankerize.exit_msg)
             for key in IOControl.ABORT_KEYS
         ]
 
