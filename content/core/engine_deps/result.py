@@ -6,7 +6,7 @@ class IngestionService(ABC):
     @abstractmethod
     def get_runtime_config(self) -> StartResult | ClankerizeResult | TerminateResult: ...
     @abstractmethod
-    def initialize_workspace(self) -> None: ... 
+    def initialize_workspace(self) -> StartResult: ... 
 
 class TUIService(ABC):
     @abstractmethod
@@ -18,11 +18,7 @@ class TUIService(ABC):
     @abstractmethod
     def get_cmd(self) -> Command | ExitResult: ...
     @abstractmethod
-    def confirm_start(self, report: Report) -> StartConfirmed | ExitResult: ...
-    @abstractmethod
-    def confirm_clankerize(self, report: Report) -> ClankerizeConfirmed | ExitResult: ...
-    @abstractmethod
-    def inform_termination(self, report: Report) -> ExitResult: ...
+    def run_bootstrap_result(self, bootstrap_res: IngestionResult) -> ExitResult | ClankerizeResult | StartResult: ...
 
 class RenderService(ABC):
     @abstractmethod
@@ -41,6 +37,9 @@ class KBService(ABC):
 class Result:
     @property
     def type(self) -> type: return type(self)
+
+    @property
+    def types(self) -> tuple[type, ...]: return type(self).__mro__
 
 @dataclass
 class ExitResult(Result): exit_msg: str

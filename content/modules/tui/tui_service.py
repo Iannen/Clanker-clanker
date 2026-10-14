@@ -1,6 +1,6 @@
 from stdlib import dataclass
 from core import ActionResult, Render, Keyboard, DomButton, PromptButton, CorruptClanker, ClankerAssets
-from core.engine_deps import TUIService, IOControl, TerminalPort, DiskPort, ExitResult, StartConfirmed, ClankerizeConfirmed, Command, Report, UIRenderContext, NoSuchFile
+from core.engine_deps import TUIService, IOControl, TerminalPort, DiskPort, StartResult, ExitResult, Command, UIRenderContext, NoSuchFile, ClankerizeResult, TerminateResult
 from ..tui import TUIQuestions, ContentShaper
 @dataclass
 class TUIServiceImpl(TUIService):
@@ -53,23 +53,25 @@ class TUIServiceImpl(TUIService):
             
         return repl_map
 
-    def confirm_start(self, report: Report) -> StartConfirmed | ExitResult:
-        if not report.get_all_complaints(): return StartConfirmed()
-        question = TUIQuestions.start_confirmation(report)
-        if self.io_bridge.get_acceptance(question):
-            return StartConfirmed()
-        return ExitResult("User declined program start")
+    def run_bootstrap_result(self, bootstrap_res) -> ExitResult | ClankerizeResult | StartResult:
+        
+        if isinstance(bootstrap_res, StartResult):
+            if not bootstrap_res.report.get_all_complaints(): return bootstrap_res
+            question = TUIQuestions.start_confirmation(bootstrap_res.report)
+            if self.io_bridge.get_acceptance(question):
+                return bootstrap_res
+            return ExitResult("User declined program start")
 
-    def confirm_clankerize(self, report: Report) -> ClankerizeConfirmed | ExitResult:
-        question = TUIQuestions.clankerize_confirmation(report)
-        if self.io_bridge.get_acceptance(question):
-            return ClankerizeConfirmed()
-        return ExitResult("User declined to clankerize project")
+        if isinstance(bootstrap_res, ClankerizeResult):
+            question = TUIQuestions.clankerize_confirmation(bootstrap_res.report)
+            if self.io_bridge.get_acceptance(question):
+                return bootstrap_res
+            return ExitResult("User declined to clankerize project")
 
-    def inform_termination(self, report: Report) -> ExitResult:
-        question = TUIQuestions.termination_acknowledgment(report)
-        self.io_bridge.get_acceptance(question)
-        return ExitResult("Program could not start")
+        if isinstance(bootstrap_res, TerminateResult):
+            question = TUIQuestions.termination_acknowledgment(bootstrap_res.report)
+            self.io_bridge.get_acceptance(question)
+            return ExitResult("Program could not start")
 
     def to_clipboard(self, text_content: str) -> ActionResult: # this goes to Renderservice, which becomes promptservice
         lines_count = self.io_bridge.to_clipboard(text_content)

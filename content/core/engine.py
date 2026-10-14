@@ -1,6 +1,6 @@
 from stdlib import dataclass
 from core import ActionResult
-from core.engine_deps import IngestionService, KBService, RenderService, TUIService, StartResult, ClankerizeResult, TerminateResult, ExitResult, ClankerizeConfirmed, PromptRenderResult
+from core.engine_deps import IngestionService, KBService, RenderService, TUIService, StartResult, ClankerizeResult, ExitResult, PromptRenderResult
 
 @dataclass(slots=True)
 class AppEngine:
@@ -11,22 +11,20 @@ class AppEngine:
 
     def run(self) -> str:        
         bootstrap_res = self.session.get_runtime_config()
+        tui_res = self.io.run_bootstrap_result(bootstrap_res)
 
-        if bootstrap_res.type is StartResult:
-            tui_res = self.io.confirm_start(bootstrap_res.report)
-        elif bootstrap_res.type is ClankerizeResult:
-            tui_res = self.io.confirm_clankerize(bootstrap_res.report)
-            if tui_res.type is ClankerizeConfirmed: 
-                bootstrap_res = self.session.initialize_workspace()
-        elif bootstrap_res.type is TerminateResult:
-            tui_res = self.io.inform_termination(bootstrap_res.report)
+        if isinstance(tui_res, ExitResult):
+            return tui_res.exit_msg
 
-        if tui_res.type is ExitResult: return tui_res.exit_msg
+        if isinstance(tui_res, ClankerizeResult):
+            start_res = self.session.initialize_workspace()
 
-        self.io.set_ui_render(bootstrap_res.ui_render)
-        self.kb_service.setup(bootstrap_res.kb)
-        action_res = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)            
+        if isinstance(tui_res, StartResult):
+            start_res = tui_res
 
+        self.io.set_ui_render(start_res.ui_render)
+        self.kb_service.setup(start_res.kb)
+        action_res = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)      
 
         while True:
             ui_render_ctx = self.kb_service.get_ui_context()

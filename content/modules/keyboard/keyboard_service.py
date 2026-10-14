@@ -56,7 +56,7 @@ class KBServiceImpl(KBService):
     def handle_cmd(self, cmd: Command) -> Result:
         btn = self.kb.get(cmd.char)
         if btn is None:
-            return NullCommandResult(ActionResult(ActionResult.UNBOUND_KEY.format(key=cmd.char)))
+            return NullCommandResult(ActionResult.UNBOUND_KEY.format(key=cmd.char))
         match(btn):
             case(DomButton()): return self._handle_dom_btn(btn)
             case(PromptButton()): return self._handle_prompt_btn(btn)
