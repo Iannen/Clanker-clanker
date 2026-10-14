@@ -73,11 +73,6 @@ class TUIServiceImpl(TUIService):
             self.io_bridge.get_acceptance(question)
             return ExitResult("Program could not start")
 
-    def to_clipboard(self, text_content: str) -> ActionResult: # this goes to Renderservice, which becomes promptservice
-        lines_count = self.io_bridge.to_clipboard(text_content)
-        char_count = len(text_content)
-        return ActionResult(ActionResult.COPIED_TO_CLIPBOARD.format(lines=lines_count, chars=char_count))
-
     def get_cmd(self) -> Command | ExitResult:
         ch = self.io_bridge.read_char()
         if ch in IOControl.ABORT_KEYS:

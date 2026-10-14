@@ -10,18 +10,26 @@ from core import (
     Resolver,
     ConfigAssembly,
 )
-from core.engine_deps import RenderService, RenderContext, DiskPort, NoSuchFile
+from stdlib import dataclass
+from core import ActionResult
+from core.engine_deps import PromptService, RenderContext, DiskPort, TerminalPort, NoSuchFile
 from . import ContentShaper
 
-class RenderServiceImpl(RenderService):
-    def __init__(self, files: DiskPort) -> None:
-        self.files: DiskPort = files
+@dataclass(slots=True)
+class PromptServiceImpl(PromptService):
+    files: DiskPort
+    io_bridge: TerminalPort
+
+    def __post_init__(self) -> None:
         self.shaper: ContentShaper = ContentShaper()
 
-    def render_prompt(self, ctx: RenderContext) -> str:
+    def render_prompt(self, ctx: RenderContext) -> ActionResult:
         template = self._get_template(ctx.render)
         repl_map = self._get_repl_map(ctx)
-        return self._hydrate(template, repl_map)
+        text_content = self._hydrate(template, repl_map)
+        lines_count = self.io_bridge.to_clipboard(text_content)
+        char_count = len(text_content)
+        return ActionResult(ActionResult.COPIED_TO_CLIPBOARD.format(lines=lines_count, chars=char_count))
 
     def _hydrate(self, template: str, replacements: dict[str, str]) -> str:
         return self.shaper.hydrate(template, replacements)

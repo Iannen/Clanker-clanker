@@ -1,7 +1,7 @@
 #!/usr/bin/env -S python3 -B
 from core.engine import AppEngine
 from adapters import LinuxDiskAdapter, LinuxTerminalAdapter, ScriptedTerminalAdapter, RuamelYamlParserAdapter, TestSequenceEnded
-from modules import TUIServiceImpl, RenderServiceImpl, KBServiceImpl, IngestionServiceImpl
+from modules import TUIServiceImpl, PromptServiceImpl, KBServiceImpl, IngestionServiceImpl
 import sys
 import traceback
 import argparse
@@ -42,14 +42,14 @@ def main():
     cfg_ingestor = RuamelYamlParserAdapter()
 
     ingestion = IngestionServiceImpl(files=files_adapter, cfg_ingestor=cfg_ingestor)
-    renderer = RenderServiceImpl(files=files_adapter)
+    prompt_service = PromptServiceImpl(files=files_adapter, io_bridge=io_adapter)
     io = TUIServiceImpl(io_adapter, files_adapter)
     kb_service = KBServiceImpl()
 
     engine = AppEngine(
         io=io,
         session=ingestion,
-        renderer=renderer,
+        prompt_service=prompt_service,
         kb_service=kb_service
     )
     try: 

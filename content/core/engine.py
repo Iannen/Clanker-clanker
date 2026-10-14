@@ -1,15 +1,16 @@
 from stdlib import dataclass
 from core import ActionResult
-from core.engine_deps import IngestionService, KBService, RenderService, TUIService, StartResult, ClankerizeResult, ExitResult, PromptRenderResult
+from core.engine_deps import IngestionService, KBService, PromptService, TUIService, StartResult, ClankerizeResult, ExitResult, PromptRenderResult
 
 @dataclass(slots=True)
 class AppEngine:
     io: TUIService
     session: IngestionService
-    renderer: RenderService
+    prompt_service: PromptService
     kb_service: KBService
 
     def run(self) -> str:        
+        # should this bootstrap process really be a while loop that either ends with successfull StartResult acquistion, or an ExitResult?
         bootstrap_res = self.session.get_runtime_config()
         tui_res = self.io.run_bootstrap_result(bootstrap_res)
 
@@ -17,11 +18,15 @@ class AppEngine:
             return tui_res.exit_msg
 
         if isinstance(tui_res, ClankerizeResult):
+            # the reason I ask is that, if the disk state changes from when user gives clankerize acceptance and this is called, then we may get a covfefe
             start_res = self.session.initialize_workspace()
 
         if isinstance(tui_res, StartResult):
             start_res = tui_res
 
+        
+        # after the loop, if loop or otherwise, should I pass the ui_render to kb instead of to io? i think io always depends upon the ui render context anyway, which comes from kb 
+        # if i do, then i can just pass the result to kb, and then engine does not see the internals of any result (i think)
         self.io.set_ui_render(start_res.ui_render)
         self.kb_service.setup(start_res.kb)
         action_res = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)      
@@ -33,6 +38,5 @@ class AppEngine:
             if cmd_result.type is ExitResult: return cmd_result.exit_msg
             data_res = self.kb_service.handle_cmd(cmd_result)
             if data_res.type is PromptRenderResult:
-                rendered_text = self.renderer.render_prompt(data_res.ctx)
-                action_res = self.io.to_clipboard(rendered_text)
+                action_res = self.prompt_service.render_prompt(data_res.ctx)
             else: action_res = data_res

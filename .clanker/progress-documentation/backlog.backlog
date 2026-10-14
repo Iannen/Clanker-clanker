@@ -23,6 +23,19 @@ II. The pile
     - TUIService encapsulates incoming and outcoming communication with the user. the exit messages the engine uses should originate from here.
 
 Backlog tail, Selected item/items:
-the next order of business is to move the 'copy to clipboard' functionality from TUIService over the Renderservice, which will be renamed to promptservice.
+1. Rename RenderService to PromptService, convert to a dataclass, and wire TerminalPort dependency
+    [x] 'clanker.py': Update service instantiation and dependency injection wiring
+        - instantiate PromptServiceImpl with both files_adapter and io_adapter
+        - pass prompt_service into AppEngine instead of renderer
+    [x] 'content/core/engine.py': Update AppEngine definition and type annotations
+        - replace renderer field with prompt_service of type PromptService
+        - update imports from engine_deps to use PromptService instead of RenderService
+    [x] 'content/core/engine_deps/result.py': Rename RenderService abstract base class
+        - rename class RenderService(ABC) to PromptService(ABC)
+    [x] 'content/modules/render_pipeline/render_service.py': Refactor RenderServiceImpl into PromptServiceImpl
+        - decorate with @dataclass(slots=True) and inherit from PromptService
+        - add terminal: TerminalPort field to receive the terminal port dependency
+    [x] 'content/modules/tui/tui_service.py': Remove clipboard handling method
+        - remove to_clipboard method as responsibility transfers to PromptServiceImpl
 
 Backlog tail end
