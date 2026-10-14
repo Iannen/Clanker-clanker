@@ -43,7 +43,7 @@ def main():
 
     ingestion = IngestionServiceImpl(files=files_adapter, cfg_ingestor=cfg_ingestor)
     renderer = RenderServiceImpl(files=files_adapter)
-    io = TUIServiceImpl(io_bridge=io_adapter)
+    io = TUIServiceImpl(io_adapter, files_adapter)
     kb_service = KBServiceImpl()
 
     engine = AppEngine(

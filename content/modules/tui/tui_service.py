@@ -1,10 +1,12 @@
+from stdlib import dataclass
 from core import ActionResult
-from core.engine_deps import TUIService, IOControl, TerminalPort, ExitResult, StartConfirmed, ClankerizeConfirmed, Command, Report
+from core.engine_deps import TUIService, IOControl, TerminalPort, DiskPort, ExitResult, StartConfirmed, ClankerizeConfirmed, Command, Report
 from ..tui import TUIQuestions
 
+@dataclass
 class TUIServiceImpl(TUIService):
-    def __init__(self, io_bridge: TerminalPort) -> None:
-        self.io_bridge = io_bridge
+    io_bridge: TerminalPort
+    files: DiskPort
 
     def display(self, ui_string: str) -> None:
         self.io_bridge.write(f"{ui_string}\n")

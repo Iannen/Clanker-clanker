@@ -25,11 +25,11 @@ II. The pile
 Backlog tail, Selected item/items:
 
 1. Detach UI rendering business from RenderService and make it the business of TUIService
+    [x] Give tui service access to diskport
     [ ] 'content/core/engine.py': Update AppEngine to configure and pass ui_render to TUIService instead of RenderService
     [ ] 'content/core/engine_deps/render.py': Remove UI render configuration and render_ui methods from the RenderService interface
     [ ] 'content/core/engine_deps/tui.py': Add UI render configuration and render_ui methods to the TUIService interface
     [ ] 'content/modules/render_pipeline/render_service.py': Remove UI rendering state, methods, and button resolution logic
-    [ ] 'content/modules/tui/tui_service.py': Inject DiskPort alongside TerminalPort and implement the UI rendering logic migrated from RenderService
-    [ ] 'content/clanker.py': give TUIService the diskport so it can get the layouts it needs.
+
 
 Backlog tail end
