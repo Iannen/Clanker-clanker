@@ -1,6 +1,6 @@
 from stdlib import dataclass
 from ...asset_ingestion import ErrorCollector, Numap
-from core.engine_deps.ingestion import DomainOverflow
+from core.engine_deps import DomainOverflow
 from core import Keyboard, Resolver, SharedDomButton, PudDomButton, Domain, NewBtn, SharedBaseResolver, PudBaseResolver, SharedDomain, PudDomain, UIRender
 @dataclass 
 class OverflowHandler2:

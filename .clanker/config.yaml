@@ -26,7 +26,6 @@ pud_filesets:
     content/modules/tui], excludes: [
       content/core/core/constants.py,
       content/core/core/presentation.py,
-      content/core/engine_deps/ingestion.py,
       content/core/core/exceptions.py,
       content/modules/tui/formatter.py,
       content/modules/tui/questions.py

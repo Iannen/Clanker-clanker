@@ -1,7 +1,7 @@
 from core import PudFileset, SharedFileset, FilesetItem
 from stdlib import dataclass
 from ...asset_ingestion import ErrorCollector, Numap, AssetPack
-from core.engine_deps.ingestion import UnsatisfiedFilesetSubjects
+from core.engine_deps import UnsatisfiedFilesetSubjects
 
 @dataclass
 class FilesetValidator2:

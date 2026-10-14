@@ -1,6 +1,5 @@
 from core import (
     Fileset,
-    ActionResult,
     CorruptClanker,
     ClankerAssets,
     ManifestResolver,
@@ -10,29 +9,14 @@ from core import (
     RepoContentResolver,
     Resolver,
     ConfigAssembly,
-    Keyboard,
-    DomButton,
-    PromptButton,
 )
-from core.engine_deps import RenderService, RenderContext, UIRenderContext, DiskPort, NoSuchFile
+from core.engine_deps import RenderService, RenderContext, DiskPort, NoSuchFile
 from . import ContentShaper
 
 class RenderServiceImpl(RenderService):
     def __init__(self, files: DiskPort) -> None:
         self.files: DiskPort = files
         self.shaper: ContentShaper = ContentShaper()
-        self._ui_render: Render | None = None
-
-    def set_ui_render(self, ui_render: Render) -> None:
-        self._ui_render = ui_render
-
-    def render_ui(self, ctx: UIRenderContext, msg: ActionResult) -> str:
-        if self._ui_render is None:
-            raise CorruptClanker("UI render spec has not been configured.")
-        template = self._get_template(self._ui_render)
-        repl_map = self._res_ui(ctx.kb)
-        repl_map["msg"] = self.shaper.shape_action_result(msg.message)
-        return self._hydrate(template, repl_map)
 
     def render_prompt(self, ctx: RenderContext) -> str:
         template = self._get_template(ctx.render)
@@ -47,8 +31,6 @@ class RenderServiceImpl(RenderService):
             match render.template:
                 case "prompt_template":
                     return self.files.read_asset(ClankerAssets.layouts.PROMPT)
-                case "ui_template":
-                    return self.files.read_asset(ClankerAssets.layouts.UI)
         except NoSuchFile as ex:
             raise CorruptClanker(f"Error loading template for '{render.template}': {ex}") from ex
 
@@ -99,7 +81,7 @@ class RenderServiceImpl(RenderService):
         inner_content = tree_header + "\n" + "\n".join(file_blocks)
         return {resolver.anchor: f"<repo-content>\n{inner_content}\n</repo-content>"}
 
-    def _res_manifest(self, resolver: ManifestResolver) -> dict[str, str]:
+    def _res_manifest(self, resolver: ManifestResolver) -> str:
         manifest_blocks = [
             self._build_manifest("pud-manifest", PathTokens.PUD, resolver.pud_fileset)
         ]
@@ -115,12 +97,6 @@ class RenderServiceImpl(RenderService):
         includes = self.files.get_file_paths(basepath_token, [include.value for include in fileset.includes], missing_ok=False)
         excludes = self.files.get_file_paths(basepath_token, [exclude.value for exclude in fileset.excludes], missing_ok=True) if fileset.excludes else set()
         paths = sorted(includes - excludes)
-        """
-        paths = sorted(
-            self.files.get_file_paths(basepath_token, fileset.includes, missing_ok=False) -
-            self.files.get_file_paths(basepath_token, fileset.excludes, missing_ok=True)
-        )
-        """
         lines = []
         for p in paths:
             try:
@@ -131,22 +107,3 @@ class RenderServiceImpl(RenderService):
                 pass
 
         return f"<{tag}>\n" + "\n".join(lines) + "\n</" + tag + ">"
-
-    def _res_ui(self, kb: Keyboard) -> dict[str, str]:
-        btn_hl = self.files.read_asset(ClankerAssets.layouts.BTN_HL)
-        btn_active = self.files.read_asset(ClankerAssets.layouts.BTN_ACTIVE)
-        btn_inactive = self.files.read_asset(ClankerAssets.layouts.BTN_INACTIVE)
-
-        repl_map = {}
-        for btn in kb.get_btns(DomButton):
-            template = btn_inactive
-            label = btn.inhabitant.name if btn.inhabitant else ""
-            if btn==kb.selected_dom_btn: template = btn_hl
-            elif btn.inhabitant: template = btn_active
-            repl_map |= self.shaper.shape_button_replacements(btn, label, template)
-        for btn in kb.get_btns(PromptButton):
-            label = btn.inhabitant.name if btn.inhabitant else ""
-            template = btn_active if btn.inhabitant else btn_inactive  
-            repl_map |= self.shaper.shape_button_replacements(btn, label, template)
-            
-        return repl_map

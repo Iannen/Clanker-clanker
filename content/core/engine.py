@@ -23,15 +23,14 @@ class AppEngine:
 
         if tui_res.type is ExitResult: return tui_res.exit_msg
 
-        self.renderer.set_ui_render(bootstrap_res.ui_render)
+        self.io.set_ui_render(bootstrap_res.ui_render)
         self.kb_service.setup(bootstrap_res.kb)
         action_res = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)            
 
 
         while True:
             ui_render_ctx = self.kb_service.get_ui_context()
-            ui_render = self.renderer.render_ui(ui_render_ctx, action_res)
-            self.io.display(ui_render)
+            self.io.display(ui_render_ctx, action_res)
             cmd_result = self.io.get_cmd()
             if cmd_result.type is ExitResult: return cmd_result.exit_msg
             data_res = self.kb_service.handle_cmd(cmd_result)

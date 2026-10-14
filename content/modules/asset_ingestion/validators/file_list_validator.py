@@ -1,6 +1,6 @@
 from stdlib import dataclass
 from core import File
-from core.engine_deps.ingestion import UnsatisfiedFiles
+from core.engine_deps import UnsatisfiedFiles
 from ...asset_ingestion import ErrorCollector, Numap, AssetPack
 
 @dataclass
