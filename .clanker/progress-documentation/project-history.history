@@ -1254,3 +1254,15 @@ CLXIV: DETACHED UI RENDERING BUSINESS FROM RENDER SERVICE TO TUI SERVICE AND CEN
     Reflection:
     - Significantly improves modularity by ensuring terminal UI presentation and layout formatting live completely within the TUI module, leaving `RenderService` dedicated solely to prompts.
     - Streamlines the `AppEngine` event loop and reduces cross-service dependency friction.
+
+CLXV: SIMPLIFYING TUISERVICE BOOTUP INTERFACE TO A SINGLE BOOTSTRAP PRESENTATION METHOD
+    Purpose: Reduce interface pollution on the TUI service port and simplify the startup routing logic by consolidating multiple disparate confirmation/termination handlers into a single unified bootstrap presentation method.
+    - Consolidate distinct confirmation and termination calls into a single predictable entry point.
+    - Defer service setup and unpacking until a guaranteed start result or initialized workspace state is established.
+    Actions:
+    - Updated the `TUIService` interface in `content/core/engine_deps/result.py` to remove `confirm_start`, `confirm_clankerize`, and `inform_termination`, introducing the unified `run_bootstrap_result` method.
+    - Implemented `run_bootstrap_result` in `TUIServiceImpl` (`content/modules/tui/tui_service.py`) leveraging flat `isinstance()` checks to handle `StartResult`, `ClankerizeResult`, and `TerminateResult` respectively.
+    - Refactored `AppEngine.run` (`content/core/engine.py`) to invoke the new bootstrap method, flattening the execution flow and ensuring workspace initialization and setup occur cleanly after result resolution.
+    Reflection:
+    - Significantly cleans up the contract boundary between the engine and the TUI module.
+    - Eliminates repetitive boilerplate branching within the engine runner while keeping types explicit and type-checker friendly.

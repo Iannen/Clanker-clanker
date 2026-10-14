@@ -23,16 +23,6 @@ II. The pile
     - TUIService encapsulates incoming and outcoming communication with the user. the exit messages the engine uses should originate from here.
 
 Backlog tail, Selected item/items:
-1. Simplify TUIService bootup interface to a single bootstrap presentation method
-    [x] 'content/core/engine_deps/result.py': Update TUIService interface contract
-        - Replace confirm_start, confirm_clankerize, and inform_termination with a single method (e.g., run_bootstrap_ result) that takes the ingestion result and returns ExitResult | ClankerizeResult | StartResult
-    [x] 'content/modules/tui/tui_service.py': Implement the unified bootstrap presentation method
-        - Consolidate confirmation and termination logic into the single interface method
-    [x] 'content/core/engine.py': Update AppEngine run flow to use the single TUIService bootstrap method with deferred unpacking
-        - Delegate runtime config presentation to the new TUIService method and branch on resulting 'tui_res ' type (ExitResult, ClankerizeResult, StartResult)
-            - ExitResult : return tui_res.exit_msg'
-            - ClankerizeResult: start_res = session.initialize_workspace()
-            - StartResult: start_res = bootstrap_res
-        - Perform service setup and unpacking (`ui_render` and `kb`) once after the branching is complete and a guaranteed StartResult is available in start_res
+the next order of business is to move the 'copy to clipboard' functionality from TUIService over the Renderservice, which will be renamed to promptservice.
 
 Backlog tail end
