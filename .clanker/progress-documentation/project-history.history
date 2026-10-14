@@ -1240,3 +1240,17 @@ CLXIII: ELIMINATED HOTPROMPT EXCEPTIONS AND UNIFIED KEYBOARD COMMAND HANDLING WI
     Reflection:
     - Significantly streamlines the engine event loop, making state dispatch and rendering predictable and uniform.
     - Adheres strongly to the architecture of using explicit typed result objects across subsystem boundaries rather than relying on exceptions or ambiguous return tuples.
+
+CLXIV: DETACHED UI RENDERING BUSINESS FROM RENDER SERVICE TO TUI SERVICE AND CENTRALIZED ENGINE DEPENDENCIES
+    Purpose: Decouple UI rendering logic from `RenderService` and migrate it entirely into `TUIService` while centralizing engine dependencies to enforce clean separation of concerns.
+    - Ensure `TUIService` owns screen template parsing, button state rendering, and independent shaping logic.
+    - Relieve `RenderService` of any UI duties so it focuses strictly on prompt rendering pipelines.
+    - Consolidate service ABCs, Result classes, and related engine types.
+    Actions:
+    - Updated `TUIService` ABC and implementation to receive `ui_render`, maintain its own independent `ContentShaper`, and absorb internal UI string rendering and layout asset loading.
+    - Removed `set_ui_render`, `render_ui`, and associated UI helpers from `RenderService` and its implementation.
+    - Refactored `AppEngine.run` to pass `ui_render` to `TUIService` during bootstrap and directly supply `ui_render_ctx` and `action_res` to `tuiservice.display`.
+    - Consolidated engine dependencies into a unified structure.
+    Reflection:
+    - Significantly improves modularity by ensuring terminal UI presentation and layout formatting live completely within the TUI module, leaving `RenderService` dedicated solely to prompts.
+    - Streamlines the `AppEngine` event loop and reduces cross-service dependency friction.

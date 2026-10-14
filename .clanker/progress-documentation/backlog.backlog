@@ -24,16 +24,5 @@ II. The pile
 
 Backlog tail, Selected item/items:
 
-1. Detach UI rendering business from RenderService and make it the business of TUIService
-    [ ] 'content/core/engine_deps/tui.py' and 'content/modules/tui/tui_service.py': Update TUIService ABC and implementation
-        - add set_ui_render method to receive bootstrap_res.ui_render from AppEngine
-        - initialize an independent TUI shaper separate from PromptService's ContentShaper
-        - update display method to accept (ctx: UIRenderContext, msg: ActionResult) with return type None, absorbing internal UI rendering logic
-        - duplicate necessary UI rendering helpers and layout asset reading logic into TUIService implementation
-    [ ] 'content/core/engine_deps/render.py' and 'content/modules/render_pipeline/render_service.py': Update RenderService ABC and implementation
-        - remove set_ui_render method and UI-specific rendering code
-    [ ] 'content/core/engine.py': Update AppEngine workflow and loop
-        - configure and pass ui_render to TUIService instead of RenderService during bootstrap
-        - update main loop to pass ui_render_ctx and action_res directly to tuiservice.display
 
 Backlog tail end
