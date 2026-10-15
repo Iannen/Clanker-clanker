@@ -47,5 +47,13 @@ Backlog tail, Selected item/items:
         - Invoke prompt_service.render_prompt internally within prompt button handling
         - Return CommandResult directly containing the result message and UI context
 
+3. Introduce specific CommandResult subclasses carrying triggering button references
+    [x] 'content/core/engine_deps/result.py': Update CommandResult base class and define typed subclasses
+        - Add optional btn attribute (NewBtn | None) to CommandResult
+        - Define UnboundKeyResult, DomainSelectedResult, UninhabitedDomainResult, PromptRenderResult, and UninhabitedPromptResult subclasses inheriting from CommandResult
+    [x] 'content/modules/keyboard/keyboard_service.py': Return specific CommandResult subclasses with button references
+        - Update handle_cmd and private handlers to return UnboundKeyResult, DomainSelectedResult, UninhabitedDomainResult, PromptRenderResult, or UninhabitedPromptResult
+        - Attach the corresponding button instance to each command result
+
 
 Backlog tail end
