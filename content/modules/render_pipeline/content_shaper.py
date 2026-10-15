@@ -3,7 +3,7 @@ from core import TruncationSpec, NewBtn
 class SystemKeys:
     DELIM = "§"
 
-class ContentShaper:
+class PromptContentShaper:
     
     def apply_truncation(self, content: str, spec: TruncationSpec | None) -> str:
         if spec is None:

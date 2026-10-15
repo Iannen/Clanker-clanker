@@ -1,14 +1,14 @@
 from stdlib import dataclass
 from core import Render, Keyboard, DomButton, PromptButton, CorruptClanker, ClankerAssets
 from core.engine_deps import FrontendService, IOControl, TerminalPort, DiskPort, StartResult, ExitCommand, UserDeclinedStart, UserDeclinedClankerize, StartupFailed, UserAborted, Command, NoSuchFile, ClankerizeResult, TerminateResult, CommandResult
-from ..tui import TUIQuestions, ContentShaper
+from ..tui import TUIQuestions, TUIContentShaper
 @dataclass
 class TUIServiceImpl(FrontendService):
     io_bridge: TerminalPort
     files: DiskPort
 
     def __post_init__(self) -> None:
-        self.shaper: ContentShaper = ContentShaper()
+        self.shaper: TUIContentShaper = TUIContentShaper()
 
     def set_ui_render(self, ui_render: Render) -> None:
         pass

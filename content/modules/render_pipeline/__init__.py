@@ -1,1 +1,1 @@
-from .content_shaper import ContentShaper
+from .content_shaper import *

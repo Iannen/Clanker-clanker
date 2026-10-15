@@ -39,7 +39,7 @@ pud_filesets:
 pud_domains:
   report_to_user:
     resolvers:
-      - { anchor: repo_content, type: repo-content, fileset: ¤ kb_prompts_cleanup } 
+      - { anchor: repo_content, type: repo-content, fileset: ¤ report_to_user } 
 
     prompts:
       - name: plan

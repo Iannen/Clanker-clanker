@@ -32,5 +32,19 @@ Backlog tail, Selected item/items:
     [x] 'content/modules/keyboard/keyboard_service.py': Remove _get_hot_prompt_context method
         - Ensure KBServiceImpl purely handles UI state determination and instantiates the correct context subclass
 
+next item: 
+
+4. Refactor presentation mapping into ContentShaper and remove ActionResult from the system
+    [ ] 'content/modules/render_pipeline/content_shaper.py': Implement command result presentation mapping
+        - Add shape_command_result method accepting CommandResult and matching on its subtypes to build the message string
+        - Format and return the final string using shape_action_result
+    [ ] 'content/modules/tui/tui_service.py': Update exchange to use ContentShaper's result formatting
+        - Replace manual msg extraction with a direct call to shaper.shape_command_result(command_result)
+    [ ] 'content/core/engine_deps/result.py': Remove ActionResult and clean up CommandResult definitions
+        - Delete ActionResult class
+        - Remove msg attribute from CommandResult
+    [ ] 'content/modules/keyboard/keyboard_service.py': Remove ActionResult instantiation from command handlers
+        - Eliminate all ActionResult creations and msg keyword arguments across setup and command handling methods
+
 
 Backlog tail end

@@ -12,7 +12,7 @@ from core import (
 )
 from stdlib import dataclass
 from core.engine_deps import PromptService, RenderContext, DiskPort, TerminalPort, NoSuchFile, StandardRenderContext, HotRenderContext
-from . import ContentShaper
+from . import PromptContentShaper
 
 @dataclass(slots=True)
 class PromptServiceImpl(PromptService):
@@ -20,7 +20,7 @@ class PromptServiceImpl(PromptService):
     io_bridge: TerminalPort
 
     def __post_init__(self) -> None:
-        self.shaper: ContentShaper = ContentShaper()
+        self.shaper: PromptContentShaper = PromptContentShaper()
 
     def render_prompt(self, ctx: RenderContext) -> tuple[int, int]:
         template = self._get_template(ctx)
