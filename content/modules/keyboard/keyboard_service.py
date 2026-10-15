@@ -1,15 +1,27 @@
 from stdlib import dataclass
 from core import (
     ActionResult,
-    Filelist,
-    MultiDocResolver,
-    Prompt,
-    Render,
     Keyboard,
     DomButton,
     PromptButton,
+    Prompt,
+    Render
 )
-from core.engine_deps import KBService, PromptService, RenderContext, UIRenderContext, Command, CommandResult, DomainSelectedResult, UnboundKeyResult, PromptRenderResult, UninhabitedPromptResult, UninhabitedDomainResult, BootstrapSuccess
+from core.engine_deps import (
+    KBService,
+    PromptService,
+    UIRenderContext,
+    Command,
+    CommandResult,
+    DomainSelectedResult,
+    UnboundKeyResult,
+    PromptRenderResult,
+    UninhabitedPromptResult,
+    UninhabitedDomainResult,
+    BootstrapSuccess,
+    StandardRenderContext,
+    HotRenderContext,
+)
 
 @dataclass(slots=True)
 class KBServiceImpl(KBService):
@@ -20,7 +32,7 @@ class KBServiceImpl(KBService):
         self.ui_render: Render = start_res.ui_render
         self.last_prompt: Prompt | None = None
         msg = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)
-        return BootstrapSuccess(ctx=self.get_ui_context(), msg=msg)
+        return BootstrapSuccess(ctx=self.get_ui_context(), msg=msg, cmd=getattr(start_res, "cmd", None))
 
     def get_ui_context(self) -> UIRenderContext:
         return UIRenderContext(
@@ -28,44 +40,11 @@ class KBServiceImpl(KBService):
             ui_render=self.ui_render
         )
 
-    def _get_hot_prompt_context(self) -> RenderContext:
-        template = self.last_prompt.render.template
-        domain_resolvers = self.kb.selected_dom_btn.inhabitant.resolvers
-        prompt_resolvers = self.last_prompt.render.resolvers
-
-        md_resolvers = [
-            r for r in (domain_resolvers + prompt_resolvers)
-            if isinstance(r, MultiDocResolver)
-        ]
-
-        instruction_files = [
-            f for r in md_resolvers
-            for f in r.files.files
-            if f.name.endswith(".mode_instruction") or f.name.endswith(".output_instruction") or f.name.endswith(".history")
-        ]
-
-        lone_resolver = MultiDocResolver(
-            anchor="prompt_fragments",
-            files=Filelist(None, files=instruction_files)
-        )
-
-        ephemeral_render = Render(
-            template=template,
-            resolvers=[lone_resolver],
-            inherit_base=False,
-            inherit_domain=False
-        )
-        self.last_prompt = None
-        return RenderContext(
-            kb=self.kb,
-            render=ephemeral_render,
-        )
-
     def handle_cmd(self, cmd: Command) -> CommandResult:
         btn = self.kb.get(cmd.char)
         if btn is None:
             msg = ActionResult(ActionResult.UNBOUND_KEY.format(key=cmd.char))
-            return UnboundKeyResult(ctx=self.get_ui_context(), msg=msg)
+            return UnboundKeyResult(ctx=self.get_ui_context(), msg=msg, cmd=cmd)
         match(btn):
             case(DomButton()): return self._handle_dom_btn(btn, cmd)
             case(PromptButton()): return self._handle_prompt_btn(btn, cmd)
@@ -77,21 +56,26 @@ class KBServiceImpl(KBService):
         for p_ptn in prompt_btns: p_ptn.inhabitant = None
         if not btn.inhabitant:
             msg = ActionResult(ActionResult.KEY_EMPTY)
-            return UninhabitedDomainResult(ctx=self.get_ui_context(), msg=msg, btn=btn)
+            return UninhabitedDomainResult(ctx=self.get_ui_context(), msg=msg, btn=btn, cmd=cmd)
         for prompt_btn, prompt in zip(prompt_btns, btn.inhabitant.prompts):
             prompt_btn.inhabitant = prompt
         msg = ActionResult(ActionResult.DOMAIN_SELECTED.format(domain=btn.inhabitant.name, key=btn.key))
-        return DomainSelectedResult(ctx=self.get_ui_context(), msg=msg, btn=btn)
+        return DomainSelectedResult(ctx=self.get_ui_context(), msg=msg, btn=btn, cmd=cmd)
 
     def _handle_prompt_btn(self, btn: PromptButton, cmd: Command) -> CommandResult:
         if self.last_prompt is not None and btn.inhabitant == self.last_prompt:
-            ctx = self._get_hot_prompt_context()
-            msg = self.prompt_service.render_prompt(ctx)
-            return PromptRenderResult(ctx=self.get_ui_context(), msg=msg, btn=btn)
+            ctx = HotRenderContext(kb=self.kb, prompt=self.last_prompt)
+            self.last_prompt = None
+            lines, chars = self.prompt_service.render_prompt(ctx)
+            msg = ActionResult(ActionResult.COPIED_TO_CLIPBOARD.format(lines=lines, chars=chars))
+            return PromptRenderResult(ctx=self.get_ui_context(), msg=msg, btn=btn, lines=lines, chars=chars, cmd=cmd)
+            
         self.last_prompt = btn.inhabitant
         if btn.inhabitant is None:
             msg = ActionResult(ActionResult.UNBOUND_KEY.format(key=btn.key))
-            return UninhabitedPromptResult(ctx=self.get_ui_context(), msg=msg, btn=btn)
-        ctx = RenderContext(self.kb, btn.inhabitant.render)
-        msg = self.prompt_service.render_prompt(ctx)
-        return PromptRenderResult(ctx=self.get_ui_context(), msg=msg, btn=btn)
+            return UninhabitedPromptResult(ctx=self.get_ui_context(), msg=msg, btn=btn, cmd=cmd)
+            
+        ctx = StandardRenderContext(kb=self.kb, prompt=btn.inhabitant)
+        lines, chars = self.prompt_service.render_prompt(ctx)
+        msg = ActionResult(ActionResult.COPIED_TO_CLIPBOARD.format(lines=lines, chars=chars))
+        return PromptRenderResult(ctx=self.get_ui_context(), msg=msg, btn=btn, lines=lines, chars=chars, cmd=cmd)

@@ -1,5 +1,5 @@
 from stdlib import dataclass, ABC, abstractmethod, Any, Field
-from core import Render, ActionResult, Keyboard, File, DomButton, PromptButton
+from core import Render, ActionResult, Keyboard, File, DomButton, PromptButton, Prompt
 
 # services
 class IngestionService(ABC): 
@@ -38,31 +38,36 @@ class Result:
     @property
     def types(self) -> tuple[type, ...]: return type(self).__mro__
 
-@dataclass
-class Command(Result): char: str
+@dataclass(slots=True)
+class Command(Result):
+    char: str
 
-@dataclass
+@dataclass(slots=True)
 class CommandResult(Result):
     ctx: UIRenderContext
     msg: ActionResult
+    cmd: Command
 
-@dataclass
+@dataclass(slots=True)
 class BootstrapSuccess(CommandResult): pass
 
-@dataclass
+@dataclass(slots=True)
 class UnboundKeyResult(CommandResult): pass
 
-@dataclass
+@dataclass(slots=True)
 class DomainSelectedResult(CommandResult): btn: DomButton
 
-@dataclass
+@dataclass(slots=True)
 class UninhabitedDomainResult(CommandResult): btn: DomButton
 
-@dataclass
-class PromptRenderResult(CommandResult): btn: PromptButton
-
-@dataclass
+@dataclass(slots=True)
 class UninhabitedPromptResult(CommandResult): btn: PromptButton
+
+@dataclass(slots=True)
+class PromptRenderResult(CommandResult):
+    btn: PromptButton
+    lines: int
+    chars: int
 
 
 class ExitCommand: exit_msg: str = ""
@@ -87,7 +92,14 @@ class TerminateResult(IngestionResult): pass
 @dataclass
 class RenderContext:
     kb: Keyboard
-    render: Render
+
+@dataclass(slots=True)
+class StandardRenderContext(RenderContext):
+    prompt: Prompt = None
+
+@dataclass(slots=True)
+class HotRenderContext(RenderContext):
+    prompt: Prompt = None
 
 @dataclass
 class UIRenderContext:

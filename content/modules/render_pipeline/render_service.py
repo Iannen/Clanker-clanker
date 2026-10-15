@@ -5,14 +5,13 @@ from core import (
     ManifestResolver,
     MultiDocResolver,
     PathTokens,
-    Render,
     RepoContentResolver,
     Resolver,
     ConfigAssembly,
+    Filelist,
 )
 from stdlib import dataclass
-from core import ActionResult
-from core.engine_deps import PromptService, RenderContext, DiskPort, TerminalPort, NoSuchFile
+from core.engine_deps import PromptService, RenderContext, DiskPort, TerminalPort, NoSuchFile, StandardRenderContext, HotRenderContext
 from . import ContentShaper
 
 @dataclass(slots=True)
@@ -23,30 +22,63 @@ class PromptServiceImpl(PromptService):
     def __post_init__(self) -> None:
         self.shaper: ContentShaper = ContentShaper()
 
-    def render_prompt(self, ctx: RenderContext) -> ActionResult:
-        template = self._get_template(ctx.render)
+    def render_prompt(self, ctx: RenderContext) -> tuple[int, int]:
+        template = self._get_template(ctx)
         repl_map = self._get_repl_map(ctx)
         text_content = self._hydrate(template, repl_map)
         lines_count = self.io_bridge.to_clipboard(text_content)
         char_count = len(text_content)
-        return ActionResult(ActionResult.COPIED_TO_CLIPBOARD.format(lines=lines_count, chars=char_count))
+        return lines_count, char_count
 
     def _hydrate(self, template: str, replacements: dict[str, str]) -> str:
         return self.shaper.hydrate(template, replacements)
 
-    def _get_template(self, render: Render) -> str:
+    def _get_template(self, ctx: RenderContext) -> str:
+        match ctx:
+            case StandardRenderContext() | HotRenderContext():
+                template_name = ctx.prompt.render.template
+            case _:
+                template_name = ctx.render.template
+
         try:
-            match render.template:
+            match template_name:
                 case "prompt_template":
                     return self.files.read_asset(ClankerAssets.layouts.PROMPT)
         except NoSuchFile as ex:
-            raise CorruptClanker(f"Error loading template for '{render.template}': {ex}") from ex
+            raise CorruptClanker(f"Error loading template for '{template_name}': {ex}") from ex
 
     def _get_repl_map(self, ctx: RenderContext) -> dict[str, str]:
         active_resolvers: list[Resolver] = []
-        if ctx.render.inherit_domain:
-            if ctx.kb.selected_dom_btn: active_resolvers.extend(ctx.kb.selected_dom_btn.inhabitant.resolvers)
-        active_resolvers.extend(ctx.render.resolvers)
+        match ctx:
+            case StandardRenderContext():
+                if ctx.prompt.render.inherit_domain and ctx.kb.selected_dom_btn:
+                    active_resolvers.extend(ctx.kb.selected_dom_btn.inhabitant.resolvers)
+                active_resolvers.extend(ctx.prompt.render.resolvers)
+            case HotRenderContext():
+                domain_resolvers = ctx.kb.selected_dom_btn.inhabitant.resolvers if ctx.kb.selected_dom_btn else []
+                prompt_resolvers = ctx.prompt.render.resolvers
+
+                md_resolvers = [
+                    r for r in (domain_resolvers + prompt_resolvers)
+                    if isinstance(r, MultiDocResolver)
+                ]
+
+                instruction_files = [
+                    f for r in md_resolvers
+                    for f in r.files.files
+                    if f.name.endswith(".mode_instruction") or f.name.endswith(".output_instruction") or f.name.endswith(".history")
+                ]
+
+                lone_resolver = MultiDocResolver(
+                    anchor="prompt_fragments",
+                    files=Filelist(None, files=instruction_files)
+                )
+                active_resolvers.append(lone_resolver)
+            case _:
+                if ctx.render.inherit_domain and ctx.kb.selected_dom_btn:
+                    active_resolvers.extend(ctx.kb.selected_dom_btn.inhabitant.resolvers)
+                active_resolvers.extend(ctx.render.resolvers)
+
         replacements: dict[str, str] = {}
         for resolver in active_resolvers:
             match resolver:
