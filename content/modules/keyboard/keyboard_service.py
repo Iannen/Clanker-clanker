@@ -55,7 +55,7 @@ class KBServiceImpl(KBService):
             inherit_base=False,
             inherit_domain=False
         )
-        self.active_prompt_key = self.last_prompt = None
+        self.last_prompt = None
         return RenderContext(
             kb=self.kb,
             render=ephemeral_render,

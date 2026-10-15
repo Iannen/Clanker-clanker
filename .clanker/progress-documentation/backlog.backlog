@@ -24,5 +24,12 @@ II. The pile
 
 Backlog tail, Selected item/items:
 
+1. Refactor hot prompt construction into prompt service using a base RenderContext (with Prompt) and semantic subclasses
+    [ ] 'content/modules/keyboard/keyboard_service.py': Remove ephemeral hot prompt assembly, use StandardRenderContext and HotRenderContext carrying prompt
+    [ ] 'content/modules/render_pipeline/render_service.py': Implement pattern matching on semantic context subclasses to build standard vs hot resolvers and templates
+        - Introduce RenderContext baseclass containing prompt and kb, with semantic subclasses StandardRenderContext and HotRenderContext
+        - Shift instruction file filtering and ephemeral resolver assembly logic from KBServiceImpl to PromptServiceImpl
+    [ ] 'content/modules/keyboard/keyboard_service.py': Remove _get_hot_prompt_context method
+        - Ensure KBServiceImpl purely handles UI state determination and instantiates the correct context subclass
 
 Backlog tail end
