@@ -23,44 +23,16 @@ II. The pile
     - TUIService encapsulates incoming and outcoming communication with the user. the exit messages the engine uses should originate from here.
 
 
-1. Rename RenderService to PromptService, convert to a dataclass, and wire TerminalPort dependency
-    [x] 'clanker.py': Update service instantiation and dependency injection wiring
-        - instantiate PromptServiceImpl with both files_adapter and io_adapter
-        - pass prompt_service into AppEngine instead of renderer
-    [x] 'content/core/engine.py': Update AppEngine definition and type annotations
-        - replace renderer field with prompt_service of type PromptService
-        - update imports from engine_deps to use PromptService instead of RenderService
-    [x] 'content/core/engine_deps/result.py': Rename RenderService abstract base class
-        - rename class RenderService(ABC) to PromptService(ABC)
-    [x] 'content/modules/render_pipeline/render_service.py': Refactor RenderServiceImpl into PromptServiceImpl
-        - decorate with @dataclass(slots=True) and inherit from PromptService
-        - add terminal: TerminalPort field to receive the terminal port dependency
-    [x] 'content/modules/tui/tui_service.py': Remove clipboard handling method
-        - remove to_clipboard method as responsibility transfers to PromptServiceImpl
-
-2. Encapsulate UI render context handling within KBService and UIRenderContext
-    [x] 'content/core/engine_deps/result.py': Update UIRenderContext and KBService contract
-        - add ui_render: Render to UIRenderContext
-        - change KBService.setup parameter type from Keyboard to StartResult
-    [x] 'content/core/engine.py': Simplify bootstrap service handoff
-        - remove self.io.set_ui_render call
-        - pass start_res directly to self.kb_service.setup
-    [x] 'content/modules/keyboard/keyboard_service.py': Update KBServiceImpl setup and context generation
-        - extract and store ui_render from StartResult in setup
-        - pass ui_render along with kb when instantiating UIRenderContext
-    [x] 'content/modules/tui/tui_service.py': Remove direct ui_render state management
-        - remove set_ui_render method and _ui_render instance attribute
-        - retrieve template source directly from ctx.ui_render in display
-
-3. Refactor bootstrap sequence into a robust while loop and introduce semantic ExitResult subclasses
-    [x] 'content/core/engine_deps/result.py': Define ExitResult and semantic subclasses
-        - create ExitResult base class and subclasses UserDeclinedStart, UserDeclinedClankerize, StartupFailed, UserAborted
-    [x] 'content/core/engine.py': Implement robust bootstrap loop and type-safe exit checking
-        - wrap runtime config check and user confirmation in a while True loop using single-line if/elif/elif/else statements
-        - reassign bootstrap_res on ClankerizeResult to re-evaluate initialized workspace
-        - check exit results using isinstance(cmd_result, ExitResult)
-    [x] 'content/modules/tui/tui_service.py': Use semantic exit results instead of raw strings
-        - return specialized ExitResult instances from run_bootstrap_result and get_cmd
 Backlog tail, Selected item/items:
-see multiline comment about results not carrying str on them, but the tui system interpreting them into strs as appropriate for ui renders
+
+1. Rename and unify frontend interaction methods in engine and result ports
+    [ ] 'content/core/engine_deps/result.py': Rename TUIService to FrontendService and replace display/get_cmd with exchange
+        - Define abstract method exchange(self, ctx: UIRenderContext, msg: ActionResult) -> Command | ExitResult
+        - Remove separate display and get_cmd abstract methods
+    [ ] 'content/core/engine.py': Update AppEngine runtime loop to invoke frontend.exchange and rename cmd_result to command
+        - Replace separate display and get_cmd calls with a single exchange call receiving ui_data and action_res
+        - Rename local variable cmd_result to command and handle it in command handling logic
+    [ ] 'content/modules/tui/tui_service.py': Implement FrontendService and combine display and get_cmd into exchange
+        - Implement the unified exchange method handling UI rendering, writing, and character reading in a single pass
+
 Backlog tail end

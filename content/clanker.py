@@ -47,7 +47,7 @@ def main():
     kb_service = KBServiceImpl()
 
     engine = AppEngine(
-        io=io,
+        frontend=io,
         session=ingestion,
         prompt_service=prompt_service,
         kb_service=kb_service

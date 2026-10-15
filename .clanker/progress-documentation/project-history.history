@@ -1266,3 +1266,17 @@ CLXV: SIMPLIFYING TUISERVICE BOOTUP INTERFACE TO A SINGLE BOOTSTRAP PRESENTATION
     Reflection:
     - Significantly cleans up the contract boundary between the engine and the TUI module.
     - Eliminates repetitive boilerplate branching within the engine runner while keeping types explicit and type-checker friendly.
+
+CLXVI: MODERNIZING ENGINE ARCHITECTURE, SERVICE CONTRACTS, AND BOOTSTRAP LIFECYCLE
+    Purpose: Streamline core service contracts by decoupling prompt generation, encapsulating UI render state within keyboard management, and replacing raw control flows with a robust, type-safe bootstrap loop and semantic exit results.
+    - Decouple terminal UI rendering from prompt handling by formalizing PromptService with direct TerminalPort dependency injection.
+    - Centralize UI render context management directly within KBService and UIRenderContext to remove messy state handoffs.
+    - Enforce type-safe lifecycle management and error handling during engine startup through structured ExitResult subclasses and a robust while loop.
+    Actions:
+    - Renamed RenderService to PromptServiceImpl, converted it to a dataclass, and wired the TerminalPort dependency along with updating AppEngine and clanker.py wiring.
+    - Updated UIRenderContext and KBService contract to handle ui_render natively, removing direct set_ui_render state management from TUIService.
+    - Defined semantic ExitResult subclasses (UserDeclinedStart, UserDeclinedClankerize, StartupFailed, UserAborted) and refactored AppEngine.run into a robust while loop checking isinstance(cmd_result, ExitResult).
+    - Updated TUIServiceImpl to return specialized ExitResult instances from bootstrap and command routines.
+    Reflection:
+    - Significantly improves modularity and separation of concerns across core engine services and adapters.
+    - Drastically enhances error handling robustness and type safety during workspace initialization and application bootstrapping.

@@ -1,9 +1,9 @@
 from stdlib import dataclass
-from core import ActionResult, Render, Keyboard, DomButton, PromptButton, CorruptClanker, ClankerAssets
-from core.engine_deps import TUIService, IOControl, TerminalPort, DiskPort, StartResult, ExitResult, UserDeclinedStart, UserDeclinedClankerize, StartupFailed, UserAborted, Command, UIRenderContext, NoSuchFile, ClankerizeResult, TerminateResult
+from core import Render, Keyboard, DomButton, PromptButton, CorruptClanker, ClankerAssets
+from core.engine_deps import FrontendService, IOControl, TerminalPort, DiskPort, StartResult, ExitResult, UserDeclinedStart, UserDeclinedClankerize, StartupFailed, UserAborted, Command, UIRenderContext, NoSuchFile, ClankerizeResult, TerminateResult
 from ..tui import TUIQuestions, ContentShaper
 @dataclass
-class TUIServiceImpl(TUIService):
+class TUIServiceImpl(FrontendService):
     io_bridge: TerminalPort
     files: DiskPort
 
@@ -13,21 +13,21 @@ class TUIServiceImpl(TUIService):
     def set_ui_render(self, ui_render: Render) -> None:
         pass
 
-    def display(self, ctx: UIRenderContext, msg: ActionResult) -> None:
+    def exchange(self, ctx: UIRenderContext, msg) -> Command | ExitResult:
         template = self._get_template(ctx.ui_render)
         repl_map = self._res_ui(ctx.kb)
         repl_map["msg"] = self.shaper.shape_action_result(msg.message)
-        ui_string = self._hydrate(template, repl_map)
+        ui_string = self.shaper.hydrate(template, repl_map)
         self.io_bridge.write(f"{ui_string}\n")
 
-    def _hydrate(self, template: str, replacements: dict[str, str]) -> str:
-        return self.shaper.hydrate(template, replacements)
+        ch = self.io_bridge.read_char()
+        if ch in IOControl.ABORT_KEYS:
+            return UserAborted()
+        return Command(char=ch.lower())
 
     def _get_template(self, render: Render) -> str:
         try:
-            match render.template:
-                case "ui_template":
-                    return self.files.read_asset(ClankerAssets.layouts.UI)
+            return self.files.read_asset(ClankerAssets.layouts.UI)
         except NoSuchFile as ex:
             raise CorruptClanker(f"Error loading template for '{render.template}': {ex}") from ex
 
@@ -45,7 +45,7 @@ class TUIServiceImpl(TUIService):
             repl_map |= self.shaper.shape_button_replacements(btn, label, template)
         for btn in kb.get_btns(PromptButton):
             label = btn.inhabitant.name if btn.inhabitant else ""
-            template = btn_active if btn.inhabitant else btn_inactive  
+            template = btn_active if btn.inhabitant else btn_inactive   
             repl_map |= self.shaper.shape_button_replacements(btn, label, template)
             
         return repl_map
