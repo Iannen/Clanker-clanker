@@ -34,7 +34,18 @@ Backlog tail, Selected item/items:
     [x] 'content/modules/tui/tui_service.py': Implement FrontendService and combine display and get_cmd into exchange
         - Implement the unified exchange method handling UI rendering, writing, and character reading in a single pass
 
-so now the next move is to make the promptrederservice a dependency of the kb service, and not engine.
-this will allow kbservice to step into its role as a producer of commandresults
+2. Make PromptService a dependency of KBService and return CommandResult directly from handle_cmd
+    [x] 'content/core/engine_deps/result.py': Update KBService port and simplify result types
+        - Update KBService abstract interface to accept PromptService during setup or initialization
+        - Update handle_cmd return type to return CommandResult directly
+        - Clean up intermediate result types (such as PromptRenderResult) if they are no longer required
+    [x] 'content/core/engine.py': Remove prompt_service dependency from AppEngine and simplify runtime loop
+        - Remove prompt_service from AppEngine initialization and fields
+        - Simplify the runtime loop to pass commands directly to kb_service.handle_cmd and receive a CommandResult
+    [x] 'content/modules/keyboard/keyboard_service.py': Inject PromptService via setup and produce CommandResult in handle_cmd
+        - Update KBServiceImpl setup method to receive and store PromptService
+        - Invoke prompt_service.render_prompt internally within prompt button handling
+        - Return CommandResult directly containing the result message and UI context
+
 
 Backlog tail end

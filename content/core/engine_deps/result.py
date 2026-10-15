@@ -24,7 +24,7 @@ class KBService(ABC):
     @abstractmethod
     def setup(self, start_res: StartResult) -> None: ...
     @abstractmethod
-    def handle_cmd(self, cmd: Command) -> Result: ...
+    def handle_cmd(self, cmd: Command) -> CommandResult: ...
     @abstractmethod
     def get_ui_context(self) -> UIRenderContext: ...
 
@@ -52,7 +52,7 @@ class UserDeclinedStart(ExitCommand): exit_msg = "Bootstrap declined by user"
 class UserDeclinedClankerize(ExitCommand): exit_msg = "User declined to clankerize project"
 class StartupFailed(ExitCommand): exit_msg = "Program could not start"
 class UserAborted(ExitCommand): exit_msg = "Program exited"
-
+"""
 @dataclass 
 class NullCommandResult(Result): message: ActionResult
 @dataclass 
@@ -65,7 +65,7 @@ class UninhabitatedPromptResult(Result): message: ActionResult
 
 @dataclass
 class PromptRenderResult(Result): ctx: RenderContext
-
+"""
 @dataclass
 class IngestionResult(Result): report: Report
 @dataclass

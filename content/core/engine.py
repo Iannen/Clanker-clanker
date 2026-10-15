@@ -1,12 +1,11 @@
 from stdlib import dataclass
 from core import ActionResult
-from core.engine_deps import IngestionService, KBService, PromptService, FrontendService, StartResult, ClankerizeResult, ExitCommand, PromptRenderResult, CommandResult
+from core.engine_deps import IngestionService, KBService, FrontendService, StartResult, ClankerizeResult, ExitCommand, CommandResult
 
 @dataclass(slots=True)
 class AppEngine:
     frontend: FrontendService
     session: IngestionService
-    prompt_service: PromptService
     kb_service: KBService
 
     def run(self) -> str:        
@@ -30,11 +29,4 @@ class AppEngine:
         while True:
             command = self.frontend.exchange(command_result)
             if isinstance(command, ExitCommand): return command.exit_msg
-            data_res = self.kb_service.handle_cmd(command)
-            if isinstance(data_res, PromptRenderResult): 
-                action_res = self.prompt_service.render_prompt(data_res.ctx)
-            else: action_res = data_res
-            command_result = CommandResult(
-                ctx=self.kb_service.get_ui_context(),
-                msg=action_res
-            )
+            command_result = self.kb_service.handle_cmd(command)

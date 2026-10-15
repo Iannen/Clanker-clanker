@@ -44,12 +44,11 @@ def main():
     ingestion = IngestionServiceImpl(files=files_adapter, cfg_ingestor=cfg_ingestor)
     prompt_service = PromptServiceImpl(files=files_adapter, io_bridge=io_adapter)
     io = TUIServiceImpl(io_adapter, files_adapter)
-    kb_service = KBServiceImpl()
+    kb_service = KBServiceImpl(prompt_service=prompt_service)
 
     engine = AppEngine(
         frontend=io,
         session=ingestion,
-        prompt_service=prompt_service,
         kb_service=kb_service
     )
     try: 

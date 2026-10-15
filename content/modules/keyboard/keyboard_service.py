@@ -1,3 +1,4 @@
+from stdlib import dataclass
 from core import (
     ActionResult,
     Filelist,
@@ -8,9 +9,12 @@ from core import (
     DomButton,
     PromptButton,
 )
-from core.engine_deps import KBService, RenderContext, UIRenderContext, Command, Result, PromptRenderResult, NullCommandResult, DomainSelectedResult, UninhabitatedDomainResult, UninhabitatedPromptResult
+from core.engine_deps import KBService, PromptService, RenderContext, UIRenderContext, Command, CommandResult
 
+@dataclass(slots=True)
 class KBServiceImpl(KBService):
+    prompt_service: PromptService
+
     def setup(self, start_res) -> None:
         self.kb: Keyboard = start_res.kb
         self.ui_render: Render = start_res.ui_render
@@ -55,30 +59,37 @@ class KBServiceImpl(KBService):
             render=ephemeral_render,
         )
 
-    def handle_cmd(self, cmd: Command) -> Result:
+    def handle_cmd(self, cmd: Command) -> CommandResult:
         btn = self.kb.get(cmd.char)
         if btn is None:
-            return NullCommandResult(ActionResult.UNBOUND_KEY.format(key=cmd.char))
+            msg = ActionResult(ActionResult.UNBOUND_KEY.format(key=cmd.char))
+            return CommandResult(ctx=self.get_ui_context(), msg=msg)
         match(btn):
             case(DomButton()): return self._handle_dom_btn(btn)
             case(PromptButton()): return self._handle_prompt_btn(btn)
 
-    def _handle_dom_btn(self, btn):
+    def _handle_dom_btn(self, btn) -> CommandResult:
         self.kb.set_selected_dom_btn(btn)
         self.last_prompt = None    
         prompt_btns = self.kb.get_btns(PromptButton)
         for p_ptn in prompt_btns: p_ptn.inhabitant = None
         if not btn.inhabitant:
-            return UninhabitatedDomainResult(ActionResult.KEY_EMPTY)
+            msg = ActionResult(ActionResult.KEY_EMPTY)
+            return CommandResult(ctx=self.get_ui_context(), msg=msg)
         for prompt_btn, prompt in zip(prompt_btns, btn.inhabitant.prompts):
             prompt_btn.inhabitant = prompt
-        return DomainSelectedResult(ActionResult.DOMAIN_SELECTED.format(domain=btn.inhabitant.name, key=btn.key))
+        msg = ActionResult(ActionResult.DOMAIN_SELECTED.format(domain=btn.inhabitant.name, key=btn.key))
+        return CommandResult(ctx=self.get_ui_context(), msg=msg)
 
-    def _handle_prompt_btn(self, btn) -> PromptRenderResult:
+    def _handle_prompt_btn(self, btn) -> CommandResult:
         if self.last_prompt is not None and btn.inhabitant == self.last_prompt:
-            return PromptRenderResult(self._get_hot_prompt_context())
+            ctx = self._get_hot_prompt_context()
+            msg = self.prompt_service.render_prompt(ctx)
+            return CommandResult(ctx=self.get_ui_context(), msg=msg)
         self.last_prompt = btn.inhabitant
         if btn.inhabitant is None:
-            return UninhabitatedPromptResult(ActionResult.UNBOUND_KEY.format(key=btn.key))
+            msg = ActionResult(ActionResult.UNBOUND_KEY.format(key=btn.key))
+            return CommandResult(ctx=self.get_ui_context(), msg=msg)
         ctx = RenderContext(self.kb, btn.inhabitant.render)
-        return PromptRenderResult(ctx)
+        msg = self.prompt_service.render_prompt(ctx)
+        return CommandResult(ctx=self.get_ui_context(), msg=msg)
