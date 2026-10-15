@@ -24,27 +24,4 @@ II. The pile
 
 Backlog tail, Selected item/items:
 
-1. Refactor hot prompt construction into prompt service using a base RenderContext (with Prompt) and semantic subclasses
-    [x] 'content/modules/keyboard/keyboard_service.py': Remove ephemeral hot prompt assembly, use StandardRenderContext and HotRenderContext carrying prompt
-    [x] 'content/modules/render_pipeline/render_service.py': Implement pattern matching on semantic context subclasses to build standard vs hot resolvers and templates
-        - Introduce RenderContext baseclass containing prompt and kb, with semantic subclasses StandardRenderContext and HotRenderContext
-        - Shift instruction file filtering and ephemeral resolver assembly logic from KBServiceImpl to PromptServiceImpl
-    [x] 'content/modules/keyboard/keyboard_service.py': Remove _get_hot_prompt_context method
-        - Ensure KBServiceImpl purely handles UI state determination and instantiates the correct context subclass
-
-next item: 
-
-4. Refactor presentation mapping into TUIContentShaper using ActionResultCopy and remove ActionResult from the system
-    [ ] 'content/modules/render_pipeline/content_shaper.py': Implement ActionResultCopy and TUIContentShaper presentation mapping
-- Define ActionResultCopy class containing all presentation message templates previously in ActionResult
-- Implement TUIContentShaper with shape_command_result method accepting CommandResult and matching on subtypes to return formatted strings
-    [ ] 'content/core/engine_deps/result.py': Remove ActionResult and clean up CommandResult definitions
-- Delete ActionResult class
-  - Remove msg attribute from CommandResult
-    [ ] 'content/modules/keyboard/keyboard_service.py': Remove ActionResult instantiation from command handlers
-- Eliminate all ActionResult creations and msg keyword arguments across setup and command handling methods
-    [ ] 'content/modules/tui/tui_service.py': Update frontend exchange to use TUIContentShaper result formatting
-- Replace manual message extraction with a direct call to shaper.shape_command_result(command_result)
-
-
 Backlog tail end

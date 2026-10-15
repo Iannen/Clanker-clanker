@@ -1294,3 +1294,16 @@ CLXVII: UNIFYING TUI EXCHANGE, KEYBOARD-MANAGED PROMPT RENDERING, AND TYPED COMM
     Reflection:
     - Drastically simplifies the AppEngine runtime loop, converting it into a clean, lightweight dispatcher.
     - Enhances maintainability and type safety by modeling distinct UI interaction outcomes as explicit, self-contained result classes.
+
+CLXVIII: REFACTORING CONTEXT-DRIVEN PROMPT RENDERING AND TUI PRESENTATION MAPPING
+    Purpose: Consolidate prompt rendering contextual semantics and decouple presentation string formatting from engine results into TUIContentShaper.
+    - Streamline hot and standard prompt rendering by introducing semantic subclasses (StandardRenderContext, HotRenderContext) over a base RenderContext carrying prompts.
+    - Shift file filtering and resolver assembly logic cleanly into PromptServiceImpl, and encapsulate TUI presentation message formatting via ActionResultCopy within TUIContentShaper.
+    Actions:
+    - Introduced semantic RenderContext subclasses to differentiate standard vs. hot prompt rendering behavior in PromptServiceImpl.
+    - Removed ephemeral hot prompt assembly and obsolete context methods from KBServiceImpl.
+    - Implemented shape_command_result pattern matching on CommandResult subtypes in TUIContentShaper using ActionResultCopy.
+    - Stripped deprecated msg attributes from CommandResult and removed all direct ActionResult instantiations from keyboard service commands.
+    Reflection:
+    - Achieves a cleaner separation of concerns by isolating prompt resolution pipeline mechanics within PromptService and UI presentation text generation within TUIContentShaper.
+    - Fully deprecates direct ActionResult usage in favor of structured TUI shaper mapping.

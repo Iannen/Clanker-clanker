@@ -1,5 +1,5 @@
 from stdlib import dataclass, ABC, abstractmethod, Any, Field
-from core import Render, ActionResult, Keyboard, File, DomButton, PromptButton, Prompt
+from core import Render, Keyboard, File, DomButton, PromptButton, Prompt
 
 # services
 class IngestionService(ABC): 
@@ -18,7 +18,7 @@ class FrontendService(ABC):
 
 class PromptService(ABC):
     @abstractmethod
-    def render_prompt(self, ctx: RenderContext) -> ActionResult: ...
+    def render_prompt(self, ctx: RenderContext): ...
 
 class KBService(ABC):
     @abstractmethod
@@ -45,7 +45,6 @@ class Command(Result):
 @dataclass(slots=True)
 class CommandResult(Result):
     ctx: UIRenderContext
-    msg: ActionResult
     cmd: Command
 
 @dataclass(slots=True)

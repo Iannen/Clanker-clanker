@@ -2,7 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Callable, Self
 
 from core.engine_deps import IOControl
-from core import RepoContract, ActionResult
+from core import RepoContract
+from modules.tui import ActionResult
 from core.engine_deps import UserDeclinedClankerize
 from adapters.terminal.scripted_terminal_adapter import TestSequenceEnded
 from base_classes import AssertSuite

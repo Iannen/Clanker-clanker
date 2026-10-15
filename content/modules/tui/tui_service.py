@@ -16,7 +16,7 @@ class TUIServiceImpl(FrontendService):
     def exchange(self, command_result: CommandResult) -> Command | ExitCommand:
         template = self._get_template(command_result.ctx.ui_render)
         repl_map = self._res_ui(command_result.ctx.kb)
-        repl_map["msg"] = self.shaper.shape_action_result(command_result.msg.message)
+        repl_map["msg"] = self.shaper.shape_command_result(command_result)
         ui_string = self.shaper.hydrate(template, repl_map)
         self.io_bridge.write(f"{ui_string}\n")
 

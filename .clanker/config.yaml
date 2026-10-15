@@ -33,9 +33,10 @@ pud_filesets:
 
   kb_prompts_cleanup: { includes: [
     content/modules/keyboard,
-    content/modules/render_pipeline,
+    content/modules/tui,
     content/core/engine_deps/result.py,
-    content/core/core/presentation.py
+    content/core/core/presentation.py,
+    content/test/assert_classes.py
   ]}
 
 pud_domains:

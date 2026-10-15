@@ -1,4 +1,4 @@
-from core.engine_deps import Report, MissingEntityFields, UnsatisfiedFiles, Missing, Malformed, UnsatisfiedFilesetSubjects, FilenameCollision, DomainOverflow, Complaint, Question
+from core.engine_deps import Report, MissingEntityFields, UnsatisfiedFiles, Missing, Malformed, UnsatisfiedFilesetSubjects, FilenameCollision, DomainOverflow, Complaint, Question, BootstrapSuccess, UnboundKeyResult, DomainSelectedResult, UninhabitedDomainResult, UninhabitedPromptResult, PromptRenderResult, CommandResult
 
 class TUIQuestions:
     PROCEED_QUESTION = "Proceed anyway?"
@@ -180,7 +180,25 @@ class TUIContentShaper:
             template
         )
 
-class ActionResultCopy:
+    def shape_command_result(self, command_result: CommandResult, width: int = 117) -> str:
+        match command_result:
+            case BootstrapSuccess():
+                msg = ActionResult.BOOTSTRAP_SUCCESS
+            case UnboundKeyResult():
+                msg = ActionResult.UNBOUND_KEY.format(key=command_result.cmd.char)
+            case DomainSelectedResult():
+                msg = ActionResult.DOMAIN_SELECTED.format(domain=command_result.btn.inhabitant.name, key=command_result.btn.key)
+            case UninhabitedDomainResult():
+                msg = ActionResult.KEY_EMPTY
+            case UninhabitedPromptResult():
+                msg = ActionResult.UNBOUND_KEY.format(key=command_result.btn.key)
+            case PromptRenderResult():
+                msg = ActionResult.COPIED_TO_CLIPBOARD.format(lines=command_result.lines, chars=command_result.chars)
+            case _:
+                msg = ""
+        return self.shape_action_result(msg, width)
+
+class ActionResult:
     BOOTSTRAP_SUCCESS = "Bootstrap completed successfully"
     UNBOUND_KEY = "No action bound to key '{key}'"
     DOMAIN_SELECTED = "Domain '{domain}' on key '{key}' selected"
