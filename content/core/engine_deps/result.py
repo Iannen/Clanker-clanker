@@ -12,9 +12,9 @@ class FrontendService(ABC):
     @abstractmethod
     def set_ui_render(self, ui_render: Render) -> None: ...
     @abstractmethod
-    def exchange(self, ctx: UIRenderContext, msg: ActionResult) -> Command | ExitResult: ...
+    def exchange(self, command_result: CommandResult) -> Command | ExitCommand: ...
     @abstractmethod
-    def run_bootstrap_result(self, bootstrap_res: IngestionResult) -> ExitResult | ClankerizeResult | StartResult: ...
+    def run_bootstrap_result(self, bootstrap_res: IngestionResult) -> ExitCommand | ClankerizeResult | StartResult: ...
 
 class PromptService(ABC):
     @abstractmethod
@@ -30,6 +30,7 @@ class KBService(ABC):
 
 # their results
 
+
 class Result:
     @property
     def type(self) -> type: return type(self)
@@ -37,15 +38,20 @@ class Result:
     @property
     def types(self) -> tuple[type, ...]: return type(self).__mro__
 
-
-class ExitResult: exit_msg: str = ""
-class UserDeclinedStart(ExitResult): exit_msg = "Bootstrap declined by user"
-class UserDeclinedClankerize(ExitResult): exit_msg = "User declined to clankerize project"
-class StartupFailed(ExitResult): exit_msg = "Program could not start"
-class UserAborted(ExitResult): exit_msg = "Program exited"
-
 @dataclass
 class Command(Result): char: str
+
+@dataclass
+class CommandResult(Result):
+    ctx: UIRenderContext
+    msg: ActionResult
+
+
+class ExitCommand: exit_msg: str = ""
+class UserDeclinedStart(ExitCommand): exit_msg = "Bootstrap declined by user"
+class UserDeclinedClankerize(ExitCommand): exit_msg = "User declined to clankerize project"
+class StartupFailed(ExitCommand): exit_msg = "Program could not start"
+class UserAborted(ExitCommand): exit_msg = "Program exited"
 
 @dataclass 
 class NullCommandResult(Result): message: ActionResult

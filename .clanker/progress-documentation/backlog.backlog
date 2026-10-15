@@ -22,17 +22,19 @@ II. The pile
         - it should receive the promptctx thing from kb (data) service via the engine, and push it to clipboard via dedicated port
     - TUIService encapsulates incoming and outcoming communication with the user. the exit messages the engine uses should originate from here.
 
-
 Backlog tail, Selected item/items:
 
 1. Rename and unify frontend interaction methods in engine and result ports
-    [ ] 'content/core/engine_deps/result.py': Rename TUIService to FrontendService and replace display/get_cmd with exchange
+    [x] 'content/core/engine_deps/result.py': Rename TUIService to FrontendService and replace display/get_cmd with exchange
         - Define abstract method exchange(self, ctx: UIRenderContext, msg: ActionResult) -> Command | ExitResult
         - Remove separate display and get_cmd abstract methods
-    [ ] 'content/core/engine.py': Update AppEngine runtime loop to invoke frontend.exchange and rename cmd_result to command
+    [x] 'content/core/engine.py': Update AppEngine runtime loop to invoke frontend.exchange and rename cmd_result to command
         - Replace separate display and get_cmd calls with a single exchange call receiving ui_data and action_res
         - Rename local variable cmd_result to command and handle it in command handling logic
-    [ ] 'content/modules/tui/tui_service.py': Implement FrontendService and combine display and get_cmd into exchange
+    [x] 'content/modules/tui/tui_service.py': Implement FrontendService and combine display and get_cmd into exchange
         - Implement the unified exchange method handling UI rendering, writing, and character reading in a single pass
+
+so now the next move is to make the promptrederservice a dependency of the kb service, and not engine.
+this will allow kbservice to step into its role as a producer of commandresults
 
 Backlog tail end

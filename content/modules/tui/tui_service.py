@@ -1,6 +1,6 @@
 from stdlib import dataclass
 from core import Render, Keyboard, DomButton, PromptButton, CorruptClanker, ClankerAssets
-from core.engine_deps import FrontendService, IOControl, TerminalPort, DiskPort, StartResult, ExitResult, UserDeclinedStart, UserDeclinedClankerize, StartupFailed, UserAborted, Command, UIRenderContext, NoSuchFile, ClankerizeResult, TerminateResult
+from core.engine_deps import FrontendService, IOControl, TerminalPort, DiskPort, StartResult, ExitCommand, UserDeclinedStart, UserDeclinedClankerize, StartupFailed, UserAborted, Command, NoSuchFile, ClankerizeResult, TerminateResult, CommandResult
 from ..tui import TUIQuestions, ContentShaper
 @dataclass
 class TUIServiceImpl(FrontendService):
@@ -13,10 +13,10 @@ class TUIServiceImpl(FrontendService):
     def set_ui_render(self, ui_render: Render) -> None:
         pass
 
-    def exchange(self, ctx: UIRenderContext, msg) -> Command | ExitResult:
-        template = self._get_template(ctx.ui_render)
-        repl_map = self._res_ui(ctx.kb)
-        repl_map["msg"] = self.shaper.shape_action_result(msg.message)
+    def exchange(self, command_result: CommandResult) -> Command | ExitCommand:
+        template = self._get_template(command_result.ctx.ui_render)
+        repl_map = self._res_ui(command_result.ctx.kb)
+        repl_map["msg"] = self.shaper.shape_action_result(command_result.msg.message)
         ui_string = self.shaper.hydrate(template, repl_map)
         self.io_bridge.write(f"{ui_string}\n")
 
@@ -50,7 +50,7 @@ class TUIServiceImpl(FrontendService):
             
         return repl_map
 
-    def run_bootstrap_result(self, bootstrap_res) -> ExitResult | ClankerizeResult | StartResult:
+    def run_bootstrap_result(self, bootstrap_res) -> ExitCommand | ClankerizeResult | StartResult:
         
         if isinstance(bootstrap_res, StartResult):
             if not bootstrap_res.report.get_all_complaints(): return bootstrap_res
@@ -70,7 +70,7 @@ class TUIServiceImpl(FrontendService):
             self.io_bridge.get_acceptance(question)
             return StartupFailed()
 
-    def get_cmd(self) -> Command | ExitResult:
+    def get_cmd(self) -> Command | ExitCommand:
         ch = self.io_bridge.read_char()
         if ch in IOControl.ABORT_KEYS:
             return UserAborted()
