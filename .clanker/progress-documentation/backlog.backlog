@@ -55,5 +55,12 @@ Backlog tail, Selected item/items:
         - Update handle_cmd and private handlers to return UnboundKeyResult, DomainSelectedResult, UninhabitedDomainResult, PromptRenderResult, or UninhabitedPromptResult
         - Attach the corresponding button instance to each command result
 
-
+1. Have KBService.setup return the initial CommandResult during bootstrap
+    [x] 'content/core/engine_deps/result.py': Update KBService.setup return type annotation to CommandResult
+        - Modify setup abstract method signature to return CommandResult instead of None
+    [x] 'content/core/engine.py': Receive initial CommandResult directly from kb_service.setup
+        - Remove manual creation of ActionResult(ActionResult.BOOTSTRAP_SUCCESS) and CommandResult in AppEngine.run
+        - Assign command_result directly from self.kb_service.setup(tui_res)
+    [x] 'content/modules/keyboard/keyboard_service.py': Construct and return initial CommandResult in setup
+        - Update KBServiceImpl.setup to build and return a DomainSelectedResult or base CommandResult containing ActionResult.BOOTSTRAP_SUCCESS and the initial UI context
 Backlog tail end

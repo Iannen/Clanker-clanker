@@ -9,16 +9,18 @@ from core import (
     DomButton,
     PromptButton,
 )
-from core.engine_deps import KBService, PromptService, RenderContext, UIRenderContext, Command, CommandResult, DomainSelectedResult, UnboundKeyResult, PromptRenderResult, UninhabitedPromptResult, UninhabitedDomainResult
+from core.engine_deps import KBService, PromptService, RenderContext, UIRenderContext, Command, CommandResult, DomainSelectedResult, UnboundKeyResult, PromptRenderResult, UninhabitedPromptResult, UninhabitedDomainResult, BootstrapSuccess
 
 @dataclass(slots=True)
 class KBServiceImpl(KBService):
     prompt_service: PromptService
 
-    def setup(self, start_res) -> None:
+    def setup(self, start_res) -> CommandResult:
         self.kb: Keyboard = start_res.kb
         self.ui_render: Render = start_res.ui_render
         self.last_prompt: Prompt | None = None
+        msg = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)
+        return BootstrapSuccess(ctx=self.get_ui_context(), msg=msg, btn=None)
 
     def get_ui_context(self) -> UIRenderContext:
         return UIRenderContext(

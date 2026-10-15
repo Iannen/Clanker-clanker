@@ -22,7 +22,7 @@ class PromptService(ABC):
 
 class KBService(ABC):
     @abstractmethod
-    def setup(self, start_res: StartResult) -> None: ...
+    def setup(self, start_res: StartResult) -> CommandResult: ...
     @abstractmethod
     def handle_cmd(self, cmd: Command) -> CommandResult: ...
     @abstractmethod
@@ -46,6 +46,10 @@ class CommandResult(Result):
     ctx: UIRenderContext
     msg: ActionResult
     btn: NewBtn | None = None
+
+@dataclass
+class BootstrapSuccess(CommandResult):
+    btn: None = None
 
 @dataclass
 class UnboundKeyResult(CommandResult):
@@ -73,20 +77,7 @@ class UserDeclinedStart(ExitCommand): exit_msg = "Bootstrap declined by user"
 class UserDeclinedClankerize(ExitCommand): exit_msg = "User declined to clankerize project"
 class StartupFailed(ExitCommand): exit_msg = "Program could not start"
 class UserAborted(ExitCommand): exit_msg = "Program exited"
-"""
-@dataclass 
-class NullCommandResult(Result): message: ActionResult
-@dataclass 
-class DomainSelectedResult(Result): message: ActionResult
-@dataclass 
-class UninhabitatedDomainResult(Result): message: ActionResult
 
-@dataclass
-class UninhabitatedPromptResult(Result): message: ActionResult
-
-@dataclass
-class PromptRenderResult(Result): ctx: RenderContext
-"""
 @dataclass
 class IngestionResult(Result): report: Report
 @dataclass

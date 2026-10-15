@@ -1,6 +1,5 @@
 from stdlib import dataclass
-from core import ActionResult
-from core.engine_deps import IngestionService, KBService, FrontendService, StartResult, ClankerizeResult, ExitCommand, CommandResult
+from core.engine_deps import IngestionService, KBService, FrontendService, StartResult, ClankerizeResult, ExitCommand
 
 @dataclass(slots=True)
 class AppEngine:
@@ -19,12 +18,7 @@ class AppEngine:
             elif isinstance(tui_res, StartResult): break
             else: raise Exception(f"Unexpected bootstrap result type: {type(tui_res)}")
 
-        self.kb_service.setup(tui_res)
-        action_res = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)
-        command_result = CommandResult(
-            ctx=self.kb_service.get_ui_context(),
-            msg=action_res
-        )
+        command_result = self.kb_service.setup(tui_res)
 
         while True:
             command = self.frontend.exchange(command_result)
