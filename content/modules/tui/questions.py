@@ -180,8 +180,7 @@ class TUIContentShaper:
             template
         )
 
-class ResultMappingsthing:
-    """ instead of results carrying strings, the tui system should map the type of resultclass to appropriate string (the exit msgs still carry a string) """
+class ActionResultCopy:
     BOOTSTRAP_SUCCESS = "Bootstrap completed successfully"
     UNBOUND_KEY = "No action bound to key '{key}'"
     DOMAIN_SELECTED = "Domain '{domain}' on key '{key}' selected"

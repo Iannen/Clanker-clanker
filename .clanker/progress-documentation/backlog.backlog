@@ -34,17 +34,17 @@ Backlog tail, Selected item/items:
 
 next item: 
 
-4. Refactor presentation mapping into ContentShaper and remove ActionResult from the system
-    [ ] 'content/modules/render_pipeline/content_shaper.py': Implement command result presentation mapping
-        - Add shape_command_result method accepting CommandResult and matching on its subtypes to build the message string
-        - Format and return the final string using shape_action_result
-    [ ] 'content/modules/tui/tui_service.py': Update exchange to use ContentShaper's result formatting
-        - Replace manual msg extraction with a direct call to shaper.shape_command_result(command_result)
+4. Refactor presentation mapping into TUIContentShaper using ActionResultCopy and remove ActionResult from the system
+    [ ] 'content/modules/render_pipeline/content_shaper.py': Implement ActionResultCopy and TUIContentShaper presentation mapping
+- Define ActionResultCopy class containing all presentation message templates previously in ActionResult
+- Implement TUIContentShaper with shape_command_result method accepting CommandResult and matching on subtypes to return formatted strings
     [ ] 'content/core/engine_deps/result.py': Remove ActionResult and clean up CommandResult definitions
-        - Delete ActionResult class
-        - Remove msg attribute from CommandResult
+- Delete ActionResult class
+  - Remove msg attribute from CommandResult
     [ ] 'content/modules/keyboard/keyboard_service.py': Remove ActionResult instantiation from command handlers
-        - Eliminate all ActionResult creations and msg keyword arguments across setup and command handling methods
+- Eliminate all ActionResult creations and msg keyword arguments across setup and command handling methods
+    [ ] 'content/modules/tui/tui_service.py': Update frontend exchange to use TUIContentShaper result formatting
+- Replace manual message extraction with a direct call to shaper.shape_command_result(command_result)
 
 
 Backlog tail end
