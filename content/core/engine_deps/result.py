@@ -30,20 +30,12 @@ class KBService(ABC):
 
 # their results
 
-
-class Result:
-    @property
-    def type(self) -> type: return type(self)
-
-    @property
-    def types(self) -> tuple[type, ...]: return type(self).__mro__
-
 @dataclass(slots=True)
-class Command(Result):
+class Command:
     char: str
 
 @dataclass(slots=True)
-class CommandResult(Result):
+class CommandResult:
     ctx: UIRenderContext
     cmd: Command
 
@@ -76,7 +68,7 @@ class StartupFailed(ExitCommand): exit_msg = "Program could not start"
 class UserAborted(ExitCommand): exit_msg = "Program exited"
 
 @dataclass
-class IngestionResult(Result): report: Report
+class IngestionResult: report: Report
 @dataclass
 class StartResult(IngestionResult):
     kb: Keyboard
