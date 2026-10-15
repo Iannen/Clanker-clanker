@@ -20,7 +20,7 @@ class KBServiceImpl(KBService):
         self.ui_render: Render = start_res.ui_render
         self.last_prompt: Prompt | None = None
         msg = ActionResult(ActionResult.BOOTSTRAP_SUCCESS)
-        return BootstrapSuccess(ctx=self.get_ui_context(), msg=msg, btn=None)
+        return BootstrapSuccess(ctx=self.get_ui_context(), msg=msg)
 
     def get_ui_context(self) -> UIRenderContext:
         return UIRenderContext(
@@ -65,12 +65,12 @@ class KBServiceImpl(KBService):
         btn = self.kb.get(cmd.char)
         if btn is None:
             msg = ActionResult(ActionResult.UNBOUND_KEY.format(key=cmd.char))
-            return UnboundKeyResult(ctx=self.get_ui_context(), msg=msg, btn=None)
+            return UnboundKeyResult(ctx=self.get_ui_context(), msg=msg)
         match(btn):
-            case(DomButton()): return self._handle_dom_btn(btn)
-            case(PromptButton()): return self._handle_prompt_btn(btn)
+            case(DomButton()): return self._handle_dom_btn(btn, cmd)
+            case(PromptButton()): return self._handle_prompt_btn(btn, cmd)
 
-    def _handle_dom_btn(self, btn: DomButton) -> CommandResult:
+    def _handle_dom_btn(self, btn: DomButton, cmd: Command) -> CommandResult:
         self.kb.set_selected_dom_btn(btn)
         self.last_prompt = None    
         prompt_btns = self.kb.get_btns(PromptButton)
@@ -83,7 +83,7 @@ class KBServiceImpl(KBService):
         msg = ActionResult(ActionResult.DOMAIN_SELECTED.format(domain=btn.inhabitant.name, key=btn.key))
         return DomainSelectedResult(ctx=self.get_ui_context(), msg=msg, btn=btn)
 
-    def _handle_prompt_btn(self, btn: PromptButton) -> CommandResult:
+    def _handle_prompt_btn(self, btn: PromptButton, cmd: Command) -> CommandResult:
         if self.last_prompt is not None and btn.inhabitant == self.last_prompt:
             ctx = self._get_hot_prompt_context()
             msg = self.prompt_service.render_prompt(ctx)

@@ -1280,3 +1280,17 @@ CLXVI: MODERNIZING ENGINE ARCHITECTURE, SERVICE CONTRACTS, AND BOOTSTRAP LIFECYC
     Reflection:
     - Significantly improves modularity and separation of concerns across core engine services and adapters.
     - Drastically enhances error handling robustness and type safety during workspace initialization and application bootstrapping.
+
+CLXVII: UNIFYING TUI EXCHANGE, KEYBOARD-MANAGED PROMPT RENDERING, AND TYPED COMMAND RESULTS
+    Purpose: Consolidate core engine service contracts by unifying frontend exchange, injecting prompt rendering into keyboard management, encapsulating bootstrap state within setup, and introducing an expressive hierarchy of typed CommandResult subclasses.
+    - Streamline the boundary between engine, frontend, and keyboard services to eliminate redundant engine-level coordination.
+    - Make KBService the direct producer of command results and rendered prompts.
+    - Provide clear, domain-specific result subclasses carrying contextual button references where appropriate.
+    Actions:
+    - Replaced separate display and get_cmd ports with a single unified `FrontendService.exchange` method across engine and `TUIServiceImpl`.
+    - Injected `PromptService` directly into `KBServiceImpl` via dependency injection, allowing `KBService` to handle prompt rendering internally.
+    - Created a robust hierarchy of `CommandResult` subclasses (`BootstrapSuccess`, `UnboundKeyResult`, `DomainSelectedResult`, `UninhabitedDomainResult`, `PromptRenderResult`, `UninhabitedPromptResult`), mapping specific button metadata only to relevant subclasses.
+    - Updated `KBService.setup` to construct and return the initial `BootstrapSuccess` result directly, simplifying `AppEngine.run`.
+    Reflection:
+    - Drastically simplifies the AppEngine runtime loop, converting it into a clean, lightweight dispatcher.
+    - Enhances maintainability and type safety by modeling distinct UI interaction outcomes as explicit, self-contained result classes.

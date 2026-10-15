@@ -31,10 +31,15 @@ pud_filesets:
       content/modules/tui/questions.py
     ]}
 
+  kb_prompts_cleanup: { includes: [
+    content/modules/keyboard,
+    content/modules/render_pipeline,
+  ]}
+
 pud_domains:
   report_to_user:
     resolvers:
-      - { anchor: repo_content, type: repo-content, fileset: ¤ report_to_user } 
+      - { anchor: repo_content, type: repo-content, fileset: ¤ kb_prompts_cleanup } 
 
     prompts:
       - name: plan

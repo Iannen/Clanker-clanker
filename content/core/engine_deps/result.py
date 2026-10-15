@@ -1,5 +1,5 @@
 from stdlib import dataclass, ABC, abstractmethod, Any, Field
-from core import Render, ActionResult, Keyboard, File, NewBtn, DomButton, PromptButton
+from core import Render, ActionResult, Keyboard, File, DomButton, PromptButton
 
 # services
 class IngestionService(ABC): 
@@ -45,31 +45,24 @@ class Command(Result): char: str
 class CommandResult(Result):
     ctx: UIRenderContext
     msg: ActionResult
-    btn: NewBtn | None = None
 
 @dataclass
-class BootstrapSuccess(CommandResult):
-    btn: None = None
+class BootstrapSuccess(CommandResult): pass
 
 @dataclass
-class UnboundKeyResult(CommandResult):
-    btn: None = None
+class UnboundKeyResult(CommandResult): pass
 
 @dataclass
-class DomainSelectedResult(CommandResult):
-    btn: DomButton
+class DomainSelectedResult(CommandResult): btn: DomButton
 
 @dataclass
-class UninhabitedDomainResult(CommandResult):
-    btn: DomButton
+class UninhabitedDomainResult(CommandResult): btn: DomButton
 
 @dataclass
-class PromptRenderResult(CommandResult):
-    btn: PromptButton
+class PromptRenderResult(CommandResult): btn: PromptButton
 
 @dataclass
-class UninhabitedPromptResult(CommandResult):
-    btn: PromptButton
+class UninhabitedPromptResult(CommandResult): btn: PromptButton
 
 
 class ExitCommand: exit_msg: str = ""

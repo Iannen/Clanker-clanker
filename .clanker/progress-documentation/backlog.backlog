@@ -24,43 +24,5 @@ II. The pile
 
 Backlog tail, Selected item/items:
 
-1. Rename and unify frontend interaction methods in engine and result ports
-    [x] 'content/core/engine_deps/result.py': Rename TUIService to FrontendService and replace display/get_cmd with exchange
-        - Define abstract method exchange(self, ctx: UIRenderContext, msg: ActionResult) -> Command | ExitResult
-        - Remove separate display and get_cmd abstract methods
-    [x] 'content/core/engine.py': Update AppEngine runtime loop to invoke frontend.exchange and rename cmd_result to command
-        - Replace separate display and get_cmd calls with a single exchange call receiving ui_data and action_res
-        - Rename local variable cmd_result to command and handle it in command handling logic
-    [x] 'content/modules/tui/tui_service.py': Implement FrontendService and combine display and get_cmd into exchange
-        - Implement the unified exchange method handling UI rendering, writing, and character reading in a single pass
 
-2. Make PromptService a dependency of KBService and return CommandResult directly from handle_cmd
-    [x] 'content/core/engine_deps/result.py': Update KBService port and simplify result types
-        - Update KBService abstract interface to accept PromptService during setup or initialization
-        - Update handle_cmd return type to return CommandResult directly
-        - Clean up intermediate result types (such as PromptRenderResult) if they are no longer required
-    [x] 'content/core/engine.py': Remove prompt_service dependency from AppEngine and simplify runtime loop
-        - Remove prompt_service from AppEngine initialization and fields
-        - Simplify the runtime loop to pass commands directly to kb_service.handle_cmd and receive a CommandResult
-    [x] 'content/modules/keyboard/keyboard_service.py': Inject PromptService via setup and produce CommandResult in handle_cmd
-        - Update KBServiceImpl setup method to receive and store PromptService
-        - Invoke prompt_service.render_prompt internally within prompt button handling
-        - Return CommandResult directly containing the result message and UI context
-
-3. Introduce specific CommandResult subclasses carrying triggering button references
-    [x] 'content/core/engine_deps/result.py': Update CommandResult base class and define typed subclasses
-        - Add optional btn attribute (NewBtn | None) to CommandResult
-        - Define UnboundKeyResult, DomainSelectedResult, UninhabitedDomainResult, PromptRenderResult, and UninhabitedPromptResult subclasses inheriting from CommandResult
-    [x] 'content/modules/keyboard/keyboard_service.py': Return specific CommandResult subclasses with button references
-        - Update handle_cmd and private handlers to return UnboundKeyResult, DomainSelectedResult, UninhabitedDomainResult, PromptRenderResult, or UninhabitedPromptResult
-        - Attach the corresponding button instance to each command result
-
-1. Have KBService.setup return the initial CommandResult during bootstrap
-    [x] 'content/core/engine_deps/result.py': Update KBService.setup return type annotation to CommandResult
-        - Modify setup abstract method signature to return CommandResult instead of None
-    [x] 'content/core/engine.py': Receive initial CommandResult directly from kb_service.setup
-        - Remove manual creation of ActionResult(ActionResult.BOOTSTRAP_SUCCESS) and CommandResult in AppEngine.run
-        - Assign command_result directly from self.kb_service.setup(tui_res)
-    [x] 'content/modules/keyboard/keyboard_service.py': Construct and return initial CommandResult in setup
-        - Update KBServiceImpl.setup to build and return a DomainSelectedResult or base CommandResult containing ActionResult.BOOTSTRAP_SUCCESS and the initial UI context
 Backlog tail end
