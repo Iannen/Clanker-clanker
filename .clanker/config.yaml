@@ -33,7 +33,7 @@ pud_filesets:
   kb_prompts_cleanup: { includes: [
     content/core,
     content/modules/keyboard/keyboard_service.py,
-    content/modules/tui/tui_service.py,], excludes: [
+    content/modules/tui], excludes: [
       content/core/core/constants.py
     ]}
 

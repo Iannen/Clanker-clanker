@@ -1,33 +1,28 @@
-from stdlib import dataclass
 from core import Keyboard, DomButton, PromptButton, CorruptClanker, ClankerAssets
 from core.engine_deps import FrontendService, IOControl, TerminalPort, DiskPort, StartResult, ExitCommand, UserDeclinedStart, UserDeclinedClankerize, StartupFailed, UserAborted, KbCmd, NoSuchFile, ClankerizeResult, TerminateResult, KbCmdResult, BootCmd, IngestionResult, StartCmd, ClankerizeCmd, ExitResult, Command
 from ..tui import TUIQuestions, TUIContentShaper
-@dataclass
-class TUIServiceImpl(FrontendService):
-    io_bridge: TerminalPort
-    files: DiskPort
 
-    def __post_init__(self) -> None:
+class TUIServiceImpl(FrontendService):
+    def __init__(self, io_bridge: TerminalPort, files: DiskPort) -> None:
+        self.io_bridge = io_bridge
+        self.files = files
         self.shaper: TUIContentShaper = TUIContentShaper()
-        self._cmd = BootCmd()
+        self._cmd: Command = BootCmd()
 
     def get_request(self) -> Command:
-        cmd = self._cmd if self._cmd else self._get_cmd()
-        self._cmd = None
-        return cmd
-
-    def _get_cmd(self):
+        # here i dont clear self_cmd
+        if self._cmd: return self._cmd
         ch = self.io_bridge.read_char()
         if ch in IOControl.ABORT_KEYS:
             return UserAborted()
-        return KbCmd(char=ch.lower())
+        return KbCmd(char=ch.lower())       
 
     def post_response(self, command_result: KbCmdResult) -> None:
         match command_result:
-            case ExitResult(): pass
-            case IngestionResult(): 
-                self._cmd  = self._run_bootstrap_result(command_result)
-            case KbCmdResult: self._handle_cmd_result(command_result)
+            case ExitResult():  cmd = None
+            case IngestionResult():  cmd  = self._run_bootstrap_result(command_result)
+            case KbCmdResult():  cmd  = self._handle_cmd_result(command_result)
+        self._cmd = cmd if cmd else None
 
     def _run_bootstrap_result(self, bootstrap_res) -> ExitCommand | ClankerizeResult | StartResult:
         

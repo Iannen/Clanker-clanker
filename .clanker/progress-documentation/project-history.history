@@ -1307,3 +1307,14 @@ CLXVIII: REFACTORING CONTEXT-DRIVEN PROMPT RENDERING AND TUI PRESENTATION MAPPIN
     Reflection:
     - Achieves a cleaner separation of concerns by isolating prompt resolution pipeline mechanics within PromptService and UI presentation text generation within TUIContentShaper.
     - Fully deprecates direct ActionResult usage in favor of structured TUI shaper mapping.
+
+CLXIX: REFACTORING FRONTEND SERVICE AND APP ENGINE LOOP FOR DECOUPLED REQUEST-RESPONSE CYCLE
+    Purpose: Decouple command retrieval from result rendering in the AppEngine runtime loop and FrontendService port.
+    - Transition from a synchronous round-trip exchange to an independent request-response cycle.
+    Actions:
+    - Updated the `FrontendService` port definition in `content/core/engine_deps/result.py` by replacing the `exchange` method with separate `get_request` and `post_response` methods.
+    - Restructured the `AppEngine` command loop in `content/core/engine.py` into independent `get_request()` and `post_response()` steps, delegating command processing between frontend calls.
+    - Implemented split request and response methods in `TUIServiceImpl` (`content/modules/tui/tui_service.py`), isolating blocking input capture and exit checks into `get_request` and moving screen rendering and output writing logic into `post_response`.
+    Reflection:
+    - Enhances architectural separation of concerns by cleanly isolating user input ingestion from terminal output rendering and command execution outcomes.
+    - Increases runtime flexibility, modularity, and testability across frontend and core engine interactions.
