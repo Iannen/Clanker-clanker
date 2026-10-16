@@ -9,7 +9,6 @@ from core import (
 from core.engine_deps import (
     KBService,
     PromptService,
-    UIRenderContext,
     KbCmd,
     KbCmdResult,
     DomainSelectedResult,
@@ -20,31 +19,39 @@ from core.engine_deps import (
     BootstrapSuccess,
     StandardRenderContext,
     HotRenderContext,
+    IngestionService,
+    ExitCommand,
+    ExitResult,
+    BootCmd,
+    StartCmd,
+    ClankerizeCmd,
+    Command,
+    Result
 )
 
 @dataclass(slots=True)
 class KBServiceImpl(KBService):
     prompt_service: PromptService
+    ingestion: IngestionService
 
-    def setup(self, start_res) -> KbCmdResult:
-        self.kb: Keyboard = start_res.kb
-        self.ui_render: Render = start_res.ui_render
-        self.last_prompt: Prompt | None = None
-        return BootstrapSuccess(ctx=self.get_ui_context(), cmd=getattr(start_res, "cmd", None))
-
-    def get_ui_context(self) -> UIRenderContext:
-        return UIRenderContext(
-            kb=self.kb,
-            ui_render=self.ui_render
-        )
-
-    def handle_cmd(self, cmd: KbCmd) -> KbCmdResult:
-        btn = self.kb.get(cmd.char)
-        if btn is None:
-            return UnboundKeyResult(ctx=self.get_ui_context(), cmd=cmd)
-        match(btn):
-            case(DomButton()): return self._handle_dom_btn(btn, cmd)
-            case(PromptButton()): return self._handle_prompt_btn(btn, cmd)
+    def handle_cmd(self, cmd: Command) -> Result:
+        match cmd:
+            case BootCmd(): return self.ingestion.get_runtime_config()
+            case ClankerizeCmd(): return self.ingestion.initialize_workspace()
+            case ExitCommand(): return ExitResult(cmd)
+            case StartCmd(): 
+                # kb and ui render should probably live down in ingestionservice.
+                self.kb: Keyboard = cmd.kb
+                self.ui_render: Render = cmd.ui_render
+                self.last_prompt: Prompt | None = None
+                return BootstrapSuccess(kb = self.kb, ui_render=self.ui_render, cmd=None)            
+            case KbCmd(): 
+                btn = self.kb.get(cmd.char)
+                if btn is None:
+                    return UnboundKeyResult(kb=self.kb, ui_render=self.ui_render, cmd=cmd)
+                match(btn):
+                    case(DomButton()): return self._handle_dom_btn(btn, cmd)
+                    case(PromptButton()): return self._handle_prompt_btn(btn, cmd)
 
     def _handle_dom_btn(self, btn: DomButton, cmd: KbCmd) -> KbCmdResult:
         self.kb.set_selected_dom_btn(btn)
@@ -52,22 +59,22 @@ class KBServiceImpl(KBService):
         prompt_btns = self.kb.get_btns(PromptButton)
         for p_ptn in prompt_btns: p_ptn.inhabitant = None
         if not btn.inhabitant:
-            return UninhabitedDomainResult(ctx=self.get_ui_context(), btn=btn, cmd=cmd)
+            return UninhabitedDomainResult(kb=self.kb, ui_render=self.ui_render, btn=btn, cmd=cmd)
         for prompt_btn, prompt in zip(prompt_btns, btn.inhabitant.prompts):
             prompt_btn.inhabitant = prompt
-        return DomainSelectedResult(ctx=self.get_ui_context(), btn=btn, cmd=cmd)
+        return DomainSelectedResult(kb=self.kb, ui_render=self.ui_render, btn=btn, cmd=cmd)
 
     def _handle_prompt_btn(self, btn: PromptButton, cmd: KbCmd) -> KbCmdResult:
         if self.last_prompt is not None and btn.inhabitant == self.last_prompt:
             ctx = HotRenderContext(kb=self.kb, prompt=self.last_prompt)
             self.last_prompt = None
             lines, chars = self.prompt_service.render_prompt(ctx)
-            return PromptRenderResult(ctx=self.get_ui_context(), btn=btn, lines=lines, chars=chars, cmd=cmd)
+            return PromptRenderResult(kb=self.kb, ui_render=self.ui_render, btn=btn, lines=lines, chars=chars, cmd=cmd)
             
         self.last_prompt = btn.inhabitant
         if btn.inhabitant is None:
-            return UninhabitedPromptResult(ctx=self.get_ui_context(), btn=btn, cmd=cmd)
+            return UninhabitedPromptResult(kb=self.kb, ui_render=self.ui_render, btn=btn, cmd=cmd)
             
         ctx = StandardRenderContext(kb=self.kb, prompt=btn.inhabitant)
         lines, chars = self.prompt_service.render_prompt(ctx)
-        return PromptRenderResult(ctx=self.get_ui_context(), btn=btn, lines=lines, chars=chars, cmd=cmd)
+        return PromptRenderResult(kb=self.kb, ui_render=self.ui_render, btn=btn, lines=lines, chars=chars, cmd=cmd)

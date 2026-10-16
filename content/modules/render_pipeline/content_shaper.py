@@ -1,5 +1,5 @@
 from stdlib import re
-from core import TruncationSpec, NewBtn
+from core import TruncationSpec
 class SystemKeys:
     DELIM = "§"
 
@@ -46,21 +46,6 @@ class PromptContentShaper:
     def _cut_from_regex(self, lines: list[str], pattern_str: str) -> list[str]:
         idx = self._find_match_idx(lines, pattern_str)
         return lines if idx is None else lines[:idx]
-
-    def shape_button_replacements(self, btn: NewBtn, label: str, template: str) -> dict[str, str]:
-        lines = template.strip("\n").splitlines()
-        norm_label = label[:6].ljust(6)
-        mapped_lines = [
-            lines[0],
-            lines[1],
-            lines[2].replace(SystemKeys.DELIM, btn.key, 1),
-            lines[3],
-            lines[4].replace(SystemKeys.DELIM * 6, norm_label, 1),
-        ]
-        return {f"{btn.key}{idx}": line for idx, line in enumerate(mapped_lines)}
-
-    def shape_action_result(self, msg: str, width: int = 117) -> str:
-        return f"{msg:<{width}}"[:width]
 
     def hydrate(self, template: str, replacements: dict[str, str]) -> str:
         pattern = re.compile(rf"{SystemKeys.DELIM}([^{SystemKeys.DELIM}]+){SystemKeys.DELIM}")

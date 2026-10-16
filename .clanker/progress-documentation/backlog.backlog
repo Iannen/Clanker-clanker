@@ -44,4 +44,8 @@ Backlog tail, Selected item/items:
         return command_result.exit_msg
 '''
 
+2. gonna make the ingestionservice a dependency of kbservice.
+    [ ] transfer the thing from engine to kb service
+        
+
 Backlog tail end

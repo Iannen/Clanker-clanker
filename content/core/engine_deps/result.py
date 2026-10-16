@@ -13,8 +13,6 @@ class FrontendService(ABC):
     def get_request(self) -> BaseCmd | ExitCommand: ...
     @abstractmethod
     def post_response(self, command_result: Result) -> None: ...
-    @abstractmethod
-    def run_bootstrap_result(self, bootstrap_res: IngestionResult) -> ExitCommand | ClankerizeResult | StartResult: ...
 
 class PromptService(ABC):
     @abstractmethod
@@ -22,26 +20,26 @@ class PromptService(ABC):
 
 class KBService(ABC):
     @abstractmethod
-    def setup(self, start_res: StartResult): ...
-    @abstractmethod
     def handle_cmd(self, BaseCmd): ...
-    @abstractmethod
-    def get_ui_context(self) -> UIRenderContext: ...
 
 ### Commands
 
-class BaseCmd: pass
+class Command: pass
 
-# Engine created, passed to kb to get a result.
-class BootCmd(BaseCmd): pass
+class BootCmd(Command): pass
+class StartCmd(Command):
+    def __init__(self, res: StartResult): 
+        self.kb = res.kb
+        self.ui_render = res.ui_render
+class ClankerizeCmd(Command): pass
 
 # the bread and butter cmd
 @dataclass
-class KbCmd(BaseCmd):
+class KbCmd(Command):
     char: str
 
 # an array of these to hold different strs. they are cmds. perhaps they can have 'convert me to result' method
-class ExitCommand(BaseCmd): pass
+class ExitCommand(Command): pass
 class UserDeclinedStart(ExitCommand): exit_msg = "Bootstrap declined by user"
 class UserDeclinedClankerize(ExitCommand): exit_msg = "User declined to clankerize project"
 class StartupFailed(ExitCommand): exit_msg = "Program could not start"
@@ -51,11 +49,11 @@ class UserAborted(ExitCommand): exit_msg = "Program exited"
 
 class Result: pass
 
-
 # main sequence related
 @dataclass
 class KbCmdResult(Result):
-    ctx: UIRenderContext
+    kb: Keyboard
+    ui_render: Render
     cmd: KbCmd
 
 @dataclass(slots=True)
@@ -107,10 +105,6 @@ class StandardRenderContext(RenderContext):
 class HotRenderContext(RenderContext):
     prompt: Prompt = None
 
-@dataclass
-class UIRenderContext:
-    kb: Keyboard
-    ui_render: Render
 
 class Report(ABC):
     @abstractmethod
