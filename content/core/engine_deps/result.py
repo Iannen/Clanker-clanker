@@ -10,9 +10,9 @@ class IngestionService(ABC):
 
 class FrontendService(ABC):
     @abstractmethod
-    def get_request(self) -> Command | ExitCommand: ...
+    def get_request(self) -> BaseCmd | ExitCommand: ...
     @abstractmethod
-    def post_response(self, command_result: CommandResult) -> None: ...
+    def post_response(self, command_result: Result) -> None: ...
     @abstractmethod
     def run_bootstrap_result(self, bootstrap_res: IngestionResult) -> ExitCommand | ClankerizeResult | StartResult: ...
 
@@ -22,53 +22,68 @@ class PromptService(ABC):
 
 class KBService(ABC):
     @abstractmethod
-    def setup(self, start_res: StartResult) -> CommandResult: ...
+    def setup(self, start_res: StartResult): ...
     @abstractmethod
-    def handle_cmd(self, cmd: Command) -> CommandResult: ...
+    def handle_cmd(self, BaseCmd): ...
     @abstractmethod
     def get_ui_context(self) -> UIRenderContext: ...
 
-# their results
+### Commands
 
-@dataclass(slots=True)
-class Command:
+class BaseCmd: pass
+
+# Engine created, passed to kb to get a result.
+class BootCmd(BaseCmd): pass
+
+# the bread and butter cmd
+@dataclass
+class KbCmd(BaseCmd):
     char: str
 
-@dataclass(slots=True)
-class CommandResult:
-    ctx: UIRenderContext
-    cmd: Command
-
-@dataclass(slots=True)
-class BootstrapSuccess(CommandResult): pass
-
-@dataclass(slots=True)
-class UnboundKeyResult(CommandResult): pass
-
-@dataclass(slots=True)
-class DomainSelectedResult(CommandResult): btn: DomButton
-
-@dataclass(slots=True)
-class UninhabitedDomainResult(CommandResult): btn: DomButton
-
-@dataclass(slots=True)
-class UninhabitedPromptResult(CommandResult): btn: PromptButton
-
-@dataclass(slots=True)
-class PromptRenderResult(CommandResult):
-    btn: PromptButton
-    lines: int
-    chars: int
-
-
-class ExitCommand: exit_msg: str = ""
+# an array of these to hold different strs. they are cmds. perhaps they can have 'convert me to result' method
+class ExitCommand(BaseCmd): pass
 class UserDeclinedStart(ExitCommand): exit_msg = "Bootstrap declined by user"
 class UserDeclinedClankerize(ExitCommand): exit_msg = "User declined to clankerize project"
 class StartupFailed(ExitCommand): exit_msg = "Program could not start"
 class UserAborted(ExitCommand): exit_msg = "Program exited"
 
+# All results are emitted by kb, consumed by frontend, or engine only in case of exitresult
+
+class Result: pass
+
+
+# main sequence related
 @dataclass
-class IngestionResult: report: Report
+class KbCmdResult(Result):
+    ctx: UIRenderContext
+    cmd: KbCmd
+
+@dataclass(slots=True)
+class BootstrapSuccess(KbCmdResult): pass
+
+@dataclass(slots=True)
+class UnboundKeyResult(KbCmdResult): pass
+
+@dataclass(slots=True)
+class DomainSelectedResult(KbCmdResult): btn: DomButton
+
+@dataclass(slots=True)
+class UninhabitedDomainResult(KbCmdResult): btn: DomButton
+
+@dataclass(slots=True)
+class UninhabitedPromptResult(KbCmdResult): btn: PromptButton
+
+@dataclass(slots=True)
+class PromptRenderResult(KbCmdResult):
+    btn: PromptButton
+    lines: int
+    chars: int
+
+class ExitResult(Result):  
+    def __init__(self, cmd: ExitCommand): self.exit_msg= cmd.exit_msg
+
+@dataclass
+class IngestionResult(Result): report: Report
 @dataclass
 class StartResult(IngestionResult):
     kb: Keyboard

@@ -1,6 +1,6 @@
 from stdlib import dataclass
 from core import Render, Keyboard, DomButton, PromptButton, CorruptClanker, ClankerAssets
-from core.engine_deps import FrontendService, IOControl, TerminalPort, DiskPort, StartResult, ExitCommand, UserDeclinedStart, UserDeclinedClankerize, StartupFailed, UserAborted, Command, NoSuchFile, ClankerizeResult, TerminateResult, CommandResult
+from core.engine_deps import FrontendService, IOControl, TerminalPort, DiskPort, StartResult, ExitCommand, UserDeclinedStart, UserDeclinedClankerize, StartupFailed, UserAborted, KbCmd, NoSuchFile, ClankerizeResult, TerminateResult, KbCmdResult
 from ..tui import TUIQuestions, TUIContentShaper
 @dataclass
 class TUIServiceImpl(FrontendService):
@@ -10,13 +10,13 @@ class TUIServiceImpl(FrontendService):
     def __post_init__(self) -> None:
         self.shaper: TUIContentShaper = TUIContentShaper()
 
-    def get_request(self) -> Command | ExitCommand:
+    def get_request(self) -> KbCmd | ExitCommand:
         ch = self.io_bridge.read_char()
         if ch in IOControl.ABORT_KEYS:
             return UserAborted()
-        return Command(char=ch.lower())
+        return KbCmd(char=ch.lower())
 
-    def post_response(self, command_result: CommandResult) -> None:
+    def post_response(self, command_result: KbCmdResult) -> None:
         template = self._get_template(command_result.ctx.ui_render)
         repl_map = self._res_ui(command_result.ctx.kb)
         repl_map["msg"] = self.shaper.shape_command_result(command_result)

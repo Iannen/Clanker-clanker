@@ -33,4 +33,15 @@ Backlog tail, Selected item/items:
     [x] 'content/modules/tui/tui_service.py': Implement split request and response methods in TUIServiceImpl
         - move screen rendering and output writing logic into post_response
         - isolate blocking input capture and exit checks into get_request
+
+'''
+        command_result = None
+        while not isinstance(command_result, ExitCommandResult):
+            command = self.frontend.get_request()
+            command_result = self.kb_service.handle_cmd(command)
+            self.frontend.post_response(command_result)
+            
+        return command_result.exit_msg
+'''
+
 Backlog tail end

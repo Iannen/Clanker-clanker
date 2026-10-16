@@ -1,4 +1,4 @@
-from core.engine_deps import Report, MissingEntityFields, UnsatisfiedFiles, Missing, Malformed, UnsatisfiedFilesetSubjects, FilenameCollision, DomainOverflow, Complaint, Question, BootstrapSuccess, UnboundKeyResult, DomainSelectedResult, UninhabitedDomainResult, UninhabitedPromptResult, PromptRenderResult, CommandResult
+from core.engine_deps import Report, MissingEntityFields, UnsatisfiedFiles, Missing, Malformed, UnsatisfiedFilesetSubjects, FilenameCollision, DomainOverflow, Complaint, Question, BootstrapSuccess, UnboundKeyResult, DomainSelectedResult, UninhabitedDomainResult, UninhabitedPromptResult, PromptRenderResult, KbCmdResult
 
 class TUIQuestions:
     PROCEED_QUESTION = "Proceed anyway?"
@@ -180,7 +180,7 @@ class TUIContentShaper:
             template
         )
 
-    def shape_command_result(self, command_result: CommandResult, width: int = 117) -> str:
+    def shape_command_result(self, command_result: KbCmdResult, width: int = 117) -> str:
         match command_result:
             case BootstrapSuccess():
                 msg = ActionResult.BOOTSTRAP_SUCCESS

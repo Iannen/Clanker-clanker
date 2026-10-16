@@ -10,8 +10,8 @@ from core.engine_deps import (
     KBService,
     PromptService,
     UIRenderContext,
-    Command,
-    CommandResult,
+    KbCmd,
+    KbCmdResult,
     DomainSelectedResult,
     UnboundKeyResult,
     PromptRenderResult,
@@ -26,7 +26,7 @@ from core.engine_deps import (
 class KBServiceImpl(KBService):
     prompt_service: PromptService
 
-    def setup(self, start_res) -> CommandResult:
+    def setup(self, start_res) -> KbCmdResult:
         self.kb: Keyboard = start_res.kb
         self.ui_render: Render = start_res.ui_render
         self.last_prompt: Prompt | None = None
@@ -38,7 +38,7 @@ class KBServiceImpl(KBService):
             ui_render=self.ui_render
         )
 
-    def handle_cmd(self, cmd: Command) -> CommandResult:
+    def handle_cmd(self, cmd: KbCmd) -> KbCmdResult:
         btn = self.kb.get(cmd.char)
         if btn is None:
             return UnboundKeyResult(ctx=self.get_ui_context(), cmd=cmd)
@@ -46,7 +46,7 @@ class KBServiceImpl(KBService):
             case(DomButton()): return self._handle_dom_btn(btn, cmd)
             case(PromptButton()): return self._handle_prompt_btn(btn, cmd)
 
-    def _handle_dom_btn(self, btn: DomButton, cmd: Command) -> CommandResult:
+    def _handle_dom_btn(self, btn: DomButton, cmd: KbCmd) -> KbCmdResult:
         self.kb.set_selected_dom_btn(btn)
         self.last_prompt = None    
         prompt_btns = self.kb.get_btns(PromptButton)
@@ -57,7 +57,7 @@ class KBServiceImpl(KBService):
             prompt_btn.inhabitant = prompt
         return DomainSelectedResult(ctx=self.get_ui_context(), btn=btn, cmd=cmd)
 
-    def _handle_prompt_btn(self, btn: PromptButton, cmd: Command) -> CommandResult:
+    def _handle_prompt_btn(self, btn: PromptButton, cmd: KbCmd) -> KbCmdResult:
         if self.last_prompt is not None and btn.inhabitant == self.last_prompt:
             ctx = HotRenderContext(kb=self.kb, prompt=self.last_prompt)
             self.last_prompt = None
