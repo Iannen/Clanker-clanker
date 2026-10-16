@@ -10,20 +10,18 @@ class TUIServiceImpl(FrontendService):
     def __post_init__(self) -> None:
         self.shaper: TUIContentShaper = TUIContentShaper()
 
-    def set_ui_render(self, ui_render: Render) -> None:
-        pass
+    def get_request(self) -> Command | ExitCommand:
+        ch = self.io_bridge.read_char()
+        if ch in IOControl.ABORT_KEYS:
+            return UserAborted()
+        return Command(char=ch.lower())
 
-    def exchange(self, command_result: CommandResult) -> Command | ExitCommand:
+    def post_response(self, command_result: CommandResult) -> None:
         template = self._get_template(command_result.ctx.ui_render)
         repl_map = self._res_ui(command_result.ctx.kb)
         repl_map["msg"] = self.shaper.shape_command_result(command_result)
         ui_string = self.shaper.hydrate(template, repl_map)
         self.io_bridge.write(f"{ui_string}\n")
-
-        ch = self.io_bridge.read_char()
-        if ch in IOControl.ABORT_KEYS:
-            return UserAborted()
-        return Command(char=ch.lower())
 
     def _get_template(self, render: Render) -> str:
         try:
@@ -69,9 +67,3 @@ class TUIServiceImpl(FrontendService):
             question = TUIQuestions.termination_acknowledgment(bootstrap_res.report)
             self.io_bridge.get_acceptance(question)
             return StartupFailed()
-
-    def get_cmd(self) -> Command | ExitCommand:
-        ch = self.io_bridge.read_char()
-        if ch in IOControl.ABORT_KEYS:
-            return UserAborted()
-        return Command(char=ch.lower())

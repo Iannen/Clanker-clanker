@@ -19,8 +19,10 @@ class AppEngine:
             else: raise Exception(f"Unexpected bootstrap result type: {type(tui_res)}")
 
         command_result = self.kb_service.setup(tui_res)
+        self.frontend.post_response(command_result)
 
         while True:
-            command = self.frontend.exchange(command_result)
+            command = self.frontend.get_request()
             if isinstance(command, ExitCommand): return command.exit_msg
             command_result = self.kb_service.handle_cmd(command)
+            self.frontend.post_response(command_result)

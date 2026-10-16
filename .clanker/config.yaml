@@ -25,19 +25,17 @@ pud_filesets:
     content/modules/render_pipeline,
     content/modules/tui], excludes: [
       content/core/core/constants.py,
-      content/core/core/presentation.py,
       content/core/core/exceptions.py,
       content/modules/tui/formatter.py,
       content/modules/tui/questions.py
     ]}
 
   kb_prompts_cleanup: { includes: [
-    content/modules/keyboard,
-    content/modules/tui,
-    content/core/engine_deps/result.py,
-    content/core/core/presentation.py,
-    content/test/assert_classes.py
-  ]}
+    content/core,
+    content/modules/keyboard/keyboard_service.py,
+    content/modules/tui/tui_service.py,], excludes: [
+      content/core/core/constants.py
+    ]}
 
 pud_domains:
   report_to_user:

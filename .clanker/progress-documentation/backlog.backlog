@@ -23,7 +23,14 @@ II. The pile
     - TUIService encapsulates incoming and outcoming communication with the user. the exit messages the engine uses should originate from here.
 
 Backlog tail, Selected item/items:
-
-
-
+1. Refactor FrontendService and AppEngine loop to support a decoupled request-response cycle
+    [x] 'content/core/engine_deps/result.py': Update FrontendService port definition
+        - replace 'exchange' method with separate 'get_request' and 'post_response' methods
+        - update type signatures to decouple command retrieval from result rendering
+    [x] 'content/core/engine.py': Restructure AppEngine command loop
+        - split the main loop into independent get_request() and post_response() steps
+        - delegate command processing to the data service between frontend calls
+    [x] 'content/modules/tui/tui_service.py': Implement split request and response methods in TUIServiceImpl
+        - move screen rendering and output writing logic into post_response
+        - isolate blocking input capture and exit checks into get_request
 Backlog tail end
