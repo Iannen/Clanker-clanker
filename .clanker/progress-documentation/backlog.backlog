@@ -24,11 +24,11 @@ II. The pile
 
 Backlog tail, Selected item/items:
 1. Refactor TUIServiceImpl and TUIQuestions for clean command dispatch and encapsulated bootstrap workflows
-    [ ] 'content/modules/tui/tui_service.py': Convert TUIServiceImpl to standard class and streamline request-response loop
+    [x] 'content/modules/tui/tui_service.py': Convert TUIServiceImpl to standard class and streamline request-response loop
         - replace dataclass structure with a standard `__init__` constructor
         - refactor `get_request` and `post_response` to rely on an explicit command register flow
         - delegate bootstrap result processing to the question dispatcher
-    [ ] 'content/modules/tui/questions.py': Upgrade TUIQuestions into an interactive dispatcher holding the terminal port
+    [x] 'content/modules/tui/questions.py': Upgrade TUIQuestions into an interactive dispatcher holding the terminal port
         - accept `io_bridge` (TerminalPort) on initialization
         - implement a unified `dispatch` method to encapsulate workflow checks and user acceptance dialogues
 Backlog tail end

@@ -1,7 +1,35 @@
-from core.engine_deps import Report, MissingEntityFields, UnsatisfiedFiles, Missing, Malformed, UnsatisfiedFilesetSubjects, FilenameCollision, DomainOverflow, Complaint, Question, BootstrapSuccess, UnboundKeyResult, DomainSelectedResult, UninhabitedDomainResult, UninhabitedPromptResult, PromptRenderResult, KbCmdResult
+from stdlib import dataclass
+from core.engine_deps import (
+    TerminalPort, IngestionResult, StartResult, ClankerizeResult, TerminateResult,
+    Report, MissingEntityFields, UnsatisfiedFiles, Missing, Malformed, 
+    UnsatisfiedFilesetSubjects, FilenameCollision, DomainOverflow, Complaint, Question, 
+    BootstrapSuccess, UnboundKeyResult, DomainSelectedResult, UninhabitedDomainResult, 
+    UninhabitedPromptResult, PromptRenderResult, KbCmdResult
+)
 
+@dataclass
 class TUIQuestions:
+    io_bridge: TerminalPort
     PROCEED_QUESTION = "Proceed anyway?"
+
+    def dispatch(self, bootstrap_res: IngestionResult) -> bool:
+        match bootstrap_res:
+            case StartResult():
+                if not bootstrap_res.report.get_all_complaints():
+                    return True
+                question = self.start_confirmation(bootstrap_res.report)
+                return self.io_bridge.get_acceptance(question)
+
+            case ClankerizeResult():
+                question = self.clankerize_confirmation(bootstrap_res.report)
+                return self.io_bridge.get_acceptance(question)
+
+            case TerminateResult():
+                question = self.termination_acknowledgment(bootstrap_res.report)
+                self.io_bridge.get_acceptance(question)
+                return True
+            case _:
+                return False
 
     @classmethod
     def termination_acknowledgment(cls, report: Report) -> Question:
@@ -157,6 +185,7 @@ class TUIContentShaper:
         return self.shape_action_result(msg, width)
 
 class ActionResult:
+    """ this class is used by test system to evaluate rendered ui's """
     BOOTSTRAP_SUCCESS = "Bootstrap completed successfully"
     UNBOUND_KEY = "No action bound to key '{key}'"
     DOMAIN_SELECTED = "Domain '{domain}' on key '{key}' selected"

@@ -1,5 +1,5 @@
 from core import Keyboard, DomButton, PromptButton, CorruptClanker, ClankerAssets
-from core.engine_deps import FrontendService, IOControl, TerminalPort, DiskPort, StartResult, ExitCommand, UserDeclinedStart, UserDeclinedClankerize, StartupFailed, UserAborted, KbCmd, NoSuchFile, ClankerizeResult, TerminateResult, KbCmdResult, BootCmd, IngestionResult, StartCmd, ClankerizeCmd, ExitResult, Command
+from core.engine_deps import FrontendService, IOControl, TerminalPort, DiskPort, StartResult, UserDeclinedStart, UserDeclinedClankerize, StartupFailed, UserAborted, KbCmd, NoSuchFile, ClankerizeResult, TerminateResult, KbCmdResult, BootCmd, IngestionResult, StartCmd, ClankerizeCmd, ExitResult, Command, Result
 from ..tui import TUIQuestions, TUIContentShaper
 
 class TUIServiceImpl(FrontendService):
@@ -7,42 +7,39 @@ class TUIServiceImpl(FrontendService):
         self.io_bridge = io_bridge
         self.files = files
         self.shaper: TUIContentShaper = TUIContentShaper()
-        self._cmd: Command = BootCmd()
+        self.question_dispatcher: TUIQuestions = TUIQuestions(io_bridge=self.io_bridge)
+        self._cmd = BootCmd()
 
     def get_request(self) -> Command:
-        # here i dont clear self_cmd
-        if self._cmd: return self._cmd
+        if self._cmd: 
+            return self._cmd
         ch = self.io_bridge.read_char()
         if ch in IOControl.ABORT_KEYS:
             return UserAborted()
         return KbCmd(char=ch.lower())       
 
-    def post_response(self, command_result: KbCmdResult) -> None:
+    def post_response(self, command_result: Result) -> None:
         match command_result:
-            case ExitResult():  cmd = None
-            case IngestionResult():  cmd  = self._run_bootstrap_result(command_result)
-            case KbCmdResult():  cmd  = self._handle_cmd_result(command_result)
+            case ExitResult(): 
+                cmd = None
+            case IngestionResult(): 
+                cmd = self._run_bootstrap_result(command_result)
+            case KbCmdResult(): 
+                self._handle_cmd_result(command_result)
+                cmd = None
+            case _:
+                cmd = None
         self._cmd = cmd if cmd else None
 
-    def _run_bootstrap_result(self, bootstrap_res) -> ExitCommand | ClankerizeResult | StartResult:
-        
-        if isinstance(bootstrap_res, StartResult):
-            if not bootstrap_res.report.get_all_complaints(): return StartCmd(bootstrap_res)
-            question = TUIQuestions.start_confirmation(bootstrap_res.report)
-            if self.io_bridge.get_acceptance(question):
-                return StartCmd(bootstrap_res)
-            return UserDeclinedStart()
-
-        if isinstance(bootstrap_res, ClankerizeResult):
-            question = TUIQuestions.clankerize_confirmation(bootstrap_res.report)
-            if self.io_bridge.get_acceptance(question):
-                return ClankerizeCmd()
-            return UserDeclinedClankerize()
-
-        if isinstance(bootstrap_res, TerminateResult):
-            question = TUIQuestions.termination_acknowledgment(bootstrap_res.report)
-            self.io_bridge.get_acceptance(question)
-            return StartupFailed() 
+    def _run_bootstrap_result(self, bootstrap_res: IngestionResult) -> Command:
+        accepted = self.question_dispatcher.dispatch(bootstrap_res)
+        match bootstrap_res:
+            case StartResult(): 
+                return StartCmd(bootstrap_res) if accepted else UserDeclinedStart()
+            case ClankerizeResult(): 
+                return ClankerizeCmd() if accepted else UserDeclinedClankerize()
+            case TerminateResult(): 
+                return StartupFailed()
 
     #belongs in helper class
     def _handle_cmd_result(self, command_result):
