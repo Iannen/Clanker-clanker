@@ -29,6 +29,12 @@ from core.engine_deps import (
 
 @dataclass(slots=True)
 class KBServiceImpl(KBService):
+    """ 
+    this needs to hold more state so the kb need not hold any runtime state
+    this means the inhabitant model has to go, at least for the prompt buttons
+
+    the prize is that we can fetch that which is a function of files on every loop
+    """
     prompt_service: PromptService
     ingestion: IngestionService
 
@@ -79,11 +85,11 @@ class KBServiceImpl(KBService):
             self.last_prompt = None
             lines, chars = self.prompt_service.render_prompt(ctx)
             return PromptRenderResult(kb=self.kb, ui_render=self.ui_render, btn=btn, lines=lines, chars=chars, cmd=cmd)
-            
+
         self.last_prompt = btn.inhabitant
         if btn.inhabitant is None:
             return UninhabitedPromptResult(kb=self.kb, ui_render=self.ui_render, btn=btn, cmd=cmd)
-            
+
         ctx = StandardRenderContext(kb=self.kb, prompt=btn.inhabitant)
         lines, chars = self.prompt_service.render_prompt(ctx)
         return PromptRenderResult(kb=self.kb, ui_render=self.ui_render, btn=btn, lines=lines, chars=chars, cmd=cmd)

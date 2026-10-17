@@ -1,18 +1,26 @@
-from stdlib import dataclass, field
-from core import ClankerAssets, DomButton, PromptButton, Keyboard, CorruptClanker
+from stdlib import dataclass, field, re
+from core import ClankerAssets, DomButton, PromptButton, Keyboard, CorruptClanker, NewBtn
 from core.engine_deps import (
     TerminalPort, StartResult, ClankerizeResult, TerminateResult,
     Report, MissingEntityFields, UnsatisfiedFiles, Missing, Malformed, 
     UnsatisfiedFilesetSubjects, FilenameCollision, DomainOverflow, Complaint, Question, 
     BootstrapSuccess, UnboundKeyResult, DomainSelectedResult, UninhabitedDomainResult, 
-    UninhabitedPromptResult, PromptRenderResult, KbCmdResult, NoSuchFile, DiskPort, ExitResult, Result
+    UninhabitedPromptResult, PromptRenderResult, KbCmdResult, NoSuchFile, DiskPort, ExitResult, Command
 )
 
 class ComplaintsFormatter:
+    """ this class turns a report into a str"""
     @classmethod
     def format(cls, report: Report) -> str:
+        parts = []
+        crits = report.get_critical_complaints()
+        if crits:
+            parts.append("Critical errors:\n" + "\n".join(crits))
         softs = report.get_all_complaints()
-        return "\n".join(cls._format_complaint(c) for c in softs)
+        if softs:
+            formatted_softs = [cls._format_complaint(c) for c in softs]
+            parts.append("Soft complaints:\n" + "\n".join(formatted_softs))
+        return "\n".join(parts)
 
     @classmethod
     def _format_complaint(cls, complaint: Complaint) -> str:
@@ -55,37 +63,18 @@ class ComplaintsFormatter:
             case _:
                 return str(complaint)
 
-class UserQuestions:
-    REQUIRED_PHRASE = "yes"
-    INIT_REPO = "Directory not initialized as clank repo - clankerize?"
-    CONFIRMATION_INSTRUCTIONS = "Type '{required_phrase}' and press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n> "
-    CONFIRMATION_INVALID_ERR = "Invalid confirmation. Expected '{required_phrase}', got '{value}'. Try again.\n"
-
-    @classmethod
-    def overflow_proceed(cls, dof_report: str) -> str:
-        return f"{dof_report}\nDo you wish to proceed with overflowed domains trimmed?"
-
-    @classmethod
-    def complaints_proceed(cls, complaints: list[str]) -> str:
-        return f"{"\n".join(complaints)}\nProceed anyway?"
-
-
-from stdlib import re
-from core import NewBtn
-class SystemKeys:
-    DELIM = "§"
-
 class TUIContentShaper:
-
+    """ this class should encapsulate all the business of turning a kb/ui render into a str i think we can give it the filesadapter so it can get its templates."""
+    DELIM = "§"
     def shape_button_replacements(self, btn: NewBtn, label: str, template: str) -> dict[str, str]:
         lines = template.strip("\n").splitlines()
         norm_label = label[:6].ljust(6)
         mapped_lines = [
             lines[0],
             lines[1],
-            lines[2].replace(SystemKeys.DELIM, btn.key, 1),
+            lines[2].replace(self.DELIM, btn.key, 1),
             lines[3],
-            lines[4].replace(SystemKeys.DELIM * 6, norm_label, 1),
+            lines[4].replace(self.DELIM * 6, norm_label, 1),
         ]
         return {f"{btn.key}{idx}": line for idx, line in enumerate(mapped_lines)}
 
@@ -93,7 +82,7 @@ class TUIContentShaper:
         return f"{msg:<{width}}"[:width]
 
     def hydrate(self, template: str, replacements: dict[str, str]) -> str:
-        pattern = re.compile(rf"{SystemKeys.DELIM}([^{SystemKeys.DELIM}]+){SystemKeys.DELIM}")
+        pattern = re.compile(rf"{self.DELIM}([^{self.DELIM}]+){self.DELIM}")
         return pattern.sub(
             lambda m: replacements.get(m.group(1).strip(), m.group(0)),
             template
@@ -117,56 +106,37 @@ class TUIContentShaper:
                 msg = ""
         return self.shape_action_result(msg, width)
 
-class ActionResult:
-    """ this class is used by test system to evaluate rendered ui's """
-    BOOTSTRAP_SUCCESS = "Bootstrap completed successfully"
-    UNBOUND_KEY = "No action bound to key '{key}'"
-    DOMAIN_SELECTED = "Domain '{domain}' on key '{key}' selected"
-    KEY_EMPTY = "Key '{key}' is empty"
-    COPIED_TO_CLIPBOARD = "Copied {lines} lines ({chars} chars) to clipboard"
-
-    MSG_DEFAULT: str = "Program exited"
-    MSG_DECLINED_INIT: str = "User declined to clankerize project"
-    MSG_DECLINED_BOOTSTRAP: str = "Bootstrap declined by user"
-
-    def __init__(self, message: str):
-        self.message = message
 
 @dataclass
 class TUIRenderer:
+    """ this class delegates to the above two classes , and uses the terminalport."""
     io_bridge: TerminalPort
     files: DiskPort
     shaper: TUIContentShaper = field(default_factory=TUIContentShaper)
-    PROCEED_QUESTION = "Proceed anyway?"
+    PROCEED_QUESTION = "Proceed anyway?" # is this required here? wtf
 
-    def display(self, result: Result) -> bool: 
+    def post_question(self, result: StartResult | ClankerizeResult, affirmative_cmd: type, declined_cmd: type) -> Command:
         match result:
-            case StartResult(): 
-                if not result.report.get_all_complaints():
-                    return True
-                question = self.start_confirmation(result.report) # if we inline this 
-                return self.io_bridge.get_acceptance(question)
-
+            case StartResult():
+                accepted = True
+                if result.report.get_all_complaints():
+                    question = self.start_confirmation(result.report)
+                    accepted = self.io_bridge.get_acceptance(question)
             case ClankerizeResult():
-                question = self.clankerize_confirmation(result.report) # and this 
-                return self.io_bridge.get_acceptance(question)
-
-            case TerminateResult():
-                question = self.termination_acknowledgment(result.report) # and this
-                self.io_bridge.get_acceptance(question)
-                return True
-
-            case KbCmdResult():
-                self.render_result(result)
-                return True
-
-            case ExitResult():
-                return True
-
+                question = self.clankerize_confirmation(result.report)
+                accepted = self.io_bridge.get_acceptance(question)
             case _:
-                return False
+                accepted = False
+        return affirmative_cmd() if accepted else declined_cmd()
 
-        # then down here we would be able to kinda do shared work
+    def get_acknowledgement(self, result: TerminateResult, exit_cmd: type) -> Command:
+        question = self.termination_acknowledgment(result.report)
+        self.io_bridge.get_acceptance(question)
+        return exit_cmd()
+
+    def display_result(self, result: KbCmdResult | ExitResult) -> None:
+        if isinstance(result, KbCmdResult):
+            self.render_result(result)
 
     def render_result(self, command_result: KbCmdResult) -> None:
         try:
@@ -198,12 +168,8 @@ class TUIRenderer:
         return repl_map
 
     @classmethod
-    def termination_acknowledgment(cls, report: Report) -> Question: #inline
-        all_crits = report.get_critical_complaints()
-        all_softs = report.get_complaints()
-        msg = "Critical errors:\n" + "\n".join(all_crits)
-        if all_softs:
-            msg += "\nSoft complaints:\n" + "\n".join(all_softs)
+    def termination_acknowledgment(cls, report: Report) -> Question:
+        msg = ComplaintsFormatter.format(report)
         return Question(
             message=msg,
             required_phrase=None,
@@ -211,14 +177,9 @@ class TUIRenderer:
         )
 
     @classmethod
-    def complaints_proceed(cls, complaints: list[str]) -> str:
-        complaints_str = "\n".join(complaints)
-        return f"{complaints_str}\n{cls.PROCEED_QUESTION}"
-
-    @classmethod
-    def start_confirmation(cls, report: Report) -> Question: #inline
-        softs = report.get_all_complaints()
-        prompt_msg = cls.complaints_proceed([ComplaintsFormatter._format_complaint(c) for c in softs])
+    def start_confirmation(cls, report: Report) -> Question:
+        report_str = ComplaintsFormatter.format(report)
+        prompt_msg = f"{report_str}\n{cls.PROCEED_QUESTION}" if report_str else cls.PROCEED_QUESTION
         return Question(
             message=prompt_msg,
             required_phrase=None,
@@ -226,17 +187,40 @@ class TUIRenderer:
         )
 
     @classmethod
-    def clankerize_confirmation(cls, report: Report) -> Question: #inline
-        softs = report.get_all_complaints()
+    def clankerize_confirmation(cls, report: Report) -> Question:
         parts = []
-        if softs:
-            formatted_softs = [ComplaintsFormatter._format_complaint(c) for c in softs]
-            parts.append("\n".join(formatted_softs))
-        parts.append(UserQuestions.INIT_REPO)
+        report_str = ComplaintsFormatter.format(report)
+        if report_str:
+            parts.append(report_str)
+        parts.append(QuestionPhrases.INIT_REPO)
         prompt_msg = "\n".join(parts)
         return Question(
             message=prompt_msg,
-            required_phrase=UserQuestions.REQUIRED_PHRASE,
-            instructions=UserQuestions.CONFIRMATION_INSTRUCTIONS.format(required_phrase=UserQuestions.REQUIRED_PHRASE),
-            error_template=UserQuestions.CONFIRMATION_INVALID_ERR
+            required_phrase=QuestionPhrases.REQUIRED_PHRASE,
+            instructions=QuestionPhrases.CONFIRMATION_INSTRUCTIONS.format(required_phrase=QuestionPhrases.REQUIRED_PHRASE),
+            error_template=QuestionPhrases.CONFIRMATION_INVALID_ERR
         )
+
+""" 
+below classes hold str values for use other places 
+we can reference them in the test system when we do asserts.
+these are aux classes, so to speak.
+"""
+
+class ActionResult:
+    """ this class is used by test system to evaluate rendered ui's """
+    BOOTSTRAP_SUCCESS = "Bootstrap completed successfully"
+    UNBOUND_KEY = "No action bound to key '{key}'"
+    DOMAIN_SELECTED = "Domain '{domain}' on key '{key}' selected"
+    KEY_EMPTY = "Key '{key}' is empty"
+    COPIED_TO_CLIPBOARD = "Copied {lines} lines ({chars} chars) to clipboard"
+
+    MSG_DEFAULT: str = "Program exited"
+    MSG_DECLINED_INIT: str = "User declined to clankerize project"
+    MSG_DECLINED_BOOTSTRAP: str = "Bootstrap declined by user"
+
+class QuestionPhrases:
+    REQUIRED_PHRASE = "yes"
+    INIT_REPO = "Directory not initialized as clank repo - clankerize?"
+    CONFIRMATION_INSTRUCTIONS = "Type '{required_phrase}' and press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n> "
+    CONFIRMATION_INVALID_ERR = "Invalid confirmation. Expected '{required_phrase}', got '{value}'. Try again.\n"

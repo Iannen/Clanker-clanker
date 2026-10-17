@@ -1,4 +1,4 @@
-from core.engine_deps import FrontendService, IOControl, TerminalPort, DiskPort, StartResult, UserDeclinedStart, UserDeclinedClankerize, StartupFailed, UserAborted, KbCmd, ClankerizeResult, TerminateResult, BootCmd, StartCmd, ClankerizeCmd, Command, Result
+from core.engine_deps import FrontendService, IOControl, TerminalPort, DiskPort, StartResult, UserDeclinedStart, UserDeclinedClankerize, StartupFailed, UserAborted, KbCmd, ClankerizeResult, TerminateResult, BootCmd, StartCmd, ClankerizeCmd, Command, Result, KbCmdResult, ExitResult
 from ..tui import TUIRenderer
 
 class TUIServiceImpl(FrontendService):
@@ -16,22 +16,16 @@ class TUIServiceImpl(FrontendService):
         return KbCmd(char=ch.lower())        
 
     def post_response(self, result: Result) -> None:
-        """I feel this method has lost track of the results. it should account for all results that may appear.
-         it should also map each possible result to a command or to None.
-         perhaps the helper can have contract like
-           - method that accepts a result, and two  possible cmd 
-                 it runs the result by the user, and returns bool
-           - a method that accepts a result and one optional cmd defaulting to None
-                - displays the result, and then returns the command
-        so then our switch here becomes just a big router table, kinda
-        """
-
-        self._cmd = None
-        accepted = self.renderer.display(result)
+        cmd = None
         match result:
             case StartResult(): 
-                self._cmd = StartCmd() if accepted else UserDeclinedStart()
+                cmd = self.renderer.post_question(result, StartCmd, UserDeclinedStart)
             case ClankerizeResult(): 
-                self._cmd = ClankerizeCmd() if accepted else UserDeclinedClankerize()
+                cmd = self.renderer.post_question(result, ClankerizeCmd, UserDeclinedClankerize)
             case TerminateResult(): 
-                self._cmd = StartupFailed()
+                cmd = self.renderer.get_acknowledgement(result, StartupFailed)
+            case KbCmdResult(): 
+                self.renderer.display_result(result)
+            case ExitResult(): 
+                self.renderer.display_result(result)
+        self._cmd = cmd
