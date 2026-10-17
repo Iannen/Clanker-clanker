@@ -3,7 +3,7 @@ from core import ClankerAssets, DomButton, PromptButton, Keyboard, CorruptClanke
 from core.engine_deps import (
     TerminalPort, StartResult, ClankerizeResult, TerminateResult,
     Report, MissingEntityFields, UnsatisfiedFiles, Missing, Malformed, 
-    UnsatisfiedFilesetSubjects, FilenameCollision, DomainOverflow, Complaint, Question, 
+    UnsatisfiedFilesetSubjects, FilenameCollision, DomainOverflow, Complaint, Proposition, 
     BootstrapSuccess, UnboundKeyResult, DomainSelectedResult, UninhabitedDomainResult, 
     UninhabitedPromptResult, PromptRenderResult, KbCmdResult, NoSuchFile, DiskPort, ExitResult, Command
 )
@@ -148,39 +148,33 @@ class TUIRenderer:
             case StartResult():
                 if not result.report.get_all_complaints():
                     return affirmative_cmd()
-                report_str = ComplaintsFormatter.format(result.report)
-                prompt_msg = f"{report_str}\n{QuestionPhrases.PROCEED_QUESTION}"
-                question = Question(
-                    message=prompt_msg,
-                    required_phrase=None,
-                    instructions="Press [Ctrl+D] to proceed, or [ESC/Ctrl+C] to decline.\n> "
-                )
+                subject = ComplaintsFormatter.format(result.report)
+                statement=QuestionPhrases.PROCEED_QUESTION
+                required_phrase=None
             case ClankerizeResult():
-                parts = []
-                report_str = ComplaintsFormatter.format(result.report)
-                if report_str:
-                    parts.append(report_str)
-                parts.append(QuestionPhrases.INIT_REPO)
-                prompt_msg = "\n".join(parts)
-                question = Question(
-                    message=prompt_msg,
-                    required_phrase=QuestionPhrases.REQUIRED_PHRASE,
-                    instructions=QuestionPhrases.CONFIRMATION_INSTRUCTIONS.format(required_phrase=QuestionPhrases.REQUIRED_PHRASE),
-                    error_template=QuestionPhrases.CONFIRMATION_INVALID_ERR
-                )
-            case _: raise Exception(f"some appropriate ex to say {result} should not go here") 
+                subject = ComplaintsFormatter.format(result.report)
+                statement=QuestionPhrases.INIT_REPO
+                required_phrase=QuestionPhrases.REQUIRED_PHRASE
+            case _: 
+                raise ValueError(f"Unsupported result type for post_question: {type(result).__name__}") 
 
-        accepted = self.io_bridge.get_acceptance(question)
+        accepted = self.io_bridge.get_acceptance(
+            Proposition(
+                subject=subject,
+                statement=statement,
+                required_phrase=required_phrase
+            )
+        )
         return affirmative_cmd() if accepted else declined_cmd()
 
     def get_acknowledgement(self, result: TerminateResult, exit_cmd: type) -> Command:
         msg = ComplaintsFormatter.format(result.report)
-        question = Question(
-            message=msg,
-            required_phrase=None,
-            instructions="Press any key to exit.\n> "
+        proposition = Proposition(
+            subject=msg,
+            statement="", # wtf is this omg
+            required_phrase=None
         )
-        self.io_bridge.get_acceptance(question)
+        self.io_bridge.get_acceptance(proposition)
         return exit_cmd()
 
     def display_result(self, result: KbCmdResult | ExitResult) -> None:

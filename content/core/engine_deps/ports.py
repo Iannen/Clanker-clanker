@@ -11,11 +11,10 @@ class IOControl:
 class TerminalFailure(Exception): pass
 
 @dataclass
-class Question:
-    message: str
+class Proposition:
+    statement: str
+    subject: str | None = None
     required_phrase: str | None = None
-    instructions: str = ""
-    error_template: str | None = None
 
 class TerminalPort(ABC):
     @abstractmethod
@@ -28,7 +27,7 @@ class TerminalPort(ABC):
     def read_char(self) -> str: ...  # raises: TerminalFailure
 
     @abstractmethod
-    def get_acceptance(self, question: Question) -> bool: ...  # raises: TerminalFailure
+    def get_acceptance(self, proposition: Proposition) -> bool: ...  # raises: TerminalFailure
 
 
 class NoSuchFile(Exception): pass

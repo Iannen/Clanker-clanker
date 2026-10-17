@@ -3,7 +3,7 @@ import os
 import sys
 import termios
 import tty
-from core.engine_deps import TerminalPort, IOControl, TerminalFailure, Question
+from core.engine_deps import TerminalPort, IOControl, TerminalFailure, Proposition
 
 class LinuxTerminalAdapter(TerminalPort):
     def to_clipboard(self, text_content: str) -> int:
@@ -43,18 +43,24 @@ class LinuxTerminalAdapter(TerminalPort):
         except (termios.error, OSError, EOFError) as ex:
             raise TerminalFailure from ex
 
-    def get_acceptance(self, question: Question) -> bool:
+    def get_acceptance(self, proposition: Proposition) -> bool:
         try:
-            base_msg = f"\n{question.message}\n{question.instructions}"
-            self.write(base_msg)
+            msg = f"{proposition.subject}\n{proposition.statement}" if proposition.subject else proposition.statement
             
-            if question.required_phrase is None:
+            if proposition.required_phrase is None:
+                instructions = "Press [Ctrl+D] to proceed, or [ESC/Ctrl+C] to decline.\n> "
+                base_msg = f"\n{msg}\n{instructions}"
+                self.write(base_msg)
                 while True:
                     ch = self.read_char()
                     if ch in IOControl.ABORT_KEYS:
                         return False
                     if ch == IOControl.ACCEPT_KEY:
                         return True
+
+            instructions = f"Type '{proposition.required_phrase}' and press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n> "
+            base_msg = f"\n{msg}\n{instructions}"
+            self.write(base_msg)
 
             while True:
                 buffer = ""
@@ -63,7 +69,7 @@ class LinuxTerminalAdapter(TerminalPort):
                     if ch in IOControl.ABORT_KEYS:
                         return False
                     if ch == IOControl.ACCEPT_KEY:
-                        if buffer == question.required_phrase:
+                        if buffer == proposition.required_phrase:
                             sys.stdout.write("\n")
                             sys.stdout.flush()
                             return True
@@ -78,9 +84,7 @@ class LinuxTerminalAdapter(TerminalPort):
                         sys.stdout.write(ch)
                         sys.stdout.flush()
                 
-                err = question.error_template.format(
-                    required_phrase=question.required_phrase, value=buffer
-                )
+                err = f"Invalid confirmation. Expected '{proposition.required_phrase}', got '{buffer}'. Try again.\n"
                 self.write(f"{base_msg}{err}> ")
         except TerminalFailure:
             raise
