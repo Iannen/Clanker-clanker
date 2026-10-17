@@ -39,5 +39,11 @@ def post_response(self, result: Result) -> None:
 '''
 
 Backlog tail, Selected item/items:
+4. Refactor KBServiceImpl to autonomously cache runtime state on StartResult and simplify StartCmd
+    [x] 'content/modules/keyboard/keyboard_service.py': Update KBServiceImpl to cache state and remove StartCmd payload dependency
+- cache `kb` and `ui_render` directly on `KBServiceImpl` when handling `BootCmd` or `ClankerizeCmd` if a `StartResult` is returned
+  - refactor `StartCmd` handling to use the pre-cached runtime state instead of unpacking command attributes
+    [x] 'content/core/engine_deps/result.py': Strip payload requirements from StartCmd
+- convert `StartCmd` into a payload-free command signal class (`class StartCmd(Command): pass`)
 
 Backlog tail end

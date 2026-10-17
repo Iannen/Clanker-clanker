@@ -30,7 +30,7 @@ class TUIServiceImpl(FrontendService):
         accepted = self.renderer.display(result)
         match result:
             case StartResult(): 
-                self._cmd = StartCmd(result) if accepted else UserDeclinedStart()
+                self._cmd = StartCmd() if accepted else UserDeclinedStart()
             case ClankerizeResult(): 
                 self._cmd = ClankerizeCmd() if accepted else UserDeclinedClankerize()
             case TerminateResult(): 

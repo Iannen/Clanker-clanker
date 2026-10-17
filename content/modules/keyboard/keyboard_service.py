@@ -1,10 +1,7 @@
 from stdlib import dataclass
 from core import (
-    Keyboard,
     DomButton,
     PromptButton,
-    Prompt,
-    Render
 )
 from core.engine_deps import (
     KBService,
@@ -26,7 +23,8 @@ from core.engine_deps import (
     StartCmd,
     ClankerizeCmd,
     Command,
-    Result
+    Result,
+    StartResult
 )
 
 @dataclass(slots=True)
@@ -36,15 +34,21 @@ class KBServiceImpl(KBService):
 
     def handle_cmd(self, cmd: Command) -> Result:
         match cmd:
-            case BootCmd(): return self.ingestion.get_runtime_config()
-            case ClankerizeCmd(): return self.ingestion.initialize_workspace()
-            case ExitCommand(): return ExitResult(cmd)
+            case BootCmd(): 
+                res = self.ingestion.get_runtime_config()
+                if isinstance(res, StartResult):
+                    self._cache_goods(res)
+                return res
+            case ClankerizeCmd(): 
+                res = self.ingestion.initialize_workspace()
+                if isinstance(res, StartResult):
+                    self._cache_goods(res)
+                return res
+            case ExitCommand(): 
+                return ExitResult(cmd)
             case StartCmd(): 
-                # kb and ui render should probably live down in ingestionservice.
-                self.kb: Keyboard = cmd.kb
-                self.ui_render: Render = cmd.ui_render
-                self.last_prompt: Prompt | None = None
-                return BootstrapSuccess(kb = self.kb, ui_render=self.ui_render, cmd=None)            
+                self.last_prompt = None
+                return BootstrapSuccess(kb=self.kb, ui_render=self.ui_render, cmd=None)            
             case KbCmd(): 
                 btn = self.kb.get(cmd.char)
                 if btn is None:
@@ -52,6 +56,11 @@ class KBServiceImpl(KBService):
                 match(btn):
                     case(DomButton()): return self._handle_dom_btn(btn, cmd)
                     case(PromptButton()): return self._handle_prompt_btn(btn, cmd)
+
+    def _cache_goods(self, res: StartResult) -> None:
+        self.kb = res.kb
+        self.ui_render = res.ui_render
+        self.last_prompt = None
 
     def _handle_dom_btn(self, btn: DomButton, cmd: KbCmd) -> KbCmdResult:
         self.kb.set_selected_dom_btn(btn)

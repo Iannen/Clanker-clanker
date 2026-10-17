@@ -27,10 +27,7 @@ class KBService(ABC):
 class Command: pass
 
 class BootCmd(Command): pass
-class StartCmd(Command):
-    def __init__(self, res: StartResult): 
-        self.kb = res.kb
-        self.ui_render = res.ui_render
+class StartCmd(Command): pass
 class ClankerizeCmd(Command): pass
 
 # the bread and butter cmd
