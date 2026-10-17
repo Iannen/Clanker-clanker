@@ -1,79 +1,12 @@
-from stdlib import dataclass
+from stdlib import dataclass, field
+from core import ClankerAssets, DomButton, PromptButton, Keyboard, CorruptClanker
 from core.engine_deps import (
-    TerminalPort, IngestionResult, StartResult, ClankerizeResult, TerminateResult,
+    TerminalPort, StartResult, ClankerizeResult, TerminateResult,
     Report, MissingEntityFields, UnsatisfiedFiles, Missing, Malformed, 
     UnsatisfiedFilesetSubjects, FilenameCollision, DomainOverflow, Complaint, Question, 
     BootstrapSuccess, UnboundKeyResult, DomainSelectedResult, UninhabitedDomainResult, 
-    UninhabitedPromptResult, PromptRenderResult, KbCmdResult
+    UninhabitedPromptResult, PromptRenderResult, KbCmdResult, NoSuchFile, DiskPort, ExitResult, Result
 )
-
-@dataclass
-class TUIQuestions:
-    io_bridge: TerminalPort
-    PROCEED_QUESTION = "Proceed anyway?"
-
-    def dispatch(self, bootstrap_res: IngestionResult) -> bool:
-        match bootstrap_res:
-            case StartResult():
-                if not bootstrap_res.report.get_all_complaints():
-                    return True
-                question = self.start_confirmation(bootstrap_res.report)
-                return self.io_bridge.get_acceptance(question)
-
-            case ClankerizeResult():
-                question = self.clankerize_confirmation(bootstrap_res.report)
-                return self.io_bridge.get_acceptance(question)
-
-            case TerminateResult():
-                question = self.termination_acknowledgment(bootstrap_res.report)
-                self.io_bridge.get_acceptance(question)
-                return True
-            case _:
-                return False
-
-    @classmethod
-    def termination_acknowledgment(cls, report: Report) -> Question:
-        all_crits = report.get_critical_complaints()
-        all_softs = report.get_complaints()
-        msg = "Critical errors:\n" + "\n".join(all_crits)
-        if all_softs:
-            msg += "\nSoft complaints:\n" + "\n".join(all_softs)
-        return Question(
-            message=msg,
-            required_phrase=None,
-            instructions="Press any key to exit.\n> "
-        )
-
-    @classmethod
-    def complaints_proceed(cls, complaints: list[str]) -> str:
-        complaints_str = "\n".join(complaints)
-        return f"{complaints_str}\n{cls.PROCEED_QUESTION}"
-
-    @classmethod
-    def start_confirmation(cls, report: Report) -> Question:
-        softs = report.get_all_complaints()
-        prompt_msg = cls.complaints_proceed([ComplaintsFormatter._format_complaint(c) for c in softs])
-        return Question(
-            message=prompt_msg,
-            required_phrase=None,
-            instructions="Press [Ctrl+D] to proceed, or [ESC/Ctrl+C] to decline.\n> "
-        )
-
-    @classmethod
-    def clankerize_confirmation(cls, report: Report) -> Question:
-        softs = report.get_all_complaints()
-        parts = []
-        if softs:
-            formatted_softs = [ComplaintsFormatter._format_complaint(c) for c in softs]
-            parts.append("\n".join(formatted_softs))
-        parts.append(UserQuestions.INIT_REPO)
-        prompt_msg = "\n".join(parts)
-        return Question(
-            message=prompt_msg,
-            required_phrase=UserQuestions.REQUIRED_PHRASE,
-            instructions=UserQuestions.CONFIRMATION_INSTRUCTIONS.format(required_phrase=UserQuestions.REQUIRED_PHRASE),
-            error_template=UserQuestions.CONFIRMATION_INVALID_ERR
-        )
 
 class ComplaintsFormatter:
     @classmethod
@@ -198,3 +131,112 @@ class ActionResult:
 
     def __init__(self, message: str):
         self.message = message
+
+@dataclass
+class TUIRenderer:
+    io_bridge: TerminalPort
+    files: DiskPort
+    shaper: TUIContentShaper = field(default_factory=TUIContentShaper)
+    PROCEED_QUESTION = "Proceed anyway?"
+
+    def display(self, result: Result) -> bool: 
+        match result:
+            case StartResult(): 
+                if not result.report.get_all_complaints():
+                    return True
+                question = self.start_confirmation(result.report) # if we inline this 
+                return self.io_bridge.get_acceptance(question)
+
+            case ClankerizeResult():
+                question = self.clankerize_confirmation(result.report) # and this 
+                return self.io_bridge.get_acceptance(question)
+
+            case TerminateResult():
+                question = self.termination_acknowledgment(result.report) # and this
+                self.io_bridge.get_acceptance(question)
+                return True
+
+            case KbCmdResult():
+                self.render_result(result)
+                return True
+
+            case ExitResult():
+                return True
+
+            case _:
+                return False
+
+        # then down here we would be able to kinda do shared work
+
+    def render_result(self, command_result: KbCmdResult) -> None:
+        try:
+            template = self.files.read_asset(ClankerAssets.layouts.UI)
+        except NoSuchFile as ex:
+            raise CorruptClanker(f"Error loading template for '{command_result.ui_render.template}': {ex}") from ex
+        repl_map = self._res_ui(command_result.kb)
+        repl_map["msg"] = self.shaper.shape_command_result(command_result)
+        ui_string = self.shaper.hydrate(template, repl_map)
+        self.io_bridge.write(f"{ui_string}\n")
+
+    def _res_ui(self, kb: Keyboard) -> dict[str, str]:
+        btn_hl = self.files.read_asset(ClankerAssets.layouts.BTN_HL)
+        btn_active = self.files.read_asset(ClankerAssets.layouts.BTN_ACTIVE)
+        btn_inactive = self.files.read_asset(ClankerAssets.layouts.BTN_INACTIVE)
+
+        repl_map = {}
+        for btn in kb.get_btns(DomButton):
+            template = btn_inactive
+            label = btn.inhabitant.name if btn.inhabitant else ""
+            if btn == kb.selected_dom_btn: template = btn_hl
+            elif btn.inhabitant: template = btn_active
+            repl_map |= self.shaper.shape_button_replacements(btn, label, template)
+        for btn in kb.get_btns(PromptButton):
+            label = btn.inhabitant.name if btn.inhabitant else ""
+            template = btn_active if btn.inhabitant else btn_inactive   
+            repl_map |= self.shaper.shape_button_replacements(btn, label, template)
+            
+        return repl_map
+
+    @classmethod
+    def termination_acknowledgment(cls, report: Report) -> Question: #inline
+        all_crits = report.get_critical_complaints()
+        all_softs = report.get_complaints()
+        msg = "Critical errors:\n" + "\n".join(all_crits)
+        if all_softs:
+            msg += "\nSoft complaints:\n" + "\n".join(all_softs)
+        return Question(
+            message=msg,
+            required_phrase=None,
+            instructions="Press any key to exit.\n> "
+        )
+
+    @classmethod
+    def complaints_proceed(cls, complaints: list[str]) -> str:
+        complaints_str = "\n".join(complaints)
+        return f"{complaints_str}\n{cls.PROCEED_QUESTION}"
+
+    @classmethod
+    def start_confirmation(cls, report: Report) -> Question: #inline
+        softs = report.get_all_complaints()
+        prompt_msg = cls.complaints_proceed([ComplaintsFormatter._format_complaint(c) for c in softs])
+        return Question(
+            message=prompt_msg,
+            required_phrase=None,
+            instructions="Press [Ctrl+D] to proceed, or [ESC/Ctrl+C] to decline.\n> "
+        )
+
+    @classmethod
+    def clankerize_confirmation(cls, report: Report) -> Question: #inline
+        softs = report.get_all_complaints()
+        parts = []
+        if softs:
+            formatted_softs = [ComplaintsFormatter._format_complaint(c) for c in softs]
+            parts.append("\n".join(formatted_softs))
+        parts.append(UserQuestions.INIT_REPO)
+        prompt_msg = "\n".join(parts)
+        return Question(
+            message=prompt_msg,
+            required_phrase=UserQuestions.REQUIRED_PHRASE,
+            instructions=UserQuestions.CONFIRMATION_INSTRUCTIONS.format(required_phrase=UserQuestions.REQUIRED_PHRASE),
+            error_template=UserQuestions.CONFIRMATION_INVALID_ERR
+        )

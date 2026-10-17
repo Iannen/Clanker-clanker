@@ -26,8 +26,7 @@ pud_filesets:
     content/modules/tui], excludes: [
       content/core/core/constants.py,
       content/core/core/exceptions.py,
-      content/modules/tui/formatter.py,
-      content/modules/tui/questions.py
+      content/modules/tui/renderer.py,
     ]}
 
   kb_prompts_cleanup: { includes: [

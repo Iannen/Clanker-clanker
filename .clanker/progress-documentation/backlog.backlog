@@ -22,13 +22,22 @@ II. The pile
         - it should receive the promptctx thing from kb (data) service via the engine, and push it to clipboard via dedicated port
     - TUIService encapsulates incoming and outcoming communication with the user. the exit messages the engine uses should originate from here.
 
+see comments in tuiservice
+'''
+def post_response(self, result: Result) -> None:
+    self._cmd = match result:
+        case StartResult():
+            self.renderer.choose(result, StartCmd, UserDeclinedStart)
+        case ClankerizeResult():
+            self.renderer.choose(result, ClankerizeCmd, UserDeclinedClankerize)
+        case TerminateResult():
+            self.renderer.display(result, StartupFailed)
+        case KbCmdResult():
+            self.renderer.display(result)  # Renders the UI and returns None
+        case ExitResult():
+            None
+'''
+
 Backlog tail, Selected item/items:
-1. Refactor TUIServiceImpl and TUIQuestions for clean command dispatch and encapsulated bootstrap workflows
-    [x] 'content/modules/tui/tui_service.py': Convert TUIServiceImpl to standard class and streamline request-response loop
-        - replace dataclass structure with a standard `__init__` constructor
-        - refactor `get_request` and `post_response` to rely on an explicit command register flow
-        - delegate bootstrap result processing to the question dispatcher
-    [x] 'content/modules/tui/questions.py': Upgrade TUIQuestions into an interactive dispatcher holding the terminal port
-        - accept `io_bridge` (TerminalPort) on initialization
-        - implement a unified `dispatch` method to encapsulate workflow checks and user acceptance dialogues
+
 Backlog tail end
