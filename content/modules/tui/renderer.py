@@ -9,7 +9,7 @@ from core.engine_deps import (
 )
 
 class ComplaintsFormatter:
-    """ this class turns a report into a str"""
+    """This class turns a report into a str"""
     @classmethod
     def format(cls, report: Report) -> str:
         parts = []
@@ -64,8 +64,37 @@ class ComplaintsFormatter:
                 return str(complaint)
 
 class TUIContentShaper:
-    """ this class should encapsulate all the business of turning a kb/ui render into a str i think we can give it the filesadapter so it can get its templates."""
+    """This class encapsulates all the business of turning a kb/ui render into a str"""
     DELIM = "§"
+
+    def render_view(self, command_result: KbCmdResult, files: DiskPort) -> str:
+        try:
+            template = files.read_asset(ClankerAssets.layouts.UI)
+        except NoSuchFile as ex:
+            raise CorruptClanker(f"Error loading template for '{command_result.ui_render.template}': {ex}") from ex
+        repl_map = self._res_ui(command_result.kb, files)
+        repl_map["msg"] = self.shape_command_result(command_result)
+        return self.hydrate(template, repl_map)
+
+    def _res_ui(self, kb: Keyboard, files: DiskPort) -> dict[str, str]:
+        btn_hl = files.read_asset(ClankerAssets.layouts.BTN_HL)
+        btn_active = files.read_asset(ClankerAssets.layouts.BTN_ACTIVE)
+        btn_inactive = files.read_asset(ClankerAssets.layouts.BTN_INACTIVE)
+
+        repl_map = {}
+        for btn in kb.get_btns(DomButton):
+            template = btn_inactive
+            label = btn.inhabitant.name if btn.inhabitant else ""
+            if btn == kb.selected_dom_btn: template = btn_hl
+            elif btn.inhabitant: template = btn_active
+            repl_map |= self.shape_button_replacements(btn, label, template)
+        for btn in kb.get_btns(PromptButton):
+            label = btn.inhabitant.name if btn.inhabitant else ""
+            template = btn_active if btn.inhabitant else btn_inactive   
+            repl_map |= self.shape_button_replacements(btn, label, template)
+            
+        return repl_map
+
     def shape_button_replacements(self, btn: NewBtn, label: str, template: str) -> dict[str, str]:
         lines = template.strip("\n").splitlines()
         norm_label = label[:6].ljust(6)
@@ -109,106 +138,59 @@ class TUIContentShaper:
 
 @dataclass
 class TUIRenderer:
-    """ this class delegates to the above two classes , and uses the terminalport."""
+    """This class delegates to helper classes and uses the terminal port."""
     io_bridge: TerminalPort
     files: DiskPort
     shaper: TUIContentShaper = field(default_factory=TUIContentShaper)
-    PROCEED_QUESTION = "Proceed anyway?" # is this required here? wtf
 
     def post_question(self, result: StartResult | ClankerizeResult, affirmative_cmd: type, declined_cmd: type) -> Command:
         match result:
             case StartResult():
-                accepted = True
-                if result.report.get_all_complaints():
-                    question = self.start_confirmation(result.report)
-                    accepted = self.io_bridge.get_acceptance(question)
+                if not result.report.get_all_complaints():
+                    return affirmative_cmd()
+                report_str = ComplaintsFormatter.format(result.report)
+                prompt_msg = f"{report_str}\n{QuestionPhrases.PROCEED_QUESTION}"
+                question = Question(
+                    message=prompt_msg,
+                    required_phrase=None,
+                    instructions="Press [Ctrl+D] to proceed, or [ESC/Ctrl+C] to decline.\n> "
+                )
             case ClankerizeResult():
-                question = self.clankerize_confirmation(result.report)
-                accepted = self.io_bridge.get_acceptance(question)
-            case _:
-                accepted = False
+                parts = []
+                report_str = ComplaintsFormatter.format(result.report)
+                if report_str:
+                    parts.append(report_str)
+                parts.append(QuestionPhrases.INIT_REPO)
+                prompt_msg = "\n".join(parts)
+                question = Question(
+                    message=prompt_msg,
+                    required_phrase=QuestionPhrases.REQUIRED_PHRASE,
+                    instructions=QuestionPhrases.CONFIRMATION_INSTRUCTIONS.format(required_phrase=QuestionPhrases.REQUIRED_PHRASE),
+                    error_template=QuestionPhrases.CONFIRMATION_INVALID_ERR
+                )
+            case _: raise Exception(f"some appropriate ex to say {result} should not go here") 
+
+        accepted = self.io_bridge.get_acceptance(question)
         return affirmative_cmd() if accepted else declined_cmd()
 
     def get_acknowledgement(self, result: TerminateResult, exit_cmd: type) -> Command:
-        question = self.termination_acknowledgment(result.report)
+        msg = ComplaintsFormatter.format(result.report)
+        question = Question(
+            message=msg,
+            required_phrase=None,
+            instructions="Press any key to exit.\n> "
+        )
         self.io_bridge.get_acceptance(question)
         return exit_cmd()
 
     def display_result(self, result: KbCmdResult | ExitResult) -> None:
         if isinstance(result, KbCmdResult):
-            self.render_result(result)
+            ui_string = self.shaper.render_view(result, self.files)
+            self.io_bridge.write(f"{ui_string}\n")
 
-    def render_result(self, command_result: KbCmdResult) -> None:
-        try:
-            template = self.files.read_asset(ClankerAssets.layouts.UI)
-        except NoSuchFile as ex:
-            raise CorruptClanker(f"Error loading template for '{command_result.ui_render.template}': {ex}") from ex
-        repl_map = self._res_ui(command_result.kb)
-        repl_map["msg"] = self.shaper.shape_command_result(command_result)
-        ui_string = self.shaper.hydrate(template, repl_map)
-        self.io_bridge.write(f"{ui_string}\n")
-
-    def _res_ui(self, kb: Keyboard) -> dict[str, str]:
-        btn_hl = self.files.read_asset(ClankerAssets.layouts.BTN_HL)
-        btn_active = self.files.read_asset(ClankerAssets.layouts.BTN_ACTIVE)
-        btn_inactive = self.files.read_asset(ClankerAssets.layouts.BTN_INACTIVE)
-
-        repl_map = {}
-        for btn in kb.get_btns(DomButton):
-            template = btn_inactive
-            label = btn.inhabitant.name if btn.inhabitant else ""
-            if btn == kb.selected_dom_btn: template = btn_hl
-            elif btn.inhabitant: template = btn_active
-            repl_map |= self.shaper.shape_button_replacements(btn, label, template)
-        for btn in kb.get_btns(PromptButton):
-            label = btn.inhabitant.name if btn.inhabitant else ""
-            template = btn_active if btn.inhabitant else btn_inactive   
-            repl_map |= self.shaper.shape_button_replacements(btn, label, template)
-            
-        return repl_map
-
-    @classmethod
-    def termination_acknowledgment(cls, report: Report) -> Question:
-        msg = ComplaintsFormatter.format(report)
-        return Question(
-            message=msg,
-            required_phrase=None,
-            instructions="Press any key to exit.\n> "
-        )
-
-    @classmethod
-    def start_confirmation(cls, report: Report) -> Question:
-        report_str = ComplaintsFormatter.format(report)
-        prompt_msg = f"{report_str}\n{cls.PROCEED_QUESTION}" if report_str else cls.PROCEED_QUESTION
-        return Question(
-            message=prompt_msg,
-            required_phrase=None,
-            instructions="Press [Ctrl+D] to proceed, or [ESC/Ctrl+C] to decline.\n> "
-        )
-
-    @classmethod
-    def clankerize_confirmation(cls, report: Report) -> Question:
-        parts = []
-        report_str = ComplaintsFormatter.format(report)
-        if report_str:
-            parts.append(report_str)
-        parts.append(QuestionPhrases.INIT_REPO)
-        prompt_msg = "\n".join(parts)
-        return Question(
-            message=prompt_msg,
-            required_phrase=QuestionPhrases.REQUIRED_PHRASE,
-            instructions=QuestionPhrases.CONFIRMATION_INSTRUCTIONS.format(required_phrase=QuestionPhrases.REQUIRED_PHRASE),
-            error_template=QuestionPhrases.CONFIRMATION_INVALID_ERR
-        )
-
-""" 
-below classes hold str values for use other places 
-we can reference them in the test system when we do asserts.
-these are aux classes, so to speak.
-"""
 
 class ActionResult:
-    """ this class is used by test system to evaluate rendered ui's """
+    """Used by test system to evaluate rendered UIs"""
     BOOTSTRAP_SUCCESS = "Bootstrap completed successfully"
     UNBOUND_KEY = "No action bound to key '{key}'"
     DOMAIN_SELECTED = "Domain '{domain}' on key '{key}' selected"
@@ -219,8 +201,11 @@ class ActionResult:
     MSG_DECLINED_INIT: str = "User declined to clankerize project"
     MSG_DECLINED_BOOTSTRAP: str = "Bootstrap declined by user"
 
+
 class QuestionPhrases:
+    """Holds question phrases and instructions"""
     REQUIRED_PHRASE = "yes"
     INIT_REPO = "Directory not initialized as clank repo - clankerize?"
+    PROCEED_QUESTION = "Proceed anyway?"
     CONFIRMATION_INSTRUCTIONS = "Type '{required_phrase}' and press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n> "
     CONFIRMATION_INVALID_ERR = "Invalid confirmation. Expected '{required_phrase}', got '{value}'. Try again.\n"
