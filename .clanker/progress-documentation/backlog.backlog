@@ -24,11 +24,14 @@ II. The pile
 
 Backlog tail, Selected item/items:
 
-the 'TUIRenderer' should encapsulate 'iobridge' for TUIServiceImpl
-
-
-rather than the TUIServiceimpl having a ._cmd, it should have a threadsafe queue. 
-
+1. Refactor frontend service to use a command queue and delegate input reading to TUIRenderer
+    [x] 'content/modules/tui/renderer.py': Encapsulate input reading inside TUIRenderer
+        - add `read_request` method handling character reading, abort checks, and KbCmd creation using `io_bridge`
+    [x] 'content/modules/tui/tui_service.py': Rename service implementation and adopt a queue-based command flow
+        - rename `TUIServiceImpl` to `QueueFrontendService` (implementing `FrontendService`)
+        - replace `self._cmd` with a command queue initialized with `BootCmd()`
+        - update `get_request()` to check the queue first, falling back to `self.renderer.read_request()` when empty
+        - update `post_response()` to enqueue generated follow-up commands
 
 
 Backlog tail end

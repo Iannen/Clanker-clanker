@@ -1,7 +1,7 @@
 #!/usr/bin/env -S python3 -B
 from core.engine import AppEngine
 from adapters import LinuxDiskAdapter, LinuxTerminalAdapter, ScriptedTerminalAdapter, RuamelYamlParserAdapter, TestSequenceEnded
-from modules import TUIServiceImpl, PromptServiceImpl, KBServiceImpl, IngestionServiceImpl
+from modules import FrontendServiceImpl, PromptServiceImpl, KBServiceImpl, IngestionServiceImpl
 import sys
 import traceback
 import argparse
@@ -43,7 +43,7 @@ def main():
 
     ingestion = IngestionServiceImpl(files=files_adapter, cfg_ingestor=cfg_ingestor)
     prompt_service = PromptServiceImpl(files=files_adapter, io_bridge=io_adapter)
-    io = TUIServiceImpl(io_adapter, files_adapter)
+    io = FrontendServiceImpl(io_adapter, files_adapter)
     kb_service = KBServiceImpl(prompt_service=prompt_service, ingestion=ingestion)
 
     engine = AppEngine(frontend=io,kb_service=kb_service)

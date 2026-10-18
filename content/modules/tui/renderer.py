@@ -5,7 +5,7 @@ from core.engine_deps import (
     Report, MissingEntityFields, UnsatisfiedFiles, Missing, Malformed, 
     UnsatisfiedFilesetSubjects, FilenameCollision, DomainOverflow, Complaint, Proposition, 
     BootstrapSuccess, UnboundKeyResult, DomainSelectedResult, UninhabitedDomainResult, 
-    UninhabitedPromptResult, PromptRenderResult, KbCmdResult, NoSuchFile, DiskPort, ExitResult, Command
+    UninhabitedPromptResult, PromptRenderResult, KbCmdResult, NoSuchFile, DiskPort, ExitResult, Command, IOControl, KbCmd, UserAborted
 )
 
 class ComplaintsFormatter:
@@ -142,6 +142,12 @@ class TUIRenderer:
     io_bridge: TerminalPort
     files: DiskPort
     shaper: TUIContentShaper = field(default_factory=TUIContentShaper)
+
+    def read_request(self) -> Command:
+        ch = self.io_bridge.read_char()
+        if ch in IOControl.ABORT_KEYS:
+            return UserAborted()
+        return KbCmd(char=ch.lower())
 
     def post_question(self, result: StartResult | ClankerizeResult, affirmative_cmd: type, declined_cmd: type) -> Command:
         match result:

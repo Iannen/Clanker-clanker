@@ -1,19 +1,22 @@
-from core.engine_deps import FrontendService, IOControl, TerminalPort, DiskPort, StartResult, UserDeclinedStart, UserDeclinedClankerize, StartupFailed, UserAborted, KbCmd, ClankerizeResult, TerminateResult, BootCmd, StartCmd, ClankerizeCmd, Command, Result, KbCmdResult, ExitResult
+from stdlib import Queue
+from core.engine_deps import (
+    FrontendService, DiskPort, TerminalPort, StartResult, 
+    UserDeclinedStart, UserDeclinedClankerize, StartupFailed, 
+    ClankerizeResult, TerminateResult, BootCmd, 
+    StartCmd, ClankerizeCmd, Command, Result, KbCmdResult, ExitResult
+)
 from ..tui import TUIRenderer
 
-class TUIServiceImpl(FrontendService):
+class FrontendServiceImpl(FrontendService):
     def __init__(self, io_bridge: TerminalPort, files: DiskPort) -> None:
-        self.io_bridge = io_bridge
-        self.renderer: TUIRenderer = TUIRenderer(io_bridge=self.io_bridge, files=files)
-        self._cmd = BootCmd()
+        self.renderer: TUIRenderer = TUIRenderer(io_bridge=io_bridge, files=files)
+        self._queue: Queue[Command] = Queue()
+        self._queue.put(BootCmd())
 
     def get_request(self) -> Command:
-        if self._cmd: 
-            return self._cmd
-        ch = self.io_bridge.read_char()
-        if ch in IOControl.ABORT_KEYS:
-            return UserAborted()
-        return KbCmd(char=ch.lower())        
+        if not self._queue.empty():
+            return self._queue.get()
+        return self.renderer.read_request()
 
     def post_response(self, result: Result) -> None:
         cmd = None
@@ -28,4 +31,5 @@ class TUIServiceImpl(FrontendService):
                 self.renderer.display_result(result)
             case ExitResult(): 
                 self.renderer.display_result(result)
-        self._cmd = cmd
+        if cmd is not None:
+            self._queue.put(cmd)

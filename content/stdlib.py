@@ -19,3 +19,4 @@ from itertools import zip_longest
 from collections.abc import ItemsView
 import inspect
 from types import get_original_bases
+from queue import Queue
