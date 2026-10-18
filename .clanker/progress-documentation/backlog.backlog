@@ -24,28 +24,11 @@ II. The pile
 
 Backlog tail, Selected item/items:
 
-4. Refactor KBServiceImpl to autonomously cache runtime state on StartResult and simplify StartCmd
-    [x] 'content/modules/keyboard/keyboard_service.py': Update KBServiceImpl to cache state and remove StartCmd payload dependency
-- cache `kb` and `ui_render` directly on `KBServiceImpl` when handling `BootCmd` or `ClankerizeCmd` if a `StartResult` is returned
-  - refactor `StartCmd` handling to use the pre-cached runtime state instead of unpacking command attributes
-    [x] 'content/core/engine_deps/result.py': Strip payload requirements from StartCmd
-- convert `StartCmd` into a payload-free command signal class (`class StartCmd(Command): pass`)
+the 'TUIRenderer' should encapsulate 'iobridge' for TUIServiceImpl
 
-5. Refactor TUIServiceImpl.post_response and TUIRenderer to use a 3-method routing strategy
-    [x] 'content/modules/tui/renderer.py': Implement post_question, get_acknowledgement, and display_result methods on TUIRenderer
-- define `post_question` to handle interactive confirmation dialogues and return respective command instances based on user acceptance
-  - define `get_acknowledgement` to handle termination error reporting and return the acknowledgement exit command
-  - define `display_result` for non-blocking TUI command result rendering and layout hydration
-    [x] 'content/modules/tui/tui_service.py': Update post_response to utilize the 3-method renderer routing table
-- map `StartResult` and `ClankerizeResult` to `renderer.post_question`
-  - map `TerminateResult` to `renderer.get_acknowledgement`
-  - map `KbCmdResult` and `ExitResult` to `renderer.display_result`
 
-6. Expand ComplaintsFormatter to comprehensively format both critical and soft complaints
-    [ ] 'content/modules/tui/renderer.py': Enhance ComplaintsFormatter and streamline TUIRenderer report formatting
-- update `ComplaintsFormatter` to include critical complaints (`Malformed`, `Missing`, etc.) alongside soft complaints in its formatting output
-  - refactor `termination_acknowledgment`, `start_confirmation`, and `clankerize_confirmation` in `TUIRenderer` to delegate report formatting entirely to `ComplaintsFormatter.format(report)`
-    [ ] 'content/modules/tui/renderer.py': Remove redundant manual string stitching from UI rendering helpers
-- eliminate inline critical error header concatenation and manual complaint list joins across all renderer methods
+rather than the TUIServiceimpl having a ._cmd, it should have a threadsafe queue. 
+
+
 
 Backlog tail end

@@ -1330,3 +1330,25 @@ CLXX: REFACTORING TUI SERVICE AND QUESTIONS INTO TUIRENDERER FOR UNIFIED RESULT 
     Reflection:
     - Dramatically simplifies the service layer by eliminating procedural branching and helper wrappers.
     - Enhances maintainability and separation of concerns by isolating all screen-painting, layout hydration, and user confirmation logic within the renderer component.
+
+CLXXI: REFACTORING KEYBOARD SERVICE STATE CACHING AND IMPLEMENTING A 3-METHOD RENDERER ROUTING STRATEGY
+    Purpose: Decouple payload requirements from command signals, centralize runtime state caching, and establish an exhaustive, explicit 3-method routing pattern for frontend result handling.
+    - Remove payload coupling from engine command transitions and streamline TUI response dispatch into distinct, purpose-built renderer workflows.
+    Actions:
+    - Updated `KBServiceImpl` (`content/modules/keyboard/keyboard_service.py`) to autonomously cache runtime `kb` and `ui_render` state upon handling `BootCmd` or `ClankerizeCmd`, converting `StartCmd` into a payload-free signal class.
+    - Implemented a 3-method routing table in `TUIRenderer` (`content/modules/tui/renderer.py`) consisting of `post_question`, `get_acknowledgement`, and `display_result`.
+    - Streamlined `TUIServiceImpl.post_response` (`content/modules/tui/tui_service.py`) to map results explicitly across the new renderer routing methods.
+    Reflection:
+    - Eliminates constructor argument coupling across command-result boundaries.
+    - Replaces procedural branching with a clean, exhaustive command-mapping strategy that clarifies blocking versus non-blocking TUI interactions.
+
+CLXXII: CENTRALIZING REPORT FORMATTING AND INTRODUCING THE PROPOSITION DOMAIN MODEL
+    Purpose: Unify critical and soft complaint reporting within a single formatter and replace rigid UI questions with a lean, expressive `Proposition` domain model.
+    - Eliminate manual error message string stitching across renderer calls and decouple input dialogue abstractions from legacy implementation details.
+    Actions:
+    - Enhanced `ComplaintsFormatter` (`content/modules/tui/renderer.py`) to format both critical and soft complaints uniformly into comprehensive output reports.
+    - Introduced the lean `Proposition` dataclass (`content/core/engine_deps/ports.py`) replacing the old `Question` model and updated `LinuxTerminalAdapter` to consume it directly.
+    - Refactored `TUIRenderer` to instantiate `Proposition` objects and cleaned up redundant inline confirmation helper methods.
+    Reflection:
+    - Significantly hardens domain data separation by encapsulating complaint reporting into a single source of truth.
+    - Simplifies interactive terminal dialogues through a purer model that distinguishes declarative statements from required user confirmations.
