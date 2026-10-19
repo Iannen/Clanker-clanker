@@ -1,7 +1,3 @@
-resolvers:
-  base:
-    {anchor: base_fragments, type: multi-document-retrieval, files: [general-rules.md]}
-
 shared_base_resolver:
     {anchor: base_fragments, type: multi-document-retrieval, files: [general-rules.md]}
 

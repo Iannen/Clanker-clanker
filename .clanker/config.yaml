@@ -5,7 +5,9 @@ pud_filesets:
   core: {includes: [content/core]}
 
   asset_ingestion: {includes: [
-    content/modules/asset_ingestion]}
+    content/modules/asset_ingestion,
+    content/core/core/entities.py,
+    ]}
 
   presentation: {includes: [
     content/core,

@@ -1,4 +1,4 @@
-from stdlib import dataclass, field, re
+from stdlib import dataclass, field, re, Queue
 from core import ClankerAssets, DomButton, PromptButton, Keyboard, CorruptClanker, NewBtn
 from core.engine_deps import (
     TerminalPort, StartResult, ClankerizeResult, TerminateResult,
@@ -141,19 +141,23 @@ class TUIRenderer:
     """This class delegates to helper classes and uses the terminal port."""
     io_bridge: TerminalPort
     files: DiskPort
+    queue: Queue[Command]
     shaper: TUIContentShaper = field(default_factory=TUIContentShaper)
 
     def read_request(self) -> Command:
+        if not self.queue.empty():
+            return self.queue.get()
         ch = self.io_bridge.read_char()
         if ch in IOControl.ABORT_KEYS:
             return UserAborted()
         return KbCmd(char=ch.lower())
 
-    def post_question(self, result: StartResult | ClankerizeResult, affirmative_cmd: type, declined_cmd: type) -> Command:
+    def post_question(self, result: StartResult | ClankerizeResult, affirmative_cmd: type, declined_cmd: type) -> None:
         match result:
             case StartResult():
                 if not result.report.get_all_complaints():
-                    return affirmative_cmd()
+                    self.queue.put(affirmative_cmd())
+                    return
                 subject = ComplaintsFormatter.format(result.report)
                 statement=QuestionPhrases.PROCEED_QUESTION
                 required_phrase=None
@@ -171,9 +175,10 @@ class TUIRenderer:
                 required_phrase=required_phrase
             )
         )
-        return affirmative_cmd() if accepted else declined_cmd()
+        cmd = affirmative_cmd() if accepted else declined_cmd()
+        self.queue.put(cmd)
 
-    def get_acknowledgement(self, result: TerminateResult, exit_cmd: type) -> Command:
+    def get_acknowledgement(self, result: TerminateResult, exit_cmd: type) -> None:
         msg = ComplaintsFormatter.format(result.report)
         proposition = Proposition(
             subject=msg,
@@ -181,7 +186,7 @@ class TUIRenderer:
             required_phrase=None
         )
         self.io_bridge.get_acceptance(proposition)
-        return exit_cmd()
+        self.queue.put(exit_cmd())
 
     def display_result(self, result: KbCmdResult | ExitResult) -> None:
         if isinstance(result, KbCmdResult):

@@ -7,31 +7,21 @@ I. Ideas, complaints and non-critical bugs:
     - ez fix is to adjust template.
     - rabbithole solution is to have app write template to rowspec
 
-II. The pile
+II. The wishlist
 
-[BUG] Testsystem does not always produce two frames
-- it depends upon a getchar call to write first frame. 
-   
+1. Set ops on filesets
+    - probably requires new ingestion strat, as filesets may depend upon other filesets
+
+2. Browser frontend
+    - perhaps not so awful?
+
+
+
 1. Add next numeral line to history output instructions
     [ ] 'a_lib/templates/documentation/backlog.template': Update history output instruction format
         - append a trailing 'Next item numeral: <FOLLOWING_ROMAN_NUMERAL>' marker to history output instructions
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 
-2. thoughdump
-    - Renderservice should not have anything to do with UI render. Renderservice should be the 'make prompts for LLM' service.
-        - it should receive the promptctx thing from kb (data) service via the engine, and push it to clipboard via dedicated port
-    - TUIService encapsulates incoming and outcoming communication with the user. the exit messages the engine uses should originate from here.
 
 Backlog tail, Selected item/items:
-
-1. Refactor frontend service to use a command queue and delegate input reading to TUIRenderer
-    [x] 'content/modules/tui/renderer.py': Encapsulate input reading inside TUIRenderer
-        - add `read_request` method handling character reading, abort checks, and KbCmd creation using `io_bridge`
-    [x] 'content/modules/tui/tui_service.py': Rename service implementation and adopt a queue-based command flow
-        - rename `TUIServiceImpl` to `QueueFrontendService` (implementing `FrontendService`)
-        - replace `self._cmd` with a command queue initialized with `BootCmd()`
-        - update `get_request()` to check the queue first, falling back to `self.renderer.read_request()` when empty
-        - update `post_response()` to enqueue generated follow-up commands
-
-
 Backlog tail end

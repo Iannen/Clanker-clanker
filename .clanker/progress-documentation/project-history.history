@@ -1352,3 +1352,14 @@ CLXXII: CENTRALIZING REPORT FORMATTING AND INTRODUCING THE PROPOSITION DOMAIN MO
     Reflection:
     - Significantly hardens domain data separation by encapsulating complaint reporting into a single source of truth.
     - Simplifies interactive terminal dialogues through a purer model that distinguishes declarative statements from required user confirmations.
+
+CLXXIII: ADOPTING A QUEUE-BASED COMMAND FLOW AND DELEGATING INPUT/ENQUEUING TO TUI RENDERER
+    Purpose: Transition the frontend service to a queue-based command architecture, decoupling input reading and direct command enqueuing from service orchestration and centralizing them within `TUIRenderer`.
+    - Modernize the event/command loop by using a shared thread-safe queue (`Queue[Command]`) initialized with bootstrap commands.
+    Actions:
+    - Encapsulated input reading, abort checks, and `KbCmd` creation inside `TUIRenderer.read_request()`.
+    - Renamed/updated the frontend service (`FrontendServiceImpl`) to maintain a shared command queue, simplifying `get_request()` to a direct queue fetch.
+    - Updated `TUIRenderer` methods (`post_question` and `get_acknowledgement`) to accept a shared queue reference and push resulting commands directly.
+    Reflection:
+    - While decoupling via a command queue theoretically paves the way for a browser-based frontend or alternative skins down the line, the pragmatic decision is to let that abstraction lie for now in favor of building core value up front rather than prematurely chasing a "new skin".
+    - Improves overall modularity by placing terminal-specific side effects and command push logic squarely within the renderer layer.
