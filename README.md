@@ -7,37 +7,51 @@ Most often this will be source code files to make up a codebase, but it is thoug
 
 The application promotes a semistructured workflow, where the user is in charge and the AI is a consultant and workhorse.
 
-### Motivations
+## Motivations
 
 Which came into being to address a loosely defined set of grievances and pitfalls of process, as experienced by its author on his vibecoding journeys.
 
-#### LLM Peculiarities
+### I. LLM Peculiarities
 
 Large language models are a great thing.  
 Free and readily available, they enable the people of the world not only to learn and explore, but also to work and be productive.  
   
 For the vibecoder in particular, their significance cannot be overstated.  
-To him the LLM is like the sun in the sky, and absent its brilliant radiance he would walk in darkness, desperately succumbing to practices of stackexchange-browsing, book-reading or perhaps even diligent study.
+To him the LLM is like the sun in the sky, and absent its brilliant radiance he would walk in darkness, frentically browsing stackexchange for that sage solution, perhaps resting his eyes on some youtube videos and their various advertisements for online courses.  
+Perhaps he would visit his brother -The Sunbather-, forever plying his trade on a sandy beach?  
+Maybe he would give it all a rest and go for a hike? Who knows.  
 
 But much like his brother, the sunbather, the vibecoder cannot afford to be careless and uneducated.  
-To safely get the most out of the interaction, he needs to develop a solid understanding of how his sungods works.
-Here follows my take:
-
-At its core, an LLM is best understood as a harness controlled next token generator.
-The harness, typically with a browser frontend, orchestrates the process of LLM interactions on behalf of the user.
-1. An input from the user is received: 'Hello LLM - how are you?'
-2. It is translated into a list of tokens - the currency of LLMs
-3. The token list is fed to the LLM, which responds with a generated token
-4. The generated token is then appended to the list
-5. Steps 3 and 4 are repeated until a special *stop* token is emitted, at which point the harness halts generation by simply not requesting any more tokens.
-6. The generated tokens are then translated to text and returned to the user: 
-    "Hello! I'm doing well, thank you for asking. What can I assist you with?'
-
+To safely get the most out of the interaction, he needs to develop a solid working understanding of how his sungods works.
+Here follows my take on it all:
 
 <blockquote>
 <details>
 
-<summary>LLM Training and inference - an in depth guide </summary>
+<summary>The nature of the token</summary>
+
+```
+
+The tokens themselves are just whole numbers, and they exist in something called a vocabulary which the harness uses to translate our inputs and the NTGs outputs to and from tokens. 
+
+When a NTG is trained, huge amounts of texts are translated into their token representation for the NTG to feed on.
+In time it slowly learns the patterns in the tokens, and develops the ability to meaningfully predict the next token to follow a sequence of tokens.
+
+vocabulary = {
+    0: '|<stop>|',
+    3: '😊',
+    1200: 'some',
+    1674: ' ',
+    5432: 'training',
+    7890: 'data'
+}
+
+```
+
+</details>
+<details>
+
+<summary>LLM Training & QC</summary>
 
 ```
 
@@ -86,6 +100,24 @@ print(generated_tokens.monkeypatched_to_string_method())
 ```
 
 </details>
+<details>
+
+<summary> The user experience - under the hood </summary>
+
+```
+At its core, an LLM is best understood as a harness controlled next token generator.
+The harness, typically with a browser frontend, orchestrates the process of LLM interactions on behalf of the user.
+1. An input from the user is received: 'Hello LLM - how are you?'
+2. It is translated into a list of tokens - the currency of LLMs
+3. The token list is fed to the LLM, which responds with a generated token
+4. The generated token is then appended to the list
+5. Steps 3 and 4 are repeated until a special *stop* token is emitted, at which point the harness halts generation by simply not requesting any more tokens.
+6. The generated tokens are then translated to text and returned to the user: 
+    "Hello! I'm doing well, thank you for asking. What can I assist you with?'
+
+```
+
+</details>
 </blockquote>
 
 
@@ -96,6 +128,8 @@ Instead, it serves as a framework from where we can better understand why the LL
 Let us then investigate some of these tendencies.
   
 These are the things which drove the vibecoder nuts: 
+
+#### In-line commentary
 
 <blockquote>
 <details>
@@ -155,6 +189,7 @@ function processUserData(userList) {
 LLMs absolutely love splattering their outputs with friendly explainer comments.  One can only guess at what their training data must look like for them to develop such a tendency. Is there really that much tutorial material in this world?  
 Whatever the reason, it seems they abstain from returning commented code if the input presented is free of it, or if they are commanded to abstain.  
 
+#### Error masking
 <blockquote>
 <details>
 <summary>Error masking fallbacks</summary>
@@ -176,9 +211,28 @@ def get_user_profile(user_id):
   ```
 
 </details>
+</blockquote>
+In moments of frustration, code emissions such as those above may be anthromorphised callous disregard.
+But I have come to think that LLMs would be much less capable if producing viable code were they not instilled with such instincts.
 
+#### Content dumping
+
+<blockquote>
 <details>
-<summary>Conversational fluff</summary>
+<summary>Unsolicited file refactor</summary>
+
+  ```python
+<huge amounts of conversational fluff placeholder>
+
+def factorial(n):
+    if n == 0 or n == 1:
+        return 1
+    return n * factorial(n - 1)
+  ```
+
+</details>
+<details>
+<summary>Unsolicited file refactor</summary>
 
   ```python
 <huge amounts of conversational fluff placeholder>
@@ -192,115 +246,7 @@ def factorial(n):
 </details>
 </blockquote>
 
-
-
-These are the things which drove the vibecoder nuts: 
-<blockquote>
-<details>
-<summary>In-line commentary</summary>
-
-  ```javascript
-function processUserData(userList) {
-  // Initialize an empty array to store the results
-  const result = [];
-
-  // Loop through each user in the user list array
-  for (let i = 0; i < userList.length; i++) {
-    // Access the current user at index i
-    const currentUser = userList[i];
-
-    // Check if the current user object has an isActive property set to true
-    if (currentUser.isActive === true) {
-      // Push the active user object into the result array
-      result.push(currentUser);
-    }
-  }
-
-  // Return the final array containing only active users
-  return result;
-}
-  ```
-
-</details>
-
-<details>
-<summary>Error masking fallbacks</summary>
-
-  ```python
-def get_user_profile(user_id):
-    try:
-        response = requests.get(f"https://api.internal.net/v1/users/{user_id}", timeout=5)
-        response.raise_for_status()
-        data = response.json()
-        return UserProfile(
-            user_id=data["id"],
-            name=data["name"],
-            is_active=data["is_active"],
-            roles=data["roles"]
-        )
-    except Exception:
-        return UserProfile()
-  ```
-
-</details>
-
-<details>
-<summary>Conversational fluff</summary>
-
-  ```python
-<huge amounts of conversational fluff placeholder>
-
-def factorial(n):
-    if n == 0 or n == 1:
-        return 1
-    return n * factorial(n - 1)
-  ```
-
-</details>
-</blockquote>
-
-
-
-
-#### Fear-inducing git operations
-
- I'm sure the technically savvy reader will have a different take on it, but surely it cannot be denied, that at certain times and places, Git has produced some less-than-reassuring outputs:  
-  
-<blockquote>
-<details>
-<summary>Scary, cryptic denials</summary>
-
-    ```
-    $ git add .
-    $ git commit -m "fixed minor bug in process_user_items"
-    [main 4f82a1c] fixed minor bug in process_user_items
-    1 file changed, 2 insertions(+), 1 deletion(-)
-    $ git push origin main
-    To github.com:user/clanker.git
-    ! [rejected]        main -> main (fetch first)
-    error: failed to push some refs to 'github.com:user/clanker.git'
-    hint: Updates were rejected because the remote contains work that you do
-    ```
-
-</details>
-<details>
-<summary>Scary cryptic denials, continued</summary>
-
-```
-$ git rebase main
-Auto-merging src/app.py
-CONFLICT (content): Merge conflict in src/app.py
-error: could not apply 7b31a8c... update database schemas
-hint: Resolve all conflicts manually, mark them as resolved with
-hint: "git add/rm <conflicted_files>", then run "git rebase --continue".
-hint: You can instead skip this commit: run "git rebase --skip".
-hint: To abort and get back to the state before "git rebase", run "git rebase --abort".
-```
-
-</details>
-</blockquote>
-
-#### The perils of freedom
+### II. The perils of freedom
 
 
 
@@ -387,14 +333,52 @@ hint: To abort and get back to the state before "git rebase", run "git rebase --
 </details>
 </blockquote>
 
-### What then?
+### III. Git-fear operations
+
+ I'm sure the technically savvy reader will have a different take on it, but surely it cannot be denied, that at certain times and places, Git has produced some less-than-reassuring outputs:  
+  
+<blockquote>
+<details>
+<summary>Scary, cryptic denials</summary>
+
+    ```
+    $ git add .
+    $ git commit -m "fixed minor bug in process_user_items"
+    [main 4f82a1c] fixed minor bug in process_user_items
+    1 file changed, 2 insertions(+), 1 deletion(-)
+    $ git push origin main
+    To github.com:user/clanker.git
+    ! [rejected]        main -> main (fetch first)
+    error: failed to push some refs to 'github.com:user/clanker.git'
+    hint: Updates were rejected because the remote contains work that you do
+    ```
+
+</details>
+<details>
+<summary>Scary cryptic denials, continued</summary>
+
+```
+$ git rebase main
+Auto-merging src/app.py
+CONFLICT (content): Merge conflict in src/app.py
+error: could not apply 7b31a8c... update database schemas
+hint: Resolve all conflicts manually, mark them as resolved with
+hint: "git add/rm <conflicted_files>", then run "git rebase --continue".
+hint: You can instead skip this commit: run "git rebase --skip".
+hint: To abort and get back to the state before "git rebase", run "git rebase --abort".
+```
+
+</details>
+</blockquote>
+
+## What then?
 
 To help combat these ills, the following working principles are declared:
 - Agents are consultants and workhorses
 - The user should be in control of the workflow and the tooling
 - External dependencies of the workflow should be kept to a minimum
 - ..encapsulated in strict boundaries 
-- ..with sought after functionality extracted integrated into one coherent system.
+- ..with sought after functionality extracted and integrated into one coherent system.
 
 ### Clanker features
 
