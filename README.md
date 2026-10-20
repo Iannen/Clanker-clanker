@@ -2,14 +2,16 @@
 
 Clanker is a AI assisted repository development application.  
 
-The subject of Clanker is the repository, defined a version controlled collection of files. 
-Most often this will be source code files to make up a codebase, but it is thought that a repository may concern itself with a wider array of content types.
+The subject of Clanker is the repository, defined a version controlled collection of files.
 
-The application promotes a semistructured workflow, where the user is in charge and the AI is a consultant and workhorse.
+Partnered with an IDE and browser based LLM, Clanker aspires to be the authors all in one solution for a lock-in free vibe coding experience:
+  - Git integrated via a 'save' command, optionally gated by a test application
+  - YAML configured prompt composition, delivered to the users clipboard via an no-frills TUI 
 
 ## Motivations
 
-Which came into being to address a loosely defined set of grievances and pitfalls of process, as experienced by its author on his vibecoding journeys.
+The application came into being as an evolution of various ad-hoc vibe coding practices.  
+<transition to say, and this are the problem areas >
 
 ### I. LLM Peculiarities
 
@@ -17,13 +19,16 @@ Large language models are a great thing.
 Free and readily available, they enable the people of the world not only to learn and explore, but also to work and be productive.  
   
 For the vibecoder in particular, their significance cannot be overstated.  
-To him the LLM is like the sun in the sky, and absent its brilliant radiance he would walk in darkness, frentically browsing stackexchange for that sage solution, perhaps resting his eyes on some youtube videos and their various advertisements for online courses.  
-Perhaps he would visit his brother -The Sunbather-, forever plying his trade on a sandy beach?  
-Maybe he would give it all a rest and go for a hike? Who knows.  
+To him the LLM is like the sun in the sky, and absent its brilliant radiance he would walk in darkness.  
+Maybe he would frentically browse stackexchange for that sage solution, falling victim to youtube advertisements for dubious online courses?
+Perhaps he would find more time to visit his brother, The Sunbather, always plying his trade on a sandy beach?  
 
-But much like his brother, the sunbather, the vibecoder cannot afford to be careless and uneducated.  
-To safely get the most out of the interaction, he needs to develop a solid working understanding of how his sungods works.
-Here follows my take on it all:
+Thanks to an ever decreasing cost of LLM inference and a never decreasing industry lust for user data, he need not concern himself with such matters. 
+His concern is not one of access, but one shared with his aforementioned brother - the insidious wrath of an offended Sungod.
+
+But unlike his brother, the vibecoder cannot appease his god with mere moderation and sunlotion.  
+Instead, he must labour to understand its machinations, so that he may learn to manipulate it to his advantage.  
+I present the reader with the fruits of my labour in that regard:
 
 <blockquote>
 <details>
@@ -133,54 +138,44 @@ These are the things which drove the vibecoder nuts:
 
 <blockquote>
 <details>
-<summary>In-line commentary</summary>
+<summary>Narrative comments</summary>
 
-  ```javascript
-function processUserData(userList) {
-  // Initialize an empty array to store the results
-  const result = [];
+  ```python
+def apply_truncation(self, content: str, spec: TruncationSpec | None) -> str:
+    if spec is None:
+        return content
 
-  // Loop through each user in the user list array
-  for (let i = 0; i < userList.length; i++) {
-    // Access the current user at index i
-    const currentUser = userList[i];
+    lines = content.splitlines()
 
-    // Check if the current user object has an isActive property set to true
-    if (currentUser.isActive === true) {
-      // Push the active user object into the result array
-      result.push(currentUser);
-    }
-  }
+    # Step 1: Cut everything above 'from_line'
+    if spec.from_line:
+        lines = self._cut_before_regex(lines, spec.from_line)
 
-  // Return the final array containing only active users
-  return result;
-}
+    # Step 2: Cut everything from 'up_to' onwards
+    if spec.up_to:
+        lines = self._cut_from_regex(lines, spec.up_to)
+
+    # Step 3: Take last N lines
+    if spec.tail_lines is not None and len(lines) > spec.tail_lines:
+        return "**truncated**\n" + "\n".join(lines[-spec.tail_lines:])
+
+    return "\n".join(lines)
   ```
 
 </details>
 <details>
-<summary>More in-line commentary!</summary>
+<summary></summary>
 
-  ```javascript
-function processUserData(userList) {
-  // Initialize an empty array to store the results
-  const result = [];
+  ```python
+# User management functions
+def create_user(data): ...
+def update_user(user_id, data): ...
+def delete_user(user_id): ...
 
-  // Loop through each user in the user list array
-  for (let i = 0; i < userList.length; i++) {
-    // Access the current user at index i
-    const currentUser = userList[i];
-
-    // Check if the current user object has an isActive property set to true
-    if (currentUser.isActive === true) {
-      // Push the active user object into the result array
-      result.push(currentUser);
-    }
-  }
-
-  // Return the final array containing only active users
-  return result;
-}
+# Authentication functions
+def login(username, password): ...
+def logout(session_id): ...
+def validate_token(token): ...
   ```
 
 </details>
