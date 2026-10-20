@@ -35,7 +35,9 @@ It is simply a next token generator, iteratively calculating the most likely tok
 
 
 <details>
+
 <summary>In depth LLM Training and inference demonstration</summary>
+
 ```
 
 The tokens themselves are just whole numbers, and they exist in something called a vocabulary which the harness uses to translate our inputs and the NTGs outputs to and from tokens. 
