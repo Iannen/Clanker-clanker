@@ -10,8 +10,7 @@ Partnered with an IDE and browser based LLM, Clanker aspires to be the authors a
 
 ## Motivations
 
-The application came into being as an evolution of various ad-hoc vibe coding practices.  
-<transition to say, and this are the problem areas >
+The application came into being as an evolution of various ad-hoc vibe coding practices.
 
 ### I. LLM Peculiarities
 
@@ -42,21 +41,21 @@ The tokens themselves are just whole numbers, and they exist in something called
 When a NTG is trained, huge amounts of texts are translated into their token representation for the NTG to feed on.
 In time it slowly learns the patterns in the tokens, and develops the ability to meaningfully predict the next token to follow a sequence of tokens.
 
-vocabulary = {
-    0: '|<stop>|',
-    3: '😊',
-    1200: 'some',
-    1674: ' ',
-    5432: 'training',
-    7890: 'data'
-}
+    vocabulary = {
+        0: '|<stop>|',
+        3: '😊',
+        1200: 'some',
+        1674: ' ',
+        5432: 'training',
+        7890: 'data'
+    }
 
 ```
 
 </details>
 <details>
 
-<summary>LLM Training & QC</summary>
+<summary>Training, inference and QC</summary>
 
 ```
 
@@ -124,15 +123,11 @@ The harness, typically with a browser frontend, orchestrates the process of LLM 
 
 </details>
 </blockquote>
+</br>
+The above explanation probably doesn't exposes any real insights regarding LLM training or functioning.  
+Instead, it serves as a temperament soothing framework that aids in retaining a problem solving approach for when the LLMs display some unwanted behaviours and tendencies.  
 
-
-
-I guess the above explanation, quasi-academic and inaccurate, exposes no real insights regarding LLM training or functioning.  
-Instead, it serves as a framework from where we can better understand why the LLMs output like they do.
-
-Let us then investigate some of these tendencies.
-  
-These are the things which drove the vibecoder nuts: 
+Let us have a look at some of these tendencies.
 
 #### In-line commentary
 
@@ -164,15 +159,15 @@ def apply_truncation(self, content: str, spec: TruncationSpec | None) -> str:
 
 </details>
 <details>
-<summary></summary>
+<summary>Section-heading comments</summary>
 
   ```python
-# User management functions
+## User management functions ##
 def create_user(data): ...
 def update_user(user_id, data): ...
 def delete_user(user_id): ...
 
-# Authentication functions
+## Authentication functions ##
 def login(username, password): ...
 def logout(session_id): ...
 def validate_token(token): ...
@@ -180,9 +175,8 @@ def validate_token(token): ...
 
 </details>
 </blockquote>
-  
-LLMs absolutely love splattering their outputs with friendly explainer comments.  One can only guess at what their training data must look like for them to develop such a tendency. Is there really that much tutorial material in this world?  
-Whatever the reason, it seems they abstain from returning commented code if the input presented is free of it, or if they are commanded to abstain.  
+</br>
+I guess the former is more of a sin then the latter, neither are welcome.  
 
 #### Error masking
 <blockquote>
@@ -210,19 +204,42 @@ def get_user_profile(user_id):
 In moments of frustration, code emissions such as those above may be anthromorphised callous disregard.
 But I have come to think that LLMs would be much less capable if producing viable code were they not instilled with such instincts.
 
-#### Content dumping
+#### Unsolicited content dumps
 
 <blockquote>
 <details>
-<summary>Unsolicited file refactor</summary>
+<summary>File refactor over than targeted fix</summary>
+
+  ```plaintext
+<the user asks the llm to fix a function mid file, first the question, and then the file>
+<the llm response politely what the issue was, and then refactors the whole thing, causing a loss of control with the user>
+  ```
+
+</details>
+<details>
+<summary>File refactor where analysis was sought</summary>
 
   ```python
-<huge amounts of conversational fluff placeholder>
+<the user asks the llm about what approach is the correct to take >
+<the llm eagerly explains what the correct approach is and then refactors the file >
 
-def factorial(n):
-    if n == 0 or n == 1:
-        return 1
-    return n * factorial(n - 1)
+  ```
+
+</details>
+</blockquote>
+
+#### Bloated code
+
+<blockquote>
+<details>
+<summary> </summary>
+
+  ```python
+def somefunction(self, n: type, n2: othertype):
+  <redeclares all args to local scope>
+  <performs and operation on them, assigning value to local scope>
+  <passes value to service on self, storing value returned in new variable in local scope>
+  <returns that value to caller>
   ```
 
 </details>
@@ -240,6 +257,7 @@ def factorial(n):
 
 </details>
 </blockquote>
+
 
 ### II. The perils of freedom
 
