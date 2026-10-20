@@ -1,13 +1,15 @@
 # Clanker clanker; 
 
-Clanker is a AI assisted repository development application, which came into being to address a loosely defined set of grievances and pitfalls of process, as experienced by its author on his vibecoding journeys.  
+Clanker is a AI assisted repository development application.  
 
-The subject of application is the repository, a version controlled collection of files. 
-Most often this will be source code files which make up a codebase, but it is thought that a repository may concern itself with a wider array of content types.
+The subject of Clanker is the repository, defined a version controlled collection of files. 
+Most often this will be source code files to make up a codebase, but it is thought that a repository may concern itself with a wider array of content types.
 
 The application promotes a semistructured workflow, where the user is in charge and the AI is a consultant and workhorse.
 
-### Complaints of the vibecoding solo developer
+### Motivations
+
+Which came into being to address a loosely defined set of grievances and pitfalls of process, as experienced by its author on his vibecoding journeys.
 
 #### LLM Peculiarities
 
@@ -35,7 +37,7 @@ The harness, typically with a browser frontend, orchestrates the process of LLM 
 <blockquote>
 <details>
 
-<summary>LLM Training and inference - in depth </summary>
+<summary>LLM Training and inference - an in depth guide </summary>
 
 ```
 
@@ -43,6 +45,7 @@ The tokens themselves are just whole numbers, and they exist in something called
 
 When a NTG is trained, huge amounts of texts are translated into their token representation for the NTG to feed on.
 In time it slowly learns the patterns in the tokens, and develops the ability to meaningfully predict the next token to follow a sequence of tokens.
+
 vocabulary = {
     0: '|<stop>|',
     3: '😊',
@@ -84,9 +87,112 @@ print(generated_tokens.monkeypatched_to_string_method())
 
 </details>
 </blockquote>
+
+
+
+I guess the above explanation, quasi-academic and inaccurate, exposes no real insights regarding LLM training or functioning.  
+Instead, it serves as a framework from where we can better understand why the LLMs output like they do.
+
+Let us then investigate some of these tendencies.
   
-So let us not be frustrated with the next-token generators, should their outputs not align with our desires.  
-Let us instead calmly identify what annoys us, so we may develop mitigating strategies to counter their tendencies which offend us.
+These are the things which drove the vibecoder nuts: 
+
+<blockquote>
+<details>
+<summary>In-line commentary</summary>
+
+  ```javascript
+function processUserData(userList) {
+  // Initialize an empty array to store the results
+  const result = [];
+
+  // Loop through each user in the user list array
+  for (let i = 0; i < userList.length; i++) {
+    // Access the current user at index i
+    const currentUser = userList[i];
+
+    // Check if the current user object has an isActive property set to true
+    if (currentUser.isActive === true) {
+      // Push the active user object into the result array
+      result.push(currentUser);
+    }
+  }
+
+  // Return the final array containing only active users
+  return result;
+}
+  ```
+
+</details>
+<details>
+<summary>More in-line commentary!</summary>
+
+  ```javascript
+function processUserData(userList) {
+  // Initialize an empty array to store the results
+  const result = [];
+
+  // Loop through each user in the user list array
+  for (let i = 0; i < userList.length; i++) {
+    // Access the current user at index i
+    const currentUser = userList[i];
+
+    // Check if the current user object has an isActive property set to true
+    if (currentUser.isActive === true) {
+      // Push the active user object into the result array
+      result.push(currentUser);
+    }
+  }
+
+  // Return the final array containing only active users
+  return result;
+}
+  ```
+
+</details>
+</blockquote>
+  
+LLMs absolutely love splattering their outputs with friendly explainer comments.  One can only guess at what their training data must look like for them to develop such a tendency. Is there really that much tutorial material in this world?  
+Whatever the reason, it seems they abstain from returning commented code if the input presented is free of it, or if they are commanded to abstain.  
+
+<blockquote>
+<details>
+<summary>Error masking fallbacks</summary>
+
+  ```python
+def get_user_profile(user_id):
+    try:
+        response = requests.get(f"https://api.internal.net/v1/users/{user_id}", timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        return UserProfile(
+            user_id=data["id"],
+            name=data["name"],
+            is_active=data["is_active"],
+            roles=data["roles"]
+        )
+    except Exception:
+        return UserProfile()
+  ```
+
+</details>
+
+<details>
+<summary>Conversational fluff</summary>
+
+  ```python
+<huge amounts of conversational fluff placeholder>
+
+def factorial(n):
+    if n == 0 or n == 1:
+        return 1
+    return n * factorial(n - 1)
+  ```
+
+</details>
+</blockquote>
+
+
 
 These are the things which drove the vibecoder nuts: 
 <blockquote>
@@ -153,9 +259,8 @@ def factorial(n):
 </details>
 </blockquote>
 
-So what can we do? How may we take charge of the situation?
 
-We take charge of our end - the input. 
+
 
 #### Fear-inducing git operations
 
