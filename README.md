@@ -37,10 +37,10 @@ I present the reader with the fruits of my labour in that regard:
 
 ```
 The currency of LLMs are tokens. 
-A token is basically just a whole number, which maps to a snippet of text (transitively via the byte representation of the text snippet).
-Tokens and their mappings are held in sets called vocabularies, illustrated conceptually below
+A token is basically just a whole number, which maps to a snippet of text
+Tokens and their mappings are held in sets called vocabularies:
 
-  Vocabulary illustration
+  Vocabulary conceptualzation
   Token ID | Textual Representation
   0        | |<pad>|               
   3        | 😊                    
@@ -52,21 +52,24 @@ Tokens and their mappings are held in sets called vocabularies, illustrated conc
   8321     | 福                    
 
 Before a LLM is trained, a vocabulary must be selected for it.
-Like a Genie in a bottle, the LLM will be tied to its vocabulary. All training data, inputs and outputs, will be translated using the chosen vocabulary.  
+Like a Genie in a bottle, the LLM will be tied to its vocabulary. 
+All training data, inputs and outputs, will be translated using the chosen vocabulary.  
 
-Lets take a little detour into the realm of bits, bytes and symbols, and then pivot back vocabularies and how one may be created.
+Lets take a little detour into the realm of bits, bytes and symbols, 
+and then pivot back vocabularies and how one may be created.
 
 Some definitions:
   A *bit* is a value which has a value of either 1 or 0. 
     '1' or '0' the only possibilities
 
-  A *byte* is a sequence of 8 bits. Bytes have a value in the range of [0  - 255] (depending on its bits)
+  A *byte* is a sequence of 8 bits. Bytes have a value in the range of [0  - 255]
     '00000000', '00000001', '00000010', '00000011' 256 total possibilites here!
 
   *Symbols* are the things which make up the text we see on computer screens.
     'a', 'é', '福' and '😊'
 
-Because the number of symbols (172 808 Unicode symbols) vastly outnumber the values a byte can represent (256), one must use several bytes to represent characters.
+Because the number of symbols (172 808 Unicode symbols) vastly outnumber the values 
+a byte can represent (256), one must use several bytes to represent a symbol.
 
 But unlike the byte, which always contain 8 bits, symbols are not represented using a fixed number of bytes.
 For historical reasons, a symbol has a bytesequence representation of either 1, 2 , 3 or 4 bytes.
