@@ -71,11 +71,15 @@ Some definitions:
 Because the number of symbols (172 808 Unicode symbols) vastly outnumber the values 
 a byte can represent (256), one must use several bytes to represent a symbol.
 
-But unlike the byte, which always contain 8 bits, symbols are not represented using a fixed number of bytes.
-For historical reasons, a symbol has a bytesequence representation of either 1, 2 , 3 or 4 bytes.
+But unlike the byte, which always contain 8 bits, symbols are not 
+represented using a fixed number of bytes.
+For historical reasons, a symbol has a bytesequence representation of 
+either 1, 2 , 3 or 4 bytes.
 
-At any rate, there exists a big bible over symbol -> bytesequence mappings, which is called 'UTF-8'.
-To my imagination, it takes the form of a list like the one below, only it will be 172 808 rows tall to account for all manner of emojis and whatnot:
+At any rate, there exists a big bible over symbol -> bytesequence mappings, 
+which is called 'UTF-8'.
+To my imagination, it takes the form of a list like the one below, 
+only it will be 172 808 rows tall to account for all manner of emojis and whatnot:
   bytesequence of 'a'  =  [97] 
   bytesequence of 'é'  =  [195, 169] 
   bytesequence of '福' =  [231, 166, 143] 
@@ -95,9 +99,12 @@ I'll portray it as a two phase process:
 
 Phase 1: Preparatory steps
   1. Declare an empty vocabulary. 
-     Insert all bytes into the vocabulary, assigning them a token id equal to their byte value
+     Insert all bytes into the vocabulary, 
+     assigning them a token id equal to their byte value
   2. Find a huge text
-  3. Convert the huge text into a tremendous sequence of bytes. Because the bytes all map to a token, we can consider the text a tremendous sequence of tokens!
+  3. Convert the huge text into a tremendous sequence of bytes. 
+     Because the bytes all map to a token, 
+     we can consider the text a tremendous sequence of tokens!
   4: Declare the final size of the vocabulary, for when we're finished with phase 2.
 
 Step 1: The vocabulary with its 256 seed tokens:
@@ -115,7 +122,7 @@ Step 2: The huge text:
     You know? They came in to me the other day - They came in, and they said 
     'Sir, this text - its so big Sir! We've never seen a text this big!', and I said ..."
 
-Step 3: The huge text, converted seed tokens:
+Step 3: The huge text, converted to seed tokens:
   [ 84, 104, 105, 115, 32, 116, 101, 120, 116, 32, 105, 115, 32, 115, 111, 
     32, 98, 105, 103, 44, 32, 105, 116, 115, 32, 116, 104, 101, 32, 98, 
     105, 103, 103, 101, 115, 116, 32, 116, 101, 120, 116, 32, 116, 104, 
@@ -140,11 +147,13 @@ Phase 2:  Perform the below twice, to reach our token targe of 258.
   2. Find the most frequent pair
   3. Add the pair to the vocabulary. 
       - The tokenID is the next value
-      - The bytesequence equal to the combined bytesequences of the two tokens, as they resolve to their bytesequences
-  4. Replace the any occurance of the most frequent tokenpair with the new tokenID
+      - The bytesequence equal to the combined bytesequences of the two tokens, 
+        as they resolve to their bytesequences
+  4. Replace any occurance of the most frequent tokenpair with the new tokenID
 
 Iteration 1:
-  Step 1 and 2: Ugh! I asked a 'friend' for this one. He said the most frequent pairing is '32, 116', seen 11 times. 
+  Step 1 and 2: Ugh! I asked a 'friend' for this one. 
+  He said the most frequent pairing is '32, 116', seen 11 times. 
 
   Step 3: Our new vocabulary:
     Token ID | Bytesequence
@@ -156,7 +165,8 @@ Iteration 1:
     255      | [255]                
     256      | [32, 116] # the tokenIDs 32 and 116 resolve to bytes of value 32 and 116.
 
-  Step 4: The new Tremendous Token Sequence:
+  Step 4: The new Tremendous Token Sequence.
+          All '32, 116' pairs are replaced with the new token '256' :
 
     [ 84, 104, 105, 115, 256, 101, 120, 116, 32, 105, 115, 32, 115, 111, 
       32, 98, 105, 103, 44, 32, 105, 116, 115, 256, 104, 101, 32, 98, 
@@ -175,7 +185,8 @@ Iteration 1:
       100]
 
 Iteration 2:
-  Step 1 and 2: I don't know, but I've been told, the most frequent from the new TTS is '256, 104', seen 6 times. 
+  Step 1 and 2: I don't know, but I've been told;
+                The most frequent from the new TTS is '256, 104', seen 6 times. 
 
   Step 3: Our new vocabulary:
     Token ID | Bytesequence
@@ -186,7 +197,8 @@ Iteration 2:
     254      | [254]
     255      | [255]                
     256      | [32, 116]
-    257      | [32, 116, 104] # tokenID 256 resolves to bytes 32 and 116. TokenID 104 to byte 104.
+    257      | [32, 116, 104] # tokenID 256 resolves to bytes 32 and 116. 
+                              # TokenID 104 to byte 104.
 
   Step 4: The new Tremendous Token Sequence:
 
