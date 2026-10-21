@@ -4,7 +4,7 @@ Clanker is a AI assisted repository development application.
 
 The subject of Clanker is the repository, defined a version controlled collection of files.
 
-Partnered with an IDE and browser based LLM, Clanker aspires to be the authors all in one solution for a lock-in free vibe coding experience:
+Partnered with an IDE and browser based LLM, Clanker aspires to be the authors all in one solution for a nimble and flexible vibe coding experience:
   - Git integrated via a 'save' command, optionally gated by a test application
   - YAML configured prompt composition, delivered to the users clipboard via an no-frills TUI 
 
@@ -12,7 +12,8 @@ Partnered with an IDE and browser based LLM, Clanker aspires to be the authors a
 
 The application came into being as an evolution of various ad-hoc vibe coding practices.
 
-### I. LLM Peculiarities
+
+### 1. LLM Peculiarities
 
 Large language models are a great thing.  
 Free and readily available, they enable the people of the world not only to learn and explore, but also to work and be productive.  
@@ -23,7 +24,7 @@ Maybe he would frentically browse stackexchange for that sage solution, falling 
 Perhaps he would find more time to visit his brother, The Sunbather, always plying his trade on a sandy beach?  
 
 Thanks to an ever decreasing cost of LLM inference and a never decreasing industry lust for user data, he need not concern himself with such matters. 
-His concern is not one of access, but one shared with his aforementioned brother - the insidious wrath of an offended Sungod.
+His concern is not one of access, but one shared with his aforementioned brother - the insidious wrath of an offended diety.
 
 But unlike his brother, the vibecoder cannot appease his god with mere moderation and sunlotion.  
 Instead, he must labour to understand its machinations, so that he may learn to manipulate it to his advantage.  
@@ -32,30 +33,195 @@ I present the reader with the fruits of my labour in that regard:
 <blockquote>
 <details>
 
-<summary>The nature of the token</summary>
+<summary>Symbols & Bytes, Tokens & Vocabularies</summary>
 
 ```
+The currency of LLMs are tokens. 
+A token is basically just a whole number, which maps to a snippet of text (transitively via the byte representation of the text snippet).
+Tokens and their mappings are held in sets called vocabularies, illustrated conceptually below
 
-The tokens themselves are just whole numbers, and they exist in something called a vocabulary which the harness uses to translate our inputs and the NTGs outputs to and from tokens. 
+  Vocabulary illustration
+  Token ID | Textual Representation
+  0        | |<pad>|               
+  3        | 😊                    
+  32       |                       
+  97       | a                     
+  1056     | un                    
+  2450     | th                    
+  5432     | training              
+  8321     | 福                    
 
-When a NTG is trained, huge amounts of texts are translated into their token representation for the NTG to feed on.
-In time it slowly learns the patterns in the tokens, and develops the ability to meaningfully predict the next token to follow a sequence of tokens.
+Before a LLM is trained, a vocabulary must be selected for it.
+Like a Genie in a bottle, the LLM will be tied to its vocabulary. All training data, inputs and outputs, will be translated using the chosen vocabulary.  
 
-    vocabulary = {
-        0: '|<stop>|',
-        3: '😊',
-        1200: 'some',
-        1674: ' ',
-        5432: 'training',
-        7890: 'data'
-    }
+Lets take a little detour into the realm of bits, bytes and symbols, and then pivot back vocabularies and how one may be created.
+
+Some definitions:
+  A *bit* is a value which has a value of either 1 or 0. 
+    '1' or '0' the only possibilities
+
+  A *byte* is a sequence of 8 bits. Bytes have a value in the range of [0  - 255] (depending on its bits)
+    '00000000', '00000001', '00000010', '00000011' 256 total possibilites here!
+
+  *Symbols* are the things which make up the text we see on computer screens.
+    'a', 'é', '福' and '😊'
+
+Because the number of symbols (172 808 Unicode symbols) vastly outnumber the values a byte can represent (256), one must use several bytes to represent characters.
+
+But unlike the byte, which always contain 8 bits, symbols are not represented using a fixed number of bytes.
+For historical reasons, a symbol has a bytesequence representation of either 1, 2 , 3 or 4 bytes.
+
+At any rate, there exists a big bible over symbol -> bytesequence mappings, which is called 'UTF-8'.
+To my imagination, it takes the form of a list like the one below, only it will be 172 808 rows tall to account for all manner of emojis and whatnot:
+  bytesequence of 'a'  =  [97] 
+  bytesequence of 'é'  =  [195, 169] 
+  bytesequence of '福' =  [231, 166, 143] 
+  bytesequence of '😊' =  [240, 159, 152, 138]
+
+Lets do a little testrun, using UTF-8 to convert a text into a sequence of bytes:
+  The text:                       'Hello 😊'
+  Each symbol as a list element:  [H,e,l,l,o, ,😊]
+  Each symbol as a list of bytes: [[72], [101], [108], [108], [111], [32], [240, 159, 152, 138]]
+  Flattened into a list of bytes  [72, 101, 108, 108, 111, 32, 240, 159, 152, 138]
+
+So any text in any language has an underlying representation as a sequence of bytes
+For the text 'Hello there! 😊', the sequence is [72, 101, 108, 108, 111, 32, 116, 104, 101, 114, 101, 33, 32, 240, 159, 152, 138].
+
+Alright! Now lets get back to the business of creating a vocabulary.
+I'll portray it as a two phase process:
+
+Phase 1: Preparatory steps
+  1. Declare an empty vocabulary. 
+     Insert all bytes into the vocabulary, assigning them a token id equal to their byte value
+  2. Find a huge text
+  3. Convert the huge text into a tremendous sequence of bytes. Because the bytes all map to a token, we can consider the text a tremendous sequence of tokens!
+  4: Declare the final size of the vocabulary, for when we're finished with phase 2.
+
+Step 1: The vocabulary with its 256 seed tokens:
+
+  Token ID | Bytesequence
+  0        | [0]          
+  1        | [1]                    
+  2        | [2]                   
+  ...
+  254      | [254]
+  255      | [255]                
+
+Step 2: The huge text:
+    "This text is so big, its the biggest text there ever was. You know? They came in to me the other day - They came in, and they said 'Sir, this text - its so big Sir! We've never seen a text this big!', and I said ..."
+
+Step 3: The huge text, converted seed tokens:
+  [ 84, 104, 105, 115, 32, 116, 101, 120, 116, 32, 105, 115, 32, 115, 111, 
+    32, 98, 105, 103, 44, 32, 105, 116, 115, 32, 116, 104, 101, 32, 98, 
+    105, 103, 103, 101, 115, 116, 32, 116, 101, 120, 116, 32, 116, 104, 
+    101, 114, 101, 32, 101, 118, 101, 114, 32, 119, 97, 115, 46, 32, 89, 
+    111, 117, 32, 107, 110, 111, 119, 63, 32, 84, 104, 101, 121, 32, 99, 
+    97, 109, 101, 32, 105, 110, 32, 116, 111, 32, 109, 101, 32, 116, 104, 
+    101, 32, 111, 116, 104, 101, 114, 32, 100, 97, 121, 32, 45, 32, 84, 
+    104, 101, 121, 32, 99, 97, 109, 101, 32, 105, 110, 44, 32, 97, 110, 
+    100, 32, 116, 104, 101, 121, 32, 115, 97, 105, 100, 32, 39, 83, 105, 
+    114, 44, 32, 116, 104, 105, 115, 32, 116, 101, 120, 116, 32, 45, 32, 
+    105, 116, 115, 32, 115, 111, 32, 98, 105, 103, 32, 83, 105, 114, 33, 
+    32, 87, 101, 39, 118, 101, 32, 110, 101, 118, 101, 114, 32, 115, 101, 
+    101, 110, 32, 97, 32, 116, 101, 120, 116, 32, 116, 104, 105, 115, 32, 
+    98, 105, 103, 33, 39, 44, 32, 97, 110, 100, 32, 73, 32, 115, 97, 105, 
+    100]
+
+4: Lets not go overboard. I think we add two tokens, then call it a wrap.
+
+Phase 2:  Perform the below twice, to reach our token targe of 258.
+  1. Look at ever pair of tokens that follow eachother in the Tremendous Token Sequence. 
+     (The value to the left and right of any comma make up a pair )
+  2. Find the most frequent pair
+  3. Add the pair to the vocabulary. 
+      - The tokenID is the next value
+      - The bytesequence equal to the combined bytesequences of the two tokens, as they resolve to their bytesequences
+  4. Replace the any occurance of the most frequent tokenpair with the new tokenID
+
+Iteration 1:
+  Step 1 and 2: Ugh! I asked a 'friend' for this one. He said the most frequent pairing is '32, 116', seen 11 times. 
+
+  Step 3: Our new vocabulary:
+    Token ID | Bytesequence
+    0        | [0]          
+    1        | [1]                    
+    2        | [2]                   
+    ...
+    254      | [254]
+    255      | [255]                
+    256      | [32, 116] # the tokenIDs 32 and 116 resolve to bytes of value 32 and 116.
+
+  Step 4: The new Tremendous Token Sequence:
+
+    [ 84, 104, 105, 115, 256, 101, 120, 116, 32, 105, 115, 32, 115, 111, 
+      32, 98, 105, 103, 44, 32, 105, 116, 115, 256, 104, 101, 32, 98, 
+      105, 103, 103, 101, 115, 116, 256, 101, 120, 116, 256, 104, 
+      101, 114, 101, 32, 101, 118, 101, 114, 32, 119, 97, 115, 46, 32, 89, 
+      111, 117, 32, 107, 110, 111, 119, 63, 32, 84, 104, 101, 121, 32, 99, 
+      97, 109, 101, 32, 105, 110, 256, 111, 32, 109, 101, 256, 104, 
+      101, 32, 111, 116, 104, 101, 114, 32, 100, 97, 121, 32, 45, 32, 84, 
+      104, 101, 121, 32, 99, 97, 109, 101, 32, 105, 110, 44, 32, 97, 110, 
+      100, 256, 104, 101, 121, 32, 115, 97, 105, 100, 32, 39, 83, 105, 
+      114, 44, 256, 104, 105, 115, 256, 101, 120, 116, 32, 45, 32, 
+      105, 116, 115, 32, 115, 111, 32, 98, 105, 103, 32, 83, 105, 114, 33, 
+      32, 87, 101, 39, 118, 101, 32, 110, 101, 118, 101, 114, 32, 115, 101, 
+      101, 110, 32, 97, 256, 101, 120, 116, 256, 104, 105, 115, 32, 
+      98, 105, 103, 33, 39, 44, 32, 97, 110, 100, 32, 73, 32, 115, 97, 105, 
+      100]
+
+Iteration 2:
+  Step 1 and 2: I don't know, but I've been told, the most frequent from the new TTS is '256, 104', seen 6 times. 
+
+  Step 3: Our new vocabulary:
+    Token ID | Bytesequence
+    0        | [0]          
+    1        | [1]                    
+    2        | [2]                   
+    ...
+    254      | [254]
+    255      | [255]                
+    256      | [32, 116]
+    257      | [32, 116, 104] # tokenID 256 resolves to bytes 32 and 116. TokenID 104 to byte 104.
+
+  Step 4: The new Tremendous Token Sequence:
+
+    [ 84, 104, 105, 115, 256, 101, 120, 116, 32, 105, 115, 32, 115, 111, 
+      32, 98, 105, 103, 44, 32, 105, 116, 115, 257, 101, 32, 98, 
+      105, 103, 103, 101, 115, 116, 256, 101, 120, 116, 257, 
+      101, 114, 101, 32, 101, 118, 101, 114, 32, 119, 97, 115, 46, 32, 89, 
+      111, 117, 32, 107, 110, 111, 119, 63, 32, 84, 104, 101, 121, 32, 99, 
+      97, 109, 101, 32, 105, 110, 256, 111, 32, 109, 101, 257, 
+      101, 32, 111, 116, 104, 101, 114, 32, 100, 97, 121, 32, 45, 32, 84, 
+      104, 101, 121, 32, 99, 97, 109, 101, 32, 105, 110, 44, 32, 97, 110, 
+      100, 257, 101, 121, 32, 115, 97, 105, 100, 32, 39, 83, 105, 
+      114, 44, 257, 105, 115, 256, 101, 120, 116, 32, 45, 32, 
+      105, 116, 115, 32, 115, 111, 32, 98, 105, 103, 32, 83, 105, 114, 33, 
+      32, 87, 101, 39, 118, 101, 32, 110, 101, 118, 101, 114, 32, 115, 101, 
+      101, 110, 32, 97, 256, 101, 120, 116, 257, 105, 115, 32, 
+      98, 105, 103, 33, 39, 44, 32, 97, 110, 100, 32, 73, 32, 115, 97, 105, 
+      100]
+
+
+The finished product:
+
+    Token ID | Bytesequence
+    0        | [0]          
+    1        | [1]                    
+    2        | [2]                   
+    ...
+    254      | [254]
+    255      | [255]                
+    256      | [32, 116]
+    257      | [32, 116, 104] 
+  
+And there you have it! We have successfully created a vocabulary we can use to train a LLM.
 
 ```
 
 </details>
 <details>
 
-<summary>Training, inference and QC</summary>
+<summary>LLM training and inference (and QC!)</summary>
 
 ```
 
@@ -119,6 +285,15 @@ The harness, typically with a browser frontend, orchestrates the process of LLM 
 6. The generated tokens are then translated to text and returned to the user: 
     "Hello! I'm doing well, thank you for asking. What can I assist you with?'
 
+```
+
+</details>
+<details>
+
+<summary> Machines that dazzle, machines that lie </summary>
+
+```
+yup
 ```
 
 </details>
@@ -259,7 +434,7 @@ def factorial(n):
 </blockquote>
 
 
-### II. The perils of freedom
+### 2. The perils of freedom
 
 
 
@@ -346,7 +521,7 @@ def factorial(n):
 </details>
 </blockquote>
 
-### III. Git-fear operations
+### 3. Git-fear
 
  I'm sure the technically savvy reader will have a different take on it, but surely it cannot be denied, that at certain times and places, Git has produced some less-than-reassuring outputs:  
   
