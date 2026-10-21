@@ -108,7 +108,9 @@ Step 1: The vocabulary with its 256 seed tokens:
   255      | [255]                
 
 Step 2: The huge text:
-    "This text is so big, its the biggest text there ever was. You know? They came in to me the other day - They came in, and they said 'Sir, this text - its so big Sir! We've never seen a text this big!', and I said ..."
+    "This text is so big, its the biggest text there ever was. 
+    You know? They came in to me the other day - They came in, and they said 
+    'Sir, this text - its so big Sir! We've never seen a text this big!', and I said ..."
 
 Step 3: The huge text, converted seed tokens:
   [ 84, 104, 105, 115, 32, 116, 101, 120, 116, 32, 105, 115, 32, 115, 111, 
