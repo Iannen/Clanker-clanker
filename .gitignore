@@ -1,4 +1,4 @@
 __pycache__/
-content/test/sandboxes
-content/test/reports
+test/sandboxes
+test/reports
 .vscode

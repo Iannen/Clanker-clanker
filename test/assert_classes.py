@@ -1,10 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Callable, Self
 
-from core.engine_deps import IOControl
+from core.engine_deps import IOControl, UserDeclinedClankerize
 from core import RepoContract
 from modules.tui import ActionResult
-from core.engine_deps import UserDeclinedClankerize
 from adapters.terminal.scripted_terminal_adapter import TestSequenceEnded
 from base_classes import AssertSuite
 
@@ -52,7 +51,6 @@ class TestContainer(ABC):
 class ActionsFactory(ABC):
     @abstractmethod
     def create_test(self, sequence: list[str], name: str = "") -> TestContainer: ...
-
 
 class EmptyRepoTests(AssertSuite):
     TEMPLATE_FIXTURE_NAME = "empty_repo"
@@ -113,7 +111,6 @@ class CorruptRepoTests(AssertSuite):
                 .expect.ui_render_contains(ActionResult.BOOTSTRAP_SUCCESS) \
                 .postop.rm(*all_targets)
         ]
-
         for dir in dir_targets:
             others = [t for t in dir_targets if t != dir]
             items.append(
@@ -132,3 +129,4 @@ class CorruptRepoTests(AssertSuite):
                     .postop.rm(file)
             )
         return items
+        

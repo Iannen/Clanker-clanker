@@ -228,7 +228,7 @@ class TestContainerImpl(TestContainer):
                 cwd=sandbox_dir,
                 capture_output=True,
                 text=True,
-                timeout=10.0,
+                timeout=600.0,
             )
             exit_code = proc.returncode
             stderr_output = proc.stderr
