@@ -1004,3 +1004,5 @@ For instructions beyond this - consult a Clanker ;)
 
 - perhaps something will come to me
 - perhaps look at clankerized projects of iannen repo cta?
+
+[Download the latest LLM evaluation copy](https://raw.githubusercontent.com/Iannen/Clanker-clanker/main/clanker-evalcopy.zip)
