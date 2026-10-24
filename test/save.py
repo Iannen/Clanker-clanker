@@ -5,10 +5,13 @@ import subprocess
 import sys
 from pathlib import Path
 from ruamel.yaml import YAML
+import tempfile
+import zipfile
 
 def fail(msg: str) -> None:
     print(f"Save aborted: {msg}", file=sys.stderr)
     sys.exit(1)
+    
 
 
 def run_cmd(cmd: list[str] | str, shell: bool = False, capture_output: bool = True) -> subprocess.CompletedProcess:
@@ -39,6 +42,54 @@ def load_configured_test_cmd(repo_root: Path) -> str | None:
         fail(f"failed to parse config at '{cfg_file}': {e}")
     return None
 
+def create_evalcopy_zip(repo_root: Path) -> Path:
+    archive_path = repo_root / "clanker-evalcopy.zip"
+    history_rel = Path(
+        ".clanker/progress-documentation/project-history.history"
+    )
+    temp_path = None
+
+    try:
+        with tempfile.NamedTemporaryFile(
+            dir=repo_root,
+            suffix=".zip.tmp",
+            delete=False,
+        ) as temp:
+            temp_path = Path(temp.name)
+
+        with zipfile.ZipFile(
+            temp_path,
+            "w",
+            compression=zipfile.ZIP_DEFLATED,
+        ) as zf:
+            for folder in (".clanker", "content"):
+                folder_path = repo_root / folder
+
+                if not folder_path.is_dir():
+                    raise FileNotFoundError(
+                        f"required directory missing: {folder_path}"
+                    )
+
+                for path in sorted(folder_path.rglob("*")):
+                    if not path.is_file() or path.is_symlink():
+                        continue
+
+                    rel = path.relative_to(repo_root)
+                    data = path.read_bytes()
+
+                    if rel == history_rel:
+                        data = data[-12_000:]
+
+                    zf.writestr(rel.as_posix(), data)
+
+        temp_path.replace(archive_path)
+        return archive_path
+
+    except Exception as e:
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
+
+        fail(f"failed to create evaluation ZIP: {e}")
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Safely stage, commit, and push local changes.")
@@ -118,6 +169,10 @@ def main() -> None:
 
     if not has_local_changes and behind_count == 0 and ahead_count == 0:
         fail("nothing to save (no modified or untracked files found, and fully up to date with remote).")
+
+    print("[save] Creating evaluation ZIP...")
+    create_evalcopy_zip(repo_root)
+    print("[save] Evaluation ZIP created.")
 
     stats_summary = ""
     if has_local_changes:
