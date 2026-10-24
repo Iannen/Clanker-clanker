@@ -38,6 +38,10 @@ pud_filesets:
       content/core/core/constants.py
     ]}
 
+  biggone: { includes: [content], excludes: [
+    content/test
+  ]}
+
 pud_domains:
   report_to_user:
     resolvers:
@@ -101,3 +105,13 @@ pud_domains:
           resolvers:
             - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_management_mode_instructions}
             - {anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant}
+
+  repo:
+    resolvers:
+      - { anchor: repo_content, type: repo-content, fileset: ¤ biggone}
+    prompts:
+      - name: plan
+        render:
+          resolvers:
+            - { anchor: prompt_fragments, type: multi-document-retrieval, files: [] }
+            - { anchor: domain_fragments, type: multi-document-retrieval, files: [] }

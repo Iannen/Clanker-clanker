@@ -1,7 +1,14 @@
-name: Build Eval Copy
+
+name: Evalcopy
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   evalcopy:
@@ -17,13 +24,28 @@ jobs:
 
           mkdir clanker-evalcopy
 
-          # Copy folders explicitly using tar to preserve hidden contents
           tar cf - .clanker content | (cd clanker-evalcopy && tar xf -)
 
-      - name: Upload eval copy
-        uses: actions/upload-artifact@v5
-        with:
-          name: clanker-evalcopy
-          path: clanker-evalcopy/
-          include-hidden-files: true
-          if-no-files-found: error
+          HISTORY="clanker-evalcopy/.clanker/progress-documentation/project-history.history"
+          KEEP_CHARS=12000
+
+          if [[ -f "$HISTORY" ]]; then
+            tail -c "$KEEP_CHARS" "$HISTORY" > "${HISTORY}.tmp"
+            mv "${HISTORY}.tmp" "$HISTORY"
+          fi
+
+          zip -r clanker-evalcopy.zip clanker-evalcopy/
+
+      - name: Publish latest eval release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          if gh release view eval-latest >/dev/null 2>&1; then
+            gh release upload eval-latest clanker-evalcopy.zip --clobber
+          else
+            gh release create eval-latest clanker-evalcopy.zip \
+              --title "Latest LLM Evaluation Copy" \
+              --notes "Automatically generated evaluation snapshot of the latest main branch."
+          fi
