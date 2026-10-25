@@ -4,41 +4,52 @@ class PathTokens:
     PUD = "<PUD>"
     SHARED = "<SHARED>"
 
+PUD = PathTokens.PUD
+SHR = PathTokens.SHARED
+
+SHR_CFG_FRAGS = SHR + "/content/a_lib/shared-assets/config-fragments/"
+SHR_TEMPL = SHR + "/content/a_lib/templates/"
+SHR_DOC_TEMPL = SHR_TEMPL + "documentation/"
+SHR_LAYOUTS = SHR + "/content/a_lib/shared-assets/layouts/"
+PROG_DOCS = PUD + "/.clanker/progress-documentation/"
+
+
+
 class ClankerAssets:
     class Configs(StrEnum):
-        sys_cfg = PathTokens.SHARED + "/content/a_lib/shared-assets/config-fragments/system_cfg.yaml"
-        shared_cfg = PathTokens.SHARED + "/content/a_lib/shared-assets/config-fragments/shared_cfg.yaml"
+        sys_cfg = SHR_CFG_FRAGS + "system_cfg.yaml"
+        shared_cfg = SHR_CFG_FRAGS + "shared_cfg.yaml"
 
     class templates(StrEnum):
-        CFG = PathTokens.SHARED + "/content/a_lib/templates/config.template"
-        README = PathTokens.SHARED + "/content/a_lib/templates/README.template"
-        DOC_ARCHITECTURE = PathTokens.SHARED + "/content/a_lib/templates/documentation/architecture.template"
-        DOC_NORTH_STAR = PathTokens.SHARED + "/content/a_lib/templates/documentation/north-star.template"
-        DOC_BACKLOG = PathTokens.SHARED + "/content/a_lib/templates/documentation/backlog.template"
-        DOC_PROJECT_HISTORY = PathTokens.SHARED + "/content/a_lib/templates/documentation/project-history.template"
+        CFG = SHR_TEMPL + "config.template"
+        README = SHR_TEMPL + "README.template"
+        DOC_ARCHITECTURE = SHR_DOC_TEMPL + "architecture.template"
+        DOC_NORTH_STAR = SHR_DOC_TEMPL + "north-star.template"
+        DOC_BACKLOG = SHR_DOC_TEMPL + "backlog.template"
+        DOC_PROJECT_HISTORY = SHR_DOC_TEMPL + "project-history.template"
 
     class layouts(StrEnum):
-        UI = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/ui.layout"
-        PROMPT = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/prompt.layout"
-        BTN_ACTIVE = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/btn_active.layout"
-        BTN_HL = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/btn_hl.layout"
-        BTN_INACTIVE = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/btn_inactive.layout"
+        UI = SHR_LAYOUTS + "ui.layout"
+        PROMPT = SHR_LAYOUTS + "prompt.layout"
+        BTN_ACTIVE = SHR_LAYOUTS + "btn_active.layout"
+        BTN_HL = SHR_LAYOUTS + "btn_hl.layout"
+        BTN_INACTIVE = SHR_LAYOUTS + "btn_inactive.layout"
 
 class PudAssets:
     class Configs(StrEnum):
-        configuration_file = PathTokens.PUD + "/.clanker/config.yaml"
+        configuration_file = PUD + "/.clanker/config.yaml"
 
     class Directories(StrEnum):
-        CONTENTS = PathTokens.PUD + "/content"
+        CONTENTS = PUD + "/content"
 
     class Files(StrEnum):
-        README = PathTokens.PUD + "/README.md"
+        README = PUD + "/README.md"
 
     class Documentation(StrEnum):
-        ARCHITECTURE = PathTokens.PUD + "/.clanker/progress-documentation/architecture.cdoc"
-        NORTH_STAR = PathTokens.PUD + "/.clanker/progress-documentation/north-star.cdoc"
-        BACKLOG = PathTokens.PUD + "/.clanker/progress-documentation/backlog.backlog"
-        PROJECT_HISTORY = PathTokens.PUD + "/.clanker/progress-documentation/project-history.history"
+        ARCHITECTURE = PROG_DOCS + "architecture.cdoc"
+        NORTH_STAR = PROG_DOCS + "north-star.cdoc"
+        BACKLOG = PROG_DOCS + "backlog.backlog"
+        PROJECT_HISTORY = PROG_DOCS + "project-history.history"
 
 class RepoContract:
     DIRS_TO_CREATE = [
