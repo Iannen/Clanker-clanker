@@ -41,7 +41,6 @@ class IngestionServiceImpl(IngestionService):
             clank_classifier.classify(self._get_asset_pack(PathTokens.SHARED, ["content/a_lib"])),
             pud_classifier.classify(self._get_config(PudAssets.Configs.configuration_file)), 
             pud_classifier.classify(self._get_asset_pack(PathTokens.PUD, [".clanker"])), 
-            #pud_classifier.classify(self._get_asset_pack(PathTokens.PUD, ["test", "content", "README.md"])), 
             pud_classifier.classify(self._get_asset_pack(PathTokens.PUD, ["content", "README.md"])), 
         )
         clank_classifier.complain() 
