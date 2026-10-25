@@ -1,7 +1,6 @@
 from stdlib import StrEnum, dataclass
 from core import CorruptClanker, Render, Keyboard
-from ...asset_ingestion import ErrorCollector, OverflowHandler2, FilelistValidator2, FilesetValidator2
-from ...asset_ingestion import Numap, AssetPack, RepoItem, Config
+from ...asset_ingestion import ErrorCollector, OverflowHandler2, FilelistValidator2, FilesetValidator2, Numap, AssetPack, RepoItem, Config
 from core.engine_deps import Complaint
 
 class ClassificationResult(StrEnum):
@@ -61,4 +60,4 @@ class Assembler:
             self.pud_content_assets,
         )
         fileset_validator.validate()
-        return OverflowHandler2(self.collector).do_it(numap) #ui_render, populated_kb
+        return OverflowHandler2(self.collector).do_it(numap)

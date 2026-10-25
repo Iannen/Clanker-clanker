@@ -8,7 +8,9 @@ pud_filesets:
     content/modules/asset_ingestion,
     content/core/core/entities.py,
     content/core/core/constants.py
-    ]}
+    ], excludes: [
+      content/modules/asset_ingestion/__init__.py
+      ]}
 
   presentation: {includes: [
     content/core,

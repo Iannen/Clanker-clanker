@@ -1,4 +1,5 @@
 from stdlib import StrEnum
+
 class PathTokens:
     PUD = "<PUD>"
     SHARED = "<SHARED>"
@@ -29,7 +30,6 @@ class PudAssets:
 
     class Directories(StrEnum):
         CONTENTS = PathTokens.PUD + "/content"
-        #TEST = PathTokens.PUD + "/test"
 
     class Files(StrEnum):
         README = PathTokens.PUD + "/README.md"
@@ -43,7 +43,6 @@ class PudAssets:
 class RepoContract:
     DIRS_TO_CREATE = [
         PudAssets.Directories.CONTENTS,
-        #PudAssets.Directories.TEST,
     ]
 
     MAPPINGS = [

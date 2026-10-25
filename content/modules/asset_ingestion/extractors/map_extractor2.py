@@ -25,31 +25,23 @@ class EntityField:
         outer_type_hint = raw_type
         if get_origin(raw_type) is types.UnionType:
             not_none = [t for t in outer_args if t is not type(None)]
-            if len(not_none) == 1:
-                outer_type_hint = not_none[0]
-            else:
-                raise Exception(f"Only 'T' or 'T | None' supported, got: {raw_type}")
+            if len(not_none) == 1: outer_type_hint = not_none[0]
+            else: raise Exception(f"Only 'T' or 'T | None' supported, got: {raw_type}")
         origin = get_origin(outer_type_hint)
         inner_args = get_args(outer_type_hint)
         outer_type = origin if origin else atomic
         
-        if origin is not None and origin not in (list, dict):
-            raise Exception(f"Unsupported origin type: {origin}")
+        if origin is not None and origin not in (list, dict): raise Exception(f"Unsupported origin type: {origin}")
             
         inner_type = inner_args[0] if origin is list else inner_args[1] if origin is dict else outer_type_hint
 
-        if raw_field.default is not MISSING:
-            default_value = raw_field.default
-        elif is_nullable:
-            default_value = None
-        else:
-            default_value = Absent
+        if raw_field.default is not MISSING: default_value = raw_field.default
+        elif is_nullable: default_value = None
+        else: default_value = Absent
 
         value = Absent
-        if field_data is None:
-            value = default_value
-        elif field_data is not Absent and not issubclass(inner_type, e.Entity):
-            value = field_data
+        if field_data is None: value = default_value
+        elif field_data is not Absent and not issubclass(inner_type, e.Entity): value = field_data
 
         return cls(
             raw_field=raw_field,
@@ -64,10 +56,7 @@ class ParserCtx:
     def __init__(self, entity_cls: type[e.Entity], data: dict = {}):
         self.entity_cls = entity_cls
         self.data = data
-        self.fields: list[EntityField] = [
-            EntityField.from_field(raw_field, data.get(raw_field.name)) 
-            for raw_field in fields(entity_cls)
-        ]
+        self.fields: list[EntityField] = [ EntityField.from_field(raw_field, data.get(raw_field.name)) for raw_field in fields(entity_cls)]
         self.unsatisfied_fields: list[Field] = []
         self.instantiated_instances: list[e.Entity] = []
 
@@ -87,10 +76,7 @@ class ParserCtx:
 
 def build_ordered_parsers(ec: Any) -> dict[type | str, Any]:
     entity_base_cls = e.Entity
-    entity_classes = [
-        obj for obj in e.__dict__.values() 
-        if inspect.isclass(obj) and issubclass(obj, entity_base_cls) and obj is not entity_base_cls
-    ]
+    entity_classes = [ obj for obj in e.__dict__.values() if inspect.isclass(obj) and issubclass(obj, entity_base_cls) and obj is not entity_base_cls]
 
     ctx_instances = {cls: ParserCtx(cls) for cls in entity_classes}
     satisfied: list[type[e.Entity]] = []
@@ -105,17 +91,12 @@ def build_ordered_parsers(ec: Any) -> dict[type | str, Any]:
             if all(dep in covered for dep in ctx.get_deps(entity_classes)):
                 satisfied.append(ctx.entity_cls)
                 progress = True
-            else:
-                next_unsatisfied.append(ctx)
-        if not progress:
-            raise Exception("Circular dependency detected among entity classes!")
+            else: next_unsatisfied.append(ctx)
+        if not progress: raise Exception("Circular dependency detected among entity classes!")
         unsatisfied = next_unsatisfied
 
     parse_base_cls = BaseParser2
-    parse_classes = {
-        obj.entity_cls: obj(ec) for obj in globals().values()
-        if inspect.isclass(obj) and issubclass(obj, BaseParser2) and obj is not BaseParser2 and getattr(obj, "entity_cls", None)
-    }
+    parse_classes = {obj.entity_cls: obj(ec) for obj in globals().values()if inspect.isclass(obj) and issubclass(obj, BaseParser2) and obj is not BaseParser2 and getattr(obj, "entity_cls", None)}
     
     parser_map: dict[type | str, Any] = {}
 
@@ -124,8 +105,7 @@ def build_ordered_parsers(ec: Any) -> dict[type | str, Any]:
         parser_inst.entity_cls = cls
         
         parser_map[cls] = parser_inst
-        if hasattr(cls, "type") and isinstance(cls.type, str):
-            parser_map[cls.type] = parser_inst
+        if hasattr(cls, "type") and isinstance(cls.type, str): parser_map[cls.type] = parser_inst
 
     return parser_map
 
@@ -140,17 +120,15 @@ class Numap:
 
     def extract_all(self):
         for parser in dict.fromkeys(self.ordered_parsers.values()):
-            for cfg in self.configs:
+            for cfg in self.configs: 
                 if cfg: self._extract(cfg, parser.entity_cls, parser)
 
     def _extract(self, cfg: Config, entity_cls: type, parser: Any) -> None:
         items = []
 
-        if entities_dict := cfg.data.get(entity_cls.plural_key):
-            items.extend(entities_dict.items())
+        if entities_dict := cfg.data.get(entity_cls.plural_key): items.extend(entities_dict.items())
 
-        if entity_dict := cfg.data.get(entity_cls.key_name):
-            items.append((entity_cls.key_name, entity_dict))
+        if entity_dict := cfg.data.get(entity_cls.key_name): items.append((entity_cls.key_name, entity_dict))
 
         for name, entity_data in items:
             if entity := parser.parse(name, entity_data, self):
@@ -158,15 +136,13 @@ class Numap:
                 self.set_entity(name, entity, entity_cls)
 
     def register_cleanup(self, entity: e.Entity, callback: Any) -> None:
-        if not isinstance(entity, e.Entity):
-            raise TypeError(f"Expected an instance of Entity, got {type(entity).__name__}")
+        if not isinstance(entity, e.Entity): raise TypeError(f"Expected an instance of Entity, got {type(entity).__name__}")
         self.cleanup_registry.setdefault(id(entity), []).append(callback)
 
     def prune(self, target: e.Entity | list[e.Entity]) -> None:
         if isinstance(target, e.Entity):
             callbacks = self.cleanup_registry.pop(id(target), [])
-            for cb in callbacks:
-                cb()
+            for cb in callbacks: cb()
         else:
             for entity in list(target):
                 self.prune(entity)
