@@ -1,52 +1,7 @@
-from stdlib import field, fields, MISSING, get_args, Any, get_args, get_origin, types, Field, get_args, get_origin
-from ...asset_ingestion import ErrorCollector, Numap
+from stdlib import field, Any
+from ...asset_ingestion import ErrorCollector, Numap, ParserCtx, EntityField, Absent, atomic
 from core.engine_deps import MissingEntityFields
 from core import Entity, Filelist, Keyboard, Resolver, File, RepoContentResolver, SharedDomButton, PudDomButton, PromptButton, FilesetItem
-
-class Absent: pass
-class atomic: pass
-
-class EntityField:
-    def __init__(self, raw_field: Field):
-        self.raw_field = raw_field
-        self.key = raw_field.name
-        self.value = Absent
-        outer_type_hint = self._extract_nullability(raw_field)
-        self._extract_types(outer_type_hint)
-        self._resolve_default(raw_field)
-
-    def _extract_nullability(self, raw_field: Field) -> Any:
-        raw_type = raw_field.type
-        outer_args = get_args(raw_type)
-        self.outer_type_nullable = type(None) in outer_args
-        outer_type_hint = raw_type
-        if get_origin(raw_type) is types.UnionType:
-            not_none = [t for t in outer_args if t is not type(None)]
-            if len(not_none) == 1:
-                outer_type_hint = not_none[0]
-            else:
-                raise Exception(f"Only 'T' or 'T | None' supported, got: {raw_type}")            
-        return outer_type_hint
-    
-    def _extract_types(self, outer_type_hint: Any):
-        origin = get_origin(outer_type_hint)
-        inner_args = get_args(outer_type_hint)         
-        self.outer_type = origin if origin else atomic
-        self.inner_type = inner_args[0] if origin is list else inner_args[1] if origin is dict else outer_type_hint
-        if origin is not None and origin not in (list, dict): raise Exception(f"Unsupported origin type: {origin}")
-
-    def _resolve_default(self, raw_field: Field):
-        v = Absent
-        if raw_field.default is not MISSING: v = raw_field.default
-        elif self.outer_type_nullable: v = None
-        self.default_value = v
-
-class ParserCtx:
-    def __init__(self, entity_cls: type[Entity]):
-        self.fields: list[EntityField] = [EntityField(raw_field) for raw_field in fields(entity_cls)]
-        self.unsatisfied_fields: list[Field] = []
-        self.instantiated_instances: list[Entity] = []
-        self.fetched_instances: list[Entity] = []
 
 class BaseParser2:
     def __init__(self, ec: ErrorCollector):

@@ -1,7 +1,7 @@
 from stdlib import StrEnum, dataclass
-from core import CorruptClanker, Render, Keyboard, Filelist, Fileset, UIRender, SharedBaseResolver, PudBaseResolver, SharedDomain, PudDomain, PudFileset, SharedFileset
+from core import CorruptClanker, Render, Keyboard
 from ...asset_ingestion import ErrorCollector, OverflowHandler2, FilelistValidator2, FilesetValidator2
-from ...asset_ingestion import Numap, NuConfigExtractor, AssetPack, RepoItem, Config
+from ...asset_ingestion import Numap, AssetPack, RepoItem, Config
 from core.engine_deps import Complaint
 
 class ClassificationResult(StrEnum):
@@ -43,28 +43,8 @@ class Assembler:
 
     def assemble(self, pud_res: ClassificationResult) ->  tuple[Render, Keyboard]:
 
-        numap = Numap(self.collector)
-        clank_ext = NuConfigExtractor(numap, self.collector, self.clank_cfg)
-        clank_ext.extract_from_map(Filelist)
-        clank_ext.extract_from_map(Fileset)
-        clank_ext.extract_from_map(PudFileset)
-        clank_ext.extract_from_map(SharedFileset)
-        clank_ext.extract_from_map(SharedDomain)
-        clank_ext.extract_single(SharedBaseResolver)
-
-        pud_ext = NuConfigExtractor(numap, self.collector, self.pud_cfg)
-        pud_ext.extract_from_map(Filelist)
-        pud_ext.extract_from_map(Fileset)
-        pud_ext.extract_from_map(PudFileset)
-        pud_ext.extract_from_map(SharedFileset)
-        pud_ext.extract_from_map(PudDomain)
-        pud_ext.extract_single(PudBaseResolver)
-
-        system_extractor = NuConfigExtractor(numap, self.collector, self.sys_cfg)
-        system_extractor.extract_single(UIRender)
-        system_extractor.extract_single(Keyboard)
-
-        ui_render, populated_kb = OverflowHandler2(self.collector).do_it(numap)
+        numap = Numap(self.collector, self.clank_cfg, self.pud_cfg, self.sys_cfg)
+        numap.extract_all()
 
         list_validator = FilelistValidator2(
             self.collector,
@@ -81,4 +61,4 @@ class Assembler:
             self.pud_content_assets,
         )
         fileset_validator.validate()
-        return ui_render, populated_kb
+        return OverflowHandler2(self.collector).do_it(numap) #ui_render, populated_kb
