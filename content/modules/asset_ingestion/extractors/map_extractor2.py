@@ -195,9 +195,8 @@ class BaseParser2:
 
     def parse(self, name: str | None, data: dict, numap: Numap) -> Any:
         data = self.preprocess(data.copy()) if isinstance(data, (dict, list)) else self.preprocess(data)
-        
+
         if name:data["name"] = name
-        
         ctx = ParserCtx(self.entity_cls)
 
         for field in ctx.fields:
