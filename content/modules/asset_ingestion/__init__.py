@@ -1,6 +1,5 @@
 from .commons.error_collector import *
 from .extractors.map_extractor2 import *
-import modules.asset_ingestion.extractors.parsers as parsers
 from .validators.overflow_validator2 import *
 from .validators.fileset_validator import *
 from .validators.file_list_validator import *
