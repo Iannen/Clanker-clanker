@@ -13,11 +13,11 @@ class EntityField:
     key: str
     outer_type: type
     inner_type: type
-    default_value: Any
-    value: Any = Absent
+    raw_data: Any
+    value: Any
 
     @classmethod
-    def from_field(cls, raw_field: Field) -> "EntityField":
+    def from_field(cls, raw_field: Field, field_data: Any) -> "EntityField":
         raw_type = raw_field.type
         outer_args = get_args(raw_type)
         is_nullable = type(None) in outer_args
@@ -45,18 +45,29 @@ class EntityField:
         else:
             default_value = Absent
 
+        value = Absent
+        if field_data is None:
+            value = default_value
+        elif field_data is not Absent and not issubclass(inner_type, e.Entity):
+            value = field_data
+
         return cls(
             raw_field=raw_field,
             key=raw_field.name,
             outer_type=outer_type,
             inner_type=inner_type,
-            default_value=default_value
+            raw_data=field_data,
+            value=value
         )
 
 class ParserCtx:
-    def __init__(self, entity_cls: type[e.Entity]):
+    def __init__(self, entity_cls: type[e.Entity], data: dict = {}):
         self.entity_cls = entity_cls
-        self.fields: list[EntityField] = [EntityField.from_field(raw_field) for raw_field in fields(entity_cls)]
+        self.data = data
+        self.fields: list[EntityField] = [
+            EntityField.from_field(raw_field, data.get(raw_field.name)) 
+            for raw_field in fields(entity_cls)
+        ]
         self.unsatisfied_fields: list[Field] = []
         self.instantiated_instances: list[e.Entity] = []
 
@@ -196,14 +207,13 @@ class BaseParser2:
     def parse(self, name: str | None, data: dict, numap: Numap) -> Any:
         data = self.preprocess(data.copy()) if isinstance(data, (dict, list)) else self.preprocess(data)
 
-        if name:data["name"] = name
-        ctx = ParserCtx(self.entity_cls)
+        if name: data["name"] = name
+        ctx = ParserCtx(self.entity_cls, data)
 
         for field in ctx.fields:
-            self._parse_value(field, data, numap, ctx)
+            if field.value is Absent: self._parse_value(field, numap, ctx)
             
-            if field.value is Absent:
-                ctx.unsatisfied_fields.append(field.raw_field)
+            if field.value is Absent: ctx.unsatisfied_fields.append(field.raw_field)
 
         if ctx.unsatisfied_fields:
             self.ec.accept(MissingEntityFields(self.entity_cls, ctx.unsatisfied_fields, data))
@@ -223,15 +233,13 @@ class BaseParser2:
 
         return entity
 
-    def _parse_value(self, field: EntityField, data: dict, numap: Numap, ctx: ParserCtx) -> None:
-
-        field_data = data.get(field.key)
-
-        if field_data is None: field.value = field.default_value
-        elif not issubclass(field.inner_type, e.Entity): field.value = field_data
-        elif field.outer_type == list: field.value = [inst for d in field_data if (inst := self._get_entity("", d, field, numap, ctx)) is not None]
-        elif field.outer_type == dict: raise Exception("We found a dict omg!")         
-        elif field.outer_type == atomic: field.value = self._get_entity(field.key, field_data, field, numap, ctx)
+    def _parse_value(self, field: EntityField, numap: Numap, ctx: ParserCtx) -> None:
+        if field.outer_type == list:
+            field.value = [inst for d in field.raw_data if (inst := self._get_entity("", d, field, numap, ctx)) is not None]
+        elif field.outer_type == dict:
+            raise Exception("We found a dict omg!")         
+        elif field.outer_type == atomic:
+            field.value = self._get_entity(field.key, field.raw_data, field, numap, ctx)
 
     def _get_entity(self, name, data, field: EntityField, numap: Numap, ctx: ParserCtx):
         e = None
@@ -280,7 +288,7 @@ class KeyboardParser2(BaseParser2):
         shared_btns = [e.SharedDomButton(key, None) for key in data.get("shared_domains_row", [])]
         pud_btns = [e.PudDomButton(key, None) for key in data.get("pud_domains_row", [])]
         prompt_btns = [e.PromptButton(key, None) for key in data.get("prompts_row", [])]
-                    
+
         keyboard = e.Keyboard({btn.key: btn for btn in shared_btns + pud_btns + prompt_btns}, None)
         for item in shared_btns + pud_btns + prompt_btns + [keyboard]: numap.register(item)
         return keyboard
