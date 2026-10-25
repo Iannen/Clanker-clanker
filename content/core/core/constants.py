@@ -1,5 +1,6 @@
 from stdlib import StrEnum
 
+
 class PathTokens:
     PUD = "<PUD>"
     SHARED = "<SHARED>"

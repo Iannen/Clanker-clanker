@@ -1,6 +1,6 @@
 from stdlib import StrEnum, dataclass
-from core import CorruptClanker, Render, Keyboard
-from ...asset_ingestion import ErrorCollector, OverflowHandler2, FilelistValidator2, FilesetValidator2, Numap, AssetPack, RepoItem, Config
+from core import CorruptClanker, Render, Keyboard, AssetPack, RepoItem, Config
+from ...asset_ingestion import ErrorCollector, OverflowHandler2, FilelistValidator2, FilesetValidator2, Numap
 from core.engine_deps import Complaint
 
 class ClassificationResult(StrEnum):

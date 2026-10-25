@@ -2,7 +2,7 @@ from stdlib import dataclass, inspect, Any, fields, get_args, get_origin, types,
 from core import entities as e
 from core.engine_deps import MissingEntityFields
 
-from ...asset_ingestion import ErrorCollector, Config
+from ...asset_ingestion import ErrorCollector
 
 class Absent: pass
 class atomic: pass
@@ -110,7 +110,7 @@ def build_ordered_parsers(ec: Any) -> dict[type | str, Any]:
     return parser_map
 
 class Numap:
-    def __init__(self, ec: ErrorCollector, *configs: Config):
+    def __init__(self, ec: ErrorCollector, *configs: e.Config):
         self.ec = ec
         self.configs = configs
         self.entities: dict[tuple[type, str], e.Entity] = {}
@@ -123,7 +123,7 @@ class Numap:
             for cfg in self.configs: 
                 if cfg: self._extract(cfg, parser.entity_cls, parser)
 
-    def _extract(self, cfg: Config, entity_cls: type, parser: Any) -> None:
+    def _extract(self, cfg: e.Config, entity_cls: type, parser: Any) -> None:
         items = []
 
         if entities_dict := cfg.data.get(entity_cls.plural_key): items.extend(entities_dict.items())

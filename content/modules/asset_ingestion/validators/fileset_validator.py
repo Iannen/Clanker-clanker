@@ -1,6 +1,6 @@
-from core import PudFileset, SharedFileset, FilesetItem
+from core import PudFileset, SharedFileset, FilesetItem, AssetPack
 from stdlib import dataclass
-from ...asset_ingestion import ErrorCollector, Numap, AssetPack
+from ...asset_ingestion import ErrorCollector, Numap
 from core.engine_deps import UnsatisfiedFilesetSubjects
 
 @dataclass
