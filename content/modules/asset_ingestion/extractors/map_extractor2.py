@@ -194,12 +194,8 @@ class BaseParser2:
         return data
 
     def parse(self, name: str | None, data: dict, numap: Numap) -> Any:
-        if isinstance(data, (str, type(None), list)):
-            data = self.preprocess(data)
-        elif isinstance(data, dict):
-            data = self.preprocess(data.copy())
-        else: 
-            raise Exception("data is not dict, string nor list")
+        data = self.preprocess(data.copy()) if isinstance(data, (dict, list)) else self.preprocess(data)
+        
         if name:data["name"] = name
         
         ctx = ParserCtx(self.entity_cls)
