@@ -7,7 +7,6 @@ pud_filesets:
   asset_ingestion: {includes: [
     content/modules/asset_ingestion,
     content/core/core/entities.py,
-    content/core/core/constants.py
     ], excludes: [
       content/modules/asset_ingestion/__init__.py
       ]}
@@ -29,7 +28,6 @@ pud_filesets:
     content/modules/keyboard,
     content/modules/render_pipeline,
     content/modules/tui], excludes: [
-      content/core/core/constants.py,
       content/core/core/exceptions.py,
       content/modules/tui/renderer.py,
     ]}
@@ -38,7 +36,6 @@ pud_filesets:
     content/core,
     content/modules/keyboard,
     content/modules/tui], excludes: [
-      content/core/core/constants.py
     ]}
 
   biggone: { includes: [content], excludes: [
