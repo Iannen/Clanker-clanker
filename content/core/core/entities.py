@@ -1,4 +1,4 @@
-from stdlib import dataclass, Type, re, Any, defaultdict, StrEnum
+from stdlib import dataclass, Type, re, Any, StrEnum
 
 class classproperty:
     def __init__(self, func):
@@ -142,12 +142,6 @@ class Keyboard(Entity):
     def set_selected_dom_btn(self, btn: DomButton):
         self.selected_dom_btn = btn
 
-
-class PathTokens:
-    PUD = "<PUD>"
-    SHARED = "<SHARED>"
-SHR = PathTokens.SHARED
-
 class RepoItem: pass
 
 @dataclass
@@ -162,22 +156,6 @@ class AssetPack(RepoItem):
     def __init__(self, token: str, paths: list[str]):
         self.token = token
         self.paths = paths
-        self.resolved_map: dict[str, str] = {}
-        self.collisions: list["FilenameCollision"] = []
-
-        filename_to_paths: dict[str, list[str]] = defaultdict(list)
-        for path_str in self.paths:
-            filename = path_str.rsplit("/", 1)[-1]
-            filename_to_paths[filename].append(path_str)
-
-        for filename, raw_paths in filename_to_paths.items():
-            full_paths = [f"{self.token}/{p}" for p in raw_paths]
-            winner_path = sorted(full_paths, key=lambda p: (p.count("/"), p))[0]
-            
-            self.resolved_map[filename] = winner_path
-            
-            if len(full_paths) > 1: pass
-                #self.collisions.append(FilenameCollision(filename, full_paths, winner_path))
 
 
 class PathTokens:

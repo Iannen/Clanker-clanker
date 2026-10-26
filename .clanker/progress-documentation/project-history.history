@@ -1363,3 +1363,13 @@ CLXXIII: ADOPTING A QUEUE-BASED COMMAND FLOW AND DELEGATING INPUT/ENQUEUING TO T
     Reflection:
     - While decoupling via a command queue theoretically paves the way for a browser-based frontend or alternative skins down the line, the pragmatic decision is to let that abstraction lie for now in favor of building core value up front rather than prematurely chasing a "new skin".
     - Improves overall modularity by placing terminal-specific side effects and command push logic squarely within the renderer layer.
+
+CLXXIV: MIGRATING ASSETPACK COLLISION AND PATH-RESOLUTION LOGIC INTO FILELISTVALIDATOR2
+    Purpose: Remove complaint-registration and path-resolution logic from the passive entity layer by moving it into the validator that already owns error collection.
+    - `AssetPack` in `content/core/core/entities.py` previously embedded filename collision handling and referenced complaint types, creating an unwanted dependency between entity definitions and engine-deps complaints.
+    Actions: Reduce `AssetPack` to a passive data holder containing only `token` and `paths`, and clean up the now-unused `defaultdict` import in `content/core/core/entities.py`.
+    - Move filename grouping, full-path construction, winner-path selection, collision detection, and `FilenameCollision` creation into `FilelistValidator2.validate()` / `_resolve_and_collect_collisions()`.
+    - Have `FilelistValidator2` build the resolved filename-to-path map locally instead of reading it from `AssetPack`, then use that map to satisfy `File.path` values.
+    - Add the required `FilenameCollision` import in `content/modules/asset_ingestion/validators/file_list_validator.py`.
+    Reflection: Entity definitions remain pure data structures, while complaint construction and asset-pack resolution are centralized in the validator layer with direct access to `ErrorCollector`.
+    - This clarifies responsibility boundaries but also makes `FilelistValidator2` a broader normalization/validation step rather than a purely passive checker.

@@ -24,5 +24,14 @@ II. The wishlist
 
 
 Backlog tail, Selected item/items:
-
+1. Migrate AssetPack collision and path-resolution logic out of the entity layer into FilelistValidator2.
+    [ ] 'content/core/core/entities.py': Reduce AssetPack to passive token/path data only.
+        - Task: remove `resolved_map`, `collisions`, filename grouping, winner-path selection, and commented complaint registration from `AssetPack`.
+        - Prohibition: do not make `entities.py` depend on complaint types such as `FilenameCollision` or engine-deps error classes.
+        - Prohibition: do not leave dead/commented collision-registration code in the entity definition.
+    [ ] 'content/modules/asset_ingestion/validators/file_list_validator.py': Make FilelistValidator2 derive and register asset-pack filename collisions.
+        - Task: use `AssetPack.token` and `AssetPack.paths` to build full paths, group by filename, detect duplicates, select winner path, and create `FilenameCollision` complaints for `ErrorCollector`.
+        - Task: derive the resolved filename-to-path map needed for file validation instead of reading it from `AssetPack`.
+        - Prohibition: do not assume incoming `AssetPack` objects already contain prebuilt complaint instances.
+    
 Backlog tail end
