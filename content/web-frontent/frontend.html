@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lean Llama UI - Multi-Turn</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-950 text-gray-100 flex flex-col h-screen font-sans">
+
+    <!-- Header -->
+    <header class="bg-gray-900 border-b border-gray-800 p-4 flex justify-between items-center">
+        <h1 class="text-xl font-bold tracking-wide text-emerald-400">⚡ Lean Llama UI (Chat)</h1>
+        <span class="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded">OpenAI-Compatible Stream</span>
+    </header>
+
+    <!-- Chat / Output Area -->
+    <main id="chat-container" class="flex-1 overflow-y-auto p-6 space-y-4 max-w-4xl w-full mx-auto">
+        <div class="text-gray-500 text-center italic mt-10">Type a prompt below to begin chatting...</div>
+    </main>
+
+    <!-- Input Area -->
+    <footer class="bg-gray-900 border-t border-gray-800 p-4">
+        <div class="max-w-4xl mx-auto flex gap-3">
+            <textarea id="prompt-input" rows="2" placeholder="Ask a follow-up or start a conversation..." 
+                class="flex-1 bg-gray-950 border border-gray-800 rounded-lg p-3 text-gray-100 focus:outline-none focus:border-emerald-500 resize-none"></textarea>
+            <button id="send-btn" onclick="generateResponse()" 
+                class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-6 rounded-lg transition duration-200 flex items-center justify-center">
+                Send
+            </button>
+        </div>
+    </footer>
+
+    <script>
+        // Maintain conversation history array
+        let messageHistory = [];
+
+        async function generateResponse() {
+            const promptInput = document.getElementById('prompt-input');
+            const chatContainer = document.getElementById('chat-container');
+            const sendBtn = document.getElementById('send-btn');
+            
+            const prompt = promptInput.value.trim();
+            if (!prompt) return;
+
+            // Clear welcome message on first run
+            if (chatContainer.querySelector('.italic')) {
+                chatContainer.innerHTML = '';
+            }
+
+            // Append User Message to UI
+            chatContainer.innerHTML += `
+                <div class="flex flex-col items-end">
+                    <div class="bg-gray-800 text-gray-200 rounded-2xl px-4 py-2 max-w-xl whitespace-pre-wrap">${escapeHtml(prompt)}</div>
+                </div>`;
+            
+            // Push user message to history
+            messageHistory.push({ role: "user", content: prompt });
+
+            promptInput.value = '';
+            promptInput.disabled = true;
+            sendBtn.disabled = true;
+
+            // Create Assistant Response Box
+            const responseDiv = document.createElement('div');
+            responseDiv.className = "flex flex-col items-start";
+            responseDiv.innerHTML = `<div class="bg-gray-900 border border-gray-800 text-gray-100 rounded-2xl px-5 py-3 max-w-3xl whitespace-pre-wrap leading-relaxed"></div>`;
+            chatContainer.appendChild(responseDiv);
+            const contentBox = responseDiv.querySelector('div');
+
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            let fullAssistantResponse = '';
+
+            try {
+                const response = await fetch('http://desktop:8080/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer your-super-secret-key'
+                    },
+                    body: JSON.stringify({
+                        model: "llama-3", // llama.cpp accepts any string or ignores it if single model loaded
+                        messages: messageHistory,
+                        temperature: 0.7,
+                        stream: true
+                    })
+                });
+
+                if (!response.ok) throw new Error('Server error: ' + response.statusText);
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop(); // Keep last partial line in buffer
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const dataStr = line.replace('data: ', '').trim();
+                            if (dataStr === '[DONE]') continue;
+                            
+                            try {
+                                const json = JSON.parse(dataStr);
+                                const token = json.choices[0]?.delta?.content;
+                                if (token) {
+                                    fullAssistantResponse += token;
+                                    contentBox.textContent = fullAssistantResponse;
+                                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                                }
+                            } catch (e) {
+                                // Ignore JSON parse errors on incomplete chunks
+                            }
+                        }
+                    }
+                }
+
+                // Push assistant response to history after completion
+                messageHistory.push({ role: "assistant", content: fullAssistantResponse });
+
+            } catch (err) {
+                contentBox.textContent += `\n[Error: ${err.message}]`;
+                contentBox.classList.add('text-red-400');
+            } finally {
+                promptInput.disabled = false;
+                sendBtn.disabled = false;
+                promptInput.focus();
+            }
+        }
+
+        function escapeHtml(text) {
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        // Allow pressing Enter to send (Shift+Enter for newline)
+        document.getElementById('prompt-input').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                generateResponse();
+            }
+        });
+    </script>
+</body>
+</html>
