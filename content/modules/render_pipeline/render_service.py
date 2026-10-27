@@ -108,18 +108,15 @@ class PromptServiceImpl(PromptService):
         excludes = self.files.get_file_paths(PathTokens.PUD, [exclude.value for exclude in resolver.fileset.excludes], missing_ok=True) if resolver.fileset.excludes else set()
         paths = sorted(includes - excludes)
 
-        tree_header = f"<tree>\n" + "\n".join(f"├── {p}" for p in paths) + "\n</tree>"
-
-        file_blocks = []
+        file_blocks = ["¤¤ Repository Contents ¤¤"]
         for p in paths:
             try:
                 content = self.files.read_asset(f"{PathTokens.PUD}/{p}").rstrip()
-                file_blocks.append(f"<{p}>\n{content}\n</{p}>")
+                file_blocks.append(f'¤filepath="{p}"¤\n{content}')
             except UnicodeDecodeError:
                 pass
 
-        inner_content = tree_header + "\n" + "\n".join(file_blocks)
-        return {resolver.anchor: f"<repo-content>\n{inner_content}\n</repo-content>"}
+        return {resolver.anchor: "\n\n".join(file_blocks)}
 
     def _res_manifest(self, resolver: ManifestResolver) -> str:
         manifest_blocks = [

@@ -1,21 +1,10 @@
 Output Format Guidelines:
 ---
-**1: path_to_file : [class].[method]:**  
-old content:
-```
-<oldcontent1>
-```
-replacement content:
-```
-<newcontent1>
-```
-**2: path_to_file : [class].[method]:**  
-old content:
-```
-<oldcontent2>
-```
-replacement content:
-```
-<newcontent2>
-```
+Always return whole-file replacements using the currency sign delimiter format for any modified or new files. Do not include old content blocks.
+
+Example:
+¤filepath="path/to/file.py"¤
+# Entire updated or new file content goes here
+def main():
+    pass
 ---

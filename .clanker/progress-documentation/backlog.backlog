@@ -36,11 +36,5 @@ II. The wishlist
 
 
 Backlog tail, Selected item/items:
-2. Enhance frontend chat UI with autofocus and positional shortcut copy (Ctrl + 1, 2, ...)
-    [ ] 'content/web-frontent/frontend.html': Add prompt autofocus and positional keyboard copy shortcuts.
-        - Task: initialize autofocus on DOM content load and page refresh to ensure the cursor is always in the prompt input box.
-        - Task: implement positional keyboard shortcuts (`Ctrl + 1` for latest assistant reply, `Ctrl + 2` for second latest, etc.) to copy responses directly to the clipboard.
-        - Task: display a small info banner/badge on each assistant response showing its corresponding shortcut key.
-        - Task: add a lightweight toast notification for visual confirmation when a reply is successfully copied.
 
 Backlog tail end

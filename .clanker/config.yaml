@@ -4,6 +4,8 @@ system:
 pud_filesets:
   core: {includes: [content/core]}
 
+  prompt_render: {includes: [content/modules/render_pipeline]}
+
   asset_ingestion: {includes: [
     content/modules/asset_ingestion,
     content/core/core/entities.py,
@@ -108,7 +110,8 @@ pud_domains:
 
   webui:
     resolvers:
-      - { anchor: repo_content, type: repo-content, includes: [content/web-frontent/frontend.html]}
+      #- { anchor: repo_content, type: repo-content, includes: [content/web-frontent/frontend.html]}
+      - { anchor: repo_content, type: repo-content, fileset: ¤ prompt_render}
     prompts:
       - name: plan
         render:
