@@ -306,13 +306,12 @@
             if (e.ctrlKey) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    const assistantRows = Array.from(rows).filter(r => r.querySelector('span').textContent.includes('[ASSISTANT]') || r.innerHTML.includes('[ASSISTANT]'));
-                    if (assistantRows.length > 0) {
-                        const latestAssistant = assistantRows[assistantRows.length - 1];
-                        const text = latestAssistant.querySelector('.message-text').innerText;
+                    const assistantMessages = messageHistory.filter(m => m.role === 'assistant');
+                    if (assistantMessages.length > 0) {
+                        const rawText = assistantMessages[assistantMessages.length - 1].content;
                         try {
-                            await navigator.clipboard.writeText(text);
-                            showToast('📋 Copied latest assistant response (Ctrl + Enter)!');
+                            await navigator.clipboard.writeText(rawText);
+                            showToast('📋 Copied latest raw markdown response (Ctrl + Enter)!');
                         } catch (err) {}
                     }
                     return;
@@ -340,12 +339,11 @@
                 }
                 if (e.key.toLowerCase() === 'c' && selectedIndex !== -1) {
                     e.preventDefault();
-                    const targetRow = document.querySelector(`.message-row[data-index="${selectedIndex}"]`);
-                    if (targetRow) {
-                        const text = targetRow.querySelector('.message-text').innerText;
+                    if (selectedIndex - 1 >= 0 && selectedIndex - 1 < messageHistory.length) {
+                        const rawText = messageHistory[selectedIndex - 1].content;
                         try {
-                            await navigator.clipboard.writeText(text);
-                            showToast(`📋 Copied message #${selectedIndex}!`);
+                            await navigator.clipboard.writeText(rawText);
+                            showToast(`📋 Copied message #${selectedIndex} (raw markdown)!`);
                         } catch (err) {}
                     }
                     return;
