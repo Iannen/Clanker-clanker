@@ -23,7 +23,7 @@ II. The wishlist
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 
 
-Backlog tail, Selected item/items:
+
 1. Migrate AssetPack collision and path-resolution logic out of the entity layer into FilelistValidator2.
     [ ] 'content/core/core/entities.py': Reduce AssetPack to passive token/path data only.
         - Task: remove `resolved_map`, `collisions`, filename grouping, winner-path selection, and commented complaint registration from `AssetPack`.
@@ -33,5 +33,14 @@ Backlog tail, Selected item/items:
         - Task: use `AssetPack.token` and `AssetPack.paths` to build full paths, group by filename, detect duplicates, select winner path, and create `FilenameCollision` complaints for `ErrorCollector`.
         - Task: derive the resolved filename-to-path map needed for file validation instead of reading it from `AssetPack`.
         - Prohibition: do not assume incoming `AssetPack` objects already contain prebuilt complaint instances.
-    
+
+
+Backlog tail, Selected item/items:
+2. Enhance frontend chat UI with autofocus and positional shortcut copy (Ctrl + 1, 2, ...)
+    [ ] 'content/web-frontent/frontend.html': Add prompt autofocus and positional keyboard copy shortcuts.
+        - Task: initialize autofocus on DOM content load and page refresh to ensure the cursor is always in the prompt input box.
+        - Task: implement positional keyboard shortcuts (`Ctrl + 1` for latest assistant reply, `Ctrl + 2` for second latest, etc.) to copy responses directly to the clipboard.
+        - Task: display a small info banner/badge on each assistant response showing its corresponding shortcut key.
+        - Task: add a lightweight toast notification for visual confirmation when a reply is successfully copied.
+
 Backlog tail end

@@ -106,12 +106,22 @@ pud_domains:
             - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_management_mode_instructions}
             - {anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant}
 
-  repo:
+  webui:
     resolvers:
-      - { anchor: repo_content, type: repo-content, fileset: ¤ biggone}
+      - { anchor: repo_content, type: repo-content, includes: [content/web-frontent/frontend.html]}
     prompts:
       - name: plan
         render:
           resolvers:
-            - { anchor: prompt_fragments, type: multi-document-retrieval, files: [] }
-            - { anchor: domain_fragments, type: multi-document-retrieval, files: [] }
+            - { anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ plan_mode_instructions }
+            - { anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant}
+      - name: impl
+        render:
+          resolvers:
+            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ do_mode_instructions}
+            - { anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant}
+      - name: drain
+        render:
+          resolvers:
+            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_management_mode_instructions}
+            - {anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant}
