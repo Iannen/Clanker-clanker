@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+################################################################################
+# HELP / USAGE
+################################################################################
+
+usage() {
+cat <<EOF
+Usage:
+
+# Utility
+cat-dir [path ...]
+
+If no paths are provided, the current directory is used.
+
+Each path may be:
+  - A directory (tree + contents of text files)
+  - A text file (contents only)
+  - A path ending in '§§' (tree representation only)
+
+Invalid or unsupported paths are reported but do not stop processing.
+EOF
+exit 1
+}
+
+################################################################################
+# UTILITY: PROCESS A SINGLE PATH
+################################################################################
+
+process_path() {
+    local target="$1"
+    local tree_only=false
+
+    # Check if the argument ends with or is exactly '§§'
+    if [[ "$target" =~ §§$ ]]; then
+        tree_only=true
+        # If it's exactly '§§', default to current directory '.', otherwise strip '§§'
+        if [[ "$target" == "§§" ]]; then
+            target="."
+        else
+            target="${target%§§}"
+        fi
+
+        # Strict validation: tree-only paths MUST be directories
+        if [[ ! -d "$target" ]]; then
+            printf "ERROR: Path is not a directory (cannot use §§): %s\n\n" "$target"
+            return
+        fi
+    fi
+
+    if [[ -d "$target" ]]; then
+        tree -a "$target"
+        printf "\n"
+
+        # Only dump file contents if the tree_only flag is false
+        if [[ "$tree_only" == false ]]; then
+            tree -fia "$target" | xargs -I {} sh -c '
+                if [ -f "{}" ] && file --mime "{}" | grep -q "text/"; then
+                    printf "=== {} ===\n"
+                    cat "{}"
+                    printf "\n"
+                fi
+            '
+        fi
+
+    elif [[ -f "$target" ]]; then
+        if file --mime "$target" | grep -q "text/"; then
+            printf "=== %s ===\n" "$target"
+            cat "$target"
+            printf "\n"
+        else
+            printf "ERROR: Unsupported input (non-text file): %s\n\n" "$target"
+        fi
+
+    else
+        printf "ERROR: Path not found or unsupported: %s\n\n" "$target"
+    fi
+}
+
+################################################################################
+# UTILITY: CAT DIRECTORY / FILES
+################################################################################
+
+cat_dir() {
+
+    # Default to current directory if no arguments were supplied.
+    if [[ $# -eq 0 ]]; then
+        set -- .
+    fi
+
+    echo "Processing input..."
+
+    local full_output
+    full_output=$(
+        for path in "$@"; do
+            process_path "$path"
+        done
+    )
+
+    local total_lines
+    total_lines=$(printf "%s" "$full_output" | wc -l)
+
+    echo "=================================================="
+    echo "Summary: Copied $total_lines lines to your clipboard."
+    echo "=================================================="
+
+    printf "%s" "$full_output" | base64 | tr -d '\n' | xargs -0 -I {} printf "\033]52;c;{}\a"
+}
+
+################################################################################
+# ROUTING
+################################################################################
+
+cat_dir "$@"
