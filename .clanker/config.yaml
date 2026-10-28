@@ -41,7 +41,8 @@ pud_filesets:
     ]}
 
   biggone: { includes: [content], excludes: [
-    test
+    content/a_lib,
+    content/web-frontent
   ]}
 
 pud_domains:
@@ -111,7 +112,7 @@ pud_domains:
   webui:
     resolvers:
       #- { anchor: repo_content, type: repo-content, includes: [content/web-frontent/frontend.html]}
-      - { anchor: repo_content, type: repo-content, fileset: ¤ prompt_render}
+      - { anchor: repo_content, type: repo-content, fileset: ¤ biggone}
     prompts:
       - name: plan
         render:
