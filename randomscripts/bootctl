@@ -1,0 +1,21 @@
+#!/bin/bash
+
+set -e
+
+case "$1" in
+  windows)
+    # Set Windows Boot Manager for next boot
+    sudo efibootmgr -n 0000
+    systemctl reboot
+    ;;
+    
+  uefi)
+    # Reboot straight into firmware setup
+    systemctl reboot --firmware-setup
+    ;;
+    
+  *)
+    echo "Usage: bootctl {windows|uefi}"
+    exit 1
+    ;;
+esac
