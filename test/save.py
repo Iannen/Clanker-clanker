@@ -170,9 +170,10 @@ def main() -> None:
     if not has_local_changes and behind_count == 0 and ahead_count == 0:
         fail("nothing to save (no modified or untracked files found, and fully up to date with remote).")
 
-    print("[save] Creating evaluation ZIP...")
-    create_evalcopy_zip(repo_root)
-    print("[save] Evaluation ZIP created.")
+    # this was source of git sorrows
+    #print("[save] Creating evaluation ZIP...")
+    #create_evalcopy_zip(repo_root)
+    #print("[save] Evaluation ZIP created.")
 
     stats_summary = ""
     if has_local_changes:
