@@ -49,25 +49,33 @@ def _checkout(branch: str) -> None:
     if co_res.returncode != 0:
         _fail(f"failed to switch to/create '{branch}': {co_res.stderr.strip()}")
 
-def _push(branch: str, remote: str = "origin", force: bool = False) -> None:
-    cmd = ["git", "push"]
+def _push(branch: str, force: bool = False) -> None:
     if branch == DEV_BRANCH:
-        cmd.extend(["-u", remote, branch])
+        cmd = ["git", "push", "-u", "origin", branch]
     elif force:
-        cmd.extend([remote, branch, "--force"])
+        cmd = ["git", "push", "origin", branch, "--force"]
     else:
-        cmd.extend([remote, branch])
+        cmd = ["git", "push", "origin", branch]
 
     push_res = _run_cmd(cmd)
+
+    if branch == MAIN_BRANCH:
+        _checkout(DEV_BRANCH)
+
     if push_res.returncode != 0:
-        if branch == MAIN_BRANCH:
-            _checkout(DEV_BRANCH)
         _fail(f"push failed: {push_res.stderr.strip()}")
 
 def _fetch() -> None:
     fetch_res = _run_cmd(["git", "fetch"])
     if fetch_res.returncode != 0:
         _fail(f"remote fetch failed: {fetch_res.stderr.strip()}")
+
+def _pull(branch: str) -> None:
+    _checkout(branch)
+    pull_res = _run_cmd(["git", "pull", "origin", branch])
+    if pull_res.returncode != 0:
+        _checkout(DEV_BRANCH)
+        _fail(f"failed to pull latest '{branch}': {pull_res.stderr.strip()}")
 
 """ other helpers """
 def _test() -> None:
@@ -192,7 +200,7 @@ def push() -> None:
     stats_summary = process_local_changes()
     has_local_changes = stats_summary is not None
 
-    if not has_local_changes and behind_count == 0 and ahead_count == 0:
+    if not has_local_changes and behind_count == 0 and ahead_count == 0: 
         _fail("nothing to save (no modified or untracked files found, and fully up to date with remote).")
 
     if behind_count > 0:
@@ -214,11 +222,7 @@ def merge() -> None:
     _test()
     process_local_changes()
 
-    _checkout(MAIN_BRANCH)
-    pull_res = _run_cmd(["git", "pull", "origin", MAIN_BRANCH])
-    if pull_res.returncode != 0:
-        _checkout(DEV_BRANCH)
-        _fail(f"failed to pull latest '{MAIN_BRANCH}': {pull_res.stderr.strip()}")
+    _pull(MAIN_BRANCH)
 
     merge_res = _run_cmd([
         "git", "merge", DEV_BRANCH, "--no-ff",
@@ -230,7 +234,6 @@ def merge() -> None:
         _fail(f"failed to merge '{DEV_BRANCH}' into '{MAIN_BRANCH}'.")
 
     _push(MAIN_BRANCH)
-    _checkout(DEV_BRANCH)
 
     print(f"Merge complete: '{DEV_BRANCH}' merged into '{MAIN_BRANCH}' and pushed.")
 
