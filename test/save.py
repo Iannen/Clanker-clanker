@@ -1,5 +1,5 @@
 #!/usr/bin/env -S python3 -B
-""" inline explainer comments forbidden. only user may post inline comments, as means of communication. llm not allowed to make # or multiline comments"""
+
 import re
 import subprocess
 import sys
@@ -31,71 +31,54 @@ def _run_cmd(cmd: list[str] | str, shell: bool = False, capture_output: bool = T
         cmd_str = cmd if isinstance(cmd, str) else " ".join(cmd)
         _fail(f"failed to execute command '{cmd_str}': {e}")
 
+def _checkout(branch: str) -> None:
+    res = _run_cmd(["git", "symbolic-ref", "--quiet", "--short", "HEAD"])
+    if res.returncode == 0 and res.stdout.strip() == branch:
+        return
+
+    verify_res = _run_cmd(["git", "rev-parse", "--verify", branch])
+    if verify_res.returncode == 0:
+        print(f"[git] Switching to '{branch}'...")
+        cmd = ["git", "checkout", branch]
+    else:
+        print(f"[git] Creating and switching to '{branch}'...")
+        cmd = ["git", "checkout", "-b", branch]
+
+    co_res = _run_cmd(cmd)
+    if co_res.returncode != 0:
+        _fail(f"failed to switch to/create '{branch}': {co_res.stderr.strip()}")
+
+def _push(branch: str, remote: str = "origin", upstream: bool = False, force: bool = False, fail_checkout: str | None = None) -> None:
+    cmd = ["git", "push"]
+    if upstream:
+        cmd.extend(["-u", remote, branch])
+    elif force:
+        cmd.extend([remote, branch, "--force"])
+    else:
+        cmd.extend([remote, branch])
+
+    push_res = _run_cmd(cmd)
+    if push_res.returncode != 0:
+        if fail_checkout:
+            _checkout(fail_checkout)
+        _fail(f"push failed: {push_res.stderr.strip()}")
+
 def _test() -> None:
-    test_cmd = get_config_value(TEST_COMMAND_PATH)
+    test_cmd = _get_config_value(TEST_COMMAND_PATH)
     test_res = _run_cmd(test_cmd, shell=True, capture_output=False)
     if test_res.returncode != 0:
         _fail(f"test command failed with exit code {test_res.returncode}.")
 
-def ensure_dev_environment() -> None:
-    if not (REPO_ROOT / ".git").exists():
-        _fail(f"must run script from repository root ('{REPO_ROOT}').")
-        
-    res = _run_cmd(["git", "rev-parse", "--is-inside-work-tree"])
-    if res.returncode != 0 or res.stdout.strip() != "true":
-        _fail(f"not inside a git repository ({REPO_ROOT}).")
+def _fetch() -> None:
+    before_res = _run_cmd(["git", "rev-parse", "FETCH_HEAD"], capture_output=True)
+    fetch_res = _run_cmd(["git", "fetch"])
+    if fetch_res.returncode != 0:
+        _fail(f"remote fetch failed: {fetch_res.stderr.strip()}")
+    after_res = _run_cmd(["git", "rev-parse", "FETCH_HEAD"], capture_output=True)
+    if before_res.returncode != 0 or before_res.stdout.strip() != after_res.stdout.strip():
+        print("[git] Fetched updates from remote.")
 
-    if _run_cmd(["git", "rev-parse", "--verify", "HEAD"]).returncode != 0:
-        _fail(f"repository has no commits ({REPO_ROOT}).")
-
-    if _run_cmd(["git", "config", "user.name"]).returncode != 0:
-        _fail(f"git user.name not configured ({REPO_ROOT}).")
-
-    if _run_cmd(["git", "config", "user.email"]).returncode != 0:
-        _fail(f"git user.email not configured ({REPO_ROOT}).")
-
-    if _run_cmd(["git", "ls-files", "-u"]).stdout.strip():
-        _fail("unresolved merge conflicts detected.")
-
-    if _run_cmd(["git", "symbolic-ref", "--quiet", "--short", "HEAD"]).returncode != 0:
-        _fail("detached HEAD.")
-
-    git_dir_res = _run_cmd(["git", "rev-parse", "--git-dir"])
-    git_dir = Path(git_dir_res.stdout.strip())
-    for state_file in ["MERGE_HEAD", "REBASE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD", "BISECT_LOG"]:
-        if (git_dir / state_file).exists():
-            _fail(f"git operation in progress: {state_file}.")
-
-    res_main = _run_cmd(["git", "rev-parse", "--verify", MAIN_BRANCH])
-    if res_main.returncode != 0:
-        res_master = _run_cmd(["git", "rev-parse", "--verify", "master"])
-        if res_master.returncode == 0:
-            _fail(f"found 'master' branch instead of required '{MAIN_BRANCH}' branch. Please rename/reconfigure.")
-        else:
-            _fail(f"required branch '{MAIN_BRANCH}' not found in repository.")
-
-    res_dev = _run_cmd(["git", "rev-parse", "--verify", DEV_BRANCH])
-    if res_dev.returncode != 0:
-        print(f"[git] Branch '{DEV_BRANCH}' not found. Creating it from '{MAIN_BRANCH}'...")
-        _run_cmd(["git", "checkout", MAIN_BRANCH])
-        _run_cmd(["git", "pull", "origin", MAIN_BRANCH])
-        res_create = _run_cmd(["git", "checkout", "-b", DEV_BRANCH])
-        if res_create.returncode != 0:
-            _fail(f"failed to create '{DEV_BRANCH}' branch: {res_create.stderr.strip()}")
-        print(f"[git] Successfully created and switched to '{DEV_BRANCH}'.")
-    else:
-        res = _run_cmd(["git", "symbolic-ref", "--quiet", "--short", "HEAD"])
-        if res.returncode != 0:
-            _fail("detached HEAD or not on a branch.")
-        current_branch = res.stdout.strip()
-
-        if current_branch != DEV_BRANCH:
-            print(f"[git] Switching to '{DEV_BRANCH}'...")
-            res_co = _run_cmd(["git", "checkout", DEV_BRANCH])
-            if res_co.returncode != 0:
-                _fail(f"failed to switch to '{DEV_BRANCH}': {res_co.stderr.strip()}")
-
-def get_config_value(keys: tuple[str, ...]) -> str:
+def _get_config_value(keys: tuple[str, ...]) -> str:
     if not CONFIG_PATH.is_file():
         _fail(f"config file not found at '{CONFIG_PATH}'.")
     try:
@@ -142,17 +125,65 @@ def process_local_changes() -> str | None:
 
     return stats_summary
 
+def ensure_dev_environment() -> None:
+    if not (REPO_ROOT / ".git").exists():
+        _fail(f"must run script from repository root ('{REPO_ROOT}').")
+        
+    res = _run_cmd(["git", "rev-parse", "--is-inside-work-tree"])
+    if res.returncode != 0 or res.stdout.strip() != "true":
+        _fail(f"not inside a git repository ({REPO_ROOT}).")
+
+    if _run_cmd(["git", "rev-parse", "--verify", "HEAD"]).returncode != 0:
+        _fail(f"repository has no commits ({REPO_ROOT}).")
+
+    if _run_cmd(["git", "config", "user.name"]).returncode != 0:
+        _fail(f"git user.name not configured ({REPO_ROOT}).")
+
+    if _run_cmd(["git", "config", "user.email"]).returncode != 0:
+        _fail(f"git user.email not configured ({REPO_ROOT}).")
+
+    if _run_cmd(["git", "ls-files", "-u"]).stdout.strip():
+        _fail("unresolved merge conflicts detected.")
+
+    if _run_cmd(["git", "symbolic-ref", "--quiet", "--short", "HEAD"]).returncode != 0:
+        _fail("detached HEAD.")
+
+    git_dir_res = _run_cmd(["git", "rev-parse", "--git-dir"])
+    git_dir = Path(git_dir_res.stdout.strip())
+    for state_file in ["MERGE_HEAD", "REBASE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD", "BISECT_LOG"]:
+        if (git_dir / state_file).exists():
+            _fail(f"git operation in progress: {state_file}.")
+
+    res_main = _run_cmd(["git", "rev-parse", "--verify", MAIN_BRANCH])
+    if res_main.returncode != 0:
+        res_master = _run_cmd(["git", "rev-parse", "--verify", "master"])
+        if res_master.returncode == 0:
+            _fail(f"found 'master' branch instead of required '{MAIN_BRANCH}' branch. Please rename/reconfigure.")
+        else:
+            _fail(f"required branch '{MAIN_BRANCH}' not found in repository.")
+
+    res_dev = _run_cmd(["git", "rev-parse", "--verify", DEV_BRANCH])
+    if res_dev.returncode != 0:
+        print(f"[git] Branch '{DEV_BRANCH}' not found. Creating it from '{MAIN_BRANCH}'...")
+        _checkout(MAIN_BRANCH)
+        _run_cmd(["git", "pull", "origin", MAIN_BRANCH])
+        _checkout(DEV_BRANCH)
+        print(f"[git] Successfully created and switched to '{DEV_BRANCH}'.")
+    else:
+        res = _run_cmd(["git", "symbolic-ref", "--quiet", "--short", "HEAD"])
+        if res.returncode != 0:
+            _fail("detached HEAD or not on a branch.")
+        
+        _checkout(DEV_BRANCH)
+
 def receive() -> None:
     print("Not implemented")
 
 def push() -> None:
-    apply_cmd = get_config_value(APPLY_COMMAND_PATH)
     _test()
 
     print("[git] Checking remote...")
-    fetch_res = _run_cmd(["git", "fetch"])
-    if fetch_res.returncode != 0:
-        _fail(f"remote fetch failed: {fetch_res.stderr.strip()}")
+    _fetch()
 
     res_ahead = _run_cmd(["git", "rev-list", "--count", "@{u}..HEAD"])
     ahead_count = int(res_ahead.stdout.strip() or "0")
@@ -180,10 +211,9 @@ def push() -> None:
 
     summary_text = stats_summary if stats_summary else ""
     print(f"[git] Pushing to remote{summary_text}")
-    push_res = _run_cmd(["git", "push", "-u", "origin", DEV_BRANCH])
-    if push_res.returncode != 0:
-        _fail(f"push failed: {push_res.stderr.strip()}")
+    _push(DEV_BRANCH, upstream=True)
 
+    apply_cmd = _get_config_value(APPLY_COMMAND_PATH)
     print("[deploy] Running apply command...")
     apply_res = _run_cmd(apply_cmd, shell=True, capture_output=False)
     if apply_res.returncode != 0:
@@ -196,14 +226,11 @@ def merge() -> None:
     _test()
     process_local_changes()
 
-    print(f"[git] Switching to '{MAIN_BRANCH}'...")
-    checkout_res = _run_cmd(["git", "checkout", MAIN_BRANCH])
-    if checkout_res.returncode != 0:
-        _fail(f"failed to checkout '{MAIN_BRANCH}': {checkout_res.stderr.strip()}")
+    _checkout(MAIN_BRANCH)
 
     pull_res = _run_cmd(["git", "pull", "origin", MAIN_BRANCH])
     if pull_res.returncode != 0:
-        _run_cmd(["git", "checkout", DEV_BRANCH])
+        _checkout(DEV_BRANCH)
         _fail(f"failed to pull latest '{MAIN_BRANCH}': {pull_res.stderr.strip()}")
 
     merge_res = _run_cmd([
@@ -212,27 +239,19 @@ def merge() -> None:
     ])
     if merge_res.returncode != 0:
         _run_cmd(["git", "merge", "--abort"])
-        _run_cmd(["git", "checkout", DEV_BRANCH])
+        _checkout(DEV_BRANCH)
         _fail(f"failed to merge '{DEV_BRANCH}' into '{MAIN_BRANCH}'.")
 
     print(f"[git] Pushing '{MAIN_BRANCH}' to remote...")
-    push_res = _run_cmd(["git", "push", "origin", MAIN_BRANCH])
-    if push_res.returncode != 0:
-        _run_cmd(["git", "checkout", DEV_BRANCH])
-        _fail(f"push failed: {push_res.stderr.strip()}")
+    _push(MAIN_BRANCH, fail_checkout=DEV_BRANCH)
 
-    print(f"[git] Switching back to '{DEV_BRANCH}'...")
-    return_res = _run_cmd(["git", "checkout", DEV_BRANCH])
-    if return_res.returncode != 0:
-        _fail(f"failed to switch back to '{DEV_BRANCH}': {return_res.stderr.strip()}")
+    _checkout(DEV_BRANCH)
 
     print(f"Sync complete: '{DEV_BRANCH}' merged into '{MAIN_BRANCH}' and pushed.")
 
 def reset() -> None:
     print(f"[git] Fetching latest changes from remote...")
-    fetch_res = _run_cmd(["git", "fetch", "origin"])
-    if fetch_res.returncode != 0:
-        _fail(f"remote fetch failed: {fetch_res.stderr.strip()}")
+    _fetch()
 
     print(f"[git] Hard resetting '{DEV_BRANCH}' to 'origin/{MAIN_BRANCH}'...")
     reset_res = _run_cmd(["git", "reset", "--hard", f"origin/{MAIN_BRANCH}"])
@@ -240,9 +259,7 @@ def reset() -> None:
         _fail(f"failed to reset branch: {reset_res.stderr.strip()}")
 
     print(f"[git] Force pushing reset '{DEV_BRANCH}' to remote...")
-    push_res = _run_cmd(["git", "push", "origin", DEV_BRANCH, "--force"])
-    if push_res.returncode != 0:
-        _fail(f"force push failed: {push_res.stderr.strip()}")
+    _push(DEV_BRANCH, force=True)
 
     print(f"Reset complete: '{DEV_BRANCH}' has been hard-reset to 'origin/{MAIN_BRANCH}' and force-pushed.")
 
