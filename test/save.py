@@ -324,18 +324,23 @@ def _clean_content(raw_content: str) -> str:
     
     return "\n".join(lines)
 
-def get_input1() -> str:
+def test_input_1() -> str:
     """
 "src/models/task.py"
 "src/services/task_service.py"
 "src/main.py"
     """
     return example_llm_output
-def get_input2() -> str:
+def test_input_2() -> str:
     return example_llm_output2
+
+def get_input() -> str:
+    print("Please paste (ctrl+shift+v) the input, then press ctrl+d  to confirm")
+    return sys.stdin.read()
+
 def receive() -> None:
     
-    doc = get_input2()
+    doc = get_input()
 
     pattern = re.compile(
         r'¤\s*filepath\s*=\s*(["\'])(.*?)\1\s*¤\s*(.*?)\s*¤\s*filepath\s*=\s*\1\2\1\s*¤',
