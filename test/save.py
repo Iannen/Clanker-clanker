@@ -48,9 +48,9 @@ def _checkout(branch: str) -> None:
     if co_res.returncode != 0:
         _fail(f"failed to switch to/create '{branch}': {co_res.stderr.strip()}")
 
-def _push(branch: str, remote: str = "origin", upstream: bool = False, force: bool = False, fail_checkout: str | None = None) -> None:
+def _push(branch: str, remote: str = "origin", force: bool = False) -> None:
     cmd = ["git", "push"]
-    if upstream:
+    if branch == DEV_BRANCH:
         cmd.extend(["-u", remote, branch])
     elif force:
         cmd.extend([remote, branch, "--force"])
@@ -59,8 +59,8 @@ def _push(branch: str, remote: str = "origin", upstream: bool = False, force: bo
 
     push_res = _run_cmd(cmd)
     if push_res.returncode != 0:
-        if fail_checkout:
-            _checkout(fail_checkout)
+        if branch == MAIN_BRANCH:
+            _checkout(DEV_BRANCH)
         _fail(f"push failed: {push_res.stderr.strip()}")
 
 def _test() -> None:
@@ -182,7 +182,7 @@ def receive() -> None:
 def push() -> None:
     _test()
 
-    print("[git] Checking remote...")
+    print("[git] Checking remote...") # is this noise which can be pruned? if you agree then we can do that.
     _fetch()
 
     res_ahead = _run_cmd(["git", "rev-list", "--count", "@{u}..HEAD"])
@@ -211,7 +211,7 @@ def push() -> None:
 
     summary_text = stats_summary if stats_summary else ""
     print(f"[git] Pushing to remote{summary_text}")
-    _push(DEV_BRANCH, upstream=True)
+    _push(DEV_BRANCH)
 
     apply_cmd = _get_config_value(APPLY_COMMAND_PATH)
     print("[deploy] Running apply command...")
@@ -227,7 +227,7 @@ def merge() -> None:
     process_local_changes()
 
     _checkout(MAIN_BRANCH)
-
+    # llm question 1: i see two git pull via _run_cmd. lets investigate the callsite for purpose of extracting helper
     pull_res = _run_cmd(["git", "pull", "origin", MAIN_BRANCH])
     if pull_res.returncode != 0:
         _checkout(DEV_BRANCH)
@@ -243,7 +243,7 @@ def merge() -> None:
         _fail(f"failed to merge '{DEV_BRANCH}' into '{MAIN_BRANCH}'.")
 
     print(f"[git] Pushing '{MAIN_BRANCH}' to remote...")
-    _push(MAIN_BRANCH, fail_checkout=DEV_BRANCH)
+    _push(MAIN_BRANCH)
 
     _checkout(DEV_BRANCH)
 
