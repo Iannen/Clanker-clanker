@@ -22,7 +22,7 @@ II. The wishlist
 3: MUST make it possible to add repo content from other locs than just assets. why is test system bugging out about that.
 
 
-Backlog tail, Selected item/items:
+
 1. Build auto-apply parser for LLM output (Python)
     [ ] 'harness/parser.py': Implement parse_output(text) -> (files: dict, deletions: list)
         - Line-based parsing, no regex on content bodies
@@ -60,4 +60,20 @@ Backlog tail, Selected item/items:
         - File in both write and delete -> ValueError
         - Content with blank lines internally -> preserved correctly
         - Content with triple backticks inside -> preserved correctly
+
+
+Backlog tail, Selected item/items:
+
+- " accept new code command "
+    - accept big string
+    - convert string to file creations / updates / deletes
+    - apply them
+    - run test cmd
+
+- "save cmd"
+
+- "bring main up to speed with otherbranch"
+
+- "reset otherbranch to main"
+
 Backlog tail end
