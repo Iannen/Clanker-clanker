@@ -19,6 +19,7 @@ def _fail(msg: str) -> NoReturn:
     print(f"Save aborted: {msg}", file=sys.stderr)
     sys.exit(1)
 
+""" git helpers """
 def _run_cmd(cmd: list[str] | str, shell: bool = False, capture_output: bool = True) -> subprocess.CompletedProcess:
     try:
         return subprocess.run(
@@ -63,20 +64,17 @@ def _push(branch: str, remote: str = "origin", force: bool = False) -> None:
             _checkout(DEV_BRANCH)
         _fail(f"push failed: {push_res.stderr.strip()}")
 
+def _fetch() -> None:
+    fetch_res = _run_cmd(["git", "fetch"])
+    if fetch_res.returncode != 0:
+        _fail(f"remote fetch failed: {fetch_res.stderr.strip()}")
+
+""" other helpers """
 def _test() -> None:
     test_cmd = _get_config_value(TEST_COMMAND_PATH)
     test_res = _run_cmd(test_cmd, shell=True, capture_output=False)
     if test_res.returncode != 0:
         _fail(f"test command failed with exit code {test_res.returncode}.")
-
-def _fetch() -> None:
-    before_res = _run_cmd(["git", "rev-parse", "FETCH_HEAD"], capture_output=True)
-    fetch_res = _run_cmd(["git", "fetch"])
-    if fetch_res.returncode != 0:
-        _fail(f"remote fetch failed: {fetch_res.stderr.strip()}")
-    after_res = _run_cmd(["git", "rev-parse", "FETCH_HEAD"], capture_output=True)
-    if before_res.returncode != 0 or before_res.stdout.strip() != after_res.stdout.strip():
-        print("[git] Fetched updates from remote.")
 
 def _get_config_value(keys: tuple[str, ...]) -> str:
     if not CONFIG_PATH.is_file():
@@ -126,12 +124,9 @@ def process_local_changes() -> str | None:
     return stats_summary
 
 def ensure_dev_environment() -> None:
-    if not (REPO_ROOT / ".git").exists():
+    res = _run_cmd(["git", "rev-parse", "--show-prefix"])
+    if res.returncode != 0 or res.stdout.strip() != "":
         _fail(f"must run script from repository root ('{REPO_ROOT}').")
-        
-    res = _run_cmd(["git", "rev-parse", "--is-inside-work-tree"])
-    if res.returncode != 0 or res.stdout.strip() != "true":
-        _fail(f"not inside a git repository ({REPO_ROOT}).")
 
     if _run_cmd(["git", "rev-parse", "--verify", "HEAD"]).returncode != 0:
         _fail(f"repository has no commits ({REPO_ROOT}).")
@@ -181,8 +176,6 @@ def receive() -> None:
 
 def push() -> None:
     _test()
-
-    print("[git] Checking remote...") # is this noise which can be pruned? if you agree then we can do that.
     _fetch()
 
     res_ahead = _run_cmd(["git", "rev-list", "--count", "@{u}..HEAD"])
@@ -196,8 +189,6 @@ def push() -> None:
         if ancestor_res.returncode != 0:
             _fail("local and remote branches have diverged.")
 
-    print("[git] Synced with remote.")
-
     stats_summary = process_local_changes()
     has_local_changes = stats_summary is not None
 
@@ -209,25 +200,21 @@ def push() -> None:
         if pull_res.returncode != 0:
             _fail(f"fast-forward merge failed: {pull_res.stderr.strip()}")
 
-    summary_text = stats_summary if stats_summary else ""
-    print(f"[git] Pushing to remote{summary_text}")
     _push(DEV_BRANCH)
 
     apply_cmd = _get_config_value(APPLY_COMMAND_PATH)
-    print("[deploy] Running apply command...")
     apply_res = _run_cmd(apply_cmd, shell=True, capture_output=False)
     if apply_res.returncode != 0:
         _fail(f"apply command failed with exit code {apply_res.returncode}.")
-    print("[deploy] Apply successful!")
 
-    print("Save complete.")
+    summary_text = stats_summary if stats_summary else ""
+    print(f"Save complete{summary_text}.")
 
 def merge() -> None:
     _test()
     process_local_changes()
 
     _checkout(MAIN_BRANCH)
-    # llm question 1: i see two git pull via _run_cmd. lets investigate the callsite for purpose of extracting helper
     pull_res = _run_cmd(["git", "pull", "origin", MAIN_BRANCH])
     if pull_res.returncode != 0:
         _checkout(DEV_BRANCH)
@@ -242,26 +229,18 @@ def merge() -> None:
         _checkout(DEV_BRANCH)
         _fail(f"failed to merge '{DEV_BRANCH}' into '{MAIN_BRANCH}'.")
 
-    print(f"[git] Pushing '{MAIN_BRANCH}' to remote...")
     _push(MAIN_BRANCH)
-
     _checkout(DEV_BRANCH)
 
-    print(f"Sync complete: '{DEV_BRANCH}' merged into '{MAIN_BRANCH}' and pushed.")
+    print(f"Merge complete: '{DEV_BRANCH}' merged into '{MAIN_BRANCH}' and pushed.")
 
 def reset() -> None:
-    print(f"[git] Fetching latest changes from remote...")
     _fetch()
-
-    print(f"[git] Hard resetting '{DEV_BRANCH}' to 'origin/{MAIN_BRANCH}'...")
     reset_res = _run_cmd(["git", "reset", "--hard", f"origin/{MAIN_BRANCH}"])
     if reset_res.returncode != 0:
         _fail(f"failed to reset branch: {reset_res.stderr.strip()}")
-
-    print(f"[git] Force pushing reset '{DEV_BRANCH}' to remote...")
     _push(DEV_BRANCH, force=True)
-
-    print(f"Reset complete: '{DEV_BRANCH}' has been hard-reset to 'origin/{MAIN_BRANCH}' and force-pushed.")
+    print(f"Reset complete: '{DEV_BRANCH}' has been reset to 'origin/{MAIN_BRANCH}'.")
 
 def print_help() -> None:
     print("Usage: git-ops <command>")
