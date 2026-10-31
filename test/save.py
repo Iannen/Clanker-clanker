@@ -1,4 +1,5 @@
 #!/usr/bin/env -S python3 -B
+""" inline explainer comments forbidden. only user may post inline comments, as means of communication. llm not allowed to make # or multiline comments"""
 import re
 import subprocess
 import sys
@@ -6,6 +7,10 @@ from pathlib import Path
 from ruamel.yaml import YAML
 from typing import NoReturn
 
+MAIN_BRANCH = "main"
+DEV_BRANCH = "dev"
+
+""" helper type functions. ideally these should not do any print statements"""
 def _fail(msg: str) -> NoReturn:
     print(f"Save aborted: {msg}", file=sys.stderr)
     sys.exit(1)
@@ -21,6 +26,37 @@ def _run_cmd(cmd: list[str] | str, shell: bool = False, capture_output: bool = T
     except Exception as e:
         cmd_str = cmd if isinstance(cmd, str) else " ".join(cmd)
         _fail(f"failed to execute command '{cmd_str}': {e}")
+
+def ensure_dev_environment() -> Path:
+    # this should create the dev branch if it dont exist
+    repo_root = validate_repo_root()
+    verify_git_environment(repo_root)
+
+    res_main = _run_cmd(["git", "rev-parse", "--verify", MAIN_BRANCH])
+    if res_main.returncode != 0:
+        res_master = _run_cmd(["git", "rev-parse", "--verify", "master"])
+        if res_master.returncode == 0:
+            _fail(f"found 'master' branch instead of required '{MAIN_BRANCH}' branch. Please rename/reconfigure.")
+        else:
+            _fail(f"required branch '{MAIN_BRANCH}' not found in repository.")
+
+    res_dev = _run_cmd(["git", "rev-parse", "--verify", DEV_BRANCH])
+    if res_dev.returncode != 0:
+        print(f"[git] Branch '{DEV_BRANCH}' not found. Creating it from '{MAIN_BRANCH}'...")
+        _run_cmd(["git", "checkout", MAIN_BRANCH])
+        _run_cmd(["git", "pull", "origin", MAIN_BRANCH])
+        res_create = _run_cmd(["git", "checkout", "-b", DEV_BRANCH])
+        if res_create.returncode != 0:
+            _fail(f"failed to create '{DEV_BRANCH}' branch: {res_create.stderr.strip()}")
+        print(f"[git] Successfully created and switched to '{DEV_BRANCH}'.")
+    else:
+        current_branch = get_current_branch()
+        if current_branch != DEV_BRANCH:
+            print(f"[git] Switching to '{DEV_BRANCH}'...")
+            res_co = _run_cmd(["git", "checkout", DEV_BRANCH])
+            if res_co.returncode != 0:
+                _fail(f"failed to switch to '{DEV_BRANCH}': {res_co.stderr.strip()}")
+    return repo_root
 
 def validate_repo_root() -> Path:
     repo_root = Path.cwd()
@@ -129,85 +165,72 @@ def process_local_changes() -> tuple[str, bool]:
 
     return stats_summary, has_local_changes
 
-def sync_branch(target_branch: str) -> None:
-    repo_root = validate_repo_root()
+def sync_branch(repo_root: Path) -> None:
     test_cmd, _ = load_configured_commands(repo_root)
 
     test_res = _run_cmd(test_cmd, shell=True, capture_output=False)
     if test_res.returncode != 0:
         _fail(f"test command failed with exit code {test_res.returncode}.")
 
-    verify_git_environment(repo_root)
-    current_branch = get_current_branch()
-
-    if current_branch == target_branch:
-        _fail(f"cannot sync '{target_branch}' into itself. You are already checked out on '{target_branch}'. Run without arguments to save.")
-
     process_local_changes()
 
-    print(f"[git] Switching to '{target_branch}'...")
-    checkout_res = _run_cmd(["git", "checkout", target_branch])
+    print(f"[git] Switching to '{MAIN_BRANCH}'...")
+    checkout_res = _run_cmd(["git", "checkout", MAIN_BRANCH])
     if checkout_res.returncode != 0:
-        _fail(f"failed to checkout '{target_branch}': {checkout_res.stderr.strip()}")
+        _fail(f"failed to checkout '{MAIN_BRANCH}': {checkout_res.stderr.strip()}")
 
-    pull_res = _run_cmd(["git", "pull", "origin", target_branch])
+    pull_res = _run_cmd(["git", "pull", "origin", MAIN_BRANCH])
     if pull_res.returncode != 0:
-        _run_cmd(["git", "checkout", current_branch])
-        _fail(f"failed to pull latest '{target_branch}': {pull_res.stderr.strip()}")
+        _run_cmd(["git", "checkout", DEV_BRANCH])
+        _fail(f"failed to pull latest '{MAIN_BRANCH}': {pull_res.stderr.strip()}")
 
-    merge_res = _run_cmd(["git", "merge", current_branch, "--no-ff", "-m", f"Merge branch '{current_branch}' into {target_branch}"])
+    merge_res = _run_cmd([
+        "git", "merge", DEV_BRANCH, "--no-ff",
+        "-m", f"Merge branch '{DEV_BRANCH}' into {MAIN_BRANCH}"
+    ])
     if merge_res.returncode != 0:
         _run_cmd(["git", "merge", "--abort"])
-        _run_cmd(["git", "checkout", current_branch])
-        _fail(f"failed to merge '{current_branch}' into '{target_branch}'.")
+        _run_cmd(["git", "checkout", DEV_BRANCH])
+        _fail(f"failed to merge '{DEV_BRANCH}' into '{MAIN_BRANCH}'.")
 
-    print(f"[git] Pushing '{target_branch}' to remote...")
-    push_res = _run_cmd(["git", "push", "origin", target_branch])
+    print(f"[git] Pushing '{MAIN_BRANCH}' to remote...")
+    push_res = _run_cmd(["git", "push", "origin", MAIN_BRANCH])
     if push_res.returncode != 0:
-        _run_cmd(["git", "checkout", current_branch])
+        _run_cmd(["git", "checkout", DEV_BRANCH])
         _fail(f"push failed: {push_res.stderr.strip()}")
 
-    print(f"[git] Switching back to '{current_branch}'...")
-    return_res = _run_cmd(["git", "checkout", current_branch])
+    print(f"[git] Switching back to '{DEV_BRANCH}'...")
+    return_res = _run_cmd(["git", "checkout", DEV_BRANCH])
     if return_res.returncode != 0:
-        _fail(f"failed to switch back to '{current_branch}': {return_res.stderr.strip()}")
+        _fail(f"failed to switch back to '{DEV_BRANCH}': {return_res.stderr.strip()}")
 
-    print(f"Sync complete: '{current_branch}' merged into '{target_branch}' and pushed.")
+    print(f"Sync complete: '{DEV_BRANCH}' merged into '{MAIN_BRANCH}' and pushed.")
 
-def reset_branch(target_branch: str = "main") -> None:
-    repo_root = validate_repo_root()
-    verify_git_environment(repo_root)
-    current_branch = get_current_branch()
-
-    if current_branch == target_branch:
-        _fail(f"safety block: cannot reset '{target_branch}' onto itself! Switch to a feature branch (like 'dev') first.")
-
+def reset_branch(repo_root: Path) -> None:
     print(f"[git] Fetching latest changes from remote...")
     fetch_res = _run_cmd(["git", "fetch", "origin"])
     if fetch_res.returncode != 0:
         _fail(f"remote fetch failed: {fetch_res.stderr.strip()}")
 
-    print(f"[git] Hard resetting '{current_branch}' to 'origin/{target_branch}'...")
-    reset_res = _run_cmd(["git", "reset", "--hard", f"origin/{target_branch}"])
+    print(f"[git] Hard resetting '{DEV_BRANCH}' to 'origin/{MAIN_BRANCH}'...")
+    reset_res = _run_cmd(["git", "reset", "--hard", f"origin/{MAIN_BRANCH}"])
     if reset_res.returncode != 0:
         _fail(f"failed to reset branch: {reset_res.stderr.strip()}")
 
-    print(f"[git] Force pushing reset '{current_branch}' to remote...")
-    push_res = _run_cmd(["git", "push", "origin", current_branch, "--force"])
+    print(f"[git] Force pushing reset '{DEV_BRANCH}' to remote...")
+    push_res = _run_cmd(["git", "push", "origin", DEV_BRANCH, "--force"])
     if push_res.returncode != 0:
         _fail(f"force push failed: {push_res.stderr.strip()}")
 
-    print(f"Reset complete: '{current_branch}' has been hard-reset to 'origin/{target_branch}' and force-pushed.")
+    print(f"Reset complete: '{DEV_BRANCH}' has been hard-reset to 'origin/{MAIN_BRANCH}' and force-pushed.")
 
-def run_normal_workflow() -> None:
-    repo_root = validate_repo_root()
+def run_normal_workflow(repo_root: Path) -> None:
     test_cmd, apply_cmd = load_configured_commands(repo_root)
 
     test_res = _run_cmd(test_cmd, shell=True, capture_output=False)
     if test_res.returncode != 0:
         _fail(f"test command failed with exit code {test_res.returncode}.")
 
-    verify_git_environment(repo_root)
     ahead_count, behind_count = check_remote_sync()
     stats_summary, has_local_changes = process_local_changes()
 
@@ -232,20 +255,19 @@ def run_normal_workflow() -> None:
 
     print("Save complete.")
 
-
-
-def receive() -> None:
+""" controller type funcs. ideally, these should do all the print statements, and rely on other functinons to do work"""
+def receive(repo_root: Path) -> None:
     print("Not implemented")
 
-def push() -> None:
-    run_normal_workflow()
+def push(repo_root: Path) -> None:
+    run_normal_workflow(repo_root)
 
-def merge() -> None:
-    sync_branch("main")
+def merge(repo_root: Path) -> None:
+    sync_branch(repo_root)
 
-def reset() -> None:
-    reset_branch("main")
-    
+def reset(repo_root: Path) -> None:
+    reset_branch(repo_root)
+
 def print_help() -> None:
     print("Usage: git-ops <command>")
     print("")
@@ -266,15 +288,16 @@ def main() -> None:
     if cmd not in valid_commands:
         print_help()
 
+    repo_root = ensure_dev_environment()
+
     if cmd == "receive":
-        receive()
+        receive(repo_root)
     elif cmd == "push":
-        push()
+        push(repo_root)
     elif cmd == "merge":
-        merge()
+        merge(repo_root)
     elif cmd == "reset":
-        reset()
+        reset(repo_root)
 
 if __name__ == "__main__":
     main()
-
