@@ -1,10 +1,29 @@
-Output Format Guidelines:
+# Output Format Guidelines:
 ---
-Always return whole-file replacements using the currency sign delimiter format for any modified or new files. Do not include old content blocks.
+New / modified files:
+- Only complete file contents, never partial
+- Precede each file with ¤ filepath = <filepath> ¤
+- Enclose each content in language appropriate triple backticks 
 
-Example:
+Files to be deleted:
+- simple list of paths
+- preceded by ¤deletelist¤
+
+---
+  
 ¤filepath="path/to/file.py"¤
-# Entire updated or new file content goes here
+```
 def main():
     pass
----
+```
+  
+¤filepath="path/to/otherfile.py"¤
+```
+def my_function():
+    pass
+```
+
+¤deletelist¤
+¤filepath="path/to/obsolete.py"¤
+¤filepath="path/to/otherobsolete.py"¤
+

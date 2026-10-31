@@ -12,29 +12,52 @@ II. The wishlist
 1. Set ops on filesets
     - probably requires new ingestion strat, as filesets may depend upon other filesets
 
-2. Browser frontend
-    - perhaps not so awful?
 
 
-
-1. Add next numeral line to history output instructions
+2. Add next numeral line to history output instructions
     [ ] 'a_lib/templates/documentation/backlog.template': Update history output instruction format
         - append a trailing 'Next item numeral: <FOLLOWING_ROMAN_NUMERAL>' marker to history output instructions
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 
-
-
-1. Migrate AssetPack collision and path-resolution logic out of the entity layer into FilelistValidator2.
-    [ ] 'content/core/core/entities.py': Reduce AssetPack to passive token/path data only.
-        - Task: remove `resolved_map`, `collisions`, filename grouping, winner-path selection, and commented complaint registration from `AssetPack`.
-        - Prohibition: do not make `entities.py` depend on complaint types such as `FilenameCollision` or engine-deps error classes.
-        - Prohibition: do not leave dead/commented collision-registration code in the entity definition.
-    [ ] 'content/modules/asset_ingestion/validators/file_list_validator.py': Make FilelistValidator2 derive and register asset-pack filename collisions.
-        - Task: use `AssetPack.token` and `AssetPack.paths` to build full paths, group by filename, detect duplicates, select winner path, and create `FilenameCollision` complaints for `ErrorCollector`.
-        - Task: derive the resolved filename-to-path map needed for file validation instead of reading it from `AssetPack`.
-        - Prohibition: do not assume incoming `AssetPack` objects already contain prebuilt complaint instances.
+3: MUST make it possible to add repo content from other locs than just assets. why is test system bugging out about that.
 
 
 Backlog tail, Selected item/items:
-
+1. Build auto-apply parser for LLM output (Python)
+    [ ] 'harness/parser.py': Implement parse_output(text) -> (files: dict, deletions: list)
+        - Line-based parsing, no regex on content bodies
+        - Find all ¤filepath="..."¤ marker lines via regex (marker format only)
+        - Pair markers sequentially: open[i] / close[i+1] must have identical path
+        - After open marker: scan forward, skip blank lines, find first line starting with ```
+        - Before close marker: scan backward, skip blank lines, find last line starting with ```
+        - Content = lines strictly between the two fence lines (join with \n)
+        - Validate: path match, fence presence, at least one content line
+        - Raise ValueError with clear message on any validation failure
+        - Parse ¤deletelist¤ section: extract all ¤filepath="..."¤ lines after the marker
+        - Return (files, deletions)
+    [ ] 'harness/parser.py': Implement apply_output(files, deletions, repo_root)
+        - Write each file in `files` to repo_root / path (create parent dirs as needed)
+        - Delete each path in `deletions` (ignore if missing, log warning)
+        - Return list of applied paths + list of deleted paths for logging
+    [ ] 'harness/parser.py': Handle edge cases
+        - Tolerate blank lines between marker and fence (skip, don't fail)
+        - Tolerate trailing blank line after closing fence
+        - Reject if content is empty (fence immediately followed by fence)
+        - Reject if a filepath appears as both a write and a delete
+        - Reject if the same filepath appears twice in the write section
+        - Strip any leading/trailing whitespace on the marker line before matching
+    [ ] 'harness/loop.py': Integrate parser into harness loop
+        - After receiving LLM response, call parse_output()
+        - On success: call apply_output(), log applied/deleted files
+        - On ValueError: log error, do NOT apply, return error to user
+        - Wrap in try/except so one bad output never corrupts the repo
+    [ ] 'harness/test_parser.py': Unit tests
+        - Happy path: two files, one deletion, blank lines present
+        - Missing closing fence -> ValueError
+        - Mismatched open/close path -> ValueError
+        - Empty content -> ValueError
+        - Duplicate filepath -> ValueError
+        - File in both write and delete -> ValueError
+        - Content with blank lines internally -> preserved correctly
+        - Content with triple backticks inside -> preserved correctly
 Backlog tail end

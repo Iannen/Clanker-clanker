@@ -1,17 +1,36 @@
+system:
+  test_command: "echo 'No tests configured' && true"
+  apply_command: "echo 'No apply command configured yet.' && true"
+  
 pud_filesets:
   content: { includes: [content]}
 
 pud_domains:
   analysis:
     resolvers:
-      - { anchor: prompt_fragments, type: multi-document-retrieval, files: [] }
-      
+      - { anchor: domain_fragments, type: repo-manifest, pud_fileset: ¤ content }
     prompts:
       - name: manifest
         render:
           resolvers:
-            - { anchor: domain_fragments, type: repo-manifest, pud_fileset: ¤ content }
-      - name: files
+            - { anchor: prompt_fragments, type: multi-document-retrieval, files: [] }            
+
+  files:
+    resolvers:
+      - { anchor: repo_content, type: repo-content, fileset: ¤ content}
+    prompts:
+      - name: plan
         render:
           resolvers:
-            - { anchor: repo_content, type: repo-content, fileset: ¤ content }
+            - { anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ plan_mode_instructions }
+            - { anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant}
+      - name: impl
+        render:
+          resolvers:
+            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ do_mode_instructions}
+            - { anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant}
+      - name: drain
+        render:
+          resolvers:
+            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_management_mode_instructions}
+            - {anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant}

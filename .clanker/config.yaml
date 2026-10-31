@@ -1,6 +1,7 @@
 system:
   test_command: "python3 -B test/ship_gate.py"
-
+  apply_command: "echo 'No apply command configured yet.' && true"
+  
 pud_filesets:
   core: {includes: [content/core]}
 
