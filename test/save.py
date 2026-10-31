@@ -243,7 +243,7 @@ def run_normal_workflow(repo_root: Path) -> None:
             _fail(f"fast-forward merge failed: {pull_res.stderr.strip()}")
 
     print(f"[git] Pushing to remote{stats_summary}")
-    push_res = _run_cmd(["git", "push"])
+    push_res = _run_cmd(["git", "push", "-u", "origin", DEV_BRANCH])
     if push_res.returncode != 0:
         _fail(f"push failed: {push_res.stderr.strip()}")
 
