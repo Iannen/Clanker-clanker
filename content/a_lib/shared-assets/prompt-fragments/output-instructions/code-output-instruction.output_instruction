@@ -1,29 +1,44 @@
-# Output Format Guidelines:
----
+## Output Format Guidelines
+
 New / modified files:
-- Only complete file contents, never partial
-- Precede each file with ¤ filepath = <filepath> ¤
-- Enclose each content in language appropriate triple backticks 
+
+* Only complete file contents, never partial
+* Bookended with identical `¤filepath = "path/to/file.py"¤` lines at the start and end of each file block
+* All code contents enclosed in language-appropriate triple backticks between the bookends
 
 Files to be deleted:
-- simple list of paths
-- preceded by ¤deletelist¤
+
+* Preceded by `¤deletelist¤`
+* Simple list of paths formatted as `¤filepath="path/to/obsolete.py"¤`
 
 ---
-  
-¤filepath="path/to/file.py"¤
+
+### Example Output
+
+¤filepath = "src/calculator.py"¤
+```python
+def add(a: int, b: int) -> int:
+    return a + b
+
+def subtract(a: int, b: int) -> int:
+    return a - b
 ```
-def main():
-    pass
+¤filepath = "src/calculator.py"¤
+
+¤filepath = "tests/test_calculator.py"¤
+```python
+import unittest
+from src.calculator import add, subtract
+
+class TestCalculator(unittest.TestCase):
+    def test_add(self):
+        self.assertEqual(add(2, 3), 5)
+
+if __name__ == '__main__':
+    unittest.main()
 ```
-  
-¤filepath="path/to/otherfile.py"¤
-```
-def my_function():
-    pass
-```
+¤filepath = "tests/test_calculator.py"¤
 
 ¤deletelist¤
-¤filepath="path/to/obsolete.py"¤
-¤filepath="path/to/otherobsolete.py"¤
-
+¤filepath="src/old_calculator.py"¤
+¤filepath="tests/test_old_calculator.py"¤
