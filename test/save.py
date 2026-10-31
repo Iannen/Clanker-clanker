@@ -9,6 +9,11 @@ from typing import NoReturn
 
 MAIN_BRANCH = "main"
 DEV_BRANCH = "dev"
+TEST_COMMAND_PATH = ("system", "test_command")
+APPLY_COMMAND_PATH = ("system", "apply_command")
+
+REPO_ROOT = Path.cwd()
+CONFIG_PATH = REPO_ROOT / ".clanker" / "config.yaml"
 
 def _fail(msg: str) -> NoReturn:
     print(f"Save aborted: {msg}", file=sys.stderr)
@@ -26,23 +31,28 @@ def _run_cmd(cmd: list[str] | str, shell: bool = False, capture_output: bool = T
         cmd_str = cmd if isinstance(cmd, str) else " ".join(cmd)
         _fail(f"failed to execute command '{cmd_str}': {e}")
 
-def ensure_dev_environment() -> Path:
-    repo_root = Path.cwd()
-    if not (repo_root / ".git").exists():
-        _fail(f"must run script from repository root ('{repo_root}').")
+def _test() -> None:
+    test_cmd = get_config_value(TEST_COMMAND_PATH)
+    test_res = _run_cmd(test_cmd, shell=True, capture_output=False)
+    if test_res.returncode != 0:
+        _fail(f"test command failed with exit code {test_res.returncode}.")
+
+def ensure_dev_environment() -> None:
+    if not (REPO_ROOT / ".git").exists():
+        _fail(f"must run script from repository root ('{REPO_ROOT}').")
         
     res = _run_cmd(["git", "rev-parse", "--is-inside-work-tree"])
     if res.returncode != 0 or res.stdout.strip() != "true":
-        _fail(f"not inside a git repository ({repo_root}).")
+        _fail(f"not inside a git repository ({REPO_ROOT}).")
 
     if _run_cmd(["git", "rev-parse", "--verify", "HEAD"]).returncode != 0:
-        _fail(f"repository has no commits ({repo_root}).")
+        _fail(f"repository has no commits ({REPO_ROOT}).")
 
     if _run_cmd(["git", "config", "user.name"]).returncode != 0:
-        _fail(f"git user.name not configured ({repo_root}).")
+        _fail(f"git user.name not configured ({REPO_ROOT}).")
 
     if _run_cmd(["git", "config", "user.email"]).returncode != 0:
-        _fail(f"git user.email not configured ({repo_root}).")
+        _fail(f"git user.email not configured ({REPO_ROOT}).")
 
     if _run_cmd(["git", "ls-files", "-u"]).stdout.strip():
         _fail("unresolved merge conflicts detected.")
@@ -85,74 +95,59 @@ def ensure_dev_environment() -> Path:
             if res_co.returncode != 0:
                 _fail(f"failed to switch to '{DEV_BRANCH}': {res_co.stderr.strip()}")
 
-    return repo_root
-
-def load_configured_commands(repo_root: Path) -> tuple[str, str]:
-    """ 
-    perhaps we can declare the path to the two commands we extract as constants (up with the branch constants)
-    then this can be general method which is used to grab a command at a path
-    """
-    cfg_file = repo_root / ".clanker" / "config.yaml"
-    if not cfg_file.is_file():
-        _fail(f"config file not found at '{cfg_file}'.")
+def get_config_value(keys: tuple[str, ...]) -> str:
+    if not CONFIG_PATH.is_file():
+        _fail(f"config file not found at '{CONFIG_PATH}'.")
     try:
         yaml = YAML(typ="safe")
-        data = yaml.load(cfg_file)
+        data = yaml.load(CONFIG_PATH)
         if not isinstance(data, dict):
-            _fail(f"invalid config format at '{cfg_file}'.")
+            _fail(f"invalid config format at '{CONFIG_PATH}'.")
         
-        system_cfg = data.get("system")
-        if not isinstance(system_cfg, dict):
-            _fail("missing 'system' section in config.")
+        current = data
+        for key in keys:
+            if not isinstance(current, dict) or key not in current:
+                _fail(f"missing config path '{'.'.join(keys)}' in config.")
+            current = current[key]
 
-        test_cmd = system_cfg.get("test_command")
-        if not test_cmd or not isinstance(test_cmd, str):
-            _fail("mandatory 'test_command' missing or invalid in config.")
+        if not isinstance(current, str) or not current:
+            _fail(f"mandatory config value at '{'.'.join(keys)}' missing or invalid.")
 
-        apply_cmd = system_cfg.get("apply_command")
-        if not apply_cmd or not isinstance(apply_cmd, str):
-            _fail("mandatory 'apply_command' missing or invalid in config.")
-
-        return test_cmd, apply_cmd
+        return current
 
     except Exception as e:
-        _fail(f"failed to parse config at '{cfg_file}': {e}")
+        _fail(f"failed to parse config at '{CONFIG_PATH}': {e}")
 
-
-
-
-def process_local_changes() -> tuple[str, bool]:
+def process_local_changes() -> str | None:
     res_diff_head = _run_cmd(["git", "diff", "--quiet", "HEAD"])
     res_untracked = _run_cmd(["git", "ls-files", "--others", "--exclude-standard"])
     has_local_changes = res_diff_head.returncode != 0 or bool(res_untracked.stdout.strip())
 
+    if not has_local_changes:
+        return None
+
+    add_res = _run_cmd(["git", "add", "-A"])
+    if add_res.returncode != 0:
+        _fail(f"failed to stage changes: {add_res.stderr.strip()}")
+
+    commit_res = _run_cmd(["git", "commit", "-m", "save"])
+    if commit_res.returncode != 0:
+        _run_cmd(["git", "reset"])
+        _fail(f"commit failed: {commit_res.stderr.strip()}")
+
     stats_summary = ""
-    if has_local_changes:
-        add_res = _run_cmd(["git", "add", "-A"])
-        if add_res.returncode != 0:
-            _fail(f"failed to stage changes: {add_res.stderr.strip()}")
+    match = re.search(r"(\d+ files? changed(?:, \d+ insertions?\(\+\))?(?:, \d+ deletions?\(\-\))?)", commit_res.stdout)
+    if match:
+        stats_summary = f" ({match.group(1)})"
 
-        commit_res = _run_cmd(["git", "commit", "-m", "save"])
-        if commit_res.returncode != 0:
-            _run_cmd(["git", "reset"])
-            _fail(f"commit failed: {commit_res.stderr.strip()}")
+    return stats_summary
 
-        match = re.search(r"(\d+ files? changed(?:, \d+ insertions?\(\+\))?(?:, \d+ deletions?\(\-\))?)", commit_res.stdout)
-        if match:
-            stats_summary = f" ({match.group(1)})"
-
-    return stats_summary, has_local_changes
-
-
-def receive(repo_root: Path) -> None:
+def receive() -> None:
     print("Not implemented")
 
-def push(repo_root: Path) -> None:
-    test_cmd, apply_cmd = load_configured_commands(repo_root)
-
-    test_res = _run_cmd(test_cmd, shell=True, capture_output=False)
-    if test_res.returncode != 0:
-        _fail(f"test command failed with exit code {test_res.returncode}.")
+def push() -> None:
+    apply_cmd = get_config_value(APPLY_COMMAND_PATH)
+    _test()
 
     print("[git] Checking remote...")
     fetch_res = _run_cmd(["git", "fetch"])
@@ -172,7 +167,8 @@ def push(repo_root: Path) -> None:
 
     print("[git] Synced with remote.")
 
-    stats_summary, has_local_changes = process_local_changes()
+    stats_summary = process_local_changes()
+    has_local_changes = stats_summary is not None
 
     if not has_local_changes and behind_count == 0 and ahead_count == 0:
         _fail("nothing to save (no modified or untracked files found, and fully up to date with remote).")
@@ -182,7 +178,8 @@ def push(repo_root: Path) -> None:
         if pull_res.returncode != 0:
             _fail(f"fast-forward merge failed: {pull_res.stderr.strip()}")
 
-    print(f"[git] Pushing to remote{stats_summary}")
+    summary_text = stats_summary if stats_summary else ""
+    print(f"[git] Pushing to remote{summary_text}")
     push_res = _run_cmd(["git", "push", "-u", "origin", DEV_BRANCH])
     if push_res.returncode != 0:
         _fail(f"push failed: {push_res.stderr.strip()}")
@@ -195,13 +192,8 @@ def push(repo_root: Path) -> None:
 
     print("Save complete.")
 
-def merge(repo_root: Path) -> None:
-    test_cmd, _ = load_configured_commands(repo_root)
-
-    test_res = _run_cmd(test_cmd, shell=True, capture_output=False)
-    if test_res.returncode != 0:
-        _fail(f"test command failed with exit code {test_res.returncode}.")
-
+def merge() -> None:
+    _test()
     process_local_changes()
 
     print(f"[git] Switching to '{MAIN_BRANCH}'...")
@@ -236,7 +228,7 @@ def merge(repo_root: Path) -> None:
 
     print(f"Sync complete: '{DEV_BRANCH}' merged into '{MAIN_BRANCH}' and pushed.")
 
-def reset(repo_root: Path) -> None:
+def reset() -> None:
     print(f"[git] Fetching latest changes from remote...")
     fetch_res = _run_cmd(["git", "fetch", "origin"])
     if fetch_res.returncode != 0:
@@ -274,16 +266,16 @@ def main() -> None:
     if cmd not in valid_commands:
         print_help()
 
-    repo_root = ensure_dev_environment()
+    ensure_dev_environment()
 
     if cmd == "receive":
-        receive(repo_root)
+        receive()
     elif cmd == "push":
-        push(repo_root)
+        push()
     elif cmd == "merge":
-        merge(repo_root)
+        merge()
     elif cmd == "reset":
-        reset(repo_root)
+        reset()
 
 if __name__ == "__main__":
     main()
