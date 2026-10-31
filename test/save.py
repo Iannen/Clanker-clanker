@@ -1,5 +1,107 @@
 #!/usr/bin/env -S python3 -B
 
+example_llm_output= """
+
+Sure, here are the file contents. Happy to help!
+
+¤filepath = "src/models/task.py"¤
+
+# line which is not taken, because it doesnt start with triple backticks
+```python
+from dataclasses import dataclass, field
+from datetime import datetime
+
+@dataclass
+class Task:
+    id: int
+    title: str
+    description: str = ""
+    completed: bool = False
+    created_at: datetime = field(default_factory=datetime.now)
+
+```
+
+# this too, not taken
+¤filepath = "src/models/task.py"¤
+
+¤filepath = "src/services/task_service.py"¤
+# im sure you get it
+```python
+from typing import List
+from src.models.task import Task
+
+class TaskService:
+    def __init__(self):
+        self.tasks: List[Task] = []
+        self._next_id = 1
+
+    def add_task(self, title: str, description: str = "") -> Task:
+        task = Task(id=self._next_id, title=title, description=description)
+        self.tasks.append(task)
+        self._next_id += 1
+        return task
+
+    def get_all_tasks(self) -> List[Task]:
+        return self.tasks
+
+```
+
+¤filepath = "src/services/task_service.py"¤
+
+¤filepath = "src/main.py"¤
+
+```python
+from src.services.task_service import TaskService
+
+def main():
+    service = TaskService()
+    service.add_task("Learn output formatting", "Understand the custom file block format.")
+    
+    print("Current Tasks:")
+    for task in service.get_all_tasks():
+        status = "x" if task.completed else " "
+        print(f"- [{status}] {task.title}: {task.description}")
+
+if __name__ == "__main__":
+    main()
+
+```
+
+¤filepath = "src/main.py"¤
+
+¤deletelist¤
+"""
+
+example_llm_output2= """
+
+Great, lets just delete them again!
+
+¤deletelist¤
+¤filepath = "src/models/task.py"¤
+¤filepath = "src/services/task_service.py"¤
+# i just add some comment here! i can happen
+
+¤filepath = "src/main.py"¤
+
+#comment preceded by random newline!
+
+Unsolicited happy to be of service msg!
+"""
+
+"""
+
+explainer: 
+
+
+"""
+
+
+"""
+ note to llm! inline explainer comments in code are forbidden. i dont read those, they just clutter!
+
+multiline strings are stickies!
+"""
+
 import re
 import subprocess
 import sys
@@ -184,7 +286,6 @@ def _write_file(path_str: str, content: str) -> None:
     file_path = REPO_ROOT / path_str.strip()
     try:
         file_path.parent.mkdir(parents=True, exist_ok=True)
-        # Strip potential markdown code block wrappers if the LLM included them inside the tags
         cleaned_content = content.strip("\n")
         file_path.write_text(cleaned_content, encoding="utf-8")
         print(f"[file] Written: {path_str}")
@@ -197,7 +298,6 @@ def _delete_file(path_str: str) -> None:
         if file_path.is_file():
             file_path.unlink()
             print(f"[file] Deleted: {path_str}")
-            # Clean up empty parent directories if any are left over
             parent = file_path.parent
             while parent != REPO_ROOT and parent.is_dir() and not any(parent.iterdir()):
                 parent.rmdir()
@@ -205,40 +305,66 @@ def _delete_file(path_str: str) -> None:
     except Exception as e:
         _fail(f"failed to delete file '{path_str}': {e}")
 
-def receive() -> None:
-    """
-    Parses LLM input from stdin containing file updates and deletions.
-    Format expectation:
-      - File blocks wrapped between identical ¤filepath = "..."¤ lines.
-      - Followed optionally by '¤deletelist¤'.
-      - Followed by lines starting with ¤filepath=... for files to delete.
-    """
-    doc = sys.stdin.read()
+def _clean_content(raw_content: str) -> str:
+    lines = raw_content.splitlines()
+    start_idx = 0
+    for i, line in enumerate(lines):
+        if line.strip().startswith("```"):
+            start_idx = i + 1
+            break
+    
+    end_idx = len(lines)
+    for i in range(len(lines) - 1, -1, -1):
+        if lines[i].strip().startswith("```"):
+            end_idx = i
+            break
+    
+    if start_idx < end_idx:
+        lines = lines[start_idx:end_idx]
+    
+    return "\n".join(lines)
 
-    # 1. Process file updates/creations using a robust regex pattern
-    # Matches: ¤filepath = "path"¤ ... content ... ¤filepath = "path"¤
+def get_input1() -> str:
+    """
+"src/models/task.py"
+"src/services/task_service.py"
+"src/main.py"
+    """
+    return example_llm_output
+def get_input2() -> str:
+    return example_llm_output2
+def receive() -> None:
+    
+    doc = get_input2()
+
     pattern = re.compile(
         r'¤\s*filepath\s*=\s*(["\'])(.*?)\1\s*¤\s*(.*?)\s*¤\s*filepath\s*=\s*\1\2\1\s*¤',
         re.DOTALL
     )
 
-    matches_found = False
-    for match in pattern.finditer(doc):
-        matches_found = True
-        file_path = match.group(2)
-        content = match.group(3)
-        _write_file(file_path, content)
+    writelist: list[tuple[str, str]] = []
+    deletelist: list[str] = []
 
-    # 2. Process deletion section if present
+    for match in pattern.finditer(doc):
+        file_path = match.group(2)
+        raw_content = match.group(3)
+        content = _clean_content(raw_content)
+        writelist.append((file_path, content))
+
     if "¤deletelist¤" in doc:
         parts = doc.split("¤deletelist¤", 1)
         delete_section = parts[1]
         
-        # Match individual lines or statements specifying files to delete
         delete_pattern = re.compile(r'¤\s*filepath\s*=\s*(["\'])(.*?)\1\s*¤')
         for d_match in delete_pattern.finditer(delete_section):
             file_to_delete = d_match.group(2)
-            _delete_file(file_to_delete)
+            deletelist.append(file_to_delete)
+
+    for file_path, content in writelist:
+        _write_file(file_path, content)
+
+    for file_to_delete in deletelist:
+        _delete_file(file_to_delete)
 
     print("Receive complete.")
 
@@ -338,75 +464,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-example_llm_output= """
-
-Sure, here are the file contents. Happy to help!
-
-¤filepath = "src/models/task.py"¤
-
-```python
-from dataclasses import dataclass, field
-from datetime import datetime
-
-@dataclass
-class Task:
-    id: int
-    title: str
-    description: str = ""
-    completed: bool = False
-    created_at: datetime = field(default_factory=datetime.now)
-
-```
-
-¤filepath = "src/models/task.py"¤
-
-¤filepath = "src/services/task_service.py"¤
-
-```python
-from typing import List
-from src.models.task import Task
-
-class TaskService:
-    def __init__(self):
-        self.tasks: List[Task] = []
-        self._next_id = 1
-
-    def add_task(self, title: str, description: str = "") -> Task:
-        task = Task(id=self._next_id, title=title, description=description)
-        self.tasks.append(task)
-        self._next_id += 1
-        return task
-
-    def get_all_tasks(self) -> List[Task]:
-        return self.tasks
-
-```
-
-¤filepath = "src/services/task_service.py"¤
-
-¤filepath = "src/main.py"¤
-
-```python
-from src.services.task_service import TaskService
-
-def main():
-    service = TaskService()
-    service.add_task("Learn output formatting", "Understand the custom file block format.")
-    
-    print("Current Tasks:")
-    for task in service.get_all_tasks():
-        status = "x" if task.completed else " "
-        print(f"- [{status}] {task.title}: {task.description}")
-
-if __name__ == "__main__":
-    main()
-
-```
-
-¤filepath = "src/main.py"¤
-
-¤deletelist¤
-¤filepath="src/legacy_task.py"¤
-¤filepath="src/old_main.py"¤
-"""
