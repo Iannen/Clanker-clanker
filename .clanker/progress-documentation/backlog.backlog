@@ -76,4 +76,9 @@ Backlog tail, Selected item/items:
 
 - "reset otherbranch to main"
 
+git-ops receive
+git-ops push
+git-ops merge
+git-ops reset
+
 Backlog tail end

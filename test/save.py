@@ -232,17 +232,49 @@ def run_normal_workflow() -> None:
 
     print("Save complete.")
 
+
+
+def receive() -> None:
+    print("Not implemented")
+
+def push() -> None:
+    run_normal_workflow()
+
+def merge() -> None:
+    sync_branch("main")
+
+def reset() -> None:
+    reset_branch("main")
+    
+def print_help() -> None:
+    print("Usage: git-ops <command>")
+    print("")
+    print("Commands:")
+    print("  receive   Get new code")
+    print("  push      Test, commit local changes, and push")
+    print("  merge     Merge current branch into main and push")
+    print("  reset     Hard-reset current branch to origin/main")
+    sys.exit(0)
+
 def main() -> None:
-    if len(sys.argv) > 1:
-        cmd = sys.argv[1]
-        if cmd == "reset":
-            target = sys.argv[2] if len(sys.argv) > 2 else "main"
-            reset_branch(target)
-        else:
-            target_branch = cmd
-            sync_branch(target_branch)
-    else:
-        run_normal_workflow()
+    if len(sys.argv) < 2:
+        print_help()
+
+    cmd = sys.argv[1]
+    valid_commands = {"receive", "push", "merge", "reset"}
+
+    if cmd not in valid_commands:
+        print_help()
+
+    if cmd == "receive":
+        receive()
+    elif cmd == "push":
+        push()
+    elif cmd == "merge":
+        merge()
+    elif cmd == "reset":
+        reset()
 
 if __name__ == "__main__":
     main()
+
