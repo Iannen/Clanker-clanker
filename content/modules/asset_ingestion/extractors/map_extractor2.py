@@ -60,7 +60,7 @@ class ParserCtx:
         self.unsatisfied_fields: list[Field] = []
         self.instantiated_instances: list[e.Entity] = []
 
-    def get_deps(self, all_entity_classes: list[e.type[e.Entity]]) -> list[type[e.Entity]]:
+    def get_deps(self, all_entity_classes: list[type[e.Entity]]) -> list[type[e.Entity]]:
         field_types = [field.inner_type for field in self.fields]
         subs = [sub for sub in all_entity_classes if self.entity_cls in sub.__bases__]
 
