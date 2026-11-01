@@ -1,107 +1,5 @@
 #!/usr/bin/env -S python3 -B
 
-example_llm_output= """
-
-Sure, here are the file contents. Happy to help!
-
-¤filepath = "src/models/task.py"¤
-
-# line which is not taken, because it doesnt start with triple backticks
-```python
-from dataclasses import dataclass, field
-from datetime import datetime
-
-@dataclass
-class Task:
-    id: int
-    title: str
-    description: str = ""
-    completed: bool = False
-    created_at: datetime = field(default_factory=datetime.now)
-
-```
-
-# this too, not taken
-¤filepath = "src/models/task.py"¤
-
-¤filepath = "src/services/task_service.py"¤
-# im sure you get it
-```python
-from typing import List
-from src.models.task import Task
-
-class TaskService:
-    def __init__(self):
-        self.tasks: List[Task] = []
-        self._next_id = 1
-
-    def add_task(self, title: str, description: str = "") -> Task:
-        task = Task(id=self._next_id, title=title, description=description)
-        self.tasks.append(task)
-        self._next_id += 1
-        return task
-
-    def get_all_tasks(self) -> List[Task]:
-        return self.tasks
-
-```
-
-¤filepath = "src/services/task_service.py"¤
-
-¤filepath = "src/main.py"¤
-
-```python
-from src.services.task_service import TaskService
-
-def main():
-    service = TaskService()
-    service.add_task("Learn output formatting", "Understand the custom file block format.")
-    
-    print("Current Tasks:")
-    for task in service.get_all_tasks():
-        status = "x" if task.completed else " "
-        print(f"- [{status}] {task.title}: {task.description}")
-
-if __name__ == "__main__":
-    main()
-
-```
-
-¤filepath = "src/main.py"¤
-
-¤deletelist¤
-"""
-
-example_llm_output2= """
-
-Great, lets just delete them again!
-
-¤deletelist¤
-¤filepath = "src/models/task.py"¤
-¤filepath = "src/services/task_service.py"¤
-# i just add some comment here! i can happen
-
-¤filepath = "src/main.py"¤
-
-#comment preceded by random newline!
-
-Unsolicited happy to be of service msg!
-"""
-
-"""
-
-explainer: 
-
-
-"""
-
-
-"""
- note to llm! inline explainer comments in code are forbidden. i dont read those, they just clutter!
-
-multiline strings are stickies!
-"""
-
 import re
 import subprocess
 import sys
@@ -152,10 +50,10 @@ def _checkout(branch: str) -> None:
         _fail(f"failed to switch to/create '{branch}': {co_res.stderr.strip()}")
 
 def _push(branch: str, force: bool = False) -> None:
-    if branch == DEV_BRANCH:
-        cmd = ["git", "push", "-u", "origin", branch]
-    elif force:
+    if force:
         cmd = ["git", "push", "origin", branch, "--force"]
+    elif branch == DEV_BRANCH:
+        cmd = ["git", "push", "-u", "origin", branch]
     else:
         cmd = ["git", "push", "origin", branch]
 
@@ -323,16 +221,6 @@ def _clean_content(raw_content: str) -> str:
         lines = lines[start_idx:end_idx]
     
     return "\n".join(lines)
-
-def test_input_1() -> str:
-    """
-"src/models/task.py"
-"src/services/task_service.py"
-"src/main.py"
-    """
-    return example_llm_output
-def test_input_2() -> str:
-    return example_llm_output2
 
 def get_input() -> str:
     print("Please paste (ctrl+shift+v) the input, then press ctrl+d  to confirm")
