@@ -1,4 +1,4 @@
-I. Ideas, complaints and non-critical bugs:
+I. Smallfry
 
 - arrow keys interpreted as esc
     - this has grown on me though - keep? but formalize if so
@@ -23,62 +23,6 @@ II. The wishlist
 
 
 
-1. Build auto-apply parser for LLM output (Python)
-    [ ] 'harness/parser.py': Implement parse_output(text) -> (files: dict, deletions: list)
-        - Line-based parsing, no regex on content bodies
-        - Find all ¤filepath="..."¤ marker lines via regex (marker format only)
-        - Pair markers sequentially: open[i] / close[i+1] must have identical path
-        - After open marker: scan forward, skip blank lines, find first line starting with ```
-        - Before close marker: scan backward, skip blank lines, find last line starting with ```
-        - Content = lines strictly between the two fence lines (join with \n)
-        - Validate: path match, fence presence, at least one content line
-        - Raise ValueError with clear message on any validation failure
-        - Parse ¤deletelist¤ section: extract all ¤filepath="..."¤ lines after the marker
-        - Return (files, deletions)
-    [ ] 'harness/parser.py': Implement apply_output(files, deletions, repo_root)
-        - Write each file in `files` to repo_root / path (create parent dirs as needed)
-        - Delete each path in `deletions` (ignore if missing, log warning)
-        - Return list of applied paths + list of deleted paths for logging
-    [ ] 'harness/parser.py': Handle edge cases
-        - Tolerate blank lines between marker and fence (skip, don't fail)
-        - Tolerate trailing blank line after closing fence
-        - Reject if content is empty (fence immediately followed by fence)
-        - Reject if a filepath appears as both a write and a delete
-        - Reject if the same filepath appears twice in the write section
-        - Strip any leading/trailing whitespace on the marker line before matching
-    [ ] 'harness/loop.py': Integrate parser into harness loop
-        - After receiving LLM response, call parse_output()
-        - On success: call apply_output(), log applied/deleted files
-        - On ValueError: log error, do NOT apply, return error to user
-        - Wrap in try/except so one bad output never corrupts the repo
-    [ ] 'harness/test_parser.py': Unit tests
-        - Happy path: two files, one deletion, blank lines present
-        - Missing closing fence -> ValueError
-        - Mismatched open/close path -> ValueError
-        - Empty content -> ValueError
-        - Duplicate filepath -> ValueError
-        - File in both write and delete -> ValueError
-        - Content with blank lines internally -> preserved correctly
-        - Content with triple backticks inside -> preserved correctly
-
 
 Backlog tail, Selected item/items:
-
-- " accept new code command "
-    - accept big string
-    - convert string to file creations / updates / deletes
-    - apply them
-    - run test cmd
-
-- "save cmd"
-
-- "bring main up to speed with otherbranch"
-
-- "reset otherbranch to main"
-
-git-ops receive
-git-ops push
-git-ops merge
-git-ops reset
-
 Backlog tail end
