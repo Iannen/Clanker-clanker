@@ -1,0 +1,7 @@
+List formatting:
+  - A list with exactly one member: inline, single line.
+      resolvers: [{ ... }]
+  - A list with two or more members: block, one item per line.
+      resolvers:
+        - { ... }
+        - { ... }

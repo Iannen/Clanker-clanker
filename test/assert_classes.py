@@ -80,9 +80,9 @@ class EmptyRepoTests(AssertSuite):
         uno = ["1"]
         ats.append(
             actions.create_test(list(uno)) \
-                .expect.ui_render_contains("Domain 'manifest-analysis' on key '1' selected")
+                .expect.ui_render_contains("Domain 'config-dev' on key '1' selected")
         )
-        for c in "as":
+        for c in "a":
             ats.append(
                 actions.create_test(list(uno + [c])) \
                     .expect.ui_render_contains(ActionResult.COPIED_TO_CLIPBOARD) \
@@ -90,7 +90,7 @@ class EmptyRepoTests(AssertSuite):
                     .expect.where("chars", lambda c: int(c) > 3000) \
                     .expect.prompt_render_min_lines(50)
             )
-        for c in "df":
+        for c in "sdf":
             ats.append(
                 actions.create_test(list(uno + [c])) \
                     .expect.ui_render_contains(ActionResult.UNBOUND_KEY) \
