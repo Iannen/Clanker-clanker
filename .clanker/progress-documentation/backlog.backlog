@@ -31,4 +31,21 @@ II. The wishlist
 
 
 Backlog tail, Selected item/items:
+```text
+1. Introduce a local GET endpoint for test-prompt retrieval, wired to a Ctrl+P keybind in the input context
+    [ ] 'content/web-clanker.py': Add do_GET to ProxyHandler for /api/test-prompt
+        - short-circuit before any GPU-box forwarding
+        - return 200 with a hardcoded hello-world prompt string as plain text body
+        - set Content-Type: text/plain
+        - 404 for any other GET path (same fallback as do_POST)
+    [ ] 'content/web-ui/frontend/api-client.js': Add getTestPrompt() method
+        - plain fetch GET to '/api/test-prompt'
+        - throw on !response.ok
+        - return response.text()
+    [ ] 'content/web-ui/frontend/clanker-app.js': Add Ctrl+P keybind and #pullTestPrompt handler
+        - add 'Ctrl+P' entry to #inputActions, pointing to this.#pullTestPrompt()
+        - #pullTestPrompt is async: disable input, await apiClient.getTestPrompt(), call this.#generateResponse(prompt), re-enable in finally
+        - on fetch failure, re-enable input and show toast with error message
+        - no other changes to existing keybind logic or action maps
+```
 Backlog tail end
