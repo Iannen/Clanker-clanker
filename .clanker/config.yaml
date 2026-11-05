@@ -15,11 +15,15 @@ pud_filesets:
   web_ui: { includes: [content/web-ui/frontend]}
   backend: { includes: [content/web-ui/], excludes: [content/web-ui/frontend]}
   biggone: { includes: [content], excludes: [content/a_lib]}
+  all_code: {includes: [content], excludes: [
+    content/a_lib,
+    content/adapters/terminal/scripted_terminal_adapter.py
+    ]}
 
 pud_domains:
-  whole_thing:
+  all_code:
     resolvers:
-      - { anchor: repo_content, type: repo-content, fileset: ¤ whole_thing}
+      - { anchor: repo_content, type: repo-content, fileset: ¤ all_code}
     prompts:
       - name: plan
         render:
