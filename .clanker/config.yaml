@@ -3,12 +3,10 @@ system:
   apply_command: "echo 'No apply command configured' && true"
   
 pud_filesets:
-  asset_ingestion: {includes: [
-    content/modules/asset_ingestion,
-    content/core/core/entities.py,
-    ], excludes: [
-      content/modules/asset_ingestion/__init__.py
-      ]}
+  combined: {includes: [content], excludes: [
+    content/a_lib,
+    content/web-ui
+    ]}
 
   whole_thing: { includes: [content]}
 
@@ -46,31 +44,9 @@ pud_domains:
           resolvers:
             - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_migration_mode }
 
-  ingestion:
+  combined:
     resolvers:
-      - { anchor: repo_content, type: repo-content, fileset: ¤ asset_ingestion }
-    prompts:
-      - name: plan
-        render:
-          resolvers:
-            - { anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ plan_mode_instructions }
-            - { anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant }
-      - name: impl
-        render:
-          resolvers:
-            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ do_mode_instructions}
-            - { anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant }
-
-      - name: drain
-        render:
-          resolvers:
-            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_management_mode_instructions}
-            - {anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant}
-
-  web-frontend:
-    resolvers:
-      - { anchor: repo_content, type: repo-content, fileset: ¤ web_ui}
-      - { anchor: domain_fragments, type: multi-document-retrieval, files: [web-frontent.doctrine]}
+      - { anchor: repo_content, type: repo-content, fileset: ¤ combined }
     prompts:
       - name: plan
         render:
@@ -80,6 +56,7 @@ pud_domains:
         render:
           resolvers:
             - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ do_mode }
+
       - name: drain
         render:
           resolvers:
