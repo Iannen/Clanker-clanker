@@ -1,6 +1,6 @@
 system:
   test_command: "echo 'No tests configured' && true"
-  apply_command: "echo 'No apply command configured yet.' && true"
+  apply_command: "echo 'No apply command configured' && true"
   
 pud_filesets:
   content: { includes: [content]}
