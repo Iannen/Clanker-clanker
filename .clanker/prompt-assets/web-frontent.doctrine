@@ -1,0 +1,30 @@
+# Components
+All components inherit BaseComponent:
+- State attributes (non-DOM) are declared as `#` private class fields
+- DOM references are plain instance properties, assigned in `onConnect` — no class-body declaration
+- Constructors should generally be omitted
+
+Visibility:
+- `#` marks state — private by design
+- DOM references are non-`#` instance properties; they are cached element handles, not logical state
+
+# General
+
+## If Statements
+Style is a function of branch length:
+- `if (p) a(); else b();` (1 statement per branch)
+- `if (p) { a(); b(); }`  (>1 statements per branch)
+
+## Method declarations
+Single statement:
+- `method() { statement(); }`
+Multi statement: 
+- normal syntax
+
+## Defensive coding: *Discouraged*. Seen as source of silent errors.
+- DOM reference guards (`if (!this.el) return`)
+- Callback existence checks (`typeof this.onX === 'function'`)
+**Test:** Can this condition be true in a correctly-wired system with valid input?
+**Guidance:** 
+- If no: Remove the guard; let the error surface so the bug is visible. 
+- If yes: it's a branch on real state, not a guard; keep it.
