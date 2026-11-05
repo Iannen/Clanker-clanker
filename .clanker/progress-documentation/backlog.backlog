@@ -22,6 +22,12 @@ II. The wishlist
 3: MUST make it possible to add repo content from other locs than just assets. why is test system bugging out about that.
 
 
+4. git-ops, save file:
+    - perhaps we can have a stack of branches? (main -> dev-1 -> dev-2 -> dev-n)
+        - allows one to hansel and gretel that sob, not having to step to main 
+    - single click dropoff, none of that double ctrl+d stuff
+
+    - automation of the bl migration
 
 
 Backlog tail, Selected item/items:

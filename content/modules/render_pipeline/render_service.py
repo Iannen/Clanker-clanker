@@ -112,7 +112,7 @@ class PromptServiceImpl(PromptService):
         for p in paths:
             try:
                 content = self.files.read_asset(f"{PathTokens.PUD}/{p}").rstrip()
-                file_blocks.append(f'¤filepath="{p}"¤\n{content}')
+                file_blocks.append(f'¤filepath="{p}"¤\n{content}\n¤filepath="{p}"¤')
             except UnicodeDecodeError:
                 pass
 
