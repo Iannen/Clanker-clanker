@@ -30,6 +30,11 @@ class PromptServiceImpl(PromptService):
         char_count = len(text_content)
         return lines_count, char_count
 
+    def render_prompt_text(self, ctx: RenderContext) -> str:
+        template = self._get_template(ctx)
+        repl_map = self._get_repl_map(ctx)
+        return self._hydrate(template, repl_map)
+
     def _hydrate(self, template: str, replacements: dict[str, str]) -> str:
         return self.shaper.hydrate(template, replacements)
 

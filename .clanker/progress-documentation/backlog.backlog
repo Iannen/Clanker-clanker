@@ -57,22 +57,20 @@ Right — that's much cleaner. We know exactly where it lives. No search, no "fi
 4. `build_render_context(btn)` → the context
 
 Updated:
-
-```text
 1. Introduce a real prompt GET endpoint via ingestion+render pipeline, wired to a Ctrl+Y keybind in the input context
-    [ ] 'content/modules/render_pipeline/render_service.py': Add render_prompt_text method to PromptServiceImpl
+    [x] 'content/modules/render_pipeline/render_service.py': Add render_prompt_text method to PromptServiceImpl
         - signature: def render_prompt_text(self, ctx: RenderContext) -> str
         - same logic as render_prompt minus the io_bridge.to_clipboard call
         - returns the hydrated string directly
         - no other changes to render_prompt or existing methods
-    [ ] 'content/modules/keyboard/keyboard_service.py': Add build_render_context method to KBServiceImpl
+    [x] 'content/modules/keyboard/keyboard_service.py': Add build_render_context method to KBServiceImpl
         - signature: def build_render_context(self, btn: PromptButton) -> RenderContext | None
         - if btn.inhabitant is None, return None
         - return StandardRenderContext(kb=self.kb, prompt=btn.inhabitant)
         - does NOT mutate self.last_prompt
         - does NOT return HotRenderContext
         - no changes to handle_cmd or _handle_prompt_btn
-    [ ] 'content/web-clanker.py': Add /api/prompt GET handler
+    [x] 'content/web-clanker.py': Add /api/prompt GET handler
         - construct LinuxDiskAdapter, RuamelYamlParserAdapter, IngestionServiceImpl, PromptServiceImpl(io_bridge=None), KBServiceImpl
         - call kb_service.handle_cmd(BootCmd()), if not StartResult return 503
         - call kb_service.handle_cmd(KbCmd(char='r'))
@@ -84,19 +82,18 @@ Updated:
         - return 200 with text as text/plain
         - keep existing /api/test-prompt handler untouched
         - 404 for any other GET path
-    [ ] 'content/web-ui/frontend/api-client.js': Add getPrompt() method
+    [x] 'content/web-ui/frontend/api-client.js': Add getPrompt() method
         - plain fetch GET to '/api/prompt'
         - throw on !response.ok
         - return response.text()
         - no changes to existing methods
-    [ ] 'content/web-ui/frontend/clanker-app.js': Add Ctrl+Y keybind
+    [x] 'content/web-ui/frontend/clanker-app.js': Add Ctrl+Y keybind
         - add 'Ctrl+Y' entry to #inputActions, pointing to this.#pullRealPrompt()
         - #pullRealPrompt is async: disable input, await apiClient.getPrompt(), call this.#generateResponse(prompt), re-enable in finally
         - on fetch failure: re-enable input, show toast with error message
         - keep existing Ctrl+I handler untouched
-    [ ] 'content/web-ui/frontend/sidepanel-right.js': Add Ctrl+Y and Ctrl+I to shortcut list
+    [x] 'content/web-ui/frontend/sidepanel-right.js': Add Ctrl+Y and Ctrl+I to shortcut list
         - Ctrl+Y: "Pull real prompt from config"
         - Ctrl+I: "Pull test prompt (hardcoded)"
         - add as new blocks in the existing flex-col gap-3 list, matching existing style
-```
 Backlog tail end
