@@ -1,0 +1,69 @@
+#!/usr/bin/env fish
+
+set -g PORT 8080
+set -g API_KEY "your-super-secret-key"
+
+# Target model path (global so functions can see it)
+set -g MODEL_FILE "$HOME/Models/flint-nvfp4.gguf"
+
+# Default argset used when no argument is supplied
+set -g DEFAULT_SELECTION 1
+
+# N experimental argument sets for this model
+set -g MODEL_ARGS_LIST \
+    "-c 50000 --n-cpu-moe 26" \
+    "-c 50000 --n-cpu-moe 36" \
+    "-c 50500 --n-cpu-moe 36" \
+    "-c 51000 --n-cpu-moe 36" \
+    "-c 51500 --n-cpu-moe 36" \
+    "-c 52000 --n-cpu-moe 36" \
+    "-c 52500 --n-cpu-moe 36"
+
+# Shared static performance flags for your RTX 4070
+set -g STATIC_ARGS \
+    -fa on \
+    --parallel 1 \
+    -ngl 999 \
+    -ctk q4_0 \
+    -ctv q4_0 \
+    --jinja \
+    -lv 3 \
+    --no-mmproj \
+    --no-webui \
+    --host 0.0.0.0 \
+    --port $PORT \
+    --api-key $API_KEY
+
+function usage
+    set -l model_basename (basename $MODEL_FILE)
+    echo "Usage: (status filename) [number]"
+    echo ""
+    echo "No argument uses default argset $DEFAULT_SELECTION."
+    echo ""
+    echo "Available Argsets for $model_basename:"
+    for i in (seq (count $MODEL_ARGS_LIST))
+        echo "  $i: $MODEL_ARGS_LIST[$i]"
+    end
+    exit 1
+end
+
+set -l selection "$DEFAULT_SELECTION"
+if count $argv
+    set selection "$argv[1]"
+end
+
+if string match -qr '^[0-9]+$' -- "$selection"
+    set -l index (math "$selection - 1")
+    set -l target_idx (math "$index + 1")
+    
+    if test "$target_idx" -ge 1 -a "$target_idx" -le (count $MODEL_ARGS_LIST)
+        set -l chosen_args (string split " " -- $MODEL_ARGS_LIST[$target_idx])
+        
+        echo "[+] Launching llama-server with argset #$selection"
+        echo "------------------------------------------"
+        exec ~/Projects/llama.cpp/build/bin/llama-server -m "$MODEL_FILE" $chosen_args $STATIC_ARGS
+    end
+end
+
+echo "[-] Error: Invalid selection '$selection'."
+usage

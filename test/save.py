@@ -298,8 +298,7 @@ def push() -> None:
     print(f"Save complete{summary_text}.")
 
 def merge() -> None:
-    _test()
-    process_local_changes()
+    push()
 
     _pull(MAIN_BRANCH)
 
@@ -314,6 +313,10 @@ def merge() -> None:
 
     _push(MAIN_BRANCH)
 
+    _checkout(DEV_BRANCH)
+    _run_cmd(["git", "merge", MAIN_BRANCH])
+    _push(DEV_BRANCH)
+
     print(f"Merge complete: '{DEV_BRANCH}' merged into '{MAIN_BRANCH}' and pushed.")
 
 def reset() -> None:
@@ -325,6 +328,43 @@ def reset() -> None:
     print(f"Reset complete: '{DEV_BRANCH}' has been reset to 'origin/{MAIN_BRANCH}'.")
 
 def print_help() -> None:
+    print("Repository Status:")
+    try:
+        res = subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], capture_output=True, text=True)
+        if res.returncode == 0:
+            branch_res = subprocess.run(["git", "symbolic-ref", "--quiet", "--short", "HEAD"], capture_output=True, text=True)
+            curr_branch = branch_res.stdout.strip() if branch_res.returncode == 0 else "detached HEAD"
+            print(f"  Current branch : {curr_branch}")
+
+            main_check = subprocess.run(["git", "rev-parse", "--verify", MAIN_BRANCH], capture_output=True)
+            dev_check = subprocess.run(["git", "rev-parse", "--verify", DEV_BRANCH], capture_output=True)
+            
+            if main_check.returncode == 0 and dev_check.returncode == 0:
+                ahead_res = subprocess.run(["git", "rev-list", "--count", f"{MAIN_BRANCH}..{DEV_BRANCH}"], capture_output=True, text=True)
+                behind_res = subprocess.run(["git", "rev-list", "--count", f"{DEV_BRANCH}..{MAIN_BRANCH}"], capture_output=True, text=True)
+                
+                ahead = int(ahead_res.stdout.strip() or "0")
+                behind = int(behind_res.stdout.strip() or "0")
+                
+                if ahead == 0 and behind == 0:
+                    status_msg = "identical"
+                else:
+                    status_parts = []
+                    if ahead > 0:
+                        status_parts.append(f"{ahead} ahead")
+                    if behind > 0:
+                        status_parts.append(f"{behind} behind")
+                    status_msg = f"dev is {', '.join(status_parts)} of {MAIN_BRANCH}"
+                
+                print(f"  Branches       : {status_msg}")
+            else:
+                print(f"  Branches       : {MAIN_BRANCH} or {DEV_BRANCH} not found")
+        else:
+            print("  (not a git repository)")
+    except Exception:
+        print("  (unable to determine git status)")
+
+    print("")
     print("Usage: git-ops <command>")
     print("")
     print("Commands:")

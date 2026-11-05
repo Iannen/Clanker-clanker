@@ -18,14 +18,6 @@ pud_filesets:
     content/core,
     content/clanker.py]}
 
-  test_harness: {includes: [
-    test], excludes: [
-        test/reports,
-        test/sandboxes,
-        test/test_repos,
-        test/visitors,
-    ]}
-
   report_to_user: {includes: [
     content/core,
     content/modules/keyboard,
@@ -41,34 +33,13 @@ pud_filesets:
     content/modules/tui], excludes: [
     ]}
 
-  biggone: { includes: [content], excludes: [
-    content/a_lib,
-    content/web-frontent
-  ]}
+  frontend: { includes: [content/server/frontend]}
+  backend: { includes: [content/server/], excludes: [content/server/frontend]}
+  sum: { includes: [content/server/]}
+
+  biggone: { includes: [content], excludes: [content/a_lib]}
 
 pud_domains:
-  report_to_user:
-    resolvers:
-      - { anchor: repo_content, type: repo-content, fileset: ¤ kb_prompts_cleanup } 
-
-    prompts:
-      - name: plan
-        render:
-          resolvers:
-            - { anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ plan_mode_instructions }
-            - { anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant }
-      - name: impl
-        render:
-          resolvers:
-            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ do_mode_instructions}
-            - { anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant }
-
-      - name: drain
-        render:
-          resolvers:
-            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_management_mode_instructions}
-            - {anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant }
-
   ingestion:
     resolvers:
       - { anchor: repo_content, type: repo-content, fileset: ¤ asset_ingestion }
@@ -90,9 +61,27 @@ pud_domains:
             - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_management_mode_instructions}
             - {anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant}
 
-  test:
+  frontend:
     resolvers:
-      - { anchor: repo_content, type: repo-content, fileset: ¤ test_harness}
+      - { anchor: repo_content, type: repo-content, fileset: ¤ frontend}
+      - { anchor: domain_fragments, type: multi-document-retrieval, files: [web-frontent.doctrine]}
+    prompts:
+      - name: plan
+        render:
+          resolvers:
+            - { anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ plan_mode }
+      - name: impl
+        render:
+          resolvers:
+            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ do_mode }
+      - name: drain
+        render:
+          resolvers:
+            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_migration_mode }
+
+  backend:
+    resolvers:
+      - { anchor: repo_content, type: repo-content, fileset: ¤ backend}
     prompts:
       - name: plan
         render:
@@ -110,23 +99,12 @@ pud_domains:
             - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_management_mode_instructions}
             - {anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant}
 
-  webui:
+  sum:
     resolvers:
-      #- { anchor: repo_content, type: repo-content, includes: [content/web-frontent/frontend.html]}
-      - { anchor: repo_content, type: repo-content, fileset: ¤ biggone}
+      - { anchor: repo_content, type: repo-content, fileset: ¤ sum}
     prompts:
       - name: plan
         render:
           resolvers:
             - { anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ plan_mode_instructions }
             - { anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant}
-      - name: impl
-        render:
-          resolvers:
-            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ do_mode_instructions}
-            - { anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant}
-      - name: drain
-        render:
-          resolvers:
-            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_management_mode_instructions}
-            - {anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant}
