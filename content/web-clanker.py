@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S python3 -B
 import http.server
 import urllib.request
 import os
@@ -7,7 +7,7 @@ GPU_BOX_URL = "https://gpu-box.tailca68f1.ts.net:8787"
 PORT = 8787
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
+FRONTEND_DIR = os.path.join(BASE_DIR, "web-ui", "frontend")
 
 
 class ProxyHandler(http.server.SimpleHTTPRequestHandler):
