@@ -12,6 +12,12 @@ export class ApiClient {
         return responseText;
     }
 
+    async getTestPrompt() {
+        const response = await fetch('/api/test-prompt');
+        if (!response.ok) throw new Error(response.statusText);
+        return response.text();
+    }
+
     async switchDesktopMode() { return this.#post('/api/desktop-mode'); }
 
     async switchInferenceMode() { return this.#post('/api/inference-mode'); }

@@ -31,6 +31,7 @@ class ClankerApp extends BaseComponent {
         'Ctrl+Enter': () => this.#copySelected(),
         'Ctrl+1': () => this.messagesBox.toggleReasoning(),
         'Ctrl+2': () => this.messagesBox.toggleContent(),
+        'Ctrl+i': () => this.#pullTestPrompt(),
         'Escape': () => this.messagesBox.toggleScrollLock(),
     };
 
@@ -79,6 +80,17 @@ class ClankerApp extends BaseComponent {
 
         this.inputBox.clear();
         this.#generateResponse(prompt);
+    }
+
+    async #pullTestPrompt() {
+        this.inputBox.setDisabled(true);
+        try {
+            const prompt = await apiClient.getTestPrompt();
+            this.#generateResponse(prompt);
+        } catch (error) {
+            this.inputBox.setDisabled(false);
+            this.toast.show('❌ ' + (error.message || 'Failed to fetch test prompt'));
+        }
     }
 
     #selectMessages(action) {

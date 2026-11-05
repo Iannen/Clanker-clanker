@@ -9,10 +9,23 @@ PORT = 8787
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FRONTEND_DIR = os.path.join(BASE_DIR, "web-ui", "frontend")
 
+TEST_PROMPT = "Hello, world!"
+
 
 class ProxyHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=FRONTEND_DIR, **kwargs)
+
+    def do_GET(self) -> None:
+        if self.path == "/api/test-prompt":
+            body = TEST_PROMPT.encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        else:
+            super().do_GET()
 
     def _forward(self, path: str) -> None:
         content_length = int(self.headers.get("Content-Length", 0))
