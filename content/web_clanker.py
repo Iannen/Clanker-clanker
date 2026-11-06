@@ -1,21 +1,11 @@
 import http.server
-import urllib.request
 import os
+import urllib.request
 
-from adapters.disk_adapter import LinuxDiskAdapter
-from adapters.yaml_parser import RuamelYamlParserAdapter
-from modules.asset_ingestion.ingestion_service import IngestionServiceImpl
-from modules.render_pipeline.render_service import PromptServiceImpl
-from modules.keyboard.keyboard_service import KBServiceImpl
-from core.engine_deps import KbCmd, StartResult, PromptRenderPending
+from stdlib import dataclass
+from core.engine_deps import IngestionService, PromptService, KBService, StartResult, PromptRenderPending, KbCmd
 
-GPU_BOX_URL = "https://gpu-box.tailca68f1.ts.net:8787"
-PORT = 8787
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FRONTEND_DIR = os.path.join(BASE_DIR, "web-ui", "frontend")
-
-TEST_PROMPT = "Hello, world!"
+FRONTEND_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web-ui", "frontend")
 
 
 class ProxyHandler(http.server.SimpleHTTPRequestHandler):
@@ -24,7 +14,7 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self) -> None:
         if self.path == "/api/test-prompt":
-            body = TEST_PROMPT.encode("utf-8")
+            body = b"Hello, world!"
             self.send_response(200)
             self.send_header("Content-Type", "text/plain")
             self.send_header("Content-Length", str(len(body)))
@@ -42,11 +32,9 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
 
     def _handle_prompt_request(self) -> None:
         try:
-            disk = LinuxDiskAdapter()
-            yaml_parser = RuamelYamlParserAdapter()
-            ingestion = IngestionServiceImpl(files=disk, cfg_ingestor=yaml_parser)
-            render_service = PromptServiceImpl(files=disk)
-            kb_service = KBServiceImpl()
+            ingestion: IngestionService = self.server.ingestion
+            render_service: PromptService = self.server.prompt_service
+            kb_service: KBService = self.server.kb_service
 
             boot_result = ingestion.get_runtime_config()
             if not isinstance(boot_result, StartResult):
@@ -93,8 +81,10 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
                 "Content-Type", "application/json"
             )
 
+        gpu_box_url: str = self.server.gpu_box_url
+
         req = urllib.request.Request(
-            GPU_BOX_URL + path,
+            gpu_box_url + path,
             data=body,
             headers=req_headers,
             method="POST",
@@ -138,7 +128,19 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(b"Not Found")
 
 
-def start_server() -> None:
-    server = http.server.HTTPServer(("127.0.0.1", PORT), ProxyHandler)
-    print(f"Control server on http://127.0.0.1:{PORT} → {GPU_BOX_URL}")
-    server.serve_forever()
+@dataclass
+class WebServer:
+    ingestion: IngestionService
+    prompt_service: PromptService
+    kb_service: KBService
+    port: int
+    gpu_box_url: str
+
+    def run(self) -> None:
+        httpd = http.server.HTTPServer(("127.0.0.1", self.port), ProxyHandler)
+        httpd.ingestion = self.ingestion
+        httpd.prompt_service = self.prompt_service
+        httpd.kb_service = self.kb_service
+        httpd.gpu_box_url = self.gpu_box_url
+        print(f"Control server on http://127.0.0.1:{self.port} → {self.gpu_box_url}")
+        httpd.serve_forever()

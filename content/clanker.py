@@ -2,10 +2,10 @@
 from core.engine import AppEngine
 from adapters import LinuxDiskAdapter, LinuxTerminalAdapter, ScriptedTerminalAdapter, RuamelYamlParserAdapter, TestSequenceEnded
 from modules import FrontendServiceImpl, PromptServiceImpl, KBServiceImpl, IngestionServiceImpl
+from web_clanker import WebServer
 import sys
 import traceback
 import argparse
-import importlib
 from pathlib import Path
 
 def main():
@@ -31,8 +31,19 @@ def main():
     args = parser.parse_args()
 
     if args.mode == "server":
-        mod = importlib.import_module("web-clanker")
-        mod.start_server()
+        files_adapter = LinuxDiskAdapter()
+        cfg_ingestor = RuamelYamlParserAdapter()
+        ingestion = IngestionServiceImpl(files=files_adapter, cfg_ingestor=cfg_ingestor)
+        prompt_service = PromptServiceImpl(files=files_adapter)
+        kb_service = KBServiceImpl()
+        server = WebServer(
+            ingestion=ingestion,
+            prompt_service=prompt_service,
+            kb_service=kb_service,
+            port=8787,
+            gpu_box_url="https://gpu-box.tailca68f1.ts.net:8787",
+        )
+        server.run()
         return
 
     if args.mode == "test":
