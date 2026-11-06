@@ -115,5 +115,39 @@ II. The wishlist
         - remove importlib.import_module("web-clanker") / mod.start_server() path
     [x] 'content/web-clanker.py': deleted (renamed to web_clanker.py)
 ```
+
+```text
+1. Add WebFrontendServiceImpl as a new FrontendService adapter for the web mode
+    [x] 'content/modules/web_frontend/__init__.py': New subpackage init, exports the impl
+        - `from .web_frontend_service import *`
+    [x] 'content/modules/web_frontend/web_frontend_service.py': Self-contained web frontend service + internal HTTP handler
+        - `_ReplySlot`: tiny threading helper — holds an `Event` + `bytes` payload; `.wait()` blocks, `.resolve(payload)` fires
+        - `_Handler(http.server.SimpleHTTPRequestHandler)`: serves static files from `web-ui/frontend/` dir; proxies `/v1/chat/completions`, `/api/desktop-mode`, `/api/inference-mode` to `self.server.gpu_box_url`; on `GET /api/prompt` builds two `KbCmd`s (`'q'` then `'a'`), creates a `_ReplySlot`, stashes it in `self.server.frontend._pending` keyed by `id(cmd)`, pushes both cmds onto `self.server.frontend._queue`, blocks on `.wait()`, writes the bytes back as `text/plain`
+        - `WebFrontendServiceImpl(FrontendService)`: `__init__` takes `port`, `gpu_box_url`; creates the `Queue`, pre-puts `BootCmd()`, creates `dict[int, _ReplySlot]` for `_pending`, builds the `HTTPServer`, attaches `self` and `gpu_box_url` onto the server instance, spawns a daemon `threading.Thread` targeting `serve_forever`
+        - `__post_init__`: starts the daemon thread
+        - `get_request`: `return self._queue.get()`
+        - `post_response`: match on result type — `StartResult` → print ready; `ExitResult` → no-op; anything else → `slot = self._pending.pop(id(result.cmd), None)`; if slot exists, `slot.resolve(result.text.encode("utf-8"))`; if not, no-op (handles the intermediate domain-select result with no attached slot)
+        - static file dir computed from `Path(__file__)` → `content/web-ui/frontend`
+        - prohibition: do NOT import or subclass the existing `WebServer` or `ProxyHandler` from `web_clanker.py`; this is fully independent
+    [x] 'content/modules/__init__.py': Add one import line for the new subpackage
+        - `from .web_frontend.web_frontend_service import WebFrontendServiceImpl`
+    [x] 'content/clanker.py': Add `newserver` subcommand and wiring block
+        - add `sub.add_parser("newserver", help="Start the web frontend (new)")`
+        - new `if args.mode == "newserver":` branch: construct `WebFrontendServiceImpl(port=8787, gpu_box_url="https://gpu-box.tailca68f1.ts.net:8787")`, then the same `files_adapter`, `cfg_ingestor`, `ingestion`, `prompt_service`, `kb_service` as the other paths, build `AppEngine(frontend=frontend, ...)`, call `engine.run()`
+        - prohibition: do NOT modify or remove the existing `server` subcommand or its wiring; it stays as-is
+```
 Backlog tail, Selected item/items:
+```text
+2. Add GET /api/char?char=X endpoint to _Handler for single-char commands
+    [ ] 'content/modules/web_frontend/web_frontend_service.py': Add char endpoint to _Handler.do_GET + fix post_response for non-text results
+        - in `do_GET`: add branch `elif self.path.startswith("/api/char"):` before the generic `/api/` 404
+        - parse query via `urllib.parse.urlsplit(self.path).query` → `urllib.parse.parse_qs` → extract `char` key (single non-empty string)
+        - if missing/invalid: `400` with `text/plain` body `"Missing or invalid 'char' query param"`
+        - build `cmd = KbCmd(char=char_val)`, create `slot = _ReplySlot()`, stash `frontend._pending[id(cmd)] = slot`
+        - push `frontend._queue.put(cmd)`, block on `body = slot.wait()`
+        - write back as `200` / `text/plain` with `Content-Length`
+        - add `from urllib.parse import parse_qs, urlsplit` at top of file
+        - in `post_response` catch-all `case _:`: guard with `hasattr(result, "text")` before `slot.resolve(...)`
+        - if no `.text` (DomainSelectedResult, UnboundKeyResult, etc.): resolve with `repr(type(result).__name__).encode("utf-8")` so the slot unblocks and the handler returns a status string instead of crashing
+```
 Backlog tail end
