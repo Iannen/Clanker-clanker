@@ -1,6 +1,8 @@
 import http.server
+import json
 import threading
 import urllib.request
+from dataclasses import asdict
 from pathlib import Path
 from queue import Queue
 from urllib.parse import parse_qs, urlsplit
@@ -37,9 +39,7 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, directory=str(_FRONTEND_DIR), **kwargs)
 
     def do_GET(self) -> None:
-        if self.path == "/api/prompt":
-            self._handle_prompt()
-        elif self.path.startswith("/api/char"):
+        if self.path.startswith("/api/char"):
             self._handle_char()
         elif self.path.startswith("/api/"):
             self.send_response(404)
@@ -57,24 +57,6 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-Type", "text/plain")
             self.end_headers()
             self.wfile.write(b"Not Found")
-
-    def _handle_prompt(self) -> None:
-        frontend = self.server.frontend
-        cmd_q = KbCmd(char="q")
-        cmd_a = KbCmd(char="a")
-
-        slot = _ReplySlot()
-        frontend._pending[id(cmd_a)] = slot
-
-        frontend._queue.put(cmd_q)
-        frontend._queue.put(cmd_a)
-
-        body = slot.wait()
-        self.send_response(200)
-        self.send_header("Content-Type", "text/plain")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
 
     def _handle_char(self) -> None:
         parsed = urlsplit(self.path)
@@ -172,7 +154,4 @@ class WebFrontendServiceImpl(FrontendService):
             case _:
                 slot = self._pending.pop(id(result.cmd), None)
                 if slot is not None:
-                    if hasattr(result, "text"):
-                        slot.resolve(result.text.encode("utf-8"))
-                    else:
-                        slot.resolve(repr(type(result).__name__).encode("utf-8"))
+                    slot.resolve(json.dumps(asdict(result), default=str).encode("utf-8"))

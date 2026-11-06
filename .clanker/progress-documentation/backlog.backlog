@@ -150,5 +150,15 @@ II. The wishlist
         - in `post_response` catch-all `case _:`: guard with `hasattr(result, "text")` before `slot.resolve(...)`
         - if no `.text` (DomainSelectedResult, UnboundKeyResult, etc.): resolve with `repr(type(result).__name__).encode("utf-8")` so the slot unblocks and the handler returns a status string instead of crashing
 ```
+```text
+1. JSON-serialize post_response results and retire /api/prompt
+    [x] 'content/modules/web_frontend/web_frontend_service.py':
+        - In `post_response`, `case _` branch: replace the `hasattr(result, "text")` / `repr(type(result).__name__)` fallback with `json.dumps(asdict(result), default=str).encode("utf-8")`. Add `import json` and `from dataclasses import asdict` at module top.
+        - Remove the `_handle_prompt` method in `_Handler`.
+        - Remove the `if self.path == "/api/prompt": self._handle_prompt()` branch from `_Handler.do_GET`.
+    [x] 'content/web-ui/frontend/api-client.js':
+        - Remove the `getPrompt()` method (it targets the now-deleted `/api/prompt` endpoint).
+        - Remove the `Ctrl+y` handler in `clanker-app.js` (`#pullRealPrompt`) or repoint it if there's a replacement intent — flag for follow-up.
+```
 Backlog tail, Selected item/items:
 Backlog tail end
