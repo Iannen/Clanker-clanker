@@ -1,4 +1,3 @@
-#!/usr/bin/env -S python3 -B
 import http.server
 import urllib.request
 import os
@@ -145,7 +144,7 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(b"Not Found")
 
 
-if __name__ == "__main__":
+def start_server() -> None:
     server = http.server.HTTPServer(("127.0.0.1", PORT), ProxyHandler)
     print(f"Control server on http://127.0.0.1:{PORT} → {GPU_BOX_URL}")
     server.serve_forever()

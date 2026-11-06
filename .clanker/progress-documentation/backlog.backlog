@@ -29,5 +29,24 @@ II. The wishlist
 
     - automation of the bl migration
 
+5. must revert to side-by-side services. cannot have 
+
+
+```text
+1. Introduce CLI subcommands for `test` and `server` modes in clanker.py
+    [x] 'content/clanker.py': Replace flat flags with argparse subparsers
+        - remove the pre-scan `is_test_mode = "--test" in sys.argv`
+        - remove `--test` (store_true), `--input-script`, `--framedump-path` as top-level args
+        - add `sub = parser.add_subparsers(dest="mode")`
+        - add `test` subparser: `--input-script` (nargs="*", required=True → flag must appear, zero values yields `[]`), `--framedump-path` (type=str, required=True)
+        - add `server` subparser
+            - accepting no flags
+        - in `main()`: branch on `args.mode` — `"test"` → build ScriptedTerminalAdapter as before; `"server"` → call `start_server(port=args.port)`; no mode → LinuxTerminalAdapter (interactive, unchanged)
+    [x] 'content/web-clanker.py': Demote from script to module
+        - remove `if __name__ == "__main__":` block and the 3-line HTTPServer startup
+        - keep `ProxyHandler`, `GPU_BOX_URL`, `PORT`, `BASE_DIR`, `FRONTEND_DIR`, `TEST_PROMPT` as module-level definitions
+        - expose a `start_server() -> None` function containing the HTTPServer + serve_forever logic that was in `__main__`
+            - does not accept port, uses constant at top of file.
+```
 Backlog tail, Selected item/items:
 Backlog tail end

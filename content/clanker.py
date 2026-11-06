@@ -5,38 +5,45 @@ from modules import FrontendServiceImpl, PromptServiceImpl, KBServiceImpl, Inges
 import sys
 import traceback
 import argparse
+import importlib
 from pathlib import Path
 
-def _bootstrap_io_adapter():
-    is_test_mode = "--test" in sys.argv
-
+def main():
     parser = argparse.ArgumentParser(description="Clanker TUI Engine")
-    parser.add_argument("--test", action="store_true", help="Run in headless test mode")
-    parser.add_argument(
+    sub = parser.add_subparsers(dest="mode")
+
+    test_sub = sub.add_parser("test", help="Run in headless test mode")
+    test_sub.add_argument(
         "--input-script",
         nargs="*",
-        required=is_test_mode,
+        required=True,
         help="Pre-recorded key sequence for test mode",
     )
-    parser.add_argument(
+    test_sub.add_argument(
         "--framedump-path",
         type=str,
-        required=is_test_mode,
+        required=True,
         help="Target filepath for execution frames report",
     )
+
+    sub.add_parser("server", help="Start the web control server")
+
     args = parser.parse_args()
 
-    if args.test:
-        adapter = ScriptedTerminalAdapter(
+    if args.mode == "server":
+        mod = importlib.import_module("web-clanker")
+        mod.start_server()
+        return
+
+    if args.mode == "test":
+        io_adapter = ScriptedTerminalAdapter(
             input_sequence=args.input_script,
             framedump_path=Path(args.framedump_path),
         )
-        return True, adapter
-
-    return False, LinuxTerminalAdapter()
-
-def main():
-    is_test, io_adapter = _bootstrap_io_adapter()
+        is_test = True
+    else:
+        io_adapter = LinuxTerminalAdapter()
+        is_test = False
 
     files_adapter = LinuxDiskAdapter()
     cfg_ingestor = RuamelYamlParserAdapter()
@@ -46,14 +53,13 @@ def main():
     io = FrontendServiceImpl(io_adapter, files_adapter)
     kb_service = KBServiceImpl(prompt_service=prompt_service, ingestion=ingestion)
 
-    engine = AppEngine(frontend=io,kb_service=kb_service)
-    try: 
+    engine = AppEngine(frontend=io, kb_service=kb_service)
+    try:
         exit_msg = engine.run()
         if is_test:
             io_adapter.end_test(exit_msg)
         else:
             print(exit_msg)
-            
     except TestSequenceEnded as ex:
         if is_test:
             io_adapter.end_test(ex.__class__.__name__)
