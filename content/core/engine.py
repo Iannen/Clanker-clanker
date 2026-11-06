@@ -37,13 +37,14 @@ class AppEngine:
             else:
                 command_result = self.kb_service.handle_cmd(command)
                 if isinstance(command_result, PromptRenderPending):
-                    lines, chars = self.prompt_service.render_prompt(command_result.ctx)
+                    render_out = self.prompt_service.render_prompt(command_result.ctx)
                     command_result = PromptRenderResult(
                         kb=command_result.kb,
                         ui_render=command_result.ui_render,
                         btn=command_result.btn,
-                        lines=lines,
-                        chars=chars,
+                        text=render_out.text,
+                        lines=render_out.lines,
+                        chars=render_out.chars,
                         cmd=command_result.cmd,
                     )
 

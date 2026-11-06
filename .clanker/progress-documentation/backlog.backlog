@@ -71,19 +71,18 @@ II. The wishlist
     [x] 'content/clanker.py': Rewire construction — prompt_service is passed to AppEngine, not to KBServiceImpl
     [x] 'content/web-clanker.py': Same rewiring in _handle_prompt_request — prompt_service passed to engine, not to kb_service
 ```
-Backlog tail, Selected item/items:
 ```text
 1. Refactor prompt render to return content and move clipboard to frontend
-    [ ] 'content/core/engine_deps/result.py': Add `text: str` field to `PromptRenderResult`
-    [ ] 'content/core/engine_deps/ports.py': Change `PromptService.render_prompt` return annotation from `...` to a small return struct (e.g. `PromptRenderOutput` with `text: str`, `lines: int`, `chars: int`) or just document it returns that shape
-    [ ] 'content/content/modules/render_pipeline/render_service.py':
+    [x] 'content/core/engine_deps/result.py': Add `text: str` field to `PromptRenderResult`
+    [x] 'content/core/engine_deps/ports.py': Change `PromptService.render_prompt` return annotation from `...` to a small return struct (e.g. `PromptRenderOutput` with `text: str`, `lines: int`, `chars: int`) or just document it returns that shape
+    [x] 'content/content/modules/render_pipeline/render_service.py':
         - Remove `io_bridge: TerminalPort` field from `PromptServiceImpl`
         - Remove `render_prompt_text` method
         - Change `render_prompt` to return the small output struct (text, lines, chars) instead of `(int, int)`; no clipboard call here
-    [ ] 'content/core/engine.py': Adapt `run()` loop — `render_prompt` now returns the output struct; engine still assembles `PromptRenderResult` from it + pending context's `kb`/`ui_render`/`btn`/`cmd`, now including `.text`
-    [ ] 'content/modules/tui/tui_service.py': In `post_response`, when result is `PromptRenderResult`, call `self._queue`'s io_bridge `to_clipboard(result.text)` before or alongside `display_result`
-    [ ] 'content/modules/tui/renderer.py': `display_result` for `PromptRenderResult` no longer needs to trigger clipboard (or the clipboard call moves here — decide placement, but it must be in the frontend layer)
-    [ ] 'content/web-clanker.py':
+    [x] 'content/core/engine.py': Adapt `run()` loop — `render_prompt` now returns the output struct; engine still assembles `PromptRenderResult` from it + pending context's `kb`/`ui_render`/`btn`/`cmd`, now including `.text`
+    [x] 'content/modules/tui/tui_service.py': In `post_response`, when result is `PromptRenderResult`, call `self._queue`'s io_bridge `to_clipboard(result.text)` before or alongside `display_result`
+    [x] 'content/modules/tui/renderer.py': `display_result` for `PromptRenderResult` no longer needs to trigger clipboard (or the clipboard call moves here — decide placement, but it must be in the frontend layer)
+    [x] 'content/web-clanker.py':
         - Construct `PromptServiceImpl` with only `files` (no `io_bridge`)
         - Replace `kb_service.kb.get('a')` + `kb_service.build_render_context(btn)` + `render_service.render_prompt_text(ctx)` with:
           - `kb_service.handle_cmd(KbCmd(char='a'))` → `PromptRenderPending`
@@ -94,4 +93,12 @@ Backlog tail, Selected item/items:
 ```
 
 
+Backlog tail, Selected item/items:
+```text
+2. Promote `cache_goods` to ABC as `set_runtime`
+    [ ] 'content/core/engine_deps/ports.py': Add `@abstractmethod def set_runtime(self, res: StartResult) -> None: ...` to `KBService`
+    [ ] 'content/modules/keyboard/keyboard_service.py': Rename `cache_goods` → `set_runtime`
+    [ ] 'content/core/engine.py': Rename both `self.kb_service.cache_goods(res)` calls to `self.kb_service.set_runtime(res)`
+    [ ] 'content/web-clanker.py': Rename `kb_service.cache_goods(boot_result)` to `kb_service.set_runtime(boot_result)`
+```
 Backlog tail end

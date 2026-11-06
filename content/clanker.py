@@ -49,7 +49,7 @@ def main():
     cfg_ingestor = RuamelYamlParserAdapter()
 
     ingestion = IngestionServiceImpl(files=files_adapter, cfg_ingestor=cfg_ingestor)
-    prompt_service = PromptServiceImpl(files=files_adapter, io_bridge=io_adapter)
+    prompt_service = PromptServiceImpl(files=files_adapter)
     io = FrontendServiceImpl(io_adapter, files_adapter)
     kb_service = KBServiceImpl()
 

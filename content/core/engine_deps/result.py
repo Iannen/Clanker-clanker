@@ -82,8 +82,14 @@ class PromptRenderPending(KbCmdResult):
     btn: PromptButton
     ctx: RenderContext
 @dataclass
+class PromptRenderOutput:
+    text: str
+    lines: int
+    chars: int
+@dataclass
 class PromptRenderResult(KbCmdResult):
     btn: PromptButton
+    text: str
     lines: int
     chars: int
 
@@ -133,7 +139,7 @@ class FrontendService(ABC):
 
 class PromptService(ABC):
     @abstractmethod
-    def render_prompt(self, ctx: RenderContext): ...
+    def render_prompt(self, ctx: RenderContext) -> PromptRenderOutput: ...
 
 class KBService(ABC):
     @abstractmethod

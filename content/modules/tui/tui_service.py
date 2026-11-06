@@ -3,7 +3,8 @@ from core.engine_deps import (
     FrontendService, DiskPort, TerminalPort, StartResult, 
     UserDeclinedStart, UserDeclinedClankerize, StartupFailed, 
     ClankerizeResult, TerminateResult, BootCmd, 
-    StartCmd, ClankerizeCmd, Command, Result, KbCmdResult, ExitResult
+    StartCmd, ClankerizeCmd, Command, Result, KbCmdResult, ExitResult,
+    PromptRenderResult,
 )
 from ..tui import TUIRenderer
 
@@ -25,6 +26,8 @@ class FrontendServiceImpl(FrontendService):
             case TerminateResult(): 
                 self.renderer.get_acknowledgement(result, StartupFailed)
             case KbCmdResult(): 
+                if isinstance(result, PromptRenderResult):
+                    self.renderer.io_bridge.to_clipboard(result.text)
                 self.renderer.display_result(result)
             case ExitResult(): 
                 self.renderer.display_result(result)

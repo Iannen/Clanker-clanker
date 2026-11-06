@@ -7,7 +7,7 @@ from adapters.yaml_parser import RuamelYamlParserAdapter
 from modules.asset_ingestion.ingestion_service import IngestionServiceImpl
 from modules.render_pipeline.render_service import PromptServiceImpl
 from modules.keyboard.keyboard_service import KBServiceImpl
-from core.engine_deps import KbCmd, StartResult
+from core.engine_deps import KbCmd, StartResult, PromptRenderPending
 
 GPU_BOX_URL = "https://gpu-box.tailca68f1.ts.net:8787"
 PORT = 8787
@@ -45,7 +45,7 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
             disk = LinuxDiskAdapter()
             yaml_parser = RuamelYamlParserAdapter()
             ingestion = IngestionServiceImpl(files=disk, cfg_ingestor=yaml_parser)
-            render_service = PromptServiceImpl(files=disk, io_bridge=None)
+            render_service = PromptServiceImpl(files=disk)
             kb_service = KBServiceImpl()
 
             boot_result = ingestion.get_runtime_config()
@@ -60,24 +60,16 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
 
             kb_service.handle_cmd(KbCmd(char='q'))
 
-            btn = kb_service.kb.get('a')
-            if btn is None or btn.inhabitant is None:
+            pending = kb_service.handle_cmd(KbCmd(char='a'))
+            if not isinstance(pending, PromptRenderPending):
                 self.send_response(404)
                 self.send_header("Content-Type", "text/plain")
                 self.end_headers()
                 self.wfile.write(b"Prompt button 'a' not found or uninhabited")
                 return
 
-            ctx = kb_service.build_render_context(btn)
-            if ctx is None:
-                self.send_response(404)
-                self.send_header("Content-Type", "text/plain")
-                self.end_headers()
-                self.wfile.write(b"Could not build render context")
-                return
-
-            text = render_service.render_prompt_text(ctx)
-            body = text.encode("utf-8")
+            render_out = render_service.render_prompt(pending.ctx)
+            body = render_out.text.encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/plain")
             self.send_header("Content-Length", str(len(body)))
