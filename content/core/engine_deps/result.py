@@ -78,6 +78,10 @@ class UninhabitedDomainResult(KbCmdResult): btn: DomButton
 @dataclass
 class UninhabitedPromptResult(KbCmdResult): btn: PromptButton
 @dataclass
+class PromptRenderPending(KbCmdResult):
+    btn: PromptButton
+    ctx: RenderContext
+@dataclass
 class PromptRenderResult(KbCmdResult):
     btn: PromptButton
     lines: int

@@ -46,7 +46,7 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
             yaml_parser = RuamelYamlParserAdapter()
             ingestion = IngestionServiceImpl(files=disk, cfg_ingestor=yaml_parser)
             render_service = PromptServiceImpl(files=disk, io_bridge=None)
-            kb_service = KBServiceImpl(prompt_service=render_service)
+            kb_service = KBServiceImpl()
 
             boot_result = ingestion.get_runtime_config()
             if not isinstance(boot_result, StartResult):
@@ -58,7 +58,7 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
 
             kb_service.cache_goods(boot_result)
 
-            kb_service.handle_cmd(KbCmd(char='r'))
+            kb_service.handle_cmd(KbCmd(char='q'))
 
             btn = kb_service.kb.get('a')
             if btn is None or btn.inhabitant is None:

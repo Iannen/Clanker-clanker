@@ -48,21 +48,50 @@ II. The wishlist
         - expose a `start_server() -> None` function containing the HTTPServer + serve_forever logic that was in `__main__`
             - does not accept port, uses constant at top of file.
 ```
-Backlog tail, Selected item/items:
-
 ```text
 1. Extract IngestionService from KBServiceImpl up to AppEngine
-    [ ] 'content/core/engine.py': AppEngine gains an `ingestion: IngestionService` field; `run()` intercepts BootCmd and ClankerizeCmd before they reach kb_service, calls ingestion directly, and calls `kb_service.cache_goods(result)` on StartResult
+    [x] 'content/core/engine.py': AppEngine gains an `ingestion: IngestionService` field; `run()` intercepts BootCmd and ClankerizeCmd before they reach kb_service, calls ingestion directly, and calls `kb_service.cache_goods(result)` on StartResult
         - BootCmd → `self.ingestion.get_runtime_config()`; if StartResult, `self.kb_service.cache_goods(res)`
         - ClankerizeCmd → `self.ingestion.initialize_workspace()`; if StartResult, `self.kb_service.cache_goods(res)`
         - All other commands fall through to `self.kb_service.handle_cmd(command)` as before
         - Prohibition: engine must NOT call frontend.post_response twice for a single command
-    [ ] 'content/modules/keyboard/keyboard_service.py': remove `ingestion: IngestionService` field from the dataclass; remove `BootCmd` and `ClankerizeCmd` match arms from `handle_cmd`; rename `_cache_goods` to public `cache_goods` (engine will call it)
+    [x] 'content/modules/keyboard/keyboard_service.py': remove `ingestion: IngestionService` field from the dataclass; remove `BootCmd` and `ClankerizeCmd` match arms from `handle_cmd`; rename `_cache_goods` to public `cache_goods` (engine will call it)
         - `handle_cmd` now only handles: StartCmd, KbCmd, ExitCommand
         - Drop the `IngestionService` import (no longer referenced)
         - Prohibition: do not move the StartCmd logic out — it still belongs to kb_service (it resets last_prompt and returns BootstrapSuccess)
-    [ ] 'content/clanker.py': constructor wiring changes — `AppEngine(frontend=io, kb_service=kb_service, ingestion=ingestion)`; `KBServiceImpl(prompt_service=prompt_service)` (no more `ingestion=` kwarg)
+    [x] 'content/clanker.py': constructor wiring changes — `AppEngine(frontend=io, kb_service=kb_service, ingestion=ingestion)`; `KBServiceImpl(prompt_service=prompt_service)` (no more `ingestion=` kwarg)
         - Prohibition: do not change the adapter construction or the test-mode branching
-    [ ] 'content/core/engine_deps/result.py': no change needed — `IngestionService` ABC is already exported here; just confirming no signature change required
+    [x] 'content/core/engine_deps/result.py': no change needed — `IngestionService` ABC is already exported here; just confirming no signature change required
 ```
+```text
+1. Flatten prompt_service to a peer under AppEngine
+    [x] 'content/core/engine.py': Add prompt_service: PromptService to AppEngine; in run(), intercept the kb result that carries a RenderContext and call self.prompt_service.render_prompt(ctx) before posting the response
+    [x] 'content/core/engine_deps/result.py': Adjust PromptRenderResult or introduce a lightweight intermediate (e.g. PromptRenderPending) that KBService can return, carrying the RenderContext for the engine to resolve
+    [x] 'content/modules/keyboard/keyboard_service.py': Remove prompt_service field; _handle_prompt_btn now returns the context-bearing result instead of calling render_prompt; last_prompt bookkeeping stays here
+    [x] 'content/clanker.py': Rewire construction — prompt_service is passed to AppEngine, not to KBServiceImpl
+    [x] 'content/web-clanker.py': Same rewiring in _handle_prompt_request — prompt_service passed to engine, not to kb_service
+```
+Backlog tail, Selected item/items:
+```text
+1. Refactor prompt render to return content and move clipboard to frontend
+    [ ] 'content/core/engine_deps/result.py': Add `text: str` field to `PromptRenderResult`
+    [ ] 'content/core/engine_deps/ports.py': Change `PromptService.render_prompt` return annotation from `...` to a small return struct (e.g. `PromptRenderOutput` with `text: str`, `lines: int`, `chars: int`) or just document it returns that shape
+    [ ] 'content/content/modules/render_pipeline/render_service.py':
+        - Remove `io_bridge: TerminalPort` field from `PromptServiceImpl`
+        - Remove `render_prompt_text` method
+        - Change `render_prompt` to return the small output struct (text, lines, chars) instead of `(int, int)`; no clipboard call here
+    [ ] 'content/core/engine.py': Adapt `run()` loop — `render_prompt` now returns the output struct; engine still assembles `PromptRenderResult` from it + pending context's `kb`/`ui_render`/`btn`/`cmd`, now including `.text`
+    [ ] 'content/modules/tui/tui_service.py': In `post_response`, when result is `PromptRenderResult`, call `self._queue`'s io_bridge `to_clipboard(result.text)` before or alongside `display_result`
+    [ ] 'content/modules/tui/renderer.py': `display_result` for `PromptRenderResult` no longer needs to trigger clipboard (or the clipboard call moves here — decide placement, but it must be in the frontend layer)
+    [ ] 'content/web-clanker.py':
+        - Construct `PromptServiceImpl` with only `files` (no `io_bridge`)
+        - Replace `kb_service.kb.get('a')` + `kb_service.build_render_context(btn)` + `render_service.render_prompt_text(ctx)` with:
+          - `kb_service.handle_cmd(KbCmd(char='a'))` → `PromptRenderPending`
+          - `render_service.render_prompt(pending.ctx)` → output struct
+          - read `.text` from output struct for HTTP body
+        - Remove any `io_bridge=None` workaround
+        - Remove imports/usages of non-ABC methods (`build_render_context`, `render_prompt_text`, direct `.kb` attr access)
+```
+
+
 Backlog tail end

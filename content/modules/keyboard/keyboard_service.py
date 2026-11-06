@@ -5,12 +5,11 @@ from core import (
 )
 from core.engine_deps import (
     KBService,
-    PromptService,
     KbCmd,
     KbCmdResult,
     DomainSelectedResult,
     UnboundKeyResult,
-    PromptRenderResult,
+    PromptRenderPending,
     UninhabitedPromptResult,
     UninhabitedDomainResult,
     BootstrapSuccess,
@@ -27,8 +26,6 @@ from core.engine_deps import (
 
 @dataclass(slots=True)
 class KBServiceImpl(KBService):
-    prompt_service: PromptService
-
     def handle_cmd(self, cmd: Command) -> Result:
         match cmd:
             case ExitCommand(): 
@@ -69,13 +66,11 @@ class KBServiceImpl(KBService):
         if self.last_prompt is not None and btn.inhabitant == self.last_prompt:
             ctx = HotRenderContext(kb=self.kb, prompt=self.last_prompt)
             self.last_prompt = None
-            lines, chars = self.prompt_service.render_prompt(ctx)
-            return PromptRenderResult(kb=self.kb, ui_render=self.ui_render, btn=btn, lines=lines, chars=chars, cmd=cmd)
+            return PromptRenderPending(kb=self.kb, ui_render=self.ui_render, btn=btn, ctx=ctx, cmd=cmd)
 
         self.last_prompt = btn.inhabitant
         if btn.inhabitant is None:
             return UninhabitedPromptResult(kb=self.kb, ui_render=self.ui_render, btn=btn, cmd=cmd)
 
         ctx = StandardRenderContext(kb=self.kb, prompt=btn.inhabitant)
-        lines, chars = self.prompt_service.render_prompt(ctx)
-        return PromptRenderResult(kb=self.kb, ui_render=self.ui_render, btn=btn, lines=lines, chars=chars, cmd=cmd)
+        return PromptRenderPending(kb=self.kb, ui_render=self.ui_render, btn=btn, ctx=ctx, cmd=cmd)
