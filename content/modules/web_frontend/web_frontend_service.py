@@ -3,6 +3,7 @@ import threading
 import urllib.request
 from pathlib import Path
 from queue import Queue
+from urllib.parse import parse_qs, urlsplit
 
 from core.engine_deps import (
     FrontendService,
@@ -38,6 +39,8 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self) -> None:
         if self.path == "/api/prompt":
             self._handle_prompt()
+        elif self.path.startswith("/api/char"):
+            self._handle_char()
         elif self.path.startswith("/api/"):
             self.send_response(404)
             self.send_header("Content-Type", "text/plain")
@@ -67,6 +70,35 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
         frontend._queue.put(cmd_a)
 
         body = slot.wait()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _handle_char(self) -> None:
+        parsed = urlsplit(self.path)
+        params = parse_qs(parsed.query)
+        char_values = params.get("char", [])
+        char_val = char_values[0] if len(char_values) == 1 and char_values[0] else None
+
+        if char_val is None:
+            body = b"Missing or invalid 'char' query param"
+            self.send_response(400)
+            self.send_header("Content-Type", "text/plain")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
+        frontend = self.server.frontend
+        cmd = KbCmd(char=char_val)
+        slot = _ReplySlot()
+        frontend._pending[id(cmd)] = slot
+
+        frontend._queue.put(cmd)
+        body = slot.wait()
+
         self.send_response(200)
         self.send_header("Content-Type", "text/plain")
         self.send_header("Content-Length", str(len(body)))
@@ -140,4 +172,7 @@ class WebFrontendServiceImpl(FrontendService):
             case _:
                 slot = self._pending.pop(id(result.cmd), None)
                 if slot is not None:
-                    slot.resolve(result.text.encode("utf-8"))
+                    if hasattr(result, "text"):
+                        slot.resolve(result.text.encode("utf-8"))
+                    else:
+                        slot.resolve(repr(type(result).__name__).encode("utf-8"))

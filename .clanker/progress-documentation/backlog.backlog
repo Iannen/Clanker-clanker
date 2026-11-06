@@ -136,10 +136,10 @@ II. The wishlist
         - new `if args.mode == "newserver":` branch: construct `WebFrontendServiceImpl(port=8787, gpu_box_url="https://gpu-box.tailca68f1.ts.net:8787")`, then the same `files_adapter`, `cfg_ingestor`, `ingestion`, `prompt_service`, `kb_service` as the other paths, build `AppEngine(frontend=frontend, ...)`, call `engine.run()`
         - prohibition: do NOT modify or remove the existing `server` subcommand or its wiring; it stays as-is
 ```
-Backlog tail, Selected item/items:
+
 ```text
 2. Add GET /api/char?char=X endpoint to _Handler for single-char commands
-    [ ] 'content/modules/web_frontend/web_frontend_service.py': Add char endpoint to _Handler.do_GET + fix post_response for non-text results
+    [x] 'content/modules/web_frontend/web_frontend_service.py': Add char endpoint to _Handler.do_GET + fix post_response for non-text results
         - in `do_GET`: add branch `elif self.path.startswith("/api/char"):` before the generic `/api/` 404
         - parse query via `urllib.parse.urlsplit(self.path).query` → `urllib.parse.parse_qs` → extract `char` key (single non-empty string)
         - if missing/invalid: `400` with `text/plain` body `"Missing or invalid 'char' query param"`
@@ -150,4 +150,5 @@ Backlog tail, Selected item/items:
         - in `post_response` catch-all `case _:`: guard with `hasattr(result, "text")` before `slot.resolve(...)`
         - if no `.text` (DomainSelectedResult, UnboundKeyResult, etc.): resolve with `repr(type(result).__name__).encode("utf-8")` so the slot unblocks and the handler returns a status string instead of crashing
 ```
+Backlog tail, Selected item/items:
 Backlog tail end

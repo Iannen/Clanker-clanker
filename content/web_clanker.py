@@ -7,7 +7,6 @@ from core.engine_deps import IngestionService, PromptService, KBService, StartRe
 
 FRONTEND_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web-ui", "frontend")
 
-
 class ProxyHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=FRONTEND_DIR, **kwargs)

@@ -18,7 +18,6 @@ pud_filesets:
     content/adapters/terminal/scripted_terminal_adapter.py
     ]}
 
-
   web_dev: {includes: [content], excludes: [
     content/a_lib,
     content/adapters/terminal,
