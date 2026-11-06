@@ -16,12 +16,9 @@ from core.engine_deps import (
     BootstrapSuccess,
     StandardRenderContext,
     HotRenderContext,
-    IngestionService,
     ExitCommand,
     ExitResult,
-    BootCmd,
     StartCmd,
-    ClankerizeCmd,
     Command,
     Result,
     StartResult,
@@ -30,27 +27,10 @@ from core.engine_deps import (
 
 @dataclass(slots=True)
 class KBServiceImpl(KBService):
-    """ 
-    this needs to hold more state so the kb need not hold any runtime state
-    this means the inhabitant model has to go, at least for the prompt buttons
-
-    the prize is that we can fetch that which is a function of files on every loop
-    """
     prompt_service: PromptService
-    ingestion: IngestionService
 
     def handle_cmd(self, cmd: Command) -> Result:
         match cmd:
-            case BootCmd(): 
-                res = self.ingestion.get_runtime_config()
-                if isinstance(res, StartResult):
-                    self._cache_goods(res)
-                return res
-            case ClankerizeCmd(): 
-                res = self.ingestion.initialize_workspace()
-                if isinstance(res, StartResult):
-                    self._cache_goods(res)
-                return res
             case ExitCommand(): 
                 return ExitResult(cmd)
             case StartCmd(): 
@@ -69,7 +49,7 @@ class KBServiceImpl(KBService):
             return None
         return StandardRenderContext(kb=self.kb, prompt=btn.inhabitant)
 
-    def _cache_goods(self, res: StartResult) -> None:
+    def cache_goods(self, res: StartResult) -> None:
         self.kb = res.kb
         self.ui_render = res.ui_render
         self.last_prompt = None

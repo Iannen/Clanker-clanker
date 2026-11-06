@@ -49,4 +49,20 @@ II. The wishlist
             - does not accept port, uses constant at top of file.
 ```
 Backlog tail, Selected item/items:
+
+```text
+1. Extract IngestionService from KBServiceImpl up to AppEngine
+    [ ] 'content/core/engine.py': AppEngine gains an `ingestion: IngestionService` field; `run()` intercepts BootCmd and ClankerizeCmd before they reach kb_service, calls ingestion directly, and calls `kb_service.cache_goods(result)` on StartResult
+        - BootCmd → `self.ingestion.get_runtime_config()`; if StartResult, `self.kb_service.cache_goods(res)`
+        - ClankerizeCmd → `self.ingestion.initialize_workspace()`; if StartResult, `self.kb_service.cache_goods(res)`
+        - All other commands fall through to `self.kb_service.handle_cmd(command)` as before
+        - Prohibition: engine must NOT call frontend.post_response twice for a single command
+    [ ] 'content/modules/keyboard/keyboard_service.py': remove `ingestion: IngestionService` field from the dataclass; remove `BootCmd` and `ClankerizeCmd` match arms from `handle_cmd`; rename `_cache_goods` to public `cache_goods` (engine will call it)
+        - `handle_cmd` now only handles: StartCmd, KbCmd, ExitCommand
+        - Drop the `IngestionService` import (no longer referenced)
+        - Prohibition: do not move the StartCmd logic out — it still belongs to kb_service (it resets last_prompt and returns BootstrapSuccess)
+    [ ] 'content/clanker.py': constructor wiring changes — `AppEngine(frontend=io, kb_service=kb_service, ingestion=ingestion)`; `KBServiceImpl(prompt_service=prompt_service)` (no more `ingestion=` kwarg)
+        - Prohibition: do not change the adapter construction or the test-mode branching
+    [ ] 'content/core/engine_deps/result.py': no change needed — `IngestionService` ABC is already exported here; just confirming no signature change required
+```
 Backlog tail end

@@ -51,9 +51,9 @@ def main():
     ingestion = IngestionServiceImpl(files=files_adapter, cfg_ingestor=cfg_ingestor)
     prompt_service = PromptServiceImpl(files=files_adapter, io_bridge=io_adapter)
     io = FrontendServiceImpl(io_adapter, files_adapter)
-    kb_service = KBServiceImpl(prompt_service=prompt_service, ingestion=ingestion)
+    kb_service = KBServiceImpl(prompt_service=prompt_service)
 
-    engine = AppEngine(frontend=io, kb_service=kb_service)
+    engine = AppEngine(frontend=io, kb_service=kb_service, ingestion=ingestion)
     try:
         exit_msg = engine.run()
         if is_test:

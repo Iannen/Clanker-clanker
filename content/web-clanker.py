@@ -7,7 +7,7 @@ from adapters.yaml_parser import RuamelYamlParserAdapter
 from modules.asset_ingestion.ingestion_service import IngestionServiceImpl
 from modules.render_pipeline.render_service import PromptServiceImpl
 from modules.keyboard.keyboard_service import KBServiceImpl
-from core.engine_deps import BootCmd, KbCmd, StartResult
+from core.engine_deps import KbCmd, StartResult
 
 GPU_BOX_URL = "https://gpu-box.tailca68f1.ts.net:8787"
 PORT = 8787
@@ -46,15 +46,17 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
             yaml_parser = RuamelYamlParserAdapter()
             ingestion = IngestionServiceImpl(files=disk, cfg_ingestor=yaml_parser)
             render_service = PromptServiceImpl(files=disk, io_bridge=None)
-            kb_service = KBServiceImpl(prompt_service=render_service, ingestion=ingestion)
+            kb_service = KBServiceImpl(prompt_service=render_service)
 
-            boot_result = kb_service.handle_cmd(BootCmd())
+            boot_result = ingestion.get_runtime_config()
             if not isinstance(boot_result, StartResult):
                 self.send_response(503)
                 self.send_header("Content-Type", "text/plain")
                 self.end_headers()
                 self.wfile.write(b"Service unavailable: ingestion did not return StartResult")
                 return
+
+            kb_service.cache_goods(boot_result)
 
             kb_service.handle_cmd(KbCmd(char='r'))
 
