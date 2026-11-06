@@ -46,7 +46,7 @@ class KBServiceImpl(KBService):
             return None
         return StandardRenderContext(kb=self.kb, prompt=btn.inhabitant)
 
-    def cache_goods(self, res: StartResult) -> None:
+    def set_runtime(self, res: StartResult) -> None:
         self.kb = res.kb
         self.ui_render = res.ui_render
         self.last_prompt = None

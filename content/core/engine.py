@@ -27,12 +27,12 @@ class AppEngine:
             if isinstance(command, BootCmd):
                 res = self.ingestion.get_runtime_config()
                 if isinstance(res, StartResult):
-                    self.kb_service.cache_goods(res)
+                    self.kb_service.set_runtime(res)
                 command_result = res
             elif isinstance(command, ClankerizeCmd):
                 res = self.ingestion.initialize_workspace()
                 if isinstance(res, StartResult):
-                    self.kb_service.cache_goods(res)
+                    self.kb_service.set_runtime(res)
                 command_result = res
             else:
                 command_result = self.kb_service.handle_cmd(command)

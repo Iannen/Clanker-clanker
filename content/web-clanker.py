@@ -56,7 +56,7 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(b"Service unavailable: ingestion did not return StartResult")
                 return
 
-            kb_service.cache_goods(boot_result)
+            kb_service.set_runtime(boot_result)
 
             kb_service.handle_cmd(KbCmd(char='q'))
 
