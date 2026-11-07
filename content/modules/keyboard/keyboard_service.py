@@ -1,70 +1,61 @@
 from stdlib import dataclass
-from core import (
-    DomButton,
-    PromptButton,
-)
+from core import entities as e
 from core.engine_deps import (
     KBService,
     KbCmd,
-    KbCmdResult,
+    KbServiceEmission,
     DomainSelectedResult,
     UnboundKeyResult,
-    PromptRenderPending,
     UninhabitedPromptResult,
     UninhabitedDomainResult,
     BootstrapSuccess,
-    StandardRenderContext,
-    HotRenderContext,
-    ExitCommand,
-    ExitResult,
+    RenderNormalPromptCmd,
+    RenderHotPromptCmd,
     StartCmd,
-    Command,
-    Result,
-    StartResult,
 )
 
 @dataclass(slots=True)
 class KBServiceImpl(KBService):
-    def handle_cmd(self, cmd: Command) -> Result:
-        match cmd:
-            case ExitCommand(): 
-                return ExitResult(cmd)
-            case StartCmd(): 
-                self.last_prompt = None
-                return BootstrapSuccess(kb=self.kb, ui_render=self.ui_render, cmd=None)            
-            case KbCmd(): 
-                btn = self.kb.get(cmd.char)
-                if btn is None:
-                    return UnboundKeyResult(kb=self.kb, ui_render=self.ui_render, cmd=cmd)
-                match(btn):
-                    case(DomButton()): return self._handle_dom_btn(btn, cmd)
-                    case(PromptButton()): return self._handle_prompt_btn(btn, cmd)
-
-    def set_runtime(self, res: StartResult) -> None:
-        self.kb = res.kb
-        self.ui_render = res.ui_render
+    def handle_start(self, cmd: StartCmd) -> BootstrapSuccess:
+        self.kb = cmd.kb
+        self.ui_render = cmd.ui_render
         self.last_prompt = None
+        return BootstrapSuccess(kb=self.kb, ui_render=self.ui_render, cmd=cmd)
 
-    def _handle_dom_btn(self, btn: DomButton, cmd: KbCmd) -> KbCmdResult:
+    def handle_key(self, cmd: KbCmd) -> KbServiceEmission:
+        btn = self.kb.get(cmd.char)
+        if btn is None:
+            return UnboundKeyResult(kb=self.kb, ui_render=self.ui_render, cmd=cmd)
+        match btn:
+            case e.DomButton():
+                return self._handle_dom_btn(btn, cmd)
+            case e.PromptButton():
+                return self._handle_prompt_btn(btn, cmd)
+
+    def _handle_dom_btn(self, btn: e.DomButton, cmd: KbCmd) -> KbServiceEmission:
         self.kb.set_selected_dom_btn(btn)
-        self.last_prompt = None    
-        prompt_btns = self.kb.get_btns(PromptButton)
-        for p_ptn in prompt_btns: p_ptn.inhabitant = None
+        self.last_prompt = None
+        prompt_btns = self.kb.get_btns(e.PromptButton)
+        for p_ptn in prompt_btns:
+            p_ptn.inhabitant = None
         if not btn.inhabitant:
             return UninhabitedDomainResult(kb=self.kb, ui_render=self.ui_render, btn=btn, cmd=cmd)
         for prompt_btn, prompt in zip(prompt_btns, btn.inhabitant.prompts):
             prompt_btn.inhabitant = prompt
         return DomainSelectedResult(kb=self.kb, ui_render=self.ui_render, btn=btn, cmd=cmd)
 
-    def _handle_prompt_btn(self, btn: PromptButton, cmd: KbCmd) -> KbCmdResult:
-        if self.last_prompt is not None and btn.inhabitant == self.last_prompt:
-            ctx = HotRenderContext(kb=self.kb, prompt=self.last_prompt)
-            self.last_prompt = None
-            return PromptRenderPending(kb=self.kb, ui_render=self.ui_render, btn=btn, ctx=ctx, cmd=cmd)
-
-        self.last_prompt = btn.inhabitant
+    def _handle_prompt_btn(self, btn: e.PromptButton, cmd: KbCmd) -> KbServiceEmission:
         if btn.inhabitant is None:
             return UninhabitedPromptResult(kb=self.kb, ui_render=self.ui_render, btn=btn, cmd=cmd)
 
-        ctx = StandardRenderContext(kb=self.kb, prompt=btn.inhabitant)
-        return PromptRenderPending(kb=self.kb, ui_render=self.ui_render, btn=btn, ctx=ctx, cmd=cmd)
+        dom = self.kb.selected_dom_btn.inhabitant if self.kb.selected_dom_btn else None
+        if dom is None:
+            return UninhabitedPromptResult(kb=self.kb, ui_render=self.ui_render, btn=btn, cmd=cmd)
+
+        if self.last_prompt is not None and btn.inhabitant == self.last_prompt:
+            prompt = self.last_prompt
+            self.last_prompt = None
+            return RenderHotPromptCmd(kb=self.kb, ui_render=self.ui_render, cmd=cmd, prompt=prompt, domain=dom)
+
+        self.last_prompt = btn.inhabitant
+        return RenderNormalPromptCmd(kb=self.kb, ui_render=self.ui_render, cmd=cmd, prompt=btn.inhabitant, domain=dom)

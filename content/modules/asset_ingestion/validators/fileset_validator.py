@@ -1,4 +1,4 @@
-from core import PudFileset, SharedFileset, FilesetItem, AssetPack
+from core import entities as e
 from stdlib import dataclass
 from ...asset_ingestion import ErrorCollector, Numap
 from core.engine_deps import UnsatisfiedFilesetSubjects
@@ -7,16 +7,16 @@ from core.engine_deps import UnsatisfiedFilesetSubjects
 class FilesetValidator2:
     ec: ErrorCollector
     numap: Numap
-    clank_doc_assets: AssetPack 
-    pud_content_assets: AssetPack 
+    clank_doc_assets: e.AssetPack 
+    pud_content_assets: e.AssetPack 
 
     def validate(self):
-        items = self.numap.get_entities(FilesetItem)
-        from_pud = [item for item in items if isinstance(item.ancestor, PudFileset)]
-        from_clank = [item for item in items if isinstance(item.ancestor, SharedFileset)]
+        items = self.numap.get_entities(e.FilesetItem)
+        from_pud = [item for item in items if isinstance(item.ancestor, e.PudFileset)]
+        from_clank = [item for item in items if isinstance(item.ancestor, e.SharedFileset)]
 
-        pud_unsatisfied: list[FilesetItem] = []
-        shared_unsatisfied: list[FilesetItem] = []
+        pud_unsatisfied: list[e.FilesetItem] = []
+        shared_unsatisfied: list[e.FilesetItem] = []
 
         if self.pud_content_assets:
             for item in from_pud:

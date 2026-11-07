@@ -1,11 +1,12 @@
 from stdlib import dataclass, field, re, Queue
-from core import ClankerAssets, DomButton, PromptButton, Keyboard, CorruptClanker, NewBtn
+from core import entities as e
 from core.engine_deps import (
     TerminalPort, StartResult, ClankerizeResult, TerminateResult,
-    Report, MissingEntityFields, UnsatisfiedFiles, Missing, Malformed, 
-    UnsatisfiedFilesetSubjects, FilenameCollision, DomainOverflow, Complaint, Proposition, 
-    BootstrapSuccess, UnboundKeyResult, DomainSelectedResult, UninhabitedDomainResult, 
-    UninhabitedPromptResult, PromptRenderResult, KbCmdResult, NoSuchFile, DiskPort, ExitResult, Command, IOControl, KbCmd, UserAborted
+    Report, MissingEntityFields, UnsatisfiedFiles, Missing, Malformed,
+    UnsatisfiedFilesetSubjects, FilenameCollision, DomainOverflow, Complaint, Proposition,
+    BootstrapSuccess, UnboundKeyResult, DomainSelectedResult, UninhabitedDomainResult,
+    UninhabitedPromptResult, PromptRenderResult, KbServiceEmission, NoSuchFile, DiskPort, Command, IOControl, KbCmd, UserAborted,
+    StartCmd, ClankerizeCmd,
 )
 
 class ComplaintsFormatter:
@@ -67,35 +68,35 @@ class TUIContentShaper:
     """This class encapsulates all the business of turning a kb/ui render into a str"""
     DELIM = "§"
 
-    def render_view(self, command_result: KbCmdResult, files: DiskPort) -> str:
+    def render_view(self, command_result: KbServiceEmission, files: DiskPort) -> str:
         try:
-            template = files.read_asset(ClankerAssets.layouts.UI)
+            template = files.read_asset(e.ClankerAssets.layouts.UI)
         except NoSuchFile as ex:
-            raise CorruptClanker(f"Error loading template for '{command_result.ui_render.template}': {ex}") from ex
+            raise e.CorruptClanker(f"Error loading template for '{command_result.ui_render.template}': {ex}") from ex
         repl_map = self._res_ui(command_result.kb, files)
         repl_map["msg"] = self.shape_command_result(command_result)
         return self.hydrate(template, repl_map)
 
-    def _res_ui(self, kb: Keyboard, files: DiskPort) -> dict[str, str]:
-        btn_hl = files.read_asset(ClankerAssets.layouts.BTN_HL)
-        btn_active = files.read_asset(ClankerAssets.layouts.BTN_ACTIVE)
-        btn_inactive = files.read_asset(ClankerAssets.layouts.BTN_INACTIVE)
+    def _res_ui(self, kb: e.Keyboard, files: DiskPort) -> dict[str, str]:
+        btn_hl = files.read_asset(e.ClankerAssets.layouts.BTN_HL)
+        btn_active = files.read_asset(e.ClankerAssets.layouts.BTN_ACTIVE)
+        btn_inactive = files.read_asset(e.ClankerAssets.layouts.BTN_INACTIVE)
 
         repl_map = {}
-        for btn in kb.get_btns(DomButton):
+        for btn in kb.get_btns(e.DomButton):
             template = btn_inactive
             label = btn.inhabitant.name if btn.inhabitant else ""
             if btn == kb.selected_dom_btn: template = btn_hl
             elif btn.inhabitant: template = btn_active
             repl_map |= self.shape_button_replacements(btn, label, template)
-        for btn in kb.get_btns(PromptButton):
+        for btn in kb.get_btns(e.PromptButton):
             label = btn.inhabitant.name if btn.inhabitant else ""
-            template = btn_active if btn.inhabitant else btn_inactive   
+            template = btn_active if btn.inhabitant else btn_inactive
             repl_map |= self.shape_button_replacements(btn, label, template)
-            
+
         return repl_map
 
-    def shape_button_replacements(self, btn: NewBtn, label: str, template: str) -> dict[str, str]:
+    def shape_button_replacements(self, btn: e.NewBtn, label: str, template: str) -> dict[str, str]:
         lines = template.strip("\n").splitlines()
         norm_label = label[:6].ljust(6)
         mapped_lines = [
@@ -117,7 +118,7 @@ class TUIContentShaper:
             template
         )
 
-    def shape_command_result(self, command_result: KbCmdResult, width: int = 117) -> str:
+    def shape_command_result(self, command_result: KbServiceEmission, width: int = 117) -> str:
         match command_result:
             case BootstrapSuccess():
                 msg = ActionResult.BOOTSTRAP_SUCCESS
@@ -152,21 +153,21 @@ class TUIRenderer:
             return UserAborted()
         return KbCmd(char=ch.lower())
 
-    def post_question(self, result: StartResult | ClankerizeResult, affirmative_cmd: type, declined_cmd: type) -> None:
+    def post_question(self, result: StartResult | ClankerizeResult, declined_cmd: type) -> None:
         match result:
             case StartResult():
                 if not result.report.get_all_complaints():
-                    self.queue.put(affirmative_cmd())
+                    self.queue.put(StartCmd(kb=result.kb, ui_render=result.ui_render))
                     return
                 subject = ComplaintsFormatter.format(result.report)
-                statement=QuestionPhrases.PROCEED_QUESTION
-                required_phrase=None
+                statement = QuestionPhrases.PROCEED_QUESTION
+                required_phrase = None
             case ClankerizeResult():
                 subject = ComplaintsFormatter.format(result.report)
-                statement=QuestionPhrases.INIT_REPO
-                required_phrase=QuestionPhrases.REQUIRED_PHRASE
-            case _: 
-                raise ValueError(f"Unsupported result type for post_question: {type(result).__name__}") 
+                statement = QuestionPhrases.INIT_REPO
+                required_phrase = QuestionPhrases.REQUIRED_PHRASE
+            case _:
+                raise ValueError(f"Unsupported result type for post_question: {type(result).__name__}")
 
         accepted = self.io_bridge.get_acceptance(
             Proposition(
@@ -175,21 +176,27 @@ class TUIRenderer:
                 required_phrase=required_phrase
             )
         )
-        cmd = affirmative_cmd() if accepted else declined_cmd()
+        if accepted:
+            if isinstance(result, StartResult):
+                cmd: Command = StartCmd(kb=result.kb, ui_render=result.ui_render)
+            else:
+                cmd = ClankerizeCmd()
+        else:
+            cmd = declined_cmd()
         self.queue.put(cmd)
 
     def get_acknowledgement(self, result: TerminateResult, exit_cmd: type) -> None:
         msg = ComplaintsFormatter.format(result.report)
         proposition = Proposition(
             subject=msg,
-            statement="", # wtf is this omg
+            statement="",
             required_phrase=None
         )
         self.io_bridge.get_acceptance(proposition)
         self.queue.put(exit_cmd())
 
-    def display_result(self, result: KbCmdResult | ExitResult) -> None:
-        if isinstance(result, KbCmdResult):
+    def display_result(self, result: KbServiceEmission) -> None:
+        if isinstance(result, KbServiceEmission):
             ui_string = self.shaper.render_view(result, self.files)
             self.io_bridge.write(f"{ui_string}\n")
 

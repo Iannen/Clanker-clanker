@@ -2,14 +2,16 @@ from stdlib import dataclass
 from core.engine_deps import (
     KBService,
     FrontendService,
-    ExitResult,
     IngestionService,
     BootCmd,
     ClankerizeCmd,
-    StartResult,
+    StartCmd,
+    KbCmd,
+    ExitCommand,
     PromptService,
-    PromptRenderPending,
-    PromptRenderResult,
+    RenderNormalPromptCmd,
+    RenderHotPromptCmd,
+    Result,
 )
 
 @dataclass(slots=True)
@@ -20,33 +22,24 @@ class AppEngine:
     prompt_service: PromptService
 
     def run(self) -> str:
-        command_result = None
-        while not isinstance(command_result, ExitResult):
-            command = self.frontend.get_request()
+        item = None
+        while True:
+            item = self.frontend.get_request() if item is None else item
+            match item:
+                case BootCmd():
+                    item = self.ingestion.get_runtime_config()
+                case ClankerizeCmd():
+                    item = self.ingestion.initialize_workspace()
+                case RenderNormalPromptCmd() | RenderHotPromptCmd():
+                    item = self.prompt_service.render_prompt(item)
+                case StartCmd():
+                    item = self.kb_service.handle_start(item)
+                case KbCmd():
+                    item = self.kb_service.handle_key(item)
+                case ExitCommand():
+                    break
+            if isinstance(item, Result):
+                self.frontend.post_response(item)
+                item = None
 
-            if isinstance(command, BootCmd):
-                res = self.ingestion.get_runtime_config()
-                if isinstance(res, StartResult):
-                    self.kb_service.set_runtime(res)
-                command_result = res
-            elif isinstance(command, ClankerizeCmd):
-                res = self.ingestion.initialize_workspace()
-                if isinstance(res, StartResult):
-                    self.kb_service.set_runtime(res)
-                command_result = res
-            else:
-                command_result = self.kb_service.handle_cmd(command)
-                if isinstance(command_result, PromptRenderPending):
-                    render_out = self.prompt_service.render_prompt(command_result.ctx)
-                    command_result = PromptRenderResult(
-                        kb=command_result.kb,
-                        ui_render=command_result.ui_render,
-                        btn=command_result.btn,
-                        text=render_out.text,
-                        lines=render_out.lines,
-                        chars=render_out.chars,
-                        cmd=command_result.cmd,
-                    )
-
-            self.frontend.post_response(command_result)
-        return command_result.exit_msg
+        return item.exit_msg

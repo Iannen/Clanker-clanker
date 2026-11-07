@@ -1,5 +1,7 @@
 from stdlib import dataclass, Type, re, Any, StrEnum
 
+class CorruptClanker(Exception): pass
+
 class classproperty:
     def __init__(self, func):
         self.func = func
@@ -32,7 +34,7 @@ class TruncationSpec(Entity):
 class File(Entity):
     name: str
     truncation_spec: TruncationSpec | None
-    path: str | None
+    path: str = ""
 
 @dataclass
 class Filelist(Entity):

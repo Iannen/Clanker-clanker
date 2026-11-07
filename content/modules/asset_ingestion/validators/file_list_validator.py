@@ -1,13 +1,13 @@
 from stdlib import dataclass
-from core import File, AssetPack
+from core import entities as e
 from core.engine_deps import UnsatisfiedFiles, FilenameCollision
 from ...asset_ingestion import ErrorCollector, Numap
 
 @dataclass
 class FilelistValidator2:
     ec: ErrorCollector
-    clank_doc_assets: AssetPack
-    pud_doc_assets: AssetPack
+    clank_doc_assets: e.AssetPack
+    pud_doc_assets: e.AssetPack
     numap: Numap
 
     def validate(self):
@@ -17,9 +17,9 @@ class FilelistValidator2:
         pud_map = self._resolve_and_collect_collisions(self.pud_doc_assets)
 
         combined_map = pud_map | clank_map
-        files = self.numap.get_entities(File)
+        files = self.numap.get_entities(e.File)
 
-        unsatisfied_files: list[File] = []
+        unsatisfied_files: list[e.File] = []
 
         for file_item in files:
             target_path = combined_map.get(file_item.name)
@@ -32,7 +32,7 @@ class FilelistValidator2:
             self.ec.accept(UnsatisfiedFiles(unsatisfied_files))
             self.numap.prune(unsatisfied_files)
 
-    def _resolve_and_collect_collisions(self, pack: AssetPack) -> dict[str, str]:
+    def _resolve_and_collect_collisions(self, pack: e.AssetPack) -> dict[str, str]:
         filename_to_paths: dict[str, list[str]] = {}
         for path_str in pack.paths:
             filename = path_str.rsplit("/", 1)[-1]
