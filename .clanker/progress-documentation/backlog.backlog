@@ -29,136 +29,35 @@ II. The wishlist
 
     - automation of the bl migration
 
-5. must revert to side-by-side services. cannot have 
 
-
-```text
-1. Introduce CLI subcommands for `test` and `server` modes in clanker.py
-    [x] 'content/clanker.py': Replace flat flags with argparse subparsers
-        - remove the pre-scan `is_test_mode = "--test" in sys.argv`
-        - remove `--test` (store_true), `--input-script`, `--framedump-path` as top-level args
-        - add `sub = parser.add_subparsers(dest="mode")`
-        - add `test` subparser: `--input-script` (nargs="*", required=True → flag must appear, zero values yields `[]`), `--framedump-path` (type=str, required=True)
-        - add `server` subparser
-            - accepting no flags
-        - in `main()`: branch on `args.mode` — `"test"` → build ScriptedTerminalAdapter as before; `"server"` → call `start_server(port=args.port)`; no mode → LinuxTerminalAdapter (interactive, unchanged)
-    [x] 'content/web-clanker.py': Demote from script to module
-        - remove `if __name__ == "__main__":` block and the 3-line HTTPServer startup
-        - keep `ProxyHandler`, `GPU_BOX_URL`, `PORT`, `BASE_DIR`, `FRONTEND_DIR`, `TEST_PROMPT` as module-level definitions
-        - expose a `start_server() -> None` function containing the HTTPServer + serve_forever logic that was in `__main__`
-            - does not accept port, uses constant at top of file.
-```
-```text
-1. Extract IngestionService from KBServiceImpl up to AppEngine
-    [x] 'content/core/engine.py': AppEngine gains an `ingestion: IngestionService` field; `run()` intercepts BootCmd and ClankerizeCmd before they reach kb_service, calls ingestion directly, and calls `kb_service.cache_goods(result)` on StartResult
-        - BootCmd → `self.ingestion.get_runtime_config()`; if StartResult, `self.kb_service.cache_goods(res)`
-        - ClankerizeCmd → `self.ingestion.initialize_workspace()`; if StartResult, `self.kb_service.cache_goods(res)`
-        - All other commands fall through to `self.kb_service.handle_cmd(command)` as before
-        - Prohibition: engine must NOT call frontend.post_response twice for a single command
-    [x] 'content/modules/keyboard/keyboard_service.py': remove `ingestion: IngestionService` field from the dataclass; remove `BootCmd` and `ClankerizeCmd` match arms from `handle_cmd`; rename `_cache_goods` to public `cache_goods` (engine will call it)
-        - `handle_cmd` now only handles: StartCmd, KbCmd, ExitCommand
-        - Drop the `IngestionService` import (no longer referenced)
-        - Prohibition: do not move the StartCmd logic out — it still belongs to kb_service (it resets last_prompt and returns BootstrapSuccess)
-    [x] 'content/clanker.py': constructor wiring changes — `AppEngine(frontend=io, kb_service=kb_service, ingestion=ingestion)`; `KBServiceImpl(prompt_service=prompt_service)` (no more `ingestion=` kwarg)
-        - Prohibition: do not change the adapter construction or the test-mode branching
-    [x] 'content/core/engine_deps/result.py': no change needed — `IngestionService` ABC is already exported here; just confirming no signature change required
-```
-```text
-1. Flatten prompt_service to a peer under AppEngine
-    [x] 'content/core/engine.py': Add prompt_service: PromptService to AppEngine; in run(), intercept the kb result that carries a RenderContext and call self.prompt_service.render_prompt(ctx) before posting the response
-    [x] 'content/core/engine_deps/result.py': Adjust PromptRenderResult or introduce a lightweight intermediate (e.g. PromptRenderPending) that KBService can return, carrying the RenderContext for the engine to resolve
-    [x] 'content/modules/keyboard/keyboard_service.py': Remove prompt_service field; _handle_prompt_btn now returns the context-bearing result instead of calling render_prompt; last_prompt bookkeeping stays here
-    [x] 'content/clanker.py': Rewire construction — prompt_service is passed to AppEngine, not to KBServiceImpl
-    [x] 'content/web-clanker.py': Same rewiring in _handle_prompt_request — prompt_service passed to engine, not to kb_service
-```
-```text
-1. Refactor prompt render to return content and move clipboard to frontend
-    [x] 'content/core/engine_deps/result.py': Add `text: str` field to `PromptRenderResult`
-    [x] 'content/core/engine_deps/ports.py': Change `PromptService.render_prompt` return annotation from `...` to a small return struct (e.g. `PromptRenderOutput` with `text: str`, `lines: int`, `chars: int`) or just document it returns that shape
-    [x] 'content/content/modules/render_pipeline/render_service.py':
-        - Remove `io_bridge: TerminalPort` field from `PromptServiceImpl`
-        - Remove `render_prompt_text` method
-        - Change `render_prompt` to return the small output struct (text, lines, chars) instead of `(int, int)`; no clipboard call here
-    [x] 'content/core/engine.py': Adapt `run()` loop — `render_prompt` now returns the output struct; engine still assembles `PromptRenderResult` from it + pending context's `kb`/`ui_render`/`btn`/`cmd`, now including `.text`
-    [x] 'content/modules/tui/tui_service.py': In `post_response`, when result is `PromptRenderResult`, call `self._queue`'s io_bridge `to_clipboard(result.text)` before or alongside `display_result`
-    [x] 'content/modules/tui/renderer.py': `display_result` for `PromptRenderResult` no longer needs to trigger clipboard (or the clipboard call moves here — decide placement, but it must be in the frontend layer)
-    [x] 'content/web-clanker.py':
-        - Construct `PromptServiceImpl` with only `files` (no `io_bridge`)
-        - Replace `kb_service.kb.get('a')` + `kb_service.build_render_context(btn)` + `render_service.render_prompt_text(ctx)` with:
-          - `kb_service.handle_cmd(KbCmd(char='a'))` → `PromptRenderPending`
-          - `render_service.render_prompt(pending.ctx)` → output struct
-          - read `.text` from output struct for HTTP body
-        - Remove any `io_bridge=None` workaround
-        - Remove imports/usages of non-ABC methods (`build_render_context`, `render_prompt_text`, direct `.kb` attr access)
-```
-```text
-2. Promote `cache_goods` to ABC as `set_runtime`
-    [x] 'content/core/engine_deps/ports.py': Add `@abstractmethod def set_runtime(self, res: StartResult) -> None: ...` to `KBService`
-    [x] 'content/modules/keyboard/keyboard_service.py': Rename `cache_goods` → `set_runtime`
-    [x] 'content/core/engine.py': Rename both `self.kb_service.cache_goods(res)` calls to `self.kb_service.set_runtime(res)`
-    [x] 'content/web-clanker.py': Rename `kb_service.cache_goods(boot_result)` to `kb_service.set_runtime(boot_result)`
-```
-
-```text
-1. Convert web-clanker module into a WebServer class with run method, mirroring AppEngine's DI contract
-    [x] 'content/web_clanker.py': Replace module-level start_server() with a WebServer dataclass
-        - slots: ingestion (IngestionService), prompt_service (PromptService), kb_service (KBService), port (int), gpu_box_url (str)
-        - run() constructs HTTPServer using self.port, attaches ingestion/prompt_service/kb_service/gpu_box_url onto the server instance, calls serve_forever()
-        - ProxyHandler._handle_prompt_request no longer instantiates adapters/services per request — pulls ingestion, prompt_service, kb_service off self.server
-        - ProxyHandler._forward uses self.server.gpu_box_url instead of module-level GPU_BOX_URL
-        - remove start_server() function
-        - remove GPU_BOX_URL and PORT module-level constants
-    [x] 'content/clanker.py': Update server-mode branch to do DI at the call site
-        - instantiate LinuxDiskAdapter, RuamelYamlParserAdapter, IngestionServiceImpl, PromptServiceImpl, KBServiceImpl
-        - construct WebServer(ingestion=..., prompt_service=..., kb_service=..., port=8787, gpu_box_url="...")
-        - call server.run()
-        - remove importlib.import_module("web-clanker") / mod.start_server() path
-    [x] 'content/web-clanker.py': deleted (renamed to web_clanker.py)
-```
-
-```text
-1. Add WebFrontendServiceImpl as a new FrontendService adapter for the web mode
-    [x] 'content/modules/web_frontend/__init__.py': New subpackage init, exports the impl
-        - `from .web_frontend_service import *`
-    [x] 'content/modules/web_frontend/web_frontend_service.py': Self-contained web frontend service + internal HTTP handler
-        - `_ReplySlot`: tiny threading helper — holds an `Event` + `bytes` payload; `.wait()` blocks, `.resolve(payload)` fires
-        - `_Handler(http.server.SimpleHTTPRequestHandler)`: serves static files from `web-ui/frontend/` dir; proxies `/v1/chat/completions`, `/api/desktop-mode`, `/api/inference-mode` to `self.server.gpu_box_url`; on `GET /api/prompt` builds two `KbCmd`s (`'q'` then `'a'`), creates a `_ReplySlot`, stashes it in `self.server.frontend._pending` keyed by `id(cmd)`, pushes both cmds onto `self.server.frontend._queue`, blocks on `.wait()`, writes the bytes back as `text/plain`
-        - `WebFrontendServiceImpl(FrontendService)`: `__init__` takes `port`, `gpu_box_url`; creates the `Queue`, pre-puts `BootCmd()`, creates `dict[int, _ReplySlot]` for `_pending`, builds the `HTTPServer`, attaches `self` and `gpu_box_url` onto the server instance, spawns a daemon `threading.Thread` targeting `serve_forever`
-        - `__post_init__`: starts the daemon thread
-        - `get_request`: `return self._queue.get()`
-        - `post_response`: match on result type — `StartResult` → print ready; `ExitResult` → no-op; anything else → `slot = self._pending.pop(id(result.cmd), None)`; if slot exists, `slot.resolve(result.text.encode("utf-8"))`; if not, no-op (handles the intermediate domain-select result with no attached slot)
-        - static file dir computed from `Path(__file__)` → `content/web-ui/frontend`
-        - prohibition: do NOT import or subclass the existing `WebServer` or `ProxyHandler` from `web_clanker.py`; this is fully independent
-    [x] 'content/modules/__init__.py': Add one import line for the new subpackage
-        - `from .web_frontend.web_frontend_service import WebFrontendServiceImpl`
-    [x] 'content/clanker.py': Add `newserver` subcommand and wiring block
-        - add `sub.add_parser("newserver", help="Start the web frontend (new)")`
-        - new `if args.mode == "newserver":` branch: construct `WebFrontendServiceImpl(port=8787, gpu_box_url="https://gpu-box.tailca68f1.ts.net:8787")`, then the same `files_adapter`, `cfg_ingestor`, `ingestion`, `prompt_service`, `kb_service` as the other paths, build `AppEngine(frontend=frontend, ...)`, call `engine.run()`
-        - prohibition: do NOT modify or remove the existing `server` subcommand or its wiring; it stays as-is
-```
-
-```text
-2. Add GET /api/char?char=X endpoint to _Handler for single-char commands
-    [x] 'content/modules/web_frontend/web_frontend_service.py': Add char endpoint to _Handler.do_GET + fix post_response for non-text results
-        - in `do_GET`: add branch `elif self.path.startswith("/api/char"):` before the generic `/api/` 404
-        - parse query via `urllib.parse.urlsplit(self.path).query` → `urllib.parse.parse_qs` → extract `char` key (single non-empty string)
-        - if missing/invalid: `400` with `text/plain` body `"Missing or invalid 'char' query param"`
-        - build `cmd = KbCmd(char=char_val)`, create `slot = _ReplySlot()`, stash `frontend._pending[id(cmd)] = slot`
-        - push `frontend._queue.put(cmd)`, block on `body = slot.wait()`
-        - write back as `200` / `text/plain` with `Content-Length`
-        - add `from urllib.parse import parse_qs, urlsplit` at top of file
-        - in `post_response` catch-all `case _:`: guard with `hasattr(result, "text")` before `slot.resolve(...)`
-        - if no `.text` (DomainSelectedResult, UnboundKeyResult, etc.): resolve with `repr(type(result).__name__).encode("utf-8")` so the slot unblocks and the handler returns a status string instead of crashing
-```
-```text
-1. JSON-serialize post_response results and retire /api/prompt
-    [x] 'content/modules/web_frontend/web_frontend_service.py':
-        - In `post_response`, `case _` branch: replace the `hasattr(result, "text")` / `repr(type(result).__name__)` fallback with `json.dumps(asdict(result), default=str).encode("utf-8")`. Add `import json` and `from dataclasses import asdict` at module top.
-        - Remove the `_handle_prompt` method in `_Handler`.
-        - Remove the `if self.path == "/api/prompt": self._handle_prompt()` branch from `_Handler.do_GET`.
-    [x] 'content/web-ui/frontend/api-client.js':
-        - Remove the `getPrompt()` method (it targets the now-deleted `/api/prompt` endpoint).
-        - Remove the `Ctrl+y` handler in `clanker-app.js` (`#pullRealPrompt`) or repoint it if there's a replacement intent — flag for follow-up.
-```
 Backlog tail, Selected item/items:
+Cleanup items. 
+```text
+1. Promote `prompt` to base RenderContext, remove nullability
+    [ ] 'content/core/engine_deps/result.py': Move `prompt: Prompt` from subclasses into base `RenderContext`; remove `= None` defaults
+        - add `prompt: Prompt` as a required field on `RenderContext` (no default)
+        - remove `prompt: Prompt = None` from `StandardRenderContext`
+        - remove `prompt: Prompt = None` from `HotRenderContext`
+        - subclasses become pure type discriminants (empty body, just `pass`)
+    [ ] 'content/modules/keyboard/keyboard_service.py': No construction-site changes (already passes `kb` and `prompt` by keyword)
+        - verify both `StandardRenderContext(kb=self.kb, prompt=btn.inhabitant)` call sites still resolve
+    [ ] 'content/modules/render_pipeline/render_service.py': No attribute-access changes
+        - `_get_template` / `_get_repl_map` still read `ctx.prompt` — now resolved on base, no code edit needed
+        - prohibition: do NOT remove the `case _` fallback branches in this item; they reference `ctx.render` which doesn't exist and are a separate concern
+2. Remove dead code: unused methods, orphan entity, dead exception
+    [ ] 'content/core/engine_deps/ports.py': Remove `AssetExists` exception class and `assert_absent` abstract method from `DiskPort`
+        - delete `class AssetExists(Exception): pass`
+        - delete `@abstractmethod def assert_absent(...) -> None: ...` from `DiskPort`
+    [ ] 'content/adapters/disk_adapter.py': Remove `assert_absent` implementation and its `AssetExists` import
+        - delete the `assert_absent` method
+        - remove `AssetExists` from the `from core.engine_deps import ...` line
+    [ ] 'content/core/core/entities.py': Remove orphan `KBStateResolver` class
+        - delete `@dataclass class KBStateResolver(Resolver): type = "ui-resolver"; anchor: str = "kb_info"`
+    [ ] 'content/modules/keyboard/keyboard_service.py': Remove unused `build_render_context` method
+        - delete the entire `build_render_context` method (inlines the same construction `_handle_prompt_btn` already does)
+    [ ] 'content/core/engine_deps/result.py': Remove `get_complaints` from `Report` ABC
+        - delete the `@abstractmethod def get_complaints(self) -> list[str]: ...` line
+    [ ] 'content/modules/asset_ingestion/commons/error_collector.py': Remove `get_complaints` implementation
+        - delete the `get_complaints` method (no caller invokes it; `get_all_complaints` and `get_critical_complaints` are the live paths)
+```
 Backlog tail end

@@ -122,8 +122,6 @@ class HotRenderContext(RenderContext):
     prompt: Prompt = None
 
 
-
-
 # services reference results, and emit commands
 class IngestionService(ABC): 
     @abstractmethod

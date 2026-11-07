@@ -1429,3 +1429,39 @@ CLXXIX: REAL PROMPT ENDPOINT VIA INGESTION+RENDER PIPELINE AND CTRL+Y KEYBIND
     Reflection: The web UI is now a first-class consumer of the same ingestion + render pipeline the TUI uses, decoupled from terminal I/O by the `io_bridge=None` convention and the `render_prompt_text` / `build_render_context` additions.
     - Per-request service construction (rather than a long-lived singleton) keeps the endpoint stateless and safe against concurrent requests, at the cost of re-parsing YAML on every hit—acceptable for the single-user, low-frequency use case.
     - The two-keybind pair (Ctrl+I lightweight / Ctrl+Y full pipeline) gives a graduated diagnostic: if Ctrl+I works but Ctrl+Y fails, the fault is in ingestion/render; if Ctrl+I fails, the fault is in the streaming proxy or inference host.
+
+CLXXX: ARCHITECTURAL FLATTENING — SERVICE EXTRACTION TO APPENGINE
+    Purpose: Decompose KBServiceImpl's absorbed responsibilities (ingestion, prompt rendering, clipboard I/O) into first-class AppEngine peers, restructure CLI entry into subcommand-based dispatch, and promote runtime caching to the ABC contract.
+    Actions: Replaced flat argparse flags (`--test`, `--input-script`, `--framedump-path`) with `argparse` subparsers (`test`, `server`); removed the pre-scan `is_test_mode` check.
+    - Added `ingestion: IngestionService` and `prompt_service: PromptService` fields to `AppEngine`; `run()` now intercepts `BootCmd`/`ClankerizeCmd` for direct ingestion calls and intercepts `PromptRenderPending` to invoke `prompt_service.render_prompt` before posting.
+    - Removed `ingestion` field and `BootCmd`/`ClankerizeCmd` match arms from `KBServiceImpl`; `handle_cmd` now handles only `StartCmd`, `KbCmd`, `ExitCommand`.
+    - Removed `prompt_service` from `KBServiceImpl`; `_handle_prompt_btn` returns `PromptRenderPending` carrying the `RenderContext` instead of calling `render_prompt` inline.
+    - Refactored `PromptServiceImpl.render_prompt` to return `PromptRenderOutput(text, lines, chars)`; removed the `io_bridge: TerminalPort` field; moved the clipboard call into `FrontendServiceImpl.post_response`.
+    - Promoted `set_runtime` to the `KBService` ABC; renamed `_cache_goods` → `set_runtime` in `KBServiceImpl` and updated all call sites (engine, web handler).
+    - Rewired `clanker.py` construction: `AppEngine(frontend=..., kb_service=..., ingestion=..., prompt_service=...)`; `KBServiceImpl()` takes no ingestion kwarg.
+    Reflection: The engine is now the sole orchestrator of cross-service coordination (ingestion → kb cache, kb → prompt render), while each service retains only its own domain logic.
+    - Per-request service construction in the web handler was eliminated at this stage (services are constructed once at the call site and shared), making the HTTP path stateless.
+    - The `PromptRenderPending` intermediate decouples "which prompt to render" (kb concern) from "how to render it" (prompt-service concern), enabling the frontend to decide whether to display, copy, or serialize the result.
+
+CLXXXI: WEB FRONTEND SERVICE AS FIRST-CLASS ADAPTER
+    Purpose: Replace the old module-level `start_server()` / `WebServer` class with a self-contained `WebFrontendServiceImpl` that plugs into `AppEngine`'s DI contract as a `FrontendService`, using a threading-based queue-and-reply-slot pattern for synchronous request/response over HTTP.
+    Actions: Created `content/modules/web_frontend/web_frontend_service.py` containing `_ReplySlot` (threading.Event + bytes payload), `_Handler` (static-file serving, inference-endpoint proxying, `/api/char` dispatch), and `WebFrontendServiceImpl` (queue pre-loaded with `BootCmd`, `_pending` dict, HTTPServer bound to 127.0.0.1, daemon `serve_forever` thread).
+    - `_Handler._handle_char` parses `?char=X` from the query string, builds a `KbCmd`, stashes a `_ReplySlot` in `frontend._pending[id(cmd)]`, pushes the command onto the queue, blocks on `slot.wait()`, and writes the resolved bytes as `text/plain`.
+    - `WebFrontendServiceImpl.post_response` resolves the pending slot with `json.dumps(asdict(result), default=str)` for any non-Start/Exit result; `StartResult` prints a readiness message; `ExitResult` is a no-op.
+    - `clanker.py` `server` subcommand constructs `WebFrontendServiceImpl(port=8787, gpu_box_url=...)`, calls `frontend.start()`, wires it as `AppEngine.frontend`, and calls `engine.run()`.
+    - Deleted `content/web_clanker.py` entirely (the old `WebServer` dataclass, `ProxyHandler`, module-level `start_server()`, and `GPU_BOX_URL`/`PORT` constants).
+    - Added `from .web_frontend.web_frontend_service import WebFrontendServiceImpl` to `content/modules/__init__.py`.
+    Reflection: The web frontend is now structurally identical to the TUI frontend from the engine's perspective—both implement `FrontendService.get_request` / `post_response`—the only difference being the I/O mechanism (raw terminal chars vs. HTTP requests resolved via reply slots).
+    - The daemon-thread `serve_forever` keeps the HTTP server alive without blocking the engine's `run()` loop; the engine thread blocks on `queue.get()` while the HTTP handler thread pushes commands and blocks on reply slots, giving a lock-free (single-consumer) handoff.
+
+CLXXXII: WEB API UNIFICATION, JSON RESULTS, AND LEGACY KEYBIND RETIREMENT
+    Purpose: Standardize all web result delivery to JSON-serialized dataclass dumps, retire the bespoke `/api/prompt` endpoint in favor of the generic `/api/char?char=X` path, remove the obsolete standalone-server code path, and mark the now-inert Ctrl+I / Ctrl+Y keybinds as placeholders in the UI.
+    Actions: In `_Handler.do_GET`, added the `/api/char` branch (parsing via `urllib.parse.urlsplit` + `parse_qs`; 400 on missing/invalid char) before the generic `/api/` 404 fallback.
+    - In `WebFrontendServiceImpl.post_response`, replaced the previous `hasattr(result, "text")` / `repr(type(result).__name__)` fallback with `json.dumps(asdict(result), default=str).encode("utf-8")`; added `import json` and `from dataclasses import asdict` at module top.
+    - Removed the `_handle_prompt` method and the `if self.path == "/api/prompt":` branch from `_Handler.do_GET`.
+    - Removed `getPrompt()` from `ApiClient` (`api-client.js`) and the `'Ctrl+Y'` / `#pullRealPrompt` handler from `ClankerApp` (`clanker-app.js`).
+    - Removed the `server` subparser and its wiring block from `clanker.py` (the old `web_clanker`-backed path); removed `from web_clanker import WebServer` import. The `newserver`→`server` subparser (backed by `WebFrontendServiceImpl`) remains as the sole web entry.
+    - In `sidepanel-right.js`, changed the descriptive text of both Ctrl+Y and Ctrl+I shortcut cards to "Placeholder keybind".
+    Reflection: The web frontend's API surface is now minimal and uniform: one GET endpoint (`/api/char`) that round-trips any keyboard command through the engine, and one set of POST proxies for inference. All result formatting is centralized in `post_response` as a single `json.dumps` call.
+    - The `/api/test-prompt` (Ctrl+I) endpoint still exists on the proxy for the hardcoded smoke-test, but its keybind is labeled as placeholder in the UI—functional but not part of the config-driven flow.
+    - Removing the old `WebServer` / `web_clanker.py` eliminates a parallel HTTP code path that duplicated static-file serving and proxying, consolidating all web concerns into the single `WebFrontendServiceImpl`.
