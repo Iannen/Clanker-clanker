@@ -81,11 +81,6 @@ class ManifestResolver(Resolver):
     shared_fileset: SharedFileset | None
 
 @dataclass
-class KBStateResolver(Resolver):
-    type = "ui-resolver"
-    anchor: str = "kb_info"
-
-@dataclass
 class Render(Entity):
     resolvers: list[Resolver] 
     template: str = "prompt_template"

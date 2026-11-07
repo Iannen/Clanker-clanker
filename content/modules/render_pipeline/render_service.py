@@ -11,29 +11,23 @@ from core import (
     Filelist,
 )
 from stdlib import dataclass
-from core.engine_deps import PromptService, RenderContext, DiskPort, TerminalPort, NoSuchFile, StandardRenderContext, HotRenderContext
+from core.engine_deps import PromptService, DiskPort, NoSuchFile, StandardRenderContext, HotRenderContext, PromptRenderOutput, RenderContext
 from . import PromptContentShaper
 
 @dataclass(slots=True)
 class PromptServiceImpl(PromptService):
     files: DiskPort
-    io_bridge: TerminalPort
 
     def __post_init__(self) -> None:
         self.shaper: PromptContentShaper = PromptContentShaper()
 
-    def render_prompt(self, ctx: RenderContext) -> tuple[int, int]:
+    def render_prompt(self, ctx: RenderContext) -> PromptRenderOutput:
         template = self._get_template(ctx)
         repl_map = self._get_repl_map(ctx)
         text_content = self._hydrate(template, repl_map)
-        lines_count = self.io_bridge.to_clipboard(text_content)
+        lines_count = len(text_content.splitlines())
         char_count = len(text_content)
-        return lines_count, char_count
-
-    def render_prompt_text(self, ctx: RenderContext) -> str:
-        template = self._get_template(ctx)
-        repl_map = self._get_repl_map(ctx)
-        return self._hydrate(template, repl_map)
+        return PromptRenderOutput(text=text_content, lines=lines_count, chars=char_count)
 
     def _hydrate(self, template: str, replacements: dict[str, str]) -> str:
         return self.shaper.hydrate(template, replacements)

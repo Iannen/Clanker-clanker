@@ -5,19 +5,18 @@ system:
 pud_filesets:
   combined: {includes: [content], excludes: [
     content/a_lib,
-    content/web-ui
+    content/web-ui,
+    content/adapters/terminal/scripted_terminal_adapter.py
     ]}
 
   whole_thing: { includes: [content]}
 
   web_ui: { includes: [content/web-ui/frontend]}
   backend: { includes: [content/web-ui/], excludes: [content/web-ui/frontend]}
-  biggone: { includes: [content], excludes: [content/a_lib]}
   all_code: {includes: [content], excludes: [
     content/a_lib,
     content/adapters/terminal/scripted_terminal_adapter.py
     ]}
-
 
   web_dev: {includes: [content], excludes: [
     content/a_lib,

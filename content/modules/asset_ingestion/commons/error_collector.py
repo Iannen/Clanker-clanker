@@ -7,9 +7,6 @@ class ErrorCollector(Report):
         self._soft_complaints: list[Soft] = []
         self._critical_complaints: list[Critical] = []
 
-    def get_complaints(self) -> list[str]:
-        return ["soft\n" for c in self._soft_complaints]
-
     def get_all_complaints(self) -> list[Soft]:
         return self._soft_complaints+self._critical_complaints
 

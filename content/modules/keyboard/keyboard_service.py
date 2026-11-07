@@ -5,52 +5,28 @@ from core import (
 )
 from core.engine_deps import (
     KBService,
-    PromptService,
     KbCmd,
     KbCmdResult,
     DomainSelectedResult,
     UnboundKeyResult,
-    PromptRenderResult,
+    PromptRenderPending,
     UninhabitedPromptResult,
     UninhabitedDomainResult,
     BootstrapSuccess,
     StandardRenderContext,
     HotRenderContext,
-    IngestionService,
     ExitCommand,
     ExitResult,
-    BootCmd,
     StartCmd,
-    ClankerizeCmd,
     Command,
     Result,
     StartResult,
-    RenderContext,
 )
 
 @dataclass(slots=True)
 class KBServiceImpl(KBService):
-    """ 
-    this needs to hold more state so the kb need not hold any runtime state
-    this means the inhabitant model has to go, at least for the prompt buttons
-
-    the prize is that we can fetch that which is a function of files on every loop
-    """
-    prompt_service: PromptService
-    ingestion: IngestionService
-
     def handle_cmd(self, cmd: Command) -> Result:
         match cmd:
-            case BootCmd(): 
-                res = self.ingestion.get_runtime_config()
-                if isinstance(res, StartResult):
-                    self._cache_goods(res)
-                return res
-            case ClankerizeCmd(): 
-                res = self.ingestion.initialize_workspace()
-                if isinstance(res, StartResult):
-                    self._cache_goods(res)
-                return res
             case ExitCommand(): 
                 return ExitResult(cmd)
             case StartCmd(): 
@@ -64,12 +40,7 @@ class KBServiceImpl(KBService):
                     case(DomButton()): return self._handle_dom_btn(btn, cmd)
                     case(PromptButton()): return self._handle_prompt_btn(btn, cmd)
 
-    def build_render_context(self, btn: PromptButton) -> RenderContext | None:
-        if btn.inhabitant is None:
-            return None
-        return StandardRenderContext(kb=self.kb, prompt=btn.inhabitant)
-
-    def _cache_goods(self, res: StartResult) -> None:
+    def set_runtime(self, res: StartResult) -> None:
         self.kb = res.kb
         self.ui_render = res.ui_render
         self.last_prompt = None
@@ -89,13 +60,11 @@ class KBServiceImpl(KBService):
         if self.last_prompt is not None and btn.inhabitant == self.last_prompt:
             ctx = HotRenderContext(kb=self.kb, prompt=self.last_prompt)
             self.last_prompt = None
-            lines, chars = self.prompt_service.render_prompt(ctx)
-            return PromptRenderResult(kb=self.kb, ui_render=self.ui_render, btn=btn, lines=lines, chars=chars, cmd=cmd)
+            return PromptRenderPending(kb=self.kb, ui_render=self.ui_render, btn=btn, ctx=ctx, cmd=cmd)
 
         self.last_prompt = btn.inhabitant
         if btn.inhabitant is None:
             return UninhabitedPromptResult(kb=self.kb, ui_render=self.ui_render, btn=btn, cmd=cmd)
 
         ctx = StandardRenderContext(kb=self.kb, prompt=btn.inhabitant)
-        lines, chars = self.prompt_service.render_prompt(ctx)
-        return PromptRenderResult(kb=self.kb, ui_render=self.ui_render, btn=btn, lines=lines, chars=chars, cmd=cmd)
+        return PromptRenderPending(kb=self.kb, ui_render=self.ui_render, btn=btn, ctx=ctx, cmd=cmd)

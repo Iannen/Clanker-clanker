@@ -31,16 +31,12 @@ class TerminalPort(ABC):
 
 
 class NoSuchFile(Exception): pass
-class AssetExists(Exception): pass
 class FileAccessError(Exception): pass
 class InvalidPathToken(Exception): pass
 
 class DiskPort(ABC):
     @abstractmethod
     def get_file_contents(self, tokenized_path: str) -> str: ...  # raises: InvalidPathToken, NoSuchFile, FileAccessError
-
-    @abstractmethod
-    def assert_absent(self, tokenized_path: str) -> None: ...  # raises: InvalidPathToken, AssetExists
 
     @abstractmethod
     def create_dir(

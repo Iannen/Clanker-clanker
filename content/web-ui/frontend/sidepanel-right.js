@@ -41,12 +41,12 @@ const html = `
 
             <div class="bg-[#030712] p-3 rounded-lg border border-[#1f2937]/60">
                 <div class="font-mono text-[#6ee7b7] font-bold mb-1">Ctrl + Y</div>
-                <div class="text-[#9ca3af]">Pull real prompt from config</div>
+                <div class="text-[#9ca3af]">Placeholder keybind</div>
             </div>
 
             <div class="bg-[#030712] p-3 rounded-lg border border-[#1f2937]/60">
                 <div class="font-mono text-[#6ee7b7] font-bold mb-1">Ctrl + I</div>
-                <div class="text-[#9ca3af]">Pull test prompt (hardcoded)</div>
+                <div class="text-[#9ca3af]">Placeholder keybind</div>
             </div>
 
         </div>

@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from core.engine_deps import DiskPort, NoSuchFile, AssetExists, FileAccessError, InvalidPathToken
+from core.engine_deps import DiskPort, NoSuchFile, FileAccessError, InvalidPathToken
 from core import PathTokens
 
 class LinuxDiskAdapter(DiskPort):
@@ -29,11 +29,6 @@ class LinuxDiskAdapter(DiskPort):
     def get_file_contents(self, tokenized_path: str) -> str:
         target_path = self._resolve_tokenized_path(tokenized_path)
         return self._read_path_as_string(target_path)
-
-    def assert_absent(self, tokenized_path: str) -> None:
-        target_path = self._resolve_tokenized_path(tokenized_path)
-        if target_path.exists():
-            raise AssetExists from ValueError(f"Target already exists: {target_path}")
 
     def create_dir(self, tokenized_path: str) -> None:
         target_path = self._resolve_tokenized_path(tokenized_path)

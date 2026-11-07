@@ -212,7 +212,7 @@ class TestContainerImpl(TestContainer):
             sys.executable,
             "-B",
             str(clanker_path),
-            "--test",
+            "test",
             "--input-script",
             *self.sequence,
             "--framedump-path",

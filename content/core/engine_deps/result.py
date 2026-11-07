@@ -41,8 +41,6 @@ class MissingEntityFields(Soft):
 
 class Report(ABC):
     @abstractmethod
-    def get_complaints(self) -> list[str]: ...
-    @abstractmethod
     def get_all_complaints(self) -> list[Soft]: ...
     @abstractmethod
     def get_critical_complaints(self) -> list[str]: ...
@@ -78,8 +76,18 @@ class UninhabitedDomainResult(KbCmdResult): btn: DomButton
 @dataclass
 class UninhabitedPromptResult(KbCmdResult): btn: PromptButton
 @dataclass
+class PromptRenderPending(KbCmdResult):
+    btn: PromptButton
+    ctx: RenderContext
+@dataclass
+class PromptRenderOutput:
+    text: str
+    lines: int
+    chars: int
+@dataclass
 class PromptRenderResult(KbCmdResult):
     btn: PromptButton
+    text: str
     lines: int
     chars: int
 
@@ -102,16 +110,15 @@ class TerminateResult(IngestionResult): pass
 @dataclass
 class RenderContext:
     kb: Keyboard
+    prompt: Prompt
 
 @dataclass(slots=True)
 class StandardRenderContext(RenderContext):
-    prompt: Prompt = None
+    pass
 
 @dataclass(slots=True)
 class HotRenderContext(RenderContext):
-    prompt: Prompt = None
-
-
+    pass
 
 
 # services reference results, and emit commands
@@ -129,8 +136,10 @@ class FrontendService(ABC):
 
 class PromptService(ABC):
     @abstractmethod
-    def render_prompt(self, ctx: RenderContext): ...
+    def render_prompt(self, ctx: RenderContext) -> PromptRenderOutput: ...
 
 class KBService(ABC):
     @abstractmethod
     def handle_cmd(self, Command): ...
+    @abstractmethod
+    def set_runtime(self, res: StartResult) -> None: ...
