@@ -52,7 +52,7 @@ class StartCmd(Command): pass
 class ClankerizeCmd(Command): pass
 @dataclass
 class KbCmd(Command): char: str
-class ExitCommand(Command): pass
+class ExitCommand(Command): exit_msg: str
 class UserDeclinedStart(ExitCommand): exit_msg = "Bootstrap declined by user"
 class UserDeclinedClankerize(ExitCommand): exit_msg = "User declined to clankerize project"
 class StartupFailed(ExitCommand): exit_msg = "Program could not start"

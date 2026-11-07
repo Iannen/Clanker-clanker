@@ -23,8 +23,7 @@ class AppEngine:
     def run(self) -> str:
         item = None
         while True:
-            if item is None:
-                item = self.frontend.get_request()
+            item = self.frontend.get_request() if item is None else item
 
             match item:
                 case BootCmd():
