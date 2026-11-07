@@ -2,7 +2,7 @@ from stdlib import dataclass, ABC, abstractmethod, Any, Field
 from core import Render, Keyboard, File, DomButton, PromptButton, Prompt
 
 # Report and complaints only reference entities ( i think )
-class Complaint(): pass 
+class Complaint(): pass
 class Critical(Complaint): pass
 class Soft(Complaint): pass
 @dataclass
@@ -51,12 +51,20 @@ class BootCmd(Command): pass
 class StartCmd(Command): pass
 class ClankerizeCmd(Command): pass
 @dataclass
-class KbCmd(Command):char: str
+class KbCmd(Command): char: str
 class ExitCommand(Command): pass
 class UserDeclinedStart(ExitCommand): exit_msg = "Bootstrap declined by user"
 class UserDeclinedClankerize(ExitCommand): exit_msg = "User declined to clankerize project"
 class StartupFailed(ExitCommand): exit_msg = "Program could not start"
 class UserAborted(ExitCommand): exit_msg = "Program exited"
+
+@dataclass
+class RenderPromptCmd(Command):
+    ctx: "RenderContext"
+    btn: PromptButton
+    kb: Keyboard
+    ui_render: Render
+    cmd: KbCmd
 
 # results reference entities and python types
 class Result: pass
@@ -76,10 +84,6 @@ class UninhabitedDomainResult(KbCmdResult): btn: DomButton
 @dataclass
 class UninhabitedPromptResult(KbCmdResult): btn: PromptButton
 @dataclass
-class PromptRenderPending(KbCmdResult):
-    btn: PromptButton
-    ctx: RenderContext
-@dataclass
 class PromptRenderOutput:
     text: str
     lines: int
@@ -90,9 +94,6 @@ class PromptRenderResult(KbCmdResult):
     text: str
     lines: int
     chars: int
-
-class ExitResult(Result):  
-    def __init__(self, cmd: ExitCommand): self.exit_msg= cmd.exit_msg
 
 @dataclass
 class IngestionResult(Result): report: Report
@@ -122,24 +123,24 @@ class HotRenderContext(RenderContext):
 
 
 # services reference results, and emit commands
-class IngestionService(ABC): 
+class IngestionService(ABC):
     @abstractmethod
     def get_runtime_config(self) -> StartResult | ClankerizeResult | TerminateResult: ...
     @abstractmethod
-    def initialize_workspace(self) -> StartResult: ... 
+    def initialize_workspace(self) -> StartResult: ...
 
 class FrontendService(ABC):
     @abstractmethod
-    def get_request(self) -> Command | ExitCommand: ...
+    def get_request(self) -> Command: ...
     @abstractmethod
     def post_response(self, command_result: Result) -> None: ...
 
 class PromptService(ABC):
     @abstractmethod
-    def render_prompt(self, ctx: RenderContext) -> PromptRenderOutput: ...
+    def render_prompt(self, cmd: RenderPromptCmd) -> PromptRenderResult: ...
 
 class KBService(ABC):
     @abstractmethod
-    def handle_cmd(self, Command): ...
+    def handle_cmd(self, cmd: Command) -> Result | RenderPromptCmd: ...
     @abstractmethod
     def set_runtime(self, res: StartResult) -> None: ...

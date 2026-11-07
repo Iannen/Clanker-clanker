@@ -59,50 +59,28 @@ II. The wishlist
     [x] 'content/modules/asset_ingestion/commons/error_collector.py': Remove `get_complaints` implementation
         - delete the `get_complaints` method (no caller invokes it; `get_all_complaints` and `get_critical_complaints` are the live paths)
 ```
-
-i thought I might revisit the engine loop and the cmd / result stuff.
-
-All Commands can have a baseclass which means 'this command is intended for that service'
-
-frontend service: only service to not receive commands, only issues them. only result consumer
-    get_request -> the engine can get cmds here
-    post_response -> the engine drops off results here
-
-other services: Consumer commands, returning a new command or a result
-    they can have a handle_cmd method.
-    This will convert a cmd into either a new cmd (as in the case of kb converting a frontent generated kb command to a promptrender cmd), or a result (as when for instance there was no button inhabitant, and kb converts to a 'noinhab' type result)
-
-So the engine can have a method scoped 'item: Result | KBCmd | IngestionCmd | PromptCmd | ExitCmd' variable
-prior to loop, it declares 'item = None'
-Engine loop pseudo:
-````
-while not isinstance(item, ExitCmd):
-    if item is None: item = frontend.get_request # this will return a cmd eventually
-    match item:
-        case x() : service_x.handle_cmd
-        case y() : service_x.handle_cmd
-    if isinstance(item, Result) : frontent.post_response(item)
-````
-
-what do you think? 
+```text
+1. Refactor engine loop to item-based command/result routing
+    [X] 'content/core/engine.py': Restructure run() to item-cycle pattern
+        - while True loop, break on ExitCommand
+        - if item is None: item = frontend.get_request()
+        - match item: dispatch BootCmd, ClankerizeCmd, RenderPromptCmd, ExitCommand (break), Command -> kb_service.handle_cmd
+        - if isinstance(item, Result): frontend.post_response(item); item = None
+        - removed the old isinstance(command_result, PromptRenderPending) special-case block
+        - return item.exit_msg after break
+    [X] 'content/core/engine_deps/result.py': Added RenderPromptCmd(Command) carrying ctx, btn, kb, ui_render, cmd
+        - removed PromptRenderPending
+        - removed ExitResult
+        - PromptService.render_prompt signature changed to (cmd: RenderPromptCmd) -> PromptRenderResult
+        - KBService.handle_cmd return type updated to Result | RenderPromptCmd
+    [X] 'content/modules/keyboard/keyboard_service.py': _handle_prompt_btn returns RenderPromptCmd
+        - removed ExitCommand case from handle_cmd match
+        - cleaned imports
+    [X] 'content/modules/render_pipeline/render_service.py': render_prompt takes RenderPromptCmd, constructs and returns PromptRenderResult directly
+    [X] 'content/modules/tui/tui_service.py': dropped ExitResult case from post_response
+    [X] 'content/modules/web_frontend/web_frontend_service.py': dropped ExitResult case from post_response
+```
 
 Backlog tail, Selected item/items:
-```text
-1. Drop ExitResult and make ExitCommand the loop terminator
-    [ ] 'content/core/engine_deps/result.py': Remove ExitResult class
-        - delete the ExitResult dataclass and its __init__
-    [ ] 'content/core/engine.py': Simplify run() to use ExitCommand as predicate
-        - change loop predicate to `while not isinstance(item, ExitCommand)`
-        - rename `command_result` to `item` throughout
-        - return `item.exit_msg` at end of run()
-        - fold BootCmd / ClankerizeCmd special cases into the match as ingestion cmds
-    [ ] 'content/modules/tui/tui_service.py': Remove ExitResult branch from post_response
-        - delete `case ExitResult(): self.renderer.display_result(result)`
-    [ ] 'content/modules/tui/renderer.py': Remove ExitResult from display_result signature
-        - change type hint from `KbCmdResult | ExitResult` to `KbCmdResult`
-        - the isinstance guard already prevents any action; just clean the annotation
-    [ ] 'content/modules/web_frontend/web_frontend_service.py': Remove ExitResult branch
-        - delete `case ExitResult(): pass` from post_response match
-```
 
 Backlog tail end

@@ -11,7 +11,16 @@ from core import (
     Filelist,
 )
 from stdlib import dataclass
-from core.engine_deps import PromptService, DiskPort, NoSuchFile, StandardRenderContext, HotRenderContext, PromptRenderOutput, RenderContext
+from core.engine_deps import (
+    PromptService,
+    DiskPort,
+    NoSuchFile,
+    StandardRenderContext,
+    HotRenderContext,
+    RenderContext,
+    RenderPromptCmd,
+    PromptRenderResult,
+)
 from . import PromptContentShaper
 
 @dataclass(slots=True)
@@ -21,13 +30,21 @@ class PromptServiceImpl(PromptService):
     def __post_init__(self) -> None:
         self.shaper: PromptContentShaper = PromptContentShaper()
 
-    def render_prompt(self, ctx: RenderContext) -> PromptRenderOutput:
-        template = self._get_template(ctx)
-        repl_map = self._get_repl_map(ctx)
+    def render_prompt(self, cmd: RenderPromptCmd) -> PromptRenderResult:
+        template = self._get_template(cmd.ctx)
+        repl_map = self._get_repl_map(cmd.ctx)
         text_content = self._hydrate(template, repl_map)
         lines_count = len(text_content.splitlines())
         char_count = len(text_content)
-        return PromptRenderOutput(text=text_content, lines=lines_count, chars=char_count)
+        return PromptRenderResult(
+            kb=cmd.kb,
+            ui_render=cmd.ui_render,
+            btn=cmd.btn,
+            text=text_content,
+            lines=lines_count,
+            chars=char_count,
+            cmd=cmd.cmd,
+        )
 
     def _hydrate(self, template: str, replacements: dict[str, str]) -> str:
         return self.shaper.hydrate(template, replacements)

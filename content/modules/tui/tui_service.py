@@ -1,9 +1,9 @@
 from stdlib import Queue
 from core.engine_deps import (
-    FrontendService, DiskPort, TerminalPort, StartResult, 
-    UserDeclinedStart, UserDeclinedClankerize, StartupFailed, 
-    ClankerizeResult, TerminateResult, BootCmd, 
-    StartCmd, ClankerizeCmd, Command, Result, KbCmdResult, ExitResult,
+    FrontendService, DiskPort, TerminalPort, StartResult,
+    UserDeclinedStart, UserDeclinedClankerize, StartupFailed,
+    ClankerizeResult, TerminateResult, BootCmd,
+    StartCmd, ClankerizeCmd, Command, Result, KbCmdResult,
     PromptRenderResult,
 )
 from ..tui import TUIRenderer
@@ -19,15 +19,13 @@ class FrontendServiceImpl(FrontendService):
 
     def post_response(self, result: Result) -> None:
         match result:
-            case StartResult(): 
+            case StartResult():
                 self.renderer.post_question(result, StartCmd, UserDeclinedStart)
-            case ClankerizeResult(): 
+            case ClankerizeResult():
                 self.renderer.post_question(result, ClankerizeCmd, UserDeclinedClankerize)
-            case TerminateResult(): 
+            case TerminateResult():
                 self.renderer.get_acknowledgement(result, StartupFailed)
-            case KbCmdResult(): 
+            case KbCmdResult():
                 if isinstance(result, PromptRenderResult):
                     self.renderer.io_bridge.to_clipboard(result.text)
-                self.renderer.display_result(result)
-            case ExitResult(): 
                 self.renderer.display_result(result)

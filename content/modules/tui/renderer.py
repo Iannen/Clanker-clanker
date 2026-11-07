@@ -5,7 +5,7 @@ from core.engine_deps import (
     Report, MissingEntityFields, UnsatisfiedFiles, Missing, Malformed, 
     UnsatisfiedFilesetSubjects, FilenameCollision, DomainOverflow, Complaint, Proposition, 
     BootstrapSuccess, UnboundKeyResult, DomainSelectedResult, UninhabitedDomainResult, 
-    UninhabitedPromptResult, PromptRenderResult, KbCmdResult, NoSuchFile, DiskPort, ExitResult, Command, IOControl, KbCmd, UserAborted
+    UninhabitedPromptResult, PromptRenderResult, KbCmdResult, NoSuchFile, DiskPort, Command, IOControl, KbCmd, UserAborted
 )
 
 class ComplaintsFormatter:
@@ -188,7 +188,7 @@ class TUIRenderer:
         self.io_bridge.get_acceptance(proposition)
         self.queue.put(exit_cmd())
 
-    def display_result(self, result: KbCmdResult | ExitResult) -> None:
+    def display_result(self, result: KbCmdResult) -> None:
         if isinstance(result, KbCmdResult):
             ui_string = self.shaper.render_view(result, self.files)
             self.io_bridge.write(f"{ui_string}\n")
