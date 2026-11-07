@@ -1,6 +1,5 @@
 from stdlib import dataclass, ABC, abstractmethod, Any, Field
-from core import Render, Keyboard, File, DomButton, PromptButton, Prompt
-
+from core import entities as e
 
 class Complaint(): pass
 class Critical(Complaint): pass
@@ -23,12 +22,12 @@ class FilenameCollision(Soft):
 
 @dataclass
 class DomainOverflow(Soft):
-    buttons: list["NewBtn"]
-    discarded_domains: list["Domain"]
+    buttons: list["e.NewBtn"]
+    discarded_domains: list["e.Domain"]
 
 @dataclass
 class UnsatisfiedFiles(Soft):
-    files: list[File]
+    files: list[e.File]
 
 @dataclass
 class UnsatisfiedFilesetSubjects(Soft):
@@ -54,8 +53,8 @@ class BootCmd(Command): pass
 
 @dataclass(slots=True)
 class StartCmd(Command):
-    kb: "Keyboard"
-    ui_render: "Render"
+    kb: "e.Keyboard"
+    ui_render: "e.Render"
 
 class ClankerizeCmd(Command): pass
 
@@ -74,8 +73,8 @@ class Result: pass
 
 @dataclass
 class KbServiceEmission:
-    kb: Keyboard
-    ui_render: Render
+    kb: e.Keyboard
+    ui_render: e.Render
     cmd: Command
 
 
@@ -86,22 +85,22 @@ class BootstrapSuccess(KbServiceEmission, Result): pass
 class UnboundKeyResult(KbServiceEmission, Result): pass
 
 @dataclass
-class DomainSelectedResult(KbServiceEmission, Result): btn: DomButton
+class DomainSelectedResult(KbServiceEmission, Result): btn: e.DomButton
 
 @dataclass
-class UninhabitedDomainResult(KbServiceEmission, Result): btn: DomButton
+class UninhabitedDomainResult(KbServiceEmission, Result): btn: e.DomButton
 
 @dataclass
-class UninhabitedPromptResult(KbServiceEmission, Result): btn: PromptButton
+class UninhabitedPromptResult(KbServiceEmission, Result): btn: e.PromptButton
 
 
 @dataclass
 class RenderNormalPromptCmd(KbServiceEmission, Command):
-    prompt: Prompt
+    prompt: e.Prompt
 
 @dataclass
 class RenderHotPromptCmd(KbServiceEmission, Command):
-    prompt: Prompt
+    prompt: e.Prompt
 
 
 @dataclass
@@ -116,8 +115,8 @@ class IngestionResult(Result): report: Report
 
 @dataclass
 class StartResult(IngestionResult):
-    kb: Keyboard
-    ui_render: Render
+    kb: e.Keyboard
+    ui_render: e.Render
 
 @dataclass
 class ClankerizeResult(IngestionResult): pass

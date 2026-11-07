@@ -1,15 +1,5 @@
-from core import (
-    Fileset,
-    CorruptClanker,
-    ClankerAssets,
-    ManifestResolver,
-    MultiDocResolver,
-    PathTokens,
-    RepoContentResolver,
-    Resolver,
-    ConfigAssembly,
-    Filelist,
-)
+from core import entities as e
+from core import CorruptClanker, ConfigAssembly
 from stdlib import dataclass
 from core.engine_deps import (
     PromptService,
@@ -52,12 +42,12 @@ class PromptServiceImpl(PromptService):
         try:
             match template_name:
                 case "prompt_template":
-                    return self.files.read_asset(ClankerAssets.layouts.PROMPT)
+                    return self.files.read_asset(e.ClankerAssets.layouts.PROMPT)
         except NoSuchFile as ex:
             raise CorruptClanker(f"Error loading template for '{template_name}': {ex}") from ex
 
     def _get_repl_map(self, cmd: RenderNormalPromptCmd | RenderHotPromptCmd) -> dict[str, str]:
-        active_resolvers: list[Resolver] = []
+        active_resolvers: list[e.Resolver] = []
         match cmd:
             case RenderNormalPromptCmd():
                 if cmd.prompt.render.inherit_domain and cmd.kb.selected_dom_btn:
@@ -69,7 +59,7 @@ class PromptServiceImpl(PromptService):
 
                 md_resolvers = [
                     r for r in (domain_resolvers + prompt_resolvers)
-                    if isinstance(r, MultiDocResolver)
+                    if isinstance(r, e.MultiDocResolver)
                 ]
 
                 instruction_files = [
@@ -78,24 +68,24 @@ class PromptServiceImpl(PromptService):
                     if f.name.endswith(".mode_instruction") or f.name.endswith(".output_instruction") or f.name.endswith(".history")
                 ]
 
-                lone_resolver = MultiDocResolver(
+                lone_resolver = e.MultiDocResolver(
                     anchor="prompt_fragments",
-                    files=Filelist(None, files=instruction_files)
+                    files=e.Filelist(None, files=instruction_files)
                 )
                 active_resolvers.append(lone_resolver)
 
         replacements: dict[str, str] = {}
         for resolver in active_resolvers:
             match resolver:
-                case MultiDocResolver():
+                case e.MultiDocResolver():
                     replacements.update(self._res_multi_doc(resolver))
-                case RepoContentResolver():
+                case e.RepoContentResolver():
                     replacements.update(self._res_repo_content(resolver))
-                case ManifestResolver():
+                case e.ManifestResolver():
                     replacements.update(self._res_manifest(resolver))
         return replacements
 
-    def _res_multi_doc(self, resolver: MultiDocResolver) -> dict[str, str]:
+    def _res_multi_doc(self, resolver: e.MultiDocResolver) -> dict[str, str]:
         fragments = []
         for file_obj in resolver.files.files:
             try:
@@ -108,34 +98,34 @@ class PromptServiceImpl(PromptService):
 
         return {resolver.anchor: "\n\n".join(fragments)}
 
-    def _res_repo_content(self, resolver: RepoContentResolver) -> dict[str, str]:
-        includes = self.files.get_file_paths(PathTokens.PUD, [include.value for include in resolver.fileset.includes], missing_ok=False)
-        excludes = self.files.get_file_paths(PathTokens.PUD, [exclude.value for exclude in resolver.fileset.excludes], missing_ok=True) if resolver.fileset.excludes else set()
+    def _res_repo_content(self, resolver: e.RepoContentResolver) -> dict[str, str]:
+        includes = self.files.get_file_paths(e.PathTokens.PUD, [include.value for include in resolver.fileset.includes], missing_ok=False)
+        excludes = self.files.get_file_paths(e.PathTokens.PUD, [exclude.value for exclude in resolver.fileset.excludes], missing_ok=True) if resolver.fileset.excludes else set()
         paths = sorted(includes - excludes)
 
         file_blocks = ["¤¤ Repository Contents ¤¤"]
         for p in paths:
             try:
-                content = self.files.read_asset(f"{PathTokens.PUD}/{p}").rstrip()
+                content = self.files.read_asset(f"{e.PathTokens.PUD}/{p}").rstrip()
                 file_blocks.append(f'¤filepath="{p}"¤\n{content}\n¤filepath="{p}"¤')
             except UnicodeDecodeError:
                 pass
 
         return {resolver.anchor: "\n\n".join(file_blocks)}
 
-    def _res_manifest(self, resolver: ManifestResolver) -> str:
+    def _res_manifest(self, resolver: e.ManifestResolver) -> str:
         manifest_blocks = [
-            self._build_manifest("pud-manifest", PathTokens.PUD, resolver.pud_fileset)
+            self._build_manifest("pud-manifest", e.PathTokens.PUD, resolver.pud_fileset)
         ]
 
         if resolver.shared_fileset is not None:
             manifest_blocks.append(
-                self._build_manifest("shared-manifest", PathTokens.SHARED, resolver.shared_fileset)
+                self._build_manifest("shared-manifest", e.PathTokens.SHARED, resolver.shared_fileset)
             )
 
         return {resolver.anchor: "\n".join(manifest_blocks)}
 
-    def _build_manifest(self, tag: str, basepath_token: str, fileset: Fileset) -> str:
+    def _build_manifest(self, tag: str, basepath_token: str, fileset: e.Fileset) -> str:
         includes = self.files.get_file_paths(basepath_token, [include.value for include in fileset.includes], missing_ok=False)
         excludes = self.files.get_file_paths(basepath_token, [exclude.value for exclude in fileset.excludes], missing_ok=True) if fileset.excludes else set()
         paths = sorted(includes - excludes)

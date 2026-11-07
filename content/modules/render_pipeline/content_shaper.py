@@ -1,11 +1,12 @@
 from stdlib import re
-from core import TruncationSpec
+from core import entities as e
+
 class SystemKeys:
     DELIM = "§"
 
 class PromptContentShaper:
     
-    def apply_truncation(self, content: str, spec: TruncationSpec | None) -> str:
+    def apply_truncation(self, content: str, spec: e.TruncationSpec | None) -> str:
         if spec is None:
             return content
 

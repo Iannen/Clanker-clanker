@@ -1,5 +1,6 @@
 from stdlib import dataclass, field, re, Queue
-from core import ClankerAssets, DomButton, PromptButton, Keyboard, CorruptClanker, NewBtn
+from core import entities as e
+from core import CorruptClanker
 from core.engine_deps import (
     TerminalPort, StartResult, ClankerizeResult, TerminateResult,
     Report, MissingEntityFields, UnsatisfiedFiles, Missing, Malformed,
@@ -70,33 +71,33 @@ class TUIContentShaper:
 
     def render_view(self, command_result: KbServiceEmission, files: DiskPort) -> str:
         try:
-            template = files.read_asset(ClankerAssets.layouts.UI)
+            template = files.read_asset(e.ClankerAssets.layouts.UI)
         except NoSuchFile as ex:
             raise CorruptClanker(f"Error loading template for '{command_result.ui_render.template}': {ex}") from ex
         repl_map = self._res_ui(command_result.kb, files)
         repl_map["msg"] = self.shape_command_result(command_result)
         return self.hydrate(template, repl_map)
 
-    def _res_ui(self, kb: Keyboard, files: DiskPort) -> dict[str, str]:
-        btn_hl = files.read_asset(ClankerAssets.layouts.BTN_HL)
-        btn_active = files.read_asset(ClankerAssets.layouts.BTN_ACTIVE)
-        btn_inactive = files.read_asset(ClankerAssets.layouts.BTN_INACTIVE)
+    def _res_ui(self, kb: e.Keyboard, files: DiskPort) -> dict[str, str]:
+        btn_hl = files.read_asset(e.ClankerAssets.layouts.BTN_HL)
+        btn_active = files.read_asset(e.ClankerAssets.layouts.BTN_ACTIVE)
+        btn_inactive = files.read_asset(e.ClankerAssets.layouts.BTN_INACTIVE)
 
         repl_map = {}
-        for btn in kb.get_btns(DomButton):
+        for btn in kb.get_btns(e.DomButton):
             template = btn_inactive
             label = btn.inhabitant.name if btn.inhabitant else ""
             if btn == kb.selected_dom_btn: template = btn_hl
             elif btn.inhabitant: template = btn_active
             repl_map |= self.shape_button_replacements(btn, label, template)
-        for btn in kb.get_btns(PromptButton):
+        for btn in kb.get_btns(e.PromptButton):
             label = btn.inhabitant.name if btn.inhabitant else ""
             template = btn_active if btn.inhabitant else btn_inactive
             repl_map |= self.shape_button_replacements(btn, label, template)
 
         return repl_map
 
-    def shape_button_replacements(self, btn: NewBtn, label: str, template: str) -> dict[str, str]:
+    def shape_button_replacements(self, btn: e.NewBtn, label: str, template: str) -> dict[str, str]:
         lines = template.strip("\n").splitlines()
         norm_label = label[:6].ljust(6)
         mapped_lines = [

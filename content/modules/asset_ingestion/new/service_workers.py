@@ -1,5 +1,6 @@
 from stdlib import StrEnum, dataclass
-from core import CorruptClanker, Render, Keyboard, AssetPack, RepoItem, Config
+from core import entities as e
+from core import CorruptClanker
 from ...asset_ingestion import ErrorCollector, OverflowHandler2, FilelistValidator2, FilesetValidator2, Numap
 from core.engine_deps import Complaint
 
@@ -14,7 +15,7 @@ class ItemClassifier:
         self.present, self.complaints = [], []
 
     def classify(self, item):
-        if isinstance(item, RepoItem): self.present.append(item); return item
+        if isinstance(item, e.RepoItem): self.present.append(item); return item
         if isinstance(item, Complaint): self.complaints.append(item); return None
         raise TypeError(f"ItemClassifier cannot classify object of type {type(item).__name__}: {item!r}")
 
@@ -33,14 +34,14 @@ class ItemClassifier:
 @dataclass
 class Assembler:
     collector: ErrorCollector | None
-    clank_cfg: Config  | None
-    sys_cfg: Config  | None
-    clank_doc_assets: AssetPack  | None
-    pud_cfg: Config  | None
-    pud_doc_assets: AssetPack  | None
-    pud_content_assets: AssetPack  | None
+    clank_cfg: e.Config  | None
+    sys_cfg: e.Config  | None
+    clank_doc_assets: e.AssetPack  | None
+    pud_cfg: e.Config  | None
+    pud_doc_assets: e.AssetPack  | None
+    pud_content_assets: e.AssetPack  | None
 
-    def assemble(self, pud_res: ClassificationResult) ->  tuple[Render, Keyboard]:
+    def assemble(self, pud_res: ClassificationResult) ->  tuple[e.Render, e.Keyboard]:
 
         numap = Numap(self.collector, self.clank_cfg, self.pud_cfg, self.sys_cfg)
         numap.extract_all()
