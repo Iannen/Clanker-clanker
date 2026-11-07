@@ -5,7 +5,7 @@ from core.engine_deps import (
     Report, MissingEntityFields, UnsatisfiedFiles, Missing, Malformed,
     UnsatisfiedFilesetSubjects, FilenameCollision, DomainOverflow, Complaint, Proposition,
     BootstrapSuccess, UnboundKeyResult, DomainSelectedResult, UninhabitedDomainResult,
-    UninhabitedPromptResult, PromptRenderResult, KbCmdResult, NoSuchFile, DiskPort, Command, IOControl, KbCmd, UserAborted,
+    UninhabitedPromptResult, PromptRenderResult, KbServiceEmission, NoSuchFile, DiskPort, Command, IOControl, KbCmd, UserAborted,
     StartCmd, ClankerizeCmd,
 )
 
@@ -68,7 +68,7 @@ class TUIContentShaper:
     """This class encapsulates all the business of turning a kb/ui render into a str"""
     DELIM = "§"
 
-    def render_view(self, command_result: KbCmdResult, files: DiskPort) -> str:
+    def render_view(self, command_result: KbServiceEmission, files: DiskPort) -> str:
         try:
             template = files.read_asset(ClankerAssets.layouts.UI)
         except NoSuchFile as ex:
@@ -118,7 +118,7 @@ class TUIContentShaper:
             template
         )
 
-    def shape_command_result(self, command_result: KbCmdResult, width: int = 117) -> str:
+    def shape_command_result(self, command_result: KbServiceEmission, width: int = 117) -> str:
         match command_result:
             case BootstrapSuccess():
                 msg = ActionResult.BOOTSTRAP_SUCCESS
@@ -195,8 +195,8 @@ class TUIRenderer:
         self.io_bridge.get_acceptance(proposition)
         self.queue.put(exit_cmd())
 
-    def display_result(self, result: KbCmdResult) -> None:
-        if isinstance(result, KbCmdResult):
+    def display_result(self, result: KbServiceEmission) -> None:
+        if isinstance(result, KbServiceEmission):
             ui_string = self.shaper.render_view(result, self.files)
             self.io_bridge.write(f"{ui_string}\n")
 

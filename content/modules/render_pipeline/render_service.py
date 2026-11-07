@@ -15,10 +15,8 @@ from core.engine_deps import (
     PromptService,
     DiskPort,
     NoSuchFile,
-    StandardRenderContext,
-    HotRenderContext,
-    RenderContext,
-    RenderPromptCmd,
+    RenderNormalPromptCmd,
+    RenderHotPromptCmd,
     PromptRenderResult,
 )
 from . import PromptContentShaper
@@ -30,31 +28,26 @@ class PromptServiceImpl(PromptService):
     def __post_init__(self) -> None:
         self.shaper: PromptContentShaper = PromptContentShaper()
 
-    def render_prompt(self, cmd: RenderPromptCmd) -> PromptRenderResult:
-        template = self._get_template(cmd.ctx)
-        repl_map = self._get_repl_map(cmd.ctx)
+    def render_prompt(self, cmd: RenderNormalPromptCmd | RenderHotPromptCmd) -> PromptRenderResult:
+        template = self._get_template(cmd)
+        repl_map = self._get_repl_map(cmd)
         text_content = self._hydrate(template, repl_map)
         lines_count = len(text_content.splitlines())
         char_count = len(text_content)
         return PromptRenderResult(
             kb=cmd.kb,
             ui_render=cmd.ui_render,
-            btn=cmd.btn,
+            cmd=cmd,
             text=text_content,
             lines=lines_count,
             chars=char_count,
-            cmd=cmd.cmd,
         )
 
     def _hydrate(self, template: str, replacements: dict[str, str]) -> str:
         return self.shaper.hydrate(template, replacements)
 
-    def _get_template(self, ctx: RenderContext) -> str:
-        match ctx:
-            case StandardRenderContext() | HotRenderContext():
-                template_name = ctx.prompt.render.template
-            case _:
-                template_name = ctx.render.template
+    def _get_template(self, cmd: RenderNormalPromptCmd | RenderHotPromptCmd) -> str:
+        template_name = cmd.prompt.render.template
 
         try:
             match template_name:
@@ -63,16 +56,16 @@ class PromptServiceImpl(PromptService):
         except NoSuchFile as ex:
             raise CorruptClanker(f"Error loading template for '{template_name}': {ex}") from ex
 
-    def _get_repl_map(self, ctx: RenderContext) -> dict[str, str]:
+    def _get_repl_map(self, cmd: RenderNormalPromptCmd | RenderHotPromptCmd) -> dict[str, str]:
         active_resolvers: list[Resolver] = []
-        match ctx:
-            case StandardRenderContext():
-                if ctx.prompt.render.inherit_domain and ctx.kb.selected_dom_btn:
-                    active_resolvers.extend(ctx.kb.selected_dom_btn.inhabitant.resolvers)
-                active_resolvers.extend(ctx.prompt.render.resolvers)
-            case HotRenderContext():
-                domain_resolvers = ctx.kb.selected_dom_btn.inhabitant.resolvers if ctx.kb.selected_dom_btn else []
-                prompt_resolvers = ctx.prompt.render.resolvers
+        match cmd:
+            case RenderNormalPromptCmd():
+                if cmd.prompt.render.inherit_domain and cmd.kb.selected_dom_btn:
+                    active_resolvers.extend(cmd.kb.selected_dom_btn.inhabitant.resolvers)
+                active_resolvers.extend(cmd.prompt.render.resolvers)
+            case RenderHotPromptCmd():
+                domain_resolvers = cmd.kb.selected_dom_btn.inhabitant.resolvers if cmd.kb.selected_dom_btn else []
+                prompt_resolvers = cmd.prompt.render.resolvers
 
                 md_resolvers = [
                     r for r in (domain_resolvers + prompt_resolvers)
@@ -90,10 +83,6 @@ class PromptServiceImpl(PromptService):
                     files=Filelist(None, files=instruction_files)
                 )
                 active_resolvers.append(lone_resolver)
-            case _:
-                if ctx.render.inherit_domain and ctx.kb.selected_dom_btn:
-                    active_resolvers.extend(ctx.kb.selected_dom_btn.inhabitant.resolvers)
-                active_resolvers.extend(ctx.render.resolvers)
 
         replacements: dict[str, str] = {}
         for resolver in active_resolvers:

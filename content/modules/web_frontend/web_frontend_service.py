@@ -14,6 +14,7 @@ from core.engine_deps import (
     Command,
     Result,
     StartResult,
+    PromptRenderResult,
 )
 
 _FRONTEND_DIR = Path(__file__).parent.parent.parent / "web-ui" / "frontend"
@@ -148,6 +149,10 @@ class WebFrontendServiceImpl(FrontendService):
         match result:
             case StartResult():
                 print("Web frontend ready.")
+            case PromptRenderResult():
+                slot = self._pending.pop(id(result.cmd.cmd), None)
+                if slot is not None:
+                    slot.resolve(json.dumps(asdict(result), default=str).encode("utf-8"))
             case _:
                 slot = self._pending.pop(id(result.cmd), None)
                 if slot is not None:

@@ -26,10 +26,7 @@ II. The wishlist
     - perhaps we can have a stack of branches? (main -> dev-1 -> dev-2 -> dev-n)
         - allows one to hansel and gretel that sob, not having to step to main 
     - single click dropoff, none of that double ctrl+d stuff
-
     - automation of the bl migration
-
-
 
 ```text
 1. Promote `prompt` to base RenderContext, remove nullability
@@ -138,6 +135,44 @@ II. The wishlist
         - StartResult import removed
     [x] 'content/core/engine_deps/result.py': Remove set_runtime from KBService ABC
         - KBService ABC now has only handle_start and handle_key
+```
+```text
+1. Reshape KB-service command/result hierarchy: replace KbCmdResult with KbServiceEmission, eliminate RenderContext, split render command, prune dead code
+    [x] 'content/core/engine_deps/result.py': Reshape the command/result class hierarchy
+        - Remove PromptRenderOutput (dead, no references anywhere)
+        - Remove RenderContext, StandardRenderContext, HotRenderContext
+        - Remove KbCmdResult
+        - Introduce KbServiceEmission: plain class (no inheritance), fields: kb: Keyboard, ui_render: Render, cmd: Command
+        - All former KbCmdResult subclasses now inherit (KbServiceEmission, Result): BootstrapSuccess, UnboundKeyResult, DomainSelectedResult, UninhabitedDomainResult, UninhabitedPromptResult
+        - DomainSelectedResult / UninhabitedDomainResult keep their btn: DomButton field
+        - UninhabitedPromptResult keeps its btn: PromptButton field
+        - BootstrapSuccess.cmd typed as StartCmd (was None)
+        - Remove RenderPromptCmd; introduce RenderNormalPromptCmd(KbServiceEmission, Command) and RenderHotPromptCmd(KbServiceEmission, Command), both with field prompt: Prompt (identical shape, no btn, no ctx)
+        - PromptRenderResult inherits (KbServiceEmission, Result), fields: text: str, lines: int, chars: int (no btn, no ctx)
+        - Result and Command remain plain marker classes (no fields)
+    [x] 'content/core/engine.py': Update run() match cases
+        - Replace `case RenderPromptCmd():` with `case RenderNormalPromptCmd() | RenderHotPromptCmd():`
+        - No other changes; isinstance(item, Result) still works for post_response dispatch
+    [x] 'content/modules/keyboard/keyboard_service.py': Update emissions to use new command types
+        - _handle_prompt_btn: return RenderNormalPromptCmd(cmd=cmd, kb=self.kb, ui_render=self.ui_render, prompt=...) or RenderHotPromptCmd(...) depending on last_prompt logic
+        - Remove all RenderContext / StandardRenderContext / HotRenderContext construction
+        - handle_start: pass cmd=cmd (StartCmd) into BootstrapSuccess instead of None
+    [x] 'content/modules/render_pipeline/render_service.py': Update render_prompt signature and body
+        - Signature: render_prompt(self, cmd: RenderNormalPromptCmd | RenderHotPromptCmd) -> PromptRenderResult
+        - _get_template: read cmd.prompt.render.template (no ctx)
+        - _get_repl_map: match on cmd type (RenderNormalPromptCmd vs RenderHotPromptCmd); read cmd.prompt, cmd.kb directly (no ctx)
+        - Remove all RenderContext / StandardRenderContext / HotRenderContext references
+        - PromptRenderResult construction: pass cmd=cmd, kb=cmd.kb, ui_render=cmd.ui_render, text, lines, chars
+    [x] 'content/modules/tui/tui_service.py': Update post_response for web slot lookup
+        - Web path: id(result.cmd.cmd) instead of id(result.cmd) (cmd is now the render command, .cmd is the KbCmd)
+        - TUI path: unchanged (isinstance checks on Result / PromptRenderResult still hold)
+    [x] 'content/modules/web_frontend/web_frontend_service.py': Update slot correlation
+        - post_response: self._pending.pop(id(result.cmd.cmd), None) for render results
+        - asdict(result) still serializes kb, ui_render, text, lines, chars via KbServiceEmission fields
+    [x] 'content/modules/tui/renderer.py': Verify shape_command_result and render_view field reads
+        - shape_command_result: reads lines, chars from PromptRenderResult — unchanged
+        - render_view: reads kb, ui_render — unchanged (both on KbServiceEmission)
+        - No code change expected, confirmed no stale references to RenderContext or old field names
 ```
 Backlog tail, Selected item/items:
 

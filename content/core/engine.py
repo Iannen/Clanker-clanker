@@ -9,7 +9,8 @@ from core.engine_deps import (
     KbCmd,
     ExitCommand,
     PromptService,
-    RenderPromptCmd,
+    RenderNormalPromptCmd,
+    RenderHotPromptCmd,
     Result,
 )
 
@@ -29,7 +30,7 @@ class AppEngine:
                     item = self.ingestion.get_runtime_config()
                 case ClankerizeCmd():
                     item = self.ingestion.initialize_workspace()
-                case RenderPromptCmd():
+                case RenderNormalPromptCmd() | RenderHotPromptCmd():
                     item = self.prompt_service.render_prompt(item)
                 case StartCmd():
                     item = self.kb_service.handle_start(item)

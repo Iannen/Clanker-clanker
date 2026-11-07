@@ -1,9 +1,12 @@
 from stdlib import dataclass, ABC, abstractmethod, Any, Field
 from core import Render, Keyboard, File, DomButton, PromptButton, Prompt
 
+
 class Complaint(): pass
 class Critical(Complaint): pass
 class Soft(Complaint): pass
+
+
 @dataclass
 class Malformed(Critical):
     name: str; path: str; details: str
@@ -38,86 +41,89 @@ class MissingEntityFields(Soft):
     missing_fields: list[Field]
     data: dict
 
+
 class Report(ABC):
     @abstractmethod
     def get_all_complaints(self) -> list[Soft]: ...
     @abstractmethod
     def get_critical_complaints(self) -> list[str]: ...
 
+
 class Command: pass
 class BootCmd(Command): pass
+
 @dataclass(slots=True)
 class StartCmd(Command):
     kb: "Keyboard"
     ui_render: "Render"
+
 class ClankerizeCmd(Command): pass
+
 @dataclass
 class KbCmd(Command): char: str
+
 class ExitCommand(Command): exit_msg: str
 class UserDeclinedStart(ExitCommand): exit_msg = "Bootstrap declined by user"
 class UserDeclinedClankerize(ExitCommand): exit_msg = "User declined to clankerize project"
 class StartupFailed(ExitCommand): exit_msg = "Program could not start"
 class UserAborted(ExitCommand): exit_msg = "Program exited"
 
-@dataclass
-class RenderPromptCmd(Command):
-    ctx: "RenderContext"
-    btn: PromptButton
-    kb: Keyboard
-    ui_render: Render
-    cmd: KbCmd
 
 class Result: pass
+
+
 @dataclass
-class KbCmdResult(Result):
+class KbServiceEmission:
     kb: Keyboard
     ui_render: Render
-    cmd: KbCmd
+    cmd: Command
+
+
 @dataclass
-class BootstrapSuccess(KbCmdResult): pass
+class BootstrapSuccess(KbServiceEmission, Result): pass
+
 @dataclass
-class UnboundKeyResult(KbCmdResult): pass
+class UnboundKeyResult(KbServiceEmission, Result): pass
+
 @dataclass
-class DomainSelectedResult(KbCmdResult): btn: DomButton
+class DomainSelectedResult(KbServiceEmission, Result): btn: DomButton
+
 @dataclass
-class UninhabitedDomainResult(KbCmdResult): btn: DomButton
+class UninhabitedDomainResult(KbServiceEmission, Result): btn: DomButton
+
 @dataclass
-class UninhabitedPromptResult(KbCmdResult): btn: PromptButton
+class UninhabitedPromptResult(KbServiceEmission, Result): btn: PromptButton
+
+
 @dataclass
-class PromptRenderOutput:
+class RenderNormalPromptCmd(KbServiceEmission, Command):
+    prompt: Prompt
+
+@dataclass
+class RenderHotPromptCmd(KbServiceEmission, Command):
+    prompt: Prompt
+
+
+@dataclass
+class PromptRenderResult(KbServiceEmission, Result):
     text: str
     lines: int
     chars: int
-@dataclass
-class PromptRenderResult(KbCmdResult):
-    btn: PromptButton
-    text: str
-    lines: int
-    chars: int
+
 
 @dataclass
 class IngestionResult(Result): report: Report
+
 @dataclass
 class StartResult(IngestionResult):
     kb: Keyboard
     ui_render: Render
+
 @dataclass
 class ClankerizeResult(IngestionResult): pass
+
 @dataclass
 class TerminateResult(IngestionResult): pass
-
-@dataclass
-class RenderContext:
-    kb: Keyboard
-    prompt: Prompt
-
-@dataclass(slots=True)
-class StandardRenderContext(RenderContext):
-    pass
-
-@dataclass(slots=True)
-class HotRenderContext(RenderContext):
-    pass
 
 
 class IngestionService(ABC):
@@ -134,10 +140,10 @@ class FrontendService(ABC):
 
 class PromptService(ABC):
     @abstractmethod
-    def render_prompt(self, cmd: RenderPromptCmd) -> PromptRenderResult: ...
+    def render_prompt(self, cmd: RenderNormalPromptCmd | RenderHotPromptCmd) -> PromptRenderResult: ...
 
 class KBService(ABC):
     @abstractmethod
     def handle_start(self, cmd: StartCmd) -> BootstrapSuccess: ...
     @abstractmethod
-    def handle_key(self, cmd: KbCmd) -> KbCmdResult | RenderPromptCmd: ...
+    def handle_key(self, cmd: KbCmd) -> KbServiceEmission: ...
