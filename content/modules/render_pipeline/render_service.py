@@ -11,7 +11,7 @@ from core import (
     Filelist,
 )
 from stdlib import dataclass
-from core.engine_deps import PromptService, RenderContext, DiskPort, NoSuchFile, StandardRenderContext, HotRenderContext, PromptRenderOutput
+from core.engine_deps import PromptService, DiskPort, NoSuchFile, StandardRenderContext, HotRenderContext, PromptRenderOutput, RenderContext
 from . import PromptContentShaper
 
 @dataclass(slots=True)

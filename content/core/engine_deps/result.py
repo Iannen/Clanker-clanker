@@ -41,8 +41,6 @@ class MissingEntityFields(Soft):
 
 class Report(ABC):
     @abstractmethod
-    def get_complaints(self) -> list[str]: ...
-    @abstractmethod
     def get_all_complaints(self) -> list[Soft]: ...
     @abstractmethod
     def get_critical_complaints(self) -> list[str]: ...
@@ -112,14 +110,15 @@ class TerminateResult(IngestionResult): pass
 @dataclass
 class RenderContext:
     kb: Keyboard
+    prompt: Prompt
 
 @dataclass(slots=True)
 class StandardRenderContext(RenderContext):
-    prompt: Prompt = None
+    pass
 
 @dataclass(slots=True)
 class HotRenderContext(RenderContext):
-    prompt: Prompt = None
+    pass
 
 
 # services reference results, and emit commands

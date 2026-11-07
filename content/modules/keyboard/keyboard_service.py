@@ -21,7 +21,6 @@ from core.engine_deps import (
     Command,
     Result,
     StartResult,
-    RenderContext,
 )
 
 @dataclass(slots=True)
@@ -40,11 +39,6 @@ class KBServiceImpl(KBService):
                 match(btn):
                     case(DomButton()): return self._handle_dom_btn(btn, cmd)
                     case(PromptButton()): return self._handle_prompt_btn(btn, cmd)
-
-    def build_render_context(self, btn: PromptButton) -> RenderContext | None:
-        if btn.inhabitant is None:
-            return None
-        return StandardRenderContext(kb=self.kb, prompt=btn.inhabitant)
 
     def set_runtime(self, res: StartResult) -> None:
         self.kb = res.kb
