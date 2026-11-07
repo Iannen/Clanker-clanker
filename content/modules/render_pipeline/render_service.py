@@ -77,12 +77,7 @@ class PromptServiceImpl(PromptService):
     def _res_multi_doc(self, resolver: e.MultiDocResolver) -> dict[str, str]:
         fragments = []
         for file_obj in resolver.files.files:
-            try:
-                if file_obj.path is None: raise e.ConfigAssembly
-                raw_content = self.files.read_asset(file_obj.path)
-            except NoSuchFile as ex:
-                raise e.ConfigAssembly from ex
-
+            raw_content = self.files.read_asset(file_obj.path)
             content = self.shaper.apply_truncation(raw_content, file_obj.truncation_spec)
             fragments.append(f"<{file_obj.name}>\n{content}\n</{file_obj.name}>")
 

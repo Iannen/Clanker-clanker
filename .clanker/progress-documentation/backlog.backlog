@@ -218,14 +218,14 @@ II. The wishlist
         - `RenderHotPromptCmd` branch: change the ternary `cmd.kb.selected_dom_btn.inhabitant.resolvers if cmd.kb.selected_dom_btn else []` → `cmd.domain.resolvers`
 ```
 Backlog tail, Selected item/items:
-PromptServiceImpl._res_multi_doc raises like so 'if file_obj.path is None: raise e.ConfigAssembly'
-
-@dataclass
-class File(Entity):
-    name: str
-    truncation_spec: TruncationSpec | None
-    path: str | None
-
-during validation, we assign path (if we can resolve it), and then kick out files which couldnt resolve path - is that correct?
-
+```text
+1. Remove None-check in _res_multi_doc by defaulting File.path to empty string
+    [ ] 'content/core/core/entities.py': Change File.path type and default
+        - change `path: str | None` to `path: str = ""`
+    [ ] 'content/modules/render_pipeline/render_service.py': Remove the None guard in _res_multi_doc
+        - delete the line `if file_obj.path is None: raise e.ConfigAssembly`
+        - let the adapter's InvalidPathToken raise handle the edge case instead
+    [ ] 'content/core/core/entities.py': Remove ConfigAssembly exception class
+        - no longer referenced anywhere after the guard is removed
+```
 Backlog tail end
