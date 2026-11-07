@@ -1,5 +1,4 @@
 from core import entities as e
-from core import CorruptClanker, ConfigAssembly
 from stdlib import dataclass
 from core.engine_deps import (
     PromptService,
@@ -44,7 +43,7 @@ class PromptServiceImpl(PromptService):
                 case "prompt_template":
                     return self.files.read_asset(e.ClankerAssets.layouts.PROMPT)
         except NoSuchFile as ex:
-            raise CorruptClanker(f"Error loading template for '{template_name}': {ex}") from ex
+            raise e.CorruptClanker(f"Error loading template for '{template_name}': {ex}") from ex
 
     def _get_repl_map(self, cmd: RenderNormalPromptCmd | RenderHotPromptCmd) -> dict[str, str]:
         active_resolvers: list[e.Resolver] = []
@@ -91,7 +90,7 @@ class PromptServiceImpl(PromptService):
             try:
                 raw_content = self.files.read_asset(file_obj.path)
             except NoSuchFile as ex:
-                raise ConfigAssembly from ex
+                raise e.ConfigAssembly from ex
 
             content = self.shaper.apply_truncation(raw_content, file_obj.truncation_spec)
             fragments.append(f"<{file_obj.name}>\n{content}\n</{file_obj.name}>")

@@ -1,6 +1,5 @@
 from stdlib import StrEnum, dataclass
 from core import entities as e
-from core import CorruptClanker
 from ...asset_ingestion import ErrorCollector, OverflowHandler2, FilelistValidator2, FilesetValidator2, Numap
 from core.engine_deps import Complaint
 
@@ -23,7 +22,7 @@ class ItemClassifier:
         has_present = bool(self.present)
         has_invalid = bool(self.complaints)
 
-        if not has_present and not has_invalid: raise CorruptClanker(f"{type(self).__name__} was supplied no items to classify")
+        if not has_present and not has_invalid: raise e.CorruptClanker(f"{type(self).__name__} was supplied no items to classify")
         if has_present and has_invalid: return ClassificationResult.MIXED
         if has_present: return ClassificationResult.ALL_PRESENT
         return ClassificationResult.NONE_PRESENT

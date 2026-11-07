@@ -1,6 +1,5 @@
 from stdlib import dataclass, field, re, Queue
 from core import entities as e
-from core import CorruptClanker
 from core.engine_deps import (
     TerminalPort, StartResult, ClankerizeResult, TerminateResult,
     Report, MissingEntityFields, UnsatisfiedFiles, Missing, Malformed,
@@ -73,7 +72,7 @@ class TUIContentShaper:
         try:
             template = files.read_asset(e.ClankerAssets.layouts.UI)
         except NoSuchFile as ex:
-            raise CorruptClanker(f"Error loading template for '{command_result.ui_render.template}': {ex}") from ex
+            raise e.CorruptClanker(f"Error loading template for '{command_result.ui_render.template}': {ex}") from ex
         repl_map = self._res_ui(command_result.kb, files)
         repl_map["msg"] = self.shape_command_result(command_result)
         return self.hydrate(template, repl_map)

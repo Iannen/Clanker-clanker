@@ -1,5 +1,8 @@
 from stdlib import dataclass, Type, re, Any, StrEnum
 
+class CorruptClanker(Exception): pass
+class ConfigAssembly(Exception): pass
+
 class classproperty:
     def __init__(self, func):
         self.func = func

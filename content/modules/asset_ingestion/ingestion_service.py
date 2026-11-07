@@ -1,6 +1,5 @@
 from stdlib import dataclass, StrEnum
 from core import entities as e
-from core import CorruptClanker
 from core.engine_deps import IngestionService, NoSuchFile, DiskPort, ConfigParseError, ConfigParserPort, StartCmd, StartResult, ClankerizeResult, TerminateResult, Malformed, Missing
 
 from . import ErrorCollector, ItemClassifier, Assembler, ClassificationResult
@@ -58,7 +57,7 @@ class IngestionServiceImpl(IngestionService):
 
     def initialize_workspace(self):
         if self.files.is_cwd_script_dir():
-            raise CorruptClanker("Clanker repository initialized is beyond scope of app.")
+            raise e.CorruptClanker("Clanker repository initialized is beyond scope of app.")
         for dir_path in e.RepoContract.DIRS_TO_CREATE:
             self.files.create_dir(dir_path)
 

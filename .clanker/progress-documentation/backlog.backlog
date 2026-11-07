@@ -186,13 +186,14 @@ II. The wishlist
     [x] 'content/modules/render_pipeline/content_shaper.py': 1 entity (TruncationSpec) aliased via 'e.'
     [x] 'content/modules/tui/renderer.py': 5 entities + ClankerAssets aliased via 'e.'
 ```
-Backlog tail, Selected item/items:
 ```text
 1. Merge 'exceptions.py' into 'entities.py' and retire the file
-    [ ] 'content/core/core/entities.py': Move CorruptClanker and ConfigAssembly class definitions into this module
-    [ ] 'content/core/__init__.py': Remove the 'from .core.exceptions import *' line
-    [ ] 'content/core/core/exceptions.py': Delete
+    [x] 'content/core/core/entities.py': Move CorruptClanker and ConfigAssembly class definitions into this module
+    [x] 'content/core/__init__.py': Remove the 'from .core.exceptions import *' line
+    [x] 'content/core/core/exceptions.py': Delete
         - Update any imports of the form 'from core import CorruptClanker' or 'from core import ConfigAssembly' to use 'e.CorruptClanker' / 'e.ConfigAssembly' where the file already uses the 'e' alias
         - Where a file does not yet use the 'e' alias but imports only an exception from core, switch to 'from core import entities as e' and reference as 'e.CorruptClanker' / 'e.ConfigAssembly'
 ```
+Backlog tail, Selected item/items:
+
 Backlog tail end
