@@ -2,14 +2,15 @@ from stdlib import dataclass
 from core.engine_deps import (
     KBService,
     FrontendService,
-    ExitCommand,
     IngestionService,
     BootCmd,
     ClankerizeCmd,
     StartResult,
+    StartCmd,
+    KbCmd,
+    ExitCommand,
     PromptService,
     RenderPromptCmd,
-    Command,
     Result,
 )
 
@@ -27,21 +28,21 @@ class AppEngine:
 
             match item:
                 case BootCmd():
-                    res = self.ingestion.get_runtime_config()
-                    if isinstance(res, StartResult):
-                        self.kb_service.set_runtime(res)
-                    item = res
+                    item = self.ingestion.get_runtime_config()
+                    if isinstance(item, StartResult):
+                        self.kb_service.set_runtime(item)
                 case ClankerizeCmd():
-                    res = self.ingestion.initialize_workspace()
-                    if isinstance(res, StartResult):
-                        self.kb_service.set_runtime(res)
-                    item = res
+                    item = self.ingestion.initialize_workspace()
+                    if isinstance(item, StartResult):
+                        self.kb_service.set_runtime(item)
                 case RenderPromptCmd():
                     item = self.prompt_service.render_prompt(item)
+                case StartCmd():
+                    item = self.kb_service.handle_start(item)
+                case KbCmd():
+                    item = self.kb_service.handle_key(item)
                 case ExitCommand():
                     break
-                case Command():
-                    item = self.kb_service.handle_cmd(item)
 
             if isinstance(item, Result):
                 self.frontend.post_response(item)

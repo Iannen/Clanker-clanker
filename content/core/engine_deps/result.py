@@ -1,7 +1,6 @@
 from stdlib import dataclass, ABC, abstractmethod, Any, Field
 from core import Render, Keyboard, File, DomButton, PromptButton, Prompt
 
-# Report and complaints only reference entities ( i think )
 class Complaint(): pass
 class Critical(Complaint): pass
 class Soft(Complaint): pass
@@ -45,7 +44,6 @@ class Report(ABC):
     @abstractmethod
     def get_critical_complaints(self) -> list[str]: ...
 
-# commands dont reference any of my types
 class Command: pass
 class BootCmd(Command): pass
 class StartCmd(Command): pass
@@ -66,7 +64,6 @@ class RenderPromptCmd(Command):
     ui_render: Render
     cmd: KbCmd
 
-# results reference entities and python types
 class Result: pass
 @dataclass
 class KbCmdResult(Result):
@@ -106,8 +103,6 @@ class ClankerizeResult(IngestionResult): pass
 @dataclass
 class TerminateResult(IngestionResult): pass
 
-# the stuff the results may harbor, which are not entities
-
 @dataclass
 class RenderContext:
     kb: Keyboard
@@ -122,7 +117,6 @@ class HotRenderContext(RenderContext):
     pass
 
 
-# services reference results, and emit commands
 class IngestionService(ABC):
     @abstractmethod
     def get_runtime_config(self) -> StartResult | ClankerizeResult | TerminateResult: ...
@@ -141,6 +135,8 @@ class PromptService(ABC):
 
 class KBService(ABC):
     @abstractmethod
-    def handle_cmd(self, cmd: Command) -> Result | RenderPromptCmd: ...
+    def handle_start(self, cmd: StartCmd) -> BootstrapSuccess: ...
+    @abstractmethod
+    def handle_key(self, cmd: KbCmd) -> KbCmdResult | RenderPromptCmd: ...
     @abstractmethod
     def set_runtime(self, res: StartResult) -> None: ...

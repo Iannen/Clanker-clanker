@@ -16,27 +16,24 @@ from core.engine_deps import (
     HotRenderContext,
     RenderPromptCmd,
     StartCmd,
-    Command,
-    Result,
     StartResult,
 )
 
 @dataclass(slots=True)
 class KBServiceImpl(KBService):
-    def handle_cmd(self, cmd: Command) -> Result | RenderPromptCmd:
-        match cmd:
-            case StartCmd():
-                self.last_prompt = None
-                return BootstrapSuccess(kb=self.kb, ui_render=self.ui_render, cmd=None)
-            case KbCmd():
-                btn = self.kb.get(cmd.char)
-                if btn is None:
-                    return UnboundKeyResult(kb=self.kb, ui_render=self.ui_render, cmd=cmd)
-                match btn:
-                    case DomButton():
-                        return self._handle_dom_btn(btn, cmd)
-                    case PromptButton():
-                        return self._handle_prompt_btn(btn, cmd)
+    def handle_start(self, cmd: StartCmd) -> BootstrapSuccess:
+        self.last_prompt = None
+        return BootstrapSuccess(kb=self.kb, ui_render=self.ui_render, cmd=None)
+
+    def handle_key(self, cmd: KbCmd) -> KbCmdResult | RenderPromptCmd:
+        btn = self.kb.get(cmd.char)
+        if btn is None:
+            return UnboundKeyResult(kb=self.kb, ui_render=self.ui_render, cmd=cmd)
+        match btn:
+            case DomButton():
+                return self._handle_dom_btn(btn, cmd)
+            case PromptButton():
+                return self._handle_prompt_btn(btn, cmd)
 
     def set_runtime(self, res: StartResult) -> None:
         self.kb = res.kb

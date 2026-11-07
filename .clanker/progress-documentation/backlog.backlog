@@ -80,7 +80,35 @@ II. The wishlist
     [X] 'content/modules/tui/tui_service.py': dropped ExitResult case from post_response
     [X] 'content/modules/web_frontend/web_frontend_service.py': dropped ExitResult case from post_response
 ```
-
+```text
+1. Split KBService.handle_cmd into granular methods and make engine match on concrete Command leaves
+    [x] 'content/core/engine.py': Replace catch-all `case Command()` with explicit `case StartCmd()` and `case KbCmd()`, dispatching to granular KBService methods. Collapse intermediate `res` var in BootCmd/ClankerizeCmd cases (assign ingestion result directly to `item`). `set_runtime` is called inline via `isinstance(item, StartResult)` guard within each BootCmd/ClankerizeCmd case (a standalone `case StartResult()` was dropped as unreachable — StartResult is always consumed in the same iteration). Reorder trailing cases: RenderPromptCmd, StartCmd, KbCmd, ExitCommand.
+        - final match order: BootCmd, ClankerizeCmd, RenderPromptCmd, StartCmd, KbCmd, ExitCommand
+        - BootCmd/ClankerizeCmd: `item = self.ingestion.get_runtime_config()` / `self.ingestion.initialize_workspace()`, then `if isinstance(item, StartResult): self.kb_service.set_runtime(item)` — no `res` var
+        - StartCmd case: `item = self.kb_service.handle_start(item)`
+        - KbCmd case: `item = self.kb_service.handle_key(item)`
+        - ExitCommand: `break` (unchanged)
+    [x] 'content/core/engine_deps/result.py': On `KBService` ABC, removed `handle_cmd(self, cmd: Command) -> Result | RenderPromptCmd`. Added `handle_start(self, cmd: StartCmd) -> BootstrapSuccess` and `handle_key(self, cmd: KbCmd) -> KbCmdResult | RenderPromptCmd`.
+        - prohibition: do not remove `set_runtime` — it stays as-is
+        - prohibition: do not touch `Command` base class or its subclasses
+        - inline comments stripped
+    [x] 'content/modules/keyboard/keyboard_service.py': On `KBServiceImpl`, removed `handle_cmd`. Added `handle_start(self, cmd: StartCmd) -> BootstrapSuccess` (sets `last_prompt = None`, returns `BootstrapSuccess(kb, ui_render, cmd=None)`). Added `handle_key(self, cmd: KbCmd) -> KbCmdResult | RenderPromptCmd` (body of former `handle_cmd` minus the `case StartCmd()` branch — internal `match btn` on DomButton/PromptButton kept as-is).
+        - prohibition: do not extract the DomButton/PromptButton dispatch from the service
+```
 Backlog tail, Selected item/items:
+I think we have a system where frontend produces command, and consume result.
 
+the other services consume command and produce either new command or result 
+
+1. is this correct?
+
+iff so: I think ingestionservice needs revisiting 
+
+basically instead of 3 outputs, all results, I think it should have 4
+    Results, for when we have something to tell / run by user:
+        - start, but soft complaints
+        - clankerize (soft or no complaints)
+        - terminate case
+    Command, for when we are ready to start app
+        - this becomes a 'boot was ok' command or similar, which goes to kbservice
 Backlog tail end
