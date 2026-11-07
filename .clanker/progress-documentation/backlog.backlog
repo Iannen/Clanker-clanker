@@ -95,36 +95,36 @@ II. The wishlist
     [x] 'content/modules/keyboard/keyboard_service.py': On `KBServiceImpl`, removed `handle_cmd`. Added `handle_start(self, cmd: StartCmd) -> BootstrapSuccess` (sets `last_prompt = None`, returns `BootstrapSuccess(kb, ui_render, cmd=None)`). Added `handle_key(self, cmd: KbCmd) -> KbCmdResult | RenderPromptCmd` (body of former `handle_cmd` minus the `case StartCmd()` branch — internal `match btn` on DomButton/PromptButton kept as-is).
         - prohibition: do not extract the DomButton/PromptButton dispatch from the service
 ```
-Backlog tail, Selected item/items:
 ```text
 1. Widen StartCmd to carry runtime state; route clean boots through it as a command
-    [ ] 'content/core/engine_deps/result.py': Make StartCmd a dataclass carrying kb + ui_render
-        - StartCmd becomes @dataclass(slots=True) with kb: Keyboard, ui_render: Render
+    [x] 'content/core/engine_deps/result.py': Make StartCmd a dataclass carrying kb + ui_render
+        - StartCmd became @dataclass(slots=True) with kb: Keyboard, ui_render: Render
         - IngestionService.get_runtime_config return type: StartCmd | StartResult | ClankerizeResult | TerminateResult
         - IngestionService.initialize_workspace return type: same union
-        - KBService.set_runtime param type widens to StartResult | StartCmd
-    [ ] 'content/core/engine.py': Add StartCmd case to dispatch
-        - case StartCmd(): self.kb_service.set_runtime(item); item = self.kb_service.handle_start(item)
-        - case BootCmd(): existing isinstance(item, StartResult) guard stays; if ingestion returns StartCmd it is not a Result so no set_runtime/post here — falls to next iteration
-        - case ClankerizeCmd(): unchanged
-    [ ] 'content/modules/asset_ingestion/ingestion_service.py': Emit StartCmd when zero complaints
-        - get_runtime_config: after assemble, if ec has no complaints (no soft, no crit) → return StartCmd(kb=kb, ui_render=ui_render)
+        - KBService.set_runtime param type widened to StartResult | StartCmd
+    [x] 'content/core/engine.py': Add StartCmd case to dispatch
+        - case StartCmd(): calls kb_service.set_runtime(item), then kb_service.handle_start(item)
+        - BootCmd case: existing isinstance(item, StartResult) guard stays; StartCmd from ingestion falls to next iteration
+        - ClankerizeCmd case: unchanged
+    [x] 'content/modules/asset_ingestion/ingestion_service.py': Emit StartCmd when zero complaints
+        - get_runtime_config: if ec has no complaints → return StartCmd(kb, ui_render)
         - soft complaints only → StartResult (unchanged)
         - critical → TerminateResult (unchanged)
         - pud_result NONE_PRESENT → ClankerizeResult (unchanged)
-        - initialize_workspace: no logic change, only return annotation widens
-    [ ] 'content/modules/keyboard/keyboard_service.py': Accept StartCmd in set_runtime
+        - initialize_workspace: no logic change, return annotation widened
+    [x] 'content/modules/keyboard/keyboard_service.py': Accept StartCmd in set_runtime
         - set_runtime signature: StartResult | StartCmd
         - body unchanged (accesses .kb and .ui_render, present on both types)
-    [ ] 'content/modules/tui/tui_service.py': Build StartCmd with state on user acceptance
-        - post_response StartResult branch: on acceptance, queue StartCmd(kb=result.kb, ui_render=result.ui_render) instead of bare StartCmd()
+    [x] 'content/modules/tui/tui_service.py': Build StartCmd with state on user acceptance
+        - post_response StartResult branch: renderer.post_question now takes only declined_cmd (StartCmd construction moved into renderer)
         - ClankerizeResult branch: unchanged
-    [ ] 'content/modules/tui/renderer.py': Pass StartCmd state through post_question
-        - post_question StartResult case: on acceptance, return/queue StartCmd(result.kb, result.ui_render)
-        - ClankerizeResult case: unchanged
+    [x] 'content/modules/tui/renderer.py': Pass StartCmd state through post_question
+        - post_question StartResult case: on acceptance, queues StartCmd(result.kb, result.ui_render)
+        - ClankerizeResult case: on acceptance, queues ClankerizeCmd()
         - TerminateResult case: unchanged
-    [ ] 'content/modules/web_frontend/web_frontend_service.py': No change
-        - Clean boot returns StartCmd from ingestion; engine handles it directly; never reaches post_response
-        - StartResult path (soft complaints) not exercised in web mode currently
+    [x] 'content/modules/web_frontend/web_frontend_service.py': No change
+        - Clean boot returns StartCmd; engine handles it directly; never reaches post_response
+        - BootstrapSuccess hits case _:, no pending slot, no-op
 ```
+Backlog tail, Selected item/items:
 Backlog tail end
