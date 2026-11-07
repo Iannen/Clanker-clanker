@@ -39,11 +39,11 @@ class PromptServiceImpl(PromptService):
         active_resolvers: list[e.Resolver] = []
         match cmd:
             case RenderNormalPromptCmd():
-                if cmd.prompt.render.inherit_domain and cmd.kb.selected_dom_btn:
-                    active_resolvers.extend(cmd.kb.selected_dom_btn.inhabitant.resolvers)
+                if cmd.prompt.render.inherit_domain:
+                    active_resolvers.extend(cmd.domain.resolvers)
                 active_resolvers.extend(cmd.prompt.render.resolvers)
             case RenderHotPromptCmd():
-                domain_resolvers = cmd.kb.selected_dom_btn.inhabitant.resolvers if cmd.kb.selected_dom_btn else []
+                domain_resolvers = cmd.domain.resolvers
                 prompt_resolvers = cmd.prompt.render.resolvers
 
                 md_resolvers = [
@@ -78,6 +78,7 @@ class PromptServiceImpl(PromptService):
         fragments = []
         for file_obj in resolver.files.files:
             try:
+                if file_obj.path is None: raise e.ConfigAssembly
                 raw_content = self.files.read_asset(file_obj.path)
             except NoSuchFile as ex:
                 raise e.ConfigAssembly from ex
@@ -102,7 +103,7 @@ class PromptServiceImpl(PromptService):
 
         return {resolver.anchor: "\n\n".join(file_blocks)}
 
-    def _res_manifest(self, resolver: e.ManifestResolver) -> str:
+    def _res_manifest(self, resolver: e.ManifestResolver) -> dict[str, str]:
         manifest_blocks = [
             self._build_manifest("pud-manifest", e.PathTokens.PUD, resolver.pud_fileset)
         ]

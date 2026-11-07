@@ -45,13 +45,17 @@ class KBServiceImpl(KBService):
         return DomainSelectedResult(kb=self.kb, ui_render=self.ui_render, btn=btn, cmd=cmd)
 
     def _handle_prompt_btn(self, btn: e.PromptButton, cmd: KbCmd) -> KbServiceEmission:
-        if self.last_prompt is not None and btn.inhabitant == self.last_prompt:
-            prompt = self.last_prompt
-            self.last_prompt = None
-            return RenderHotPromptCmd(kb=self.kb, ui_render=self.ui_render, cmd=cmd, prompt=prompt)
-
         if btn.inhabitant is None:
             return UninhabitedPromptResult(kb=self.kb, ui_render=self.ui_render, btn=btn, cmd=cmd)
 
+        dom = self.kb.selected_dom_btn.inhabitant if self.kb.selected_dom_btn else None
+        if dom is None:
+            return UninhabitedPromptResult(kb=self.kb, ui_render=self.ui_render, btn=btn, cmd=cmd)
+
+        if self.last_prompt is not None and btn.inhabitant == self.last_prompt:
+            prompt = self.last_prompt
+            self.last_prompt = None
+            return RenderHotPromptCmd(kb=self.kb, ui_render=self.ui_render, cmd=cmd, prompt=prompt, domain=dom)
+
         self.last_prompt = btn.inhabitant
-        return RenderNormalPromptCmd(kb=self.kb, ui_render=self.ui_render, cmd=cmd, prompt=btn.inhabitant)
+        return RenderNormalPromptCmd(kb=self.kb, ui_render=self.ui_render, cmd=cmd, prompt=btn.inhabitant, domain=dom)

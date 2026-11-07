@@ -97,10 +97,12 @@ class UninhabitedPromptResult(KbServiceEmission, Result): btn: e.PromptButton
 @dataclass
 class RenderNormalPromptCmd(KbServiceEmission, Command):
     prompt: e.Prompt
+    domain: e.Domain
 
 @dataclass
 class RenderHotPromptCmd(KbServiceEmission, Command):
     prompt: e.Prompt
+    domain: e.Domain
 
 
 @dataclass

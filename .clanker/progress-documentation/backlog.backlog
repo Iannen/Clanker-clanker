@@ -205,6 +205,27 @@ II. The wishlist
         - `_find_match_idx` stays (called from both inlined spots)
         - result: `apply_truncation` grows by ~4 lines, class drops from 5 methods to 3
 ```
+```text
+1. Move domain reference onto render commands, eliminating optional-chain at render time
+    [x] 'content/core/engine_deps/result.py': Add `domain: e.Domain` field to `RenderNormalPromptCmd` and `RenderHotPromptCmd`
+        - Both are dataclasses inheriting from `KbServiceEmission, Command`; add `domain: "e.Domain"` alongside existing `prompt: e.Prompt`
+    [x] 'content/modules/keyboard/keyboard_service.py': Pass resolved domain into both render commands from `_handle_prompt_btn`
+        - After the `btn.inhabitant is None` guard, resolve `dom = self.kb.selected_dom_btn.inhabitant`
+        - A narrow guard (e.g. `if dom is None: return UninhabitedPromptResult(...)`) satisfies Pyright; structurally unreachable but silences the checker
+        - Add `domain=dom` to both `RenderNormalPromptCmd(...)` and `RenderHotPromptCmd(...)` constructor calls
+    [x] 'content/modules/render_pipeline/render_service.py': Replace optional-chain lookups with `cmd.domain.resolvers`
+        - `RenderNormalPromptCmd` branch: change `cmd.kb.selected_dom_btn.inhabitant.resolvers` → `cmd.domain.resolvers`; drop the `cmd.kb.selected_dom_btn` null-check (keep `inherit_domain` guard)
+        - `RenderHotPromptCmd` branch: change the ternary `cmd.kb.selected_dom_btn.inhabitant.resolvers if cmd.kb.selected_dom_btn else []` → `cmd.domain.resolvers`
+```
 Backlog tail, Selected item/items:
+PromptServiceImpl._res_multi_doc raises like so 'if file_obj.path is None: raise e.ConfigAssembly'
+
+@dataclass
+class File(Entity):
+    name: str
+    truncation_spec: TruncationSpec | None
+    path: str | None
+
+during validation, we assign path (if we can resolve it), and then kick out files which couldnt resolve path - is that correct?
 
 Backlog tail end
