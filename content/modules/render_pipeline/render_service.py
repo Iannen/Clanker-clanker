@@ -18,9 +18,12 @@ class PromptServiceImpl(PromptService):
         self.shaper: PromptContentShaper = PromptContentShaper()
 
     def render_prompt(self, cmd: RenderNormalPromptCmd | RenderHotPromptCmd) -> PromptRenderResult:
-        template = self._get_template(cmd)
+        try:
+            template = self.files.read_asset(e.ClankerAssets.layouts.PROMPT)
+        except NoSuchFile as ex:
+            raise e.CorruptClanker(f"Error loading template for '{cmd.prompt.render.template}': {ex}") from ex
         repl_map = self._get_repl_map(cmd)
-        text_content = self._hydrate(template, repl_map)
+        text_content = self.shaper.hydrate(template, repl_map)
         lines_count = len(text_content.splitlines())
         char_count = len(text_content)
         return PromptRenderResult(
@@ -31,19 +34,6 @@ class PromptServiceImpl(PromptService):
             lines=lines_count,
             chars=char_count,
         )
-
-    def _hydrate(self, template: str, replacements: dict[str, str]) -> str:
-        return self.shaper.hydrate(template, replacements)
-
-    def _get_template(self, cmd: RenderNormalPromptCmd | RenderHotPromptCmd) -> str:
-        template_name = cmd.prompt.render.template
-
-        try:
-            match template_name:
-                case "prompt_template":
-                    return self.files.read_asset(e.ClankerAssets.layouts.PROMPT)
-        except NoSuchFile as ex:
-            raise e.CorruptClanker(f"Error loading template for '{template_name}': {ex}") from ex
 
     def _get_repl_map(self, cmd: RenderNormalPromptCmd | RenderHotPromptCmd) -> dict[str, str]:
         active_resolvers: list[e.Resolver] = []

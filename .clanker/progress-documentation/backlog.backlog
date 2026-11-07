@@ -194,6 +194,17 @@ II. The wishlist
         - Update any imports of the form 'from core import CorruptClanker' or 'from core import ConfigAssembly' to use 'e.CorruptClanker' / 'e.ConfigAssembly' where the file already uses the 'e' alias
         - Where a file does not yet use the 'e' alias but imports only an exception from core, switch to 'from core import entities as e' and reference as 'e.CorruptClanker' / 'e.ConfigAssembly'
 ```
+```text
+1. Prompt render pipeline: collapse redundant indirection
+    [x] 'content/modules/render_pipeline/render_service.py': Delete `_hydrate` method; call `self.shaper.hydrate(template, repl_map)` directly in `render_prompt`
+        - removed the method entirely (single call site, one line of passthrough)
+    [x] 'content/modules/render_pipeline/render_service.py': Delete `_get_template` method; inline the single-case match as a direct `self.files.read_asset(e.ClankerAssets.layouts.PROMPT)` call with try/except in `render_prompt`
+        - dropped the `match template_name:` block (only one case exists)
+        - kept the `CorruptClanker` raise on `NoSuchFile`
+    [x] 'content/modules/render_pipeline/content_shaper.py': Inline `_cut_before_regex` and `_cut_from_regex` into `apply_truncation`; delete both helper methods
+        - `_find_match_idx` stays (called from both inlined spots)
+        - result: `apply_truncation` grows by ~4 lines, class drops from 5 methods to 3
+```
 Backlog tail, Selected item/items:
 
 Backlog tail end
