@@ -5,7 +5,6 @@ from core.engine_deps import (
     IngestionService,
     BootCmd,
     ClankerizeCmd,
-    StartResult,
     StartCmd,
     KbCmd,
     ExitCommand,
@@ -25,20 +24,18 @@ class AppEngine:
         item = None
         while True:
             item = self.frontend.get_request() if item is None else item
-
             match item:
                 case BootCmd():
                     item = self.ingestion.get_runtime_config()
-                    if isinstance(item, StartResult):
-                        self.kb_service.set_runtime(item)
+                    #if isinstance(item, StartResult):
+                     #   self.kb_service.set_runtime(item)
                 case ClankerizeCmd():
                     item = self.ingestion.initialize_workspace()
-                    if isinstance(item, StartResult):
-                        self.kb_service.set_runtime(item)
+                    #if isinstance(item, StartResult):
+                     #   self.kb_service.set_runtime(item)
                 case RenderPromptCmd():
                     item = self.prompt_service.render_prompt(item)
                 case StartCmd():
-                    self.kb_service.set_runtime(item)
                     item = self.kb_service.handle_start(item)
                 case KbCmd():
                     item = self.kb_service.handle_key(item)

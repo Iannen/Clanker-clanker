@@ -127,4 +127,14 @@ II. The wishlist
         - BootstrapSuccess hits case _:, no pending slot, no-op
 ```
 Backlog tail, Selected item/items:
+```text
+1. Collapse StartCmd case in engine to single KB service call
+    [ ] 'content/core/engine.py': Remove explicit set_runtime call from StartCmd case
+        - case StartCmd() becomes: item = self.kb_service.handle_start(item)
+    [ ] 'content/modules/keyboard/keyboard_service.py': Absorb state assignment into handle_start
+        - handle_start assigns self.kb, self.ui_render, self.last_prompt = None from cmd before returning BootstrapSuccess
+        - set_runtime remains unchanged for the StartResult path in BootCmd/ClankerizeCmd cases
+    [ ] 'content/core/engine_deps/result.py': KBService ABC — handle_start contract is StartCmd -> BootstrapSuccess (no change), set_runtime stays StartResult -> None
+        - remove StartCmd from set_runtime signature if it was only there for the old two-call pattern
+```
 Backlog tail end

@@ -22,6 +22,8 @@ from core.engine_deps import (
 @dataclass(slots=True)
 class KBServiceImpl(KBService):
     def handle_start(self, cmd: StartCmd) -> BootstrapSuccess:
+        self.kb = cmd.kb
+        self.ui_render = cmd.ui_render
         self.last_prompt = None
         return BootstrapSuccess(kb=self.kb, ui_render=self.ui_render, cmd=None)
 
@@ -35,7 +37,7 @@ class KBServiceImpl(KBService):
             case PromptButton():
                 return self._handle_prompt_btn(btn, cmd)
 
-    def set_runtime(self, res: StartResult | StartCmd) -> None:
+    def set_runtime(self, res: StartResult) -> None:
         self.kb = res.kb
         self.ui_render = res.ui_render
         self.last_prompt = None
