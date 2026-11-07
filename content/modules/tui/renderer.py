@@ -2,10 +2,11 @@ from stdlib import dataclass, field, re, Queue
 from core import ClankerAssets, DomButton, PromptButton, Keyboard, CorruptClanker, NewBtn
 from core.engine_deps import (
     TerminalPort, StartResult, ClankerizeResult, TerminateResult,
-    Report, MissingEntityFields, UnsatisfiedFiles, Missing, Malformed, 
-    UnsatisfiedFilesetSubjects, FilenameCollision, DomainOverflow, Complaint, Proposition, 
-    BootstrapSuccess, UnboundKeyResult, DomainSelectedResult, UninhabitedDomainResult, 
-    UninhabitedPromptResult, PromptRenderResult, KbCmdResult, NoSuchFile, DiskPort, Command, IOControl, KbCmd, UserAborted
+    Report, MissingEntityFields, UnsatisfiedFiles, Missing, Malformed,
+    UnsatisfiedFilesetSubjects, FilenameCollision, DomainOverflow, Complaint, Proposition,
+    BootstrapSuccess, UnboundKeyResult, DomainSelectedResult, UninhabitedDomainResult,
+    UninhabitedPromptResult, PromptRenderResult, KbCmdResult, NoSuchFile, DiskPort, Command, IOControl, KbCmd, UserAborted,
+    StartCmd, ClankerizeCmd,
 )
 
 class ComplaintsFormatter:
@@ -90,9 +91,9 @@ class TUIContentShaper:
             repl_map |= self.shape_button_replacements(btn, label, template)
         for btn in kb.get_btns(PromptButton):
             label = btn.inhabitant.name if btn.inhabitant else ""
-            template = btn_active if btn.inhabitant else btn_inactive   
+            template = btn_active if btn.inhabitant else btn_inactive
             repl_map |= self.shape_button_replacements(btn, label, template)
-            
+
         return repl_map
 
     def shape_button_replacements(self, btn: NewBtn, label: str, template: str) -> dict[str, str]:
@@ -152,21 +153,21 @@ class TUIRenderer:
             return UserAborted()
         return KbCmd(char=ch.lower())
 
-    def post_question(self, result: StartResult | ClankerizeResult, affirmative_cmd: type, declined_cmd: type) -> None:
+    def post_question(self, result: StartResult | ClankerizeResult, declined_cmd: type) -> None:
         match result:
             case StartResult():
                 if not result.report.get_all_complaints():
-                    self.queue.put(affirmative_cmd())
+                    self.queue.put(StartCmd(kb=result.kb, ui_render=result.ui_render))
                     return
                 subject = ComplaintsFormatter.format(result.report)
-                statement=QuestionPhrases.PROCEED_QUESTION
-                required_phrase=None
+                statement = QuestionPhrases.PROCEED_QUESTION
+                required_phrase = None
             case ClankerizeResult():
                 subject = ComplaintsFormatter.format(result.report)
-                statement=QuestionPhrases.INIT_REPO
-                required_phrase=QuestionPhrases.REQUIRED_PHRASE
-            case _: 
-                raise ValueError(f"Unsupported result type for post_question: {type(result).__name__}") 
+                statement = QuestionPhrases.INIT_REPO
+                required_phrase = QuestionPhrases.REQUIRED_PHRASE
+            case _:
+                raise ValueError(f"Unsupported result type for post_question: {type(result).__name__}")
 
         accepted = self.io_bridge.get_acceptance(
             Proposition(
@@ -175,14 +176,20 @@ class TUIRenderer:
                 required_phrase=required_phrase
             )
         )
-        cmd = affirmative_cmd() if accepted else declined_cmd()
+        if accepted:
+            if isinstance(result, StartResult):
+                cmd: Command = StartCmd(kb=result.kb, ui_render=result.ui_render)
+            else:
+                cmd = ClankerizeCmd()
+        else:
+            cmd = declined_cmd()
         self.queue.put(cmd)
 
     def get_acknowledgement(self, result: TerminateResult, exit_cmd: type) -> None:
         msg = ComplaintsFormatter.format(result.report)
         proposition = Proposition(
             subject=msg,
-            statement="", # wtf is this omg
+            statement="",
             required_phrase=None
         )
         self.io_bridge.get_acceptance(proposition)

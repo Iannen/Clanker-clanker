@@ -96,19 +96,35 @@ II. The wishlist
         - prohibition: do not extract the DomButton/PromptButton dispatch from the service
 ```
 Backlog tail, Selected item/items:
-I think we have a system where frontend produces command, and consume result.
-
-the other services consume command and produce either new command or result 
-
-1. is this correct?
-
-iff so: I think ingestionservice needs revisiting 
-
-basically instead of 3 outputs, all results, I think it should have 4
-    Results, for when we have something to tell / run by user:
-        - start, but soft complaints
-        - clankerize (soft or no complaints)
-        - terminate case
-    Command, for when we are ready to start app
-        - this becomes a 'boot was ok' command or similar, which goes to kbservice
+```text
+1. Widen StartCmd to carry runtime state; route clean boots through it as a command
+    [ ] 'content/core/engine_deps/result.py': Make StartCmd a dataclass carrying kb + ui_render
+        - StartCmd becomes @dataclass(slots=True) with kb: Keyboard, ui_render: Render
+        - IngestionService.get_runtime_config return type: StartCmd | StartResult | ClankerizeResult | TerminateResult
+        - IngestionService.initialize_workspace return type: same union
+        - KBService.set_runtime param type widens to StartResult | StartCmd
+    [ ] 'content/core/engine.py': Add StartCmd case to dispatch
+        - case StartCmd(): self.kb_service.set_runtime(item); item = self.kb_service.handle_start(item)
+        - case BootCmd(): existing isinstance(item, StartResult) guard stays; if ingestion returns StartCmd it is not a Result so no set_runtime/post here — falls to next iteration
+        - case ClankerizeCmd(): unchanged
+    [ ] 'content/modules/asset_ingestion/ingestion_service.py': Emit StartCmd when zero complaints
+        - get_runtime_config: after assemble, if ec has no complaints (no soft, no crit) → return StartCmd(kb=kb, ui_render=ui_render)
+        - soft complaints only → StartResult (unchanged)
+        - critical → TerminateResult (unchanged)
+        - pud_result NONE_PRESENT → ClankerizeResult (unchanged)
+        - initialize_workspace: no logic change, only return annotation widens
+    [ ] 'content/modules/keyboard/keyboard_service.py': Accept StartCmd in set_runtime
+        - set_runtime signature: StartResult | StartCmd
+        - body unchanged (accesses .kb and .ui_render, present on both types)
+    [ ] 'content/modules/tui/tui_service.py': Build StartCmd with state on user acceptance
+        - post_response StartResult branch: on acceptance, queue StartCmd(kb=result.kb, ui_render=result.ui_render) instead of bare StartCmd()
+        - ClankerizeResult branch: unchanged
+    [ ] 'content/modules/tui/renderer.py': Pass StartCmd state through post_question
+        - post_question StartResult case: on acceptance, return/queue StartCmd(result.kb, result.ui_render)
+        - ClankerizeResult case: unchanged
+        - TerminateResult case: unchanged
+    [ ] 'content/modules/web_frontend/web_frontend_service.py': No change
+        - Clean boot returns StartCmd from ingestion; engine handles it directly; never reaches post_response
+        - StartResult path (soft complaints) not exercised in web mode currently
+```
 Backlog tail end

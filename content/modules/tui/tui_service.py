@@ -3,7 +3,7 @@ from core.engine_deps import (
     FrontendService, DiskPort, TerminalPort, StartResult,
     UserDeclinedStart, UserDeclinedClankerize, StartupFailed,
     ClankerizeResult, TerminateResult, BootCmd,
-    StartCmd, ClankerizeCmd, Command, Result, KbCmdResult,
+    Command, Result, KbCmdResult,
     PromptRenderResult,
 )
 from ..tui import TUIRenderer
@@ -20,9 +20,9 @@ class FrontendServiceImpl(FrontendService):
     def post_response(self, result: Result) -> None:
         match result:
             case StartResult():
-                self.renderer.post_question(result, StartCmd, UserDeclinedStart)
+                self.renderer.post_question(result, UserDeclinedStart)
             case ClankerizeResult():
-                self.renderer.post_question(result, ClankerizeCmd, UserDeclinedClankerize)
+                self.renderer.post_question(result, UserDeclinedClankerize)
             case TerminateResult():
                 self.renderer.get_acknowledgement(result, StartupFailed)
             case KbCmdResult():

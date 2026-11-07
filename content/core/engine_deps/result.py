@@ -46,7 +46,10 @@ class Report(ABC):
 
 class Command: pass
 class BootCmd(Command): pass
-class StartCmd(Command): pass
+@dataclass(slots=True)
+class StartCmd(Command):
+    kb: "Keyboard"
+    ui_render: "Render"
 class ClankerizeCmd(Command): pass
 @dataclass
 class KbCmd(Command): char: str
@@ -119,9 +122,9 @@ class HotRenderContext(RenderContext):
 
 class IngestionService(ABC):
     @abstractmethod
-    def get_runtime_config(self) -> StartResult | ClankerizeResult | TerminateResult: ...
+    def get_runtime_config(self) -> StartCmd | StartResult | ClankerizeResult | TerminateResult: ...
     @abstractmethod
-    def initialize_workspace(self) -> StartResult: ...
+    def initialize_workspace(self) -> StartCmd | StartResult | ClankerizeResult | TerminateResult: ...
 
 class FrontendService(ABC):
     @abstractmethod
@@ -139,4 +142,4 @@ class KBService(ABC):
     @abstractmethod
     def handle_key(self, cmd: KbCmd) -> KbCmdResult | RenderPromptCmd: ...
     @abstractmethod
-    def set_runtime(self, res: StartResult) -> None: ...
+    def set_runtime(self, res: StartResult | StartCmd) -> None: ...

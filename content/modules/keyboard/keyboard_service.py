@@ -35,7 +35,7 @@ class KBServiceImpl(KBService):
             case PromptButton():
                 return self._handle_prompt_btn(btn, cmd)
 
-    def set_runtime(self, res: StartResult) -> None:
+    def set_runtime(self, res: StartResult | StartCmd) -> None:
         self.kb = res.kb
         self.ui_render = res.ui_render
         self.last_prompt = None
