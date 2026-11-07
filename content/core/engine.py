@@ -27,12 +27,8 @@ class AppEngine:
             match item:
                 case BootCmd():
                     item = self.ingestion.get_runtime_config()
-                    #if isinstance(item, StartResult):
-                     #   self.kb_service.set_runtime(item)
                 case ClankerizeCmd():
                     item = self.ingestion.initialize_workspace()
-                    #if isinstance(item, StartResult):
-                     #   self.kb_service.set_runtime(item)
                 case RenderPromptCmd():
                     item = self.prompt_service.render_prompt(item)
                 case StartCmd():
@@ -41,7 +37,6 @@ class AppEngine:
                     item = self.kb_service.handle_key(item)
                 case ExitCommand():
                     break
-
             if isinstance(item, Result):
                 self.frontend.post_response(item)
                 item = None

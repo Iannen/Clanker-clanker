@@ -16,7 +16,6 @@ from core.engine_deps import (
     HotRenderContext,
     RenderPromptCmd,
     StartCmd,
-    StartResult,
 )
 
 @dataclass(slots=True)
@@ -36,11 +35,6 @@ class KBServiceImpl(KBService):
                 return self._handle_dom_btn(btn, cmd)
             case PromptButton():
                 return self._handle_prompt_btn(btn, cmd)
-
-    def set_runtime(self, res: StartResult) -> None:
-        self.kb = res.kb
-        self.ui_render = res.ui_render
-        self.last_prompt = None
 
     def _handle_dom_btn(self, btn: DomButton, cmd: KbCmd) -> KbCmdResult:
         self.kb.set_selected_dom_btn(btn)
