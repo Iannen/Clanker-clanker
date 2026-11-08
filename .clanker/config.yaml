@@ -20,9 +20,8 @@ pud_filesets:
 
   web_dev: {includes: [content], excludes: [
     content/a_lib,
-    content/adapters/terminal,
-    content/clanker.py,
-    content/core/engine.py,
+    content/adapters,
+    content/modules/asset_ingestion,    
   ]}
 
 pud_domains:
