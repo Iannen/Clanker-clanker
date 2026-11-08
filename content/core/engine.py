@@ -11,6 +11,7 @@ from core.engine_deps import (
     PromptService,
     RenderNormalPromptCmd,
     RenderHotPromptCmd,
+    Request,
     Result,
 )
 
@@ -22,24 +23,23 @@ class AppEngine:
     prompt_service: PromptService
 
     def run(self) -> str:
-        item = None
+        req: Request = self.frontend.get_request()
         while True:
-            item = self.frontend.get_request() if item is None else item
-            match item:
+            match req.item:
                 case BootCmd():
-                    item = self.ingestion.get_runtime_config()
+                    req.item = self.ingestion.get_runtime_config()
                 case ClankerizeCmd():
-                    item = self.ingestion.initialize_workspace()
+                    req.item = self.ingestion.initialize_workspace()
                 case RenderNormalPromptCmd() | RenderHotPromptCmd():
-                    item = self.prompt_service.render_prompt(item)
+                    req.item = self.prompt_service.render_prompt(req.item)
                 case StartCmd():
-                    item = self.kb_service.handle_start(item)
+                    req.item = self.kb_service.handle_start(req.item)
                 case KbCmd():
-                    item = self.kb_service.handle_key(item)
+                    req.item = self.kb_service.handle_key(req.item)
                 case ExitCommand():
                     break
-            if isinstance(item, Result):
-                self.frontend.post_response(item)
-                item = None
+            if isinstance(req.item, Result):
+                self.frontend.post_response(req)
+                req = self.frontend.get_request()
 
-        return item.exit_msg
+        return req.item.exit_msg

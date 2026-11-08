@@ -28,51 +28,51 @@ II. The wishlist
     - single click dropoff, none of that double ctrl+d stuff
     - automation of the bl migration
 
-
-Frontend rework:
-New class Request
-    One member: `item: Command | Result`. 
-    The frontend mints it, queues it, and recognizes it by `id` when it comes back. 
-    the engine hands the whole `Request` to `post_response`. One `Request` per cycle, one `id` for the whole trip.
-
-New class Command
-    This is just a class that is inherited by the dtos services and engine exchange, which are not results.
-    it exists so that 'item' of Request can have a type union type hint
-
-Frontend no longer issue 'Cmd' type classes. It issues a Request, which wraps the cmd previously issued.
-    So BootCmd are wrapped in a Request when issued, the same with kbcommand - wrapped in request.
-    Instead of the 'item' being exchanged in engine scope, it is exchanged on result.
-
-Backlog tail, Selected item/items:
 ```text
 1. Frontend rework: introduce Request envelope, shift exchange to item-mutation pattern
-    [ ] 'content/core/engine_deps/result.py': Add Request dataclass; update FrontendService port signatures
+    [x] 'content/core/engine_deps/result.py': Add Request dataclass; update FrontendService port signatures
         - Add `Request` dataclass with `id: str` and `item: Command | Result`
         - Change `FrontendService.get_request()` return type from `Command` to `Request`
         - Change `FrontendService.post_response()` param from `result: Result` to `req: Request`
-    [ ] 'content/core/engine.py': Rewrite run() loop around Request mutation
+    [x] 'content/core/engine.py': Rewrite run() loop around Request mutation
         - `req = self.frontend.get_request()` (no more `item is None` sentinel)
         - `match req.item:` — each case mutates `req.item = <new Command or Result>`
         - `if isinstance(req.item, Result): self.frontend.post_response(req)`
         - `case ExitCommand(): break` stays; final return is `req.item.exit_msg`
         - Remove the old `item = None` reset and the separate `item` variable entirely
-    [ ] 'content/modules/tui/tui_service.py': Mint Request in frontend, pass Request to post_response
+    [x] 'content/modules/tui/tui_service.py': Mint Request in frontend, pass Request to post_response
         - `__init__`: queue a `Request(id=..., item=BootCmd())` instead of bare `BootCmd()`
         - `get_request()` → `return self.renderer.read_request()` (now returns `Request`)
         - `post_response(req: Request)`: match on `req.item` instead of a bare `Result` arg
         - Internal queue type: `Queue[Request]`
-    [ ] 'content/modules/tui/renderer.py': TUIRenderer mints Request on char-read and on queue-put
+    [x] 'content/modules/tui/renderer.py': TUIRenderer mints Request on char-read and on queue-put
         - `TUIRenderer.queue` type: `Queue[Command]` → `Queue[Request]`
         - `read_request()`: queue-empty path → mint `Request(id=..., item=KbCmd(char=...))`; abort path → `Request(id=..., item=UserAborted())`; queue-hit path → return `queue.get()` directly (already a `Request`)
         - `post_question(...)`: mint `Request(id=..., item=cmd)` before `self.queue.put(...)` (applies to both StartCmd and ClankerizeCmd branches)
         - `get_acknowledgement(...)`: mint `Request(id=..., item=exit_cmd())` before `self.queue.put(...)`
         - `display_result(result: KbServiceEmission)` signature unchanged — caller in tui_service passes `req.item`
-    [ ] 'content/modules/web_frontend/web_frontend_service.py': Mint Request in _handle_char, key _pending on request.id
+    [x] 'content/modules/web_frontend/web_frontend_service.py': Mint Request in _handle_char, key _pending on request.id
         - `__init__`: queue a `Request(id=..., item=BootCmd())`
         - `_handle_char()`: mint `Request(id=..., item=KbCmd(char=char_val))`; store `self._pending[request.id] = slot`; `self._queue.put(request)`
         - `get_request()`: `return self._queue.get()` (pops a `Request`)
         - `post_response(req: Request)`: match on `req.item`; resolve slot via `self._pending.pop(req.id, None)` in both the `PromptRenderResult` and `_` branches
         - `_pending` type: `dict[str, _ReplySlot]` (key is `request.id`, not `id(cmd)`)
         - Prohibition: do not retain the old `id(cmd)` / `id(result.cmd.cmd)` keying pattern
+```
+Backlog tail, Selected item/items:
+```text
+2. Web SPA: SPA-initiated boot via /api/boot, welcome text replaced by boot result
+    [ ] 'content/modules/web_frontend/web_frontend_service.py': Remove BootCmd seed; add /api/boot endpoint; resolve boot response
+        - `__init__`: remove the line that mints and queues a `BootCmd` Request; queue starts empty
+        - `_Handler.do_GET`: add branch for `/api/boot` that mints a `Request(id, item=BootCmd())`, stashes a `_ReplySlot` under `req.id`, puts it on the queue, waits on the slot, and returns the payload as text (200)
+        - `post_response(req: Request)`: add a case for the boot-cycle result (e.g. `BootstrapSuccess`, `StartResult`, `TerminateResult`, `ClankerizeResult`) that resolves the stashed slot with a plain-text string — the class name of `req.item` (e.g. `"BootstrapSuccess"`)
+        - Prohibition: do not retain the old `self._queue.put(self._mint(BootCmd()))` line in `__init__`
+    [ ] 'content/web-ui/frontend/api-client.js': Add boot() method
+        - New `async boot()`: `fetch('/api/boot')`, check `response.ok`, return `response.text()`
+    [ ] 'content/web-ui/frontend/clanker-app.js': Call boot on connect, disable input while pending, swap welcome text
+        - In `onConnect()`: call `this.#bootSystem()` before registering keydown handlers
+        - New `#bootSystem()`: set `inputBox.setDisabled(true)`; `const msg = await apiClient.boot()`; `inputBox.setDisabled(false)`; set the welcome-text div's `textContent` to `msg` (replace the "Type a prompt below..." text)
+        - On error: show toast with error message, re-enable input, leave welcome text as-is
+        - Prohibition: do not remove the welcome-text div from the DOM; only change its `textContent`
 ```
 Backlog tail end

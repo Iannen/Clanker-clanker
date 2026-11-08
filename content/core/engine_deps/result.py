@@ -72,6 +72,12 @@ class Result: pass
 
 
 @dataclass
+class Request:
+    id: str
+    item: Command | Result
+
+
+@dataclass
 class KbServiceEmission:
     kb: e.Keyboard
     ui_render: e.Render
@@ -135,9 +141,9 @@ class IngestionService(ABC):
 
 class FrontendService(ABC):
     @abstractmethod
-    def get_request(self) -> Command: ...
+    def get_request(self) -> Request: ...
     @abstractmethod
-    def post_response(self, result: Result) -> None: ...
+    def post_response(self, req: Request) -> None: ...
 
 class PromptService(ABC):
     @abstractmethod

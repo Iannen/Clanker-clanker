@@ -5,7 +5,8 @@ from core.engine_deps import (
     Report, MissingEntityFields, UnsatisfiedFiles, Missing, Malformed,
     UnsatisfiedFilesetSubjects, FilenameCollision, DomainOverflow, Complaint, Proposition,
     BootstrapSuccess, UnboundKeyResult, DomainSelectedResult, UninhabitedDomainResult,
-    UninhabitedPromptResult, PromptRenderResult, KbServiceEmission, NoSuchFile, DiskPort, Command, IOControl, KbCmd, UserAborted,
+    UninhabitedPromptResult, PromptRenderResult, KbServiceEmission, NoSuchFile, DiskPort,
+    Request, IOControl, KbCmd, UserAborted,
     StartCmd, ClankerizeCmd,
 )
 
@@ -142,22 +143,27 @@ class TUIRenderer:
     """This class delegates to helper classes and uses the terminal port."""
     io_bridge: TerminalPort
     files: DiskPort
-    queue: Queue[Command]
+    queue: Queue[Request]
     shaper: TUIContentShaper = field(default_factory=TUIContentShaper)
+    _id_counter: int = field(default=0, repr=False)
 
-    def read_request(self) -> Command:
+    def _next_id(self) -> str:
+        self._id_counter += 1
+        return str(self._id_counter)
+
+    def read_request(self) -> Request:
         if not self.queue.empty():
             return self.queue.get()
         ch = self.io_bridge.read_char()
         if ch in IOControl.ABORT_KEYS:
-            return UserAborted()
-        return KbCmd(char=ch.lower())
+            return Request(id=self._next_id(), item=UserAborted())
+        return Request(id=self._next_id(), item=KbCmd(char=ch.lower()))
 
     def post_question(self, result: StartResult | ClankerizeResult, declined_cmd: type) -> None:
         match result:
             case StartResult():
                 if not result.report.get_all_complaints():
-                    self.queue.put(StartCmd(kb=result.kb, ui_render=result.ui_render))
+                    self.queue.put(Request(id=self._next_id(), item=StartCmd(kb=result.kb, ui_render=result.ui_render)))
                     return
                 subject = ComplaintsFormatter.format(result.report)
                 statement = QuestionPhrases.PROCEED_QUESTION
@@ -178,12 +184,12 @@ class TUIRenderer:
         )
         if accepted:
             if isinstance(result, StartResult):
-                cmd: Command = StartCmd(kb=result.kb, ui_render=result.ui_render)
+                item = StartCmd(kb=result.kb, ui_render=result.ui_render)
             else:
-                cmd = ClankerizeCmd()
+                item = ClankerizeCmd()
         else:
-            cmd = declined_cmd()
-        self.queue.put(cmd)
+            item = declined_cmd()
+        self.queue.put(Request(id=self._next_id(), item=item))
 
     def get_acknowledgement(self, result: TerminateResult, exit_cmd: type) -> None:
         msg = ComplaintsFormatter.format(result.report)
@@ -193,7 +199,7 @@ class TUIRenderer:
             required_phrase=None
         )
         self.io_bridge.get_acceptance(proposition)
-        self.queue.put(exit_cmd())
+        self.queue.put(Request(id=self._next_id(), item=exit_cmd()))
 
     def display_result(self, result: KbServiceEmission) -> None:
         if isinstance(result, KbServiceEmission):

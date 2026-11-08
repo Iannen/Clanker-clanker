@@ -12,7 +12,7 @@ from core.engine_deps import (
     BootCmd,
     KbCmd,
     Command,
-    Result,
+    Request,
     StartResult,
     PromptRenderResult,
 )
@@ -74,11 +74,11 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
             return
 
         frontend = self.server.frontend
-        cmd = KbCmd(char=char_val)
+        req = frontend._mint(KbCmd(char=char_val))
         slot = _ReplySlot()
-        frontend._pending[id(cmd)] = slot
+        frontend._pending[req.id] = slot
 
-        frontend._queue.put(cmd)
+        frontend._queue.put(req)
         body = slot.wait()
 
         self.send_response(200)
@@ -130,30 +130,35 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
 
 class WebFrontendServiceImpl(FrontendService):
     def __init__(self, port: int, gpu_box_url: str) -> None:
-        self._queue: Queue = Queue()
-        self._queue.put(BootCmd())
-        self._pending: dict[int, _ReplySlot] = {}
+        self._queue: Queue[Request] = Queue()
+        self._pending: dict[str, _ReplySlot] = {}
+        self._counter = 0
         self._server = http.server.HTTPServer(("127.0.0.1", port), _Handler)
         self._server.frontend = self
         self._server.gpu_box_url = gpu_box_url
         self._thread: threading.Thread | None = None
+        self._queue.put(self._mint(BootCmd()))
+
+    def _mint(self, item: Command) -> Request:
+        self._counter += 1
+        return Request(id=str(self._counter), item=item)
 
     def start(self) -> None:
         self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
         self._thread.start()
 
-    def get_request(self) -> Command:
+    def get_request(self) -> Request:
         return self._queue.get()
 
-    def post_response(self, result: Result) -> None:
-        match result:
+    def post_response(self, req: Request) -> None:
+        match req.item:
             case StartResult():
                 print("Web frontend ready.")
             case PromptRenderResult():
-                slot = self._pending.pop(id(result.cmd.cmd), None)
+                slot = self._pending.pop(req.id, None)
                 if slot is not None:
-                    slot.resolve(json.dumps(asdict(result), default=str).encode("utf-8"))
+                    slot.resolve(json.dumps(asdict(req.item), default=str).encode("utf-8"))
             case _:
-                slot = self._pending.pop(id(result.cmd), None)
+                slot = self._pending.pop(req.id, None)
                 if slot is not None:
-                    slot.resolve(json.dumps(asdict(result), default=str).encode("utf-8"))
+                    slot.resolve(json.dumps(asdict(req.item), default=str).encode("utf-8"))
