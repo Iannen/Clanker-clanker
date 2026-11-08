@@ -3,27 +3,24 @@ system:
   apply_command: "echo 'No apply command configured' && true"
   
 pud_filesets:
-  combined: {includes: [content], excludes: [
-    content/a_lib,
-    content/web-ui,
-    content/adapters/terminal/scripted_terminal_adapter.py
-    ]}
-
-  whole_thing: { includes: [content]}
-
-  web_ui: { includes: [content/web-ui/frontend]}
-  backend: { includes: [content/web-ui/], excludes: [content/web-ui/frontend]}
   all_code: {includes: [content], excludes: [
     content/a_lib,
-    content/adapters/terminal/scripted_terminal_adapter.py
+    content/adapters/terminal/scripted_terminal_adapter.py,
     ]}
 
-  web_dev: {includes: [content], excludes: [
+  backend: { includes: [content], excludes: [
     content/a_lib,
-    content/adapters/terminal,
-    content/clanker.py,
-    content/core/engine.py,
+    content/adapters/terminal/scripted_terminal_adapter.py,
+    content/web-ui/frontend,
+    ]}
+
+  frontend: {includes: [content], excludes: [
+    content/a_lib,
+    content/adapters/terminal/scripted_terminal_adapter.py,
+    content/adapters,
+    content/modules/asset_ingestion,    
   ]}
+
 
 pud_domains:
   all_code:
@@ -43,9 +40,9 @@ pud_domains:
           resolvers:
             - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_migration_mode }
 
-  combined:
+  backend:
     resolvers:
-      - { anchor: repo_content, type: repo-content, fileset: ¤ combined }
+      - { anchor: repo_content, type: repo-content, fileset: ¤ backend }
     prompts:
       - name: plan
         render:
@@ -61,9 +58,9 @@ pud_domains:
           resolvers:
             - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_migration_mode }
 
-  web-dev:
+  frontend:
     resolvers:
-      - { anchor: repo_content, type: repo-content, fileset: ¤ web_dev }
+      - { anchor: repo_content, type: repo-content, fileset: ¤ frontend }
     prompts:
       - name: plan
         render:

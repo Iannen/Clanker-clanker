@@ -28,9 +28,12 @@ II. The wishlist
     - single click dropoff, none of that double ctrl+d stuff
     - automation of the bl migration
 
+
 Backlog tail, Selected item/items:
-Are we able to merge the two frontend services into one? then we can make their dependencies into ports
 
-Lets think it over. What aligns, what does not
+I try to make the application be both a TUI and also a web server. I think I punish myself for no reason.
 
+I have decided to halt all development on TUI. I will create a new entrypoint file, and build the application as a more traditional server.
+I will not delete any of the old code untill the new server is on par with anything from the old system.
+For now I need to transition the above set of completed backlog items to the history log.
 Backlog tail end

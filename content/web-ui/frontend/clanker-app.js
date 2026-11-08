@@ -3,6 +3,7 @@ import { apiClient } from './api-client.js';
 import './toast.js';
 import './messages-box.js';
 import './input-box.js';
+import './keyboard-bar.js';
 import './sidepanel-left.js';
 import './sidepanel-right.js';
 
@@ -10,6 +11,7 @@ const html = `
     <sidepanel-left></sidepanel-left>
     <div class="flex flex-col h-screen overflow-hidden">
         <messages-box></messages-box>
+        <keyboard-bar></keyboard-bar>
         <input-box></input-box>
     </div>
     <sidepanel-right></sidepanel-right>
@@ -23,6 +25,7 @@ class ClankerApp extends BaseComponent {
     className = className;
 
     #selectedElement;
+    #keyboardBar;
 
     #inputActions = {
         'Enter': () => this.#submitInput(),
@@ -47,6 +50,20 @@ class ClankerApp extends BaseComponent {
     #handleGlobalKeydown = (event) => {
         if (event.shiftKey) return;
 
+        // Global view toggles (independent of focus context)
+        if (event.ctrlKey) {
+            if (event.key === 'Y' || event.key === 'y') {
+                event.preventDefault();
+                this.#showKeyboardBar();
+                return;
+            }
+            if (event.key === 'I' || event.key === 'i') {
+                event.preventDefault();
+                this.#showMessagesBox();
+                return;
+            }
+        }
+
         const actions = this.#selectedElement === this.inputBox
             ? this.#inputActions
             : this.#messageActions;
@@ -60,9 +77,27 @@ class ClankerApp extends BaseComponent {
         handler();
     };
 
-    onConnect() {
+    #showKeyboardBar() {
+        this.messagesBox.classList.add('hidden');
+        this.#keyboardBar.classList.remove('hidden');
+        this.#keyboardBar.focus();
+    }
+
+    #showMessagesBox() {
+        this.#keyboardBar.classList.add('hidden');
+        this.messagesBox.classList.remove('hidden');
+    }
+
+    #onPromptReady(promptText) {
+        this.#showMessagesBox();
+        this.#generateResponse(promptText);
+    }
+
+    async onConnect() {
         this.inputBox = this.querySelector('input-box');
         this.messagesBox = this.querySelector('messages-box');
+        this.#keyboardBar = this.querySelector('keyboard-bar');
+        this.#keyboardBar.classList.add('hidden');
         this.toast = this.querySelector('toast-notification');
 
         this.#selectedElement = this.inputBox;
@@ -71,7 +106,26 @@ class ClankerApp extends BaseComponent {
             this.#generateResponse(e.detail);
         });
 
+        this.#keyboardBar.addEventListener('prompt-ready', (e) => {
+            this.#onPromptReady(e.detail);
+        });
+
+        await this.#bootSystem();
+
         document.addEventListener('keydown', this.#handleGlobalKeydown);
+    }
+
+    async #bootSystem() {
+        this.inputBox.setDisabled(true);
+        try {
+            const msg = await apiClient.boot();
+            this.inputBox.setDisabled(false);
+            this.messagesBox.welcomeText.textContent = msg;
+        } catch (error) {
+            this.inputBox.setDisabled(false);
+            this.toast.show('❌ ' + (error.message || 'Boot failed'));
+        }
+        this.inputBox.focus();
     }
 
     #submitInput() {
