@@ -28,6 +28,8 @@ II. The wishlist
     - single click dropoff, none of that double ctrl+d stuff
     - automation of the bl migration
 
+
+Backlog tail, Selected item/items:
 ```text
 1. Frontend rework: introduce Request envelope, shift exchange to item-mutation pattern
     [x] 'content/core/engine_deps/result.py': Add Request dataclass; update FrontendService port signatures
@@ -174,5 +176,4 @@ II. The wishlist
         - In #showKeyboardBar(): after this.#keyboardBar.classList.remove('hidden'), add this.#keyboardBar.focus()
         - No other changes needed; global handler remains untouched and simply won't receive events the kb bar consumed
 ```
-Backlog tail, Selected item/items:
 Backlog tail end
