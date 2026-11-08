@@ -158,10 +158,9 @@ II. The wishlist
             - call this.#generateResponse(promptText)
         - No other changes needed; #generateResponse already handles bubbles, streaming, input disable/focus
 ```
-Backlog tail, Selected item/items:
 ```text
 2. Bind physical keys to keyboard bar when it has focus
-    [ ] 'content/web-ui/frontend/keyboard-bar.js': Listen for keydown on self when focused, intercept bound keys, stop propagation
+    [x] 'content/web-ui/frontend/keyboard-bar.js': Listen for keydown on self when focused, intercept bound keys, stop propagation
         - In onConnect: set this.tabIndex = 0 (makes the custom element focusable)
         - In onConnect: attach a keydown listener on `this`:
             - If event.ctrlKey || event.altKey || event.metaKey → return (let it bubble to global handler)
@@ -171,8 +170,9 @@ Backlog tail, Selected item/items:
             - If button found: event.stopPropagation(); event.preventDefault(); call this.#onButtonClick(btn)
             - If button not found: return (shouldn't happen, but let it bubble)
         - No changes to #onButtonClick itself; it already handles the fetch, state repaint, and prompt-ready dispatch
-    [ ] 'content/web-ui/frontend/clanker-app.js': Focus the keyboard bar element when showing it
+    [x] 'content/web-ui/frontend/clanker-app.js': Focus the keyboard bar element when showing it
         - In #showKeyboardBar(): after this.#keyboardBar.classList.remove('hidden'), add this.#keyboardBar.focus()
         - No other changes needed; global handler remains untouched and simply won't receive events the kb bar consumed
 ```
+Backlog tail, Selected item/items:
 Backlog tail end

@@ -5,6 +5,8 @@ const sharedDomKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
 const pudDomKeys = ['q', 'w', 'e', 'r'];
 const promptKeys = ['a', 's', 'd', 'f'];
 
+const boundKeys = new Set([...sharedDomKeys, ...pudDomKeys, ...promptKeys]);
+
 function buildRow(label, keys) {
     const buttons = keys.map(key =>
         `<button type="button" class="kb-btn kb-inactive" data-key="${key}">
@@ -78,13 +80,34 @@ class KeyboardBar extends BaseComponent {
     #activeBtn = null;
     #busy = false;
 
+    #handleKeydown = (event) => {
+        if (event.ctrlKey || event.altKey || event.metaKey) return;
+
+        if (!boundKeys.has(event.key)) return;
+
+        const btn = this.querySelector(`.kb-btn[data-key="${event.key}"]`);
+        if (!btn) return;
+
+        event.stopPropagation();
+        event.preventDefault();
+        this.#onButtonClick(btn);
+    };
+
     onConnect() {
+        this.tabIndex = 0;
+
         this.#statusLine = this.querySelector('.status-line');
         this.#statusLine.textContent = 'Ready.';
 
         this.querySelectorAll('.kb-btn').forEach(btn => {
             btn.addEventListener('click', () => this.#onButtonClick(btn));
         });
+
+        this.addEventListener('keydown', this.#handleKeydown);
+    }
+
+    disconnectedCallback() {
+        this.removeEventListener('keydown', this.#handleKeydown);
     }
 
     #setStateClass(btn, state) {

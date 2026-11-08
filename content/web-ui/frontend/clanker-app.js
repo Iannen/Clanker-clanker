@@ -80,6 +80,7 @@ class ClankerApp extends BaseComponent {
     #showKeyboardBar() {
         this.messagesBox.classList.add('hidden');
         this.#keyboardBar.classList.remove('hidden');
+        this.#keyboardBar.focus();
     }
 
     #showMessagesBox() {
