@@ -145,18 +145,34 @@ II. The wishlist
         - Ignore prompt_text field entirely
         - Handle errors via toast or status line
 ```
-Backlog tail, Selected item/items:
 ```text
 1. Forward rendered prompt as user input on prompt_render
-    [ ] 'content/web-ui/frontend/keyboard-bar.js': On prompt_render response, dispatch prompt-ready CustomEvent with rendered text
+    [x] 'content/web-ui/frontend/keyboard-bar.js': On prompt_render response, dispatch prompt-ready CustomEvent with rendered text
         - In #onButtonClick, after handling button state updates, check if response.result_type === 'prompt_render'
         - If so, dispatch new CustomEvent('prompt-ready', { detail: response.prompt_text }) on `this`
         - Still update status line as before (harmless, will be hidden shortly)
-    [ ] 'content/web-ui/frontend/clanker-app.js': Listen for prompt-ready from keyboard bar, switch to messages view, generate response
+    [x] 'content/web-ui/frontend/clanker-app.js': Listen for prompt-ready from keyboard bar, switch to messages view, generate response
         - In onConnect, add: this.#keyboardBar.addEventListener('prompt-ready', (e) => this.#onPromptReady(e.detail))
         - Add #onPromptReady(promptText) method:
             - call this.#showMessagesBox() to hide keyboard bar and reveal messages box
             - call this.#generateResponse(promptText)
         - No other changes needed; #generateResponse already handles bubbles, streaming, input disable/focus
+```
+Backlog tail, Selected item/items:
+```text
+2. Bind physical keys to keyboard bar when it has focus
+    [ ] 'content/web-ui/frontend/keyboard-bar.js': Listen for keydown on self when focused, intercept bound keys, stop propagation
+        - In onConnect: set this.tabIndex = 0 (makes the custom element focusable)
+        - In onConnect: attach a keydown listener on `this`:
+            - If event.ctrlKey || event.altKey || event.metaKey → return (let it bubble to global handler)
+            - Define a set of bound keys: the union of sharedDomKeys, pudDomKeys, promptKeys
+            - If event.key is not in that set → return (let it bubble)
+            - Look up the button: this.querySelector(`.kb-btn[data-key="${event.key}"]`)
+            - If button found: event.stopPropagation(); event.preventDefault(); call this.#onButtonClick(btn)
+            - If button not found: return (shouldn't happen, but let it bubble)
+        - No changes to #onButtonClick itself; it already handles the fetch, state repaint, and prompt-ready dispatch
+    [ ] 'content/web-ui/frontend/clanker-app.js': Focus the keyboard bar element when showing it
+        - In #showKeyboardBar(): after this.#keyboardBar.classList.remove('hidden'), add this.#keyboardBar.focus()
+        - No other changes needed; global handler remains untouched and simply won't receive events the kb bar consumed
 ```
 Backlog tail end

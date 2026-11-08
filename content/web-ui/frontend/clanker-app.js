@@ -87,6 +87,11 @@ class ClankerApp extends BaseComponent {
         this.messagesBox.classList.remove('hidden');
     }
 
+    #onPromptReady(promptText) {
+        this.#showMessagesBox();
+        this.#generateResponse(promptText);
+    }
+
     async onConnect() {
         this.inputBox = this.querySelector('input-box');
         this.messagesBox = this.querySelector('messages-box');
@@ -98,6 +103,10 @@ class ClankerApp extends BaseComponent {
 
         this.inputBox.addEventListener('submit', (e) => {
             this.#generateResponse(e.detail);
+        });
+
+        this.#keyboardBar.addEventListener('prompt-ready', (e) => {
+            this.#onPromptReady(e.detail);
         });
 
         await this.#bootSystem();

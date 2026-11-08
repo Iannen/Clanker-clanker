@@ -129,6 +129,10 @@ class KeyboardBar extends BaseComponent {
             this.#activeBtn = pressedEl || null;
 
             this.#statusLine.textContent = this.#formatStatus(response);
+
+            if (response.result_type === 'prompt_render' && response.prompt_text) {
+                this.dispatchEvent(new CustomEvent('prompt-ready', { detail: response.prompt_text }));
+            }
         } catch (error) {
             this.#statusLine.textContent = '❌ ' + (error.message || 'Request failed');
         } finally {
