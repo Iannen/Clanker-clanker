@@ -101,5 +101,27 @@ II. The wishlist
         - Before calling `marked.parse(this.content)`, HTML-escape the raw content (`&` → `&amp;`, `<` → `&lt;`, `>` → `&gt;`) so tags emitted by the LLM render as literal text rather than being injected as live DOM elements. Code-fence content is already safe because `marked` does not re-parse inner HTML in code tokens.
         - In `onConnect()`, change the assistant `max-w-[48rem]` to `max-w-[70%]` and the user `max-w-[36rem]` to `max-w-[70%]`. Both keep their existing alignment (`items-start` / `items-end`), so assistant content sits left-aligned at 70% and user content sits right-aligned at 70% of the available column width.
 ```
+```text
+1. Mock keyboard-bar component + Ctrl+Y / Ctrl+I view toggle (frontend only)
+    [x] 'content/web-ui/frontend/keyboard-bar.js': New custom element rendering three mock button rows + status line
+        - Three visual rows: shared-dom buttons, pud-dom buttons, prompt buttons
+        - Each button: key badge + label + state class (highlighted / active / inactive)
+        - Status line: single text div below the rows
+        - All data hardcoded — no API calls, no backend dependency
+        - Button click: updates status text in place, no network
+        - register('keyboard-bar', KeyboardBar)
+    [x] 'content/web-ui/frontend/clanker-app.js': Insert keyboard-bar, wire toggle keybinds
+        - Import './keyboard-bar.js'
+        - Place <keyboard-bar> as sibling to <messages-box> in the middle column
+        - Initially hidden; messages-box is the default view
+        - Ctrl+Y: hide messages-box, show keyboard-bar
+        - Ctrl+I: hide keyboard-bar, show messages-box
+        - Handlers added to #handleGlobalKeydown (keys currently unbound)
+        - Input-box remains visible regardless of which view is showing
+    [x] 'content/web-ui/frontend/sidepanel-right.js': Replace Ctrl+Y and Ctrl+I placeholder text
+        - Ctrl+Y → "Show keyboard button bar"
+        - Ctrl+I → "Show message history"
+```
 Backlog tail, Selected item/items:
+
 Backlog tail end

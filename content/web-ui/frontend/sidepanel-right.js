@@ -41,12 +41,12 @@ const html = `
 
             <div class="bg-[#030712] p-3 rounded-lg border border-[#1f2937]/60">
                 <div class="font-mono text-[#6ee7b7] font-bold mb-1">Ctrl + Y</div>
-                <div class="text-[#9ca3af]">Placeholder keybind</div>
+                <div class="text-[#9ca3af]">Show keyboard button bar</div>
             </div>
 
             <div class="bg-[#030712] p-3 rounded-lg border border-[#1f2937]/60">
                 <div class="font-mono text-[#6ee7b7] font-bold mb-1">Ctrl + I</div>
-                <div class="text-[#9ca3af]">Placeholder keybind</div>
+                <div class="text-[#9ca3af]">Show message history</div>
             </div>
 
         </div>
