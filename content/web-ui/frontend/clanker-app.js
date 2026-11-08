@@ -86,6 +86,7 @@ class ClankerApp extends BaseComponent {
             this.inputBox.setDisabled(false);
             this.toast.show('❌ ' + (error.message || 'Boot failed'));
         }
+        this.inputBox.focus();
     }
 
     #submitInput() {

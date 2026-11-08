@@ -1,10 +1,26 @@
 import { BaseComponent, register } from './base-component.js';
 
 const html = `
-    <div
-        tabindex="-1"
-        class="flex flex-col w-full transition-all duration-200 rounded-xl p-2"
-    >
+    <div tabindex="-1" class="flex flex-col w-full transition-all duration-200 rounded-xl p-2">
+        <style>
+            /* Scoped-like Markdown styling for this component */
+            .markdown-body h1 { font-size: 1.5rem; font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem; color: #f9fafb; }
+            .markdown-body h2 { font-size: 1.25rem; font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem; color: #f9fafb; }
+            .markdown-body h3 { font-size: 1.1rem; font-weight: bold; margin-top: 0.75rem; margin-bottom: 0.25rem; color: #f9fafb; }
+            .markdown-body p { margin-bottom: 0.75rem; line-height: 1.5; }
+            .markdown-body ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.75rem; }
+            .markdown-body ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 0.75rem; }
+            .markdown-body li { margin-bottom: 0.25rem; }
+            .markdown-body blockquote { border-left: 4px solid #374151; padding-left: 1rem; color: #9ca3af; margin-bottom: 0.75rem; font-style: italic; }
+            .markdown-body hr { border-color: #1f2937; margin: 1.5rem 0; }
+            .markdown-body table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+            .markdown-body th, .markdown-body td { border: 1px solid #1f2937; padding: 0.5rem 0.75rem; text-align: left; }
+            .markdown-body th { background-color: #111827; color: #6ee7b7; font-weight: 600; }
+            .markdown-body tr:nth-child(even) { background-color: rgba(17, 24, 39, 0.4); }
+            .markdown-body code:not(pre code) { background-color: #111827; color: #6ee7b7; padding: 0.15rem 0.35rem; border-radius: 0.25rem; font-family: monospace; font-size: 0.875rem; border: 1px solid #1f2937; }
+            .markdown-body a { color: #6ee7b7; text-decoration: underline; }
+        </style>
+
         <details
             class="reasoning-section hidden mb-2 rounded-lg border border-[#1f2937] bg-[#030712]/60"
         >
@@ -81,37 +97,39 @@ class Message extends BaseComponent {
 
     onConnect() {
         this.wrapper = this.firstElementChild;
-        this.reasoningElement = this.wrapper.children[0];
-        this.contentElement = this.wrapper.children[1];
-        this.performanceElement = this.wrapper.children[2];
+        if (!this.wrapper) return;
 
-        this.reasoningSummary = this.reasoningElement.querySelector('summary');
-        this.reasoningBody = this.reasoningElement.querySelector('.reasoning-body');
-        this.contentSummary = this.contentElement.querySelector('summary');
-        this.contentBody = this.contentElement.querySelector('.content-body');
+        this.reasoningElement = this.wrapper.querySelector('.reasoning-section');
+        this.contentElement = this.wrapper.querySelector('.content-section');
+        this.performanceElement = this.wrapper.querySelector('.performance-footer');
+
+        this.reasoningSummary = this.reasoningElement?.querySelector('summary');
+        this.reasoningBody = this.reasoningElement?.querySelector('.reasoning-body');
+        this.contentSummary = this.contentElement?.querySelector('summary');
+        this.contentBody = this.contentElement?.querySelector('.content-body');
 
         this.setAttribute('data-index', String(this.counter));
 
         if (this.messageRole === 'user') {
             this.wrapper.classList.add('items-end');
 
-            this.contentElement.classList.add(
+            this.contentElement?.classList.add(
                 'text-[#e5e7eb]',
                 'rounded-2xl',
                 'max-w-[36rem]'
             );
-            this.contentBody.classList.add('px-4', 'whitespace-pre-wrap');
+            this.contentBody?.classList.add('px-4', 'whitespace-pre-wrap');
 
-            this.reasoningElement.classList.add('hidden');
-            this.performanceElement.classList.add('hidden');
+            this.reasoningElement?.classList.add('hidden');
+            this.performanceElement?.classList.add('hidden');
         } else {
             this.wrapper.classList.add('items-start');
 
-            this.contentElement.classList.add(
+            this.contentElement?.classList.add(
                 'text-[#f3f4f6]',
                 'max-w-[48rem]'
             );
-            this.contentBody.classList.add('py-2', 'px-3');
+            this.contentBody?.classList.add('py-2', 'px-3');
         }
 
         this.#renderSummaries();
@@ -133,32 +151,43 @@ class Message extends BaseComponent {
     }
 
     #renderSummaries() {
+        if (!this.contentElement || !this.contentSummary) return;
+
         if (this.messageRole === 'user') {
-            const icon = this.contentElement.open ? '▼' : '▶';
+            const icon = this.contentElement?.open ? '▼' : '▶';
             this.contentSummary.textContent = `(${icon}, ctrl+2) Content: ${this.#content.length} characters`;
             return;
         }
 
-        const rIcon = this.reasoningElement.open ? '▼' : '▶';
-        this.reasoningSummary.textContent = `(${rIcon}, ctrl+1) Reasoning: ${this.#reasoning.length} characters`;
+        if (this.reasoningElement && this.reasoningSummary) {
+            const rIcon = this.reasoningElement?.open ? '▼' : '▶';
+            this.reasoningSummary.textContent = `(${rIcon}, ctrl+1) Reasoning: ${this.#reasoning.length} characters`;
+        }
 
-        const cIcon = this.contentElement.open ? '▼' : '▶';
+        const cIcon = this.contentElement?.open ? '▼' : '▶';
         this.contentSummary.textContent = `(${cIcon}, ctrl+2) Content: ${this.#content.length} characters`;
     }
 
     #renderContent() {
-        if (this.messageRole === 'assistant') this.contentBody.innerHTML = this.content
-            ? marked.parse(this.content)
-            : '';
-        else this.contentBody.textContent = this.content;
+        if (!this.contentBody) return;
+
+        if (this.messageRole === 'assistant') {
+            this.contentBody.className = 'markdown-body text-sm text-[#f3f4f6]';
+            this.contentBody.innerHTML = this.content ? marked.parse(this.content) : '';
+        } else {
+            this.contentBody.className = '';
+            this.contentBody.textContent = this.content;
+        }
     }
 
-    updateContent(text) { this.content = text; }
+    updateContent(text) { 
+        this.content = text; 
+    }
 
     updateReasoning(text) {
-        this.reasoning = text;
+        this.#reasoning = String(text ?? '');
 
-        if (this.messageRole !== 'assistant') return;
+        if (this.messageRole !== 'assistant' || !this.reasoningElement || !this.reasoningBody) return;
 
         if (!this.#reasoning) {
             this.reasoningElement.classList.add('hidden');
@@ -166,8 +195,8 @@ class Message extends BaseComponent {
         }
 
         this.reasoningElement.classList.remove('hidden');
-
         this.reasoningBody.textContent = this.#reasoning;
+        this.#renderSummaries();
     }
 
     setPerformanceTimings(timings) {
@@ -178,6 +207,8 @@ class Message extends BaseComponent {
     }
 
     #renderPerformance() {
+        if (!this.performanceElement) return;
+
         if (
             this.messageRole !== 'assistant' ||
             !this.#complete ||
@@ -246,3 +277,19 @@ class Message extends BaseComponent {
 }
 
 register('chat-message', Message);
+
+marked.use({
+    renderer: {
+        code({ text, lang }) {
+            return `
+                <div class="my-3 rounded-lg border border-[#1f2937] bg-[#030712] overflow-hidden">
+                    <div class="bg-[#111827] px-3 py-1 text-xs text-[#6ee7b7] font-mono border-b border-[#1f2937] flex justify-between items-center">
+                        <span>${lang || 'code'}</span>
+                        <span class="text-[10px] text-[#6b7280]">custom renderer</span>
+                    </div>
+                    <pre class="p-3 overflow-x-auto text-sm text-[#f3f4f6] font-mono"><code>${text}</code></pre>
+                </div>
+            `;
+        }
+    }
+});
