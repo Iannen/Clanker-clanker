@@ -59,20 +59,22 @@ II. The wishlist
         - `_pending` type: `dict[str, _ReplySlot]` (key is `request.id`, not `id(cmd)`)
         - Prohibition: do not retain the old `id(cmd)` / `id(result.cmd.cmd)` keying pattern
 ```
-Backlog tail, Selected item/items:
 ```text
 2. Web SPA: SPA-initiated boot via /api/boot, welcome text replaced by boot result
-    [ ] 'content/modules/web_frontend/web_frontend_service.py': Remove BootCmd seed; add /api/boot endpoint; resolve boot response
-        - `__init__`: remove the line that mints and queues a `BootCmd` Request; queue starts empty
+    [x] 'content/modules/web_frontend/web_frontend_service.py': Remove BootCmd seed; add /api/boot endpoint; resolve boot response
+        - `__init__`: remove the line `self._queue.put(self._mint(BootCmd()))`; queue starts empty
         - `_Handler.do_GET`: add branch for `/api/boot` that mints a `Request(id, item=BootCmd())`, stashes a `_ReplySlot` under `req.id`, puts it on the queue, waits on the slot, and returns the payload as text (200)
-        - `post_response(req: Request)`: add a case for the boot-cycle result (e.g. `BootstrapSuccess`, `StartResult`, `TerminateResult`, `ClankerizeResult`) that resolves the stashed slot with a plain-text string — the class name of `req.item` (e.g. `"BootstrapSuccess"`)
+        - `post_response(req: Request)`: replace the existing `case StartResult(): print("Web frontend ready.")` with a combined boot-cycle case (`BootstrapSuccess`, `StartResult`, `TerminateResult`, `ClankerizeResult`) that resolves the stashed slot with a plain-text string — `req.item.__class__.__name__` encoded as bytes
+        - Place the new boot-cycle case before the `case _:` wildcard
         - Prohibition: do not retain the old `self._queue.put(self._mint(BootCmd()))` line in `__init__`
-    [ ] 'content/web-ui/frontend/api-client.js': Add boot() method
+    [x] 'content/web-ui/frontend/api-client.js': Add boot() method
         - New `async boot()`: `fetch('/api/boot')`, check `response.ok`, return `response.text()`
-    [ ] 'content/web-ui/frontend/clanker-app.js': Call boot on connect, disable input while pending, swap welcome text
-        - In `onConnect()`: call `this.#bootSystem()` before registering keydown handlers
-        - New `#bootSystem()`: set `inputBox.setDisabled(true)`; `const msg = await apiClient.boot()`; `inputBox.setDisabled(false)`; set the welcome-text div's `textContent` to `msg` (replace the "Type a prompt below..." text)
+    [x] 'content/web-ui/frontend/clanker-app.js': Call boot on connect, disable input while pending, swap welcome text
+        - Change `onConnect()` to `async onConnect()`; call `await this.#bootSystem()` before registering the `document.addEventListener('keydown', ...)` handler
+        - New `#bootSystem()`: set `this.inputBox.setDisabled(true)`; `const msg = await apiClient.boot()`; `this.inputBox.setDisabled(false)`; set the welcome-text div's `textContent` to `msg`
         - On error: show toast with error message, re-enable input, leave welcome text as-is
         - Prohibition: do not remove the welcome-text div from the DOM; only change its `textContent`
 ```
+Backlog tail, Selected item/items:
+
 Backlog tail end

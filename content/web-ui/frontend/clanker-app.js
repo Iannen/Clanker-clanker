@@ -60,7 +60,7 @@ class ClankerApp extends BaseComponent {
         handler();
     };
 
-    onConnect() {
+    async onConnect() {
         this.inputBox = this.querySelector('input-box');
         this.messagesBox = this.querySelector('messages-box');
         this.toast = this.querySelector('toast-notification');
@@ -71,7 +71,21 @@ class ClankerApp extends BaseComponent {
             this.#generateResponse(e.detail);
         });
 
+        await this.#bootSystem();
+
         document.addEventListener('keydown', this.#handleGlobalKeydown);
+    }
+
+    async #bootSystem() {
+        this.inputBox.setDisabled(true);
+        try {
+            const msg = await apiClient.boot();
+            this.inputBox.setDisabled(false);
+            this.messagesBox.welcomeText.textContent = msg;
+        } catch (error) {
+            this.inputBox.setDisabled(false);
+            this.toast.show('❌ ' + (error.message || 'Boot failed'));
+        }
     }
 
     #submitInput() {

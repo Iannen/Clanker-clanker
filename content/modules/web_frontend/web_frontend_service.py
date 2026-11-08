@@ -14,6 +14,9 @@ from core.engine_deps import (
     Command,
     Request,
     StartResult,
+    BootstrapSuccess,
+    ClankerizeResult,
+    TerminateResult,
     PromptRenderResult,
 )
 
@@ -39,7 +42,9 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, directory=str(_FRONTEND_DIR), **kwargs)
 
     def do_GET(self) -> None:
-        if self.path.startswith("/api/char"):
+        if self.path.startswith("/api/boot"):
+            self._handle_boot()
+        elif self.path.startswith("/api/char"):
             self._handle_char()
         elif self.path.startswith("/api/"):
             self.send_response(404)
@@ -57,6 +62,21 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-Type", "text/plain")
             self.end_headers()
             self.wfile.write(b"Not Found")
+
+    def _handle_boot(self) -> None:
+        frontend = self.server.frontend
+        req = frontend._mint(BootCmd())
+        slot = _ReplySlot()
+        frontend._pending[req.id] = slot
+
+        frontend._queue.put(req)
+        body = slot.wait()
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def _handle_char(self) -> None:
         parsed = urlsplit(self.path)
@@ -137,7 +157,6 @@ class WebFrontendServiceImpl(FrontendService):
         self._server.frontend = self
         self._server.gpu_box_url = gpu_box_url
         self._thread: threading.Thread | None = None
-        self._queue.put(self._mint(BootCmd()))
 
     def _mint(self, item: Command) -> Request:
         self._counter += 1
@@ -152,8 +171,10 @@ class WebFrontendServiceImpl(FrontendService):
 
     def post_response(self, req: Request) -> None:
         match req.item:
-            case StartResult():
-                print("Web frontend ready.")
+            case BootstrapSuccess() | StartResult() | TerminateResult() | ClankerizeResult():
+                slot = self._pending.pop(req.id, None)
+                if slot is not None:
+                    slot.resolve(req.item.__class__.__name__.encode("utf-8"))
             case PromptRenderResult():
                 slot = self._pending.pop(req.id, None)
                 if slot is not None:
