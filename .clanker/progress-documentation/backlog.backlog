@@ -93,6 +93,13 @@ II. The wishlist
     [x] 'content/web-ui/frontend/index.html': Remove stray commented-out class attribute
         - Deleted `<!-- class="m-0" -->` line above <body>
 ```
+```text
+1. Fix message rendering: code overflow, raw HTML interpretation, content width, and code-block focus
+    [x] 'content/web-ui/frontend/message.js': Remove horizontal scrollbar in code blocks, escape raw HTML before markdown parse, cap content at 70% width, exclude code blocks from tab order
+        - In the `marked.use` code renderer, change `<pre class="p-3 overflow-x-auto text-sm text-[#f3f4f6] font-mono">` to `<pre class="p-3 whitespace-pre-wrap text-sm text-[#f3f4f6] font-mono">` (wraps long lines instead of introducing a nested horizontal scrollbar)
+        - In the same code renderer, add `tabindex="-1"` to the outer wrapper `<div>` so code blocks are excluded from sequential tab navigation (matches the pattern already used on the message wrapper and summary elements)
+        - Before calling `marked.parse(this.content)`, HTML-escape the raw content (`&` → `&amp;`, `<` → `&lt;`, `>` → `&gt;`) so tags emitted by the LLM render as literal text rather than being injected as live DOM elements. Code-fence content is already safe because `marked` does not re-parse inner HTML in code tokens.
+        - In `onConnect()`, change the assistant `max-w-[48rem]` to `max-w-[70%]` and the user `max-w-[36rem]` to `max-w-[70%]`. Both keep their existing alignment (`items-start` / `items-end`), so assistant content sits left-aligned at 70% and user content sits right-aligned at 70% of the available column width.
+```
 Backlog tail, Selected item/items:
-
 Backlog tail end

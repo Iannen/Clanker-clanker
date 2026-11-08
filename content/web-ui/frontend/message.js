@@ -60,6 +60,10 @@ const html = `
 
 const className = 'flex flex-col w-full my-4';
 
+function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 class Message extends BaseComponent {
     html = html;
     className = className;
@@ -116,7 +120,7 @@ class Message extends BaseComponent {
             this.contentElement?.classList.add(
                 'text-[#e5e7eb]',
                 'rounded-2xl',
-                'max-w-[36rem]'
+                'max-w-[70%]'
             );
             this.contentBody?.classList.add('px-4', 'whitespace-pre-wrap');
 
@@ -127,7 +131,7 @@ class Message extends BaseComponent {
 
             this.contentElement?.classList.add(
                 'text-[#f3f4f6]',
-                'max-w-[48rem]'
+                'max-w-[70%]'
             );
             this.contentBody?.classList.add('py-2', 'px-3');
         }
@@ -173,7 +177,7 @@ class Message extends BaseComponent {
 
         if (this.messageRole === 'assistant') {
             this.contentBody.className = 'markdown-body text-sm text-[#f3f4f6]';
-            this.contentBody.innerHTML = this.content ? marked.parse(this.content) : '';
+            this.contentBody.innerHTML = this.content ? marked.parse(escapeHtml(this.content)) : '';
         } else {
             this.contentBody.className = '';
             this.contentBody.textContent = this.content;
@@ -282,12 +286,12 @@ marked.use({
     renderer: {
         code({ text, lang }) {
             return `
-                <div class="my-3 rounded-lg border border-[#1f2937] bg-[#030712] overflow-hidden">
+                <div tabindex="-1" class="my-3 rounded-lg border border-[#1f2937] bg-[#030712] overflow-hidden">
                     <div class="bg-[#111827] px-3 py-1 text-xs text-[#6ee7b7] font-mono border-b border-[#1f2937] flex justify-between items-center">
                         <span>${lang || 'code'}</span>
                         <span class="text-[10px] text-[#6b7280]">custom renderer</span>
                     </div>
-                    <pre class="p-3 overflow-x-auto text-sm text-[#f3f4f6] font-mono"><code>${text}</code></pre>
+                    <pre class="p-3 whitespace-pre-wrap text-sm text-[#f3f4f6] font-mono"><code>${text}</code></pre>
                 </div>
             `;
         }
