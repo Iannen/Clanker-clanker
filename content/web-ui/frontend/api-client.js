@@ -24,6 +24,12 @@ export class ApiClient {
         return response.text();
     }
 
+    async sendChar(char) {
+        const response = await fetch(`/api/char?char=${encodeURIComponent(char)}`);
+        if (!response.ok) throw new Error(response.statusText);
+        return response.json();
+    }
+
     async switchDesktopMode() { return this.#post('/api/desktop-mode'); }
 
     async switchInferenceMode() { return this.#post('/api/inference-mode'); }

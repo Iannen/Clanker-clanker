@@ -62,7 +62,7 @@ pud_domains:
 
   web-dev:
     resolvers:
-      - { anchor: repo_content, type: repo-content, fileset: ¤ web_ui }
+      - { anchor: repo_content, type: repo-content, fileset: ¤ web_dev }
     prompts:
       - name: plan
         render:

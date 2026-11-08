@@ -7,6 +7,7 @@ from pathlib import Path
 from queue import Queue
 from urllib.parse import parse_qs, urlsplit
 
+from core import entities as e
 from core.engine_deps import (
     FrontendService,
     BootCmd,
@@ -18,6 +19,11 @@ from core.engine_deps import (
     ClankerizeResult,
     TerminateResult,
     PromptRenderResult,
+    KbServiceEmission,
+    UnboundKeyResult,
+    DomainSelectedResult,
+    UninhabitedDomainResult,
+    UninhabitedPromptResult,
 )
 
 _FRONTEND_DIR = Path(__file__).parent.parent.parent / "web-ui" / "frontend"
@@ -35,6 +41,52 @@ class _ReplySlot:
     def resolve(self, payload: bytes) -> None:
         self._payload = payload
         self._event.set()
+
+
+def _shape_kb_emission(result: KbServiceEmission) -> dict:
+    kb = result.kb
+    payload: dict = {
+        "buttons": {},
+        "key": getattr(result.cmd, "char", ""),
+        "prompt_text": getattr(result, "text", ""),
+    }
+
+    for key, btn in kb.buttons.items():
+        label = btn.inhabitant.name if btn.inhabitant else ""
+        if isinstance(btn, e.DomButton):
+            if btn == kb.selected_dom_btn:
+                state = "highlighted"
+            elif btn.inhabitant:
+                state = "active"
+            else:
+                state = "inactive"
+        else:
+            state = "active" if btn.inhabitant else "inactive"
+        payload["buttons"][key] = {"label": label, "state": state}
+
+    match result:
+        case BootstrapSuccess():
+            payload["result_type"] = "bootstrap_success"
+        case UnboundKeyResult():
+            payload["result_type"] = "unbound_key"
+        case DomainSelectedResult():
+            payload["result_type"] = "domain_selected"
+            payload["domain"] = result.btn.inhabitant.name if result.btn.inhabitant else ""
+        case UninhabitedDomainResult():
+            payload["result_type"] = "uninhabited_domain"
+            payload["domain"] = result.btn.inhabitant.name if result.btn.inhabitant else ""
+        case UninhabitedPromptResult():
+            payload["result_type"] = "uninhabited_prompt"
+        case PromptRenderResult():
+            payload["result_type"] = "prompt_render"
+            payload["prompt"] = result.cmd.prompt.name
+            payload["domain"] = result.cmd.domain.name
+            payload["lines"] = result.lines
+            payload["chars"] = result.chars
+        case _:
+            payload["result_type"] = "unknown"
+
+    return payload
 
 
 class _Handler(http.server.SimpleHTTPRequestHandler):
@@ -102,7 +154,7 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
         body = slot.wait()
 
         self.send_response(200)
-        self.send_header("Content-Type", "text/plain")
+        self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -175,10 +227,11 @@ class WebFrontendServiceImpl(FrontendService):
                 slot = self._pending.pop(req.id, None)
                 if slot is not None:
                     slot.resolve(req.item.__class__.__name__.encode("utf-8"))
-            case PromptRenderResult():
+            case KbServiceEmission():
                 slot = self._pending.pop(req.id, None)
                 if slot is not None:
-                    slot.resolve(json.dumps(asdict(req.item), default=str).encode("utf-8"))
+                    payload = _shape_kb_emission(req.item)
+                    slot.resolve(json.dumps(payload).encode("utf-8"))
             case _:
                 slot = self._pending.pop(req.id, None)
                 if slot is not None:

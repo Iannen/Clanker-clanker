@@ -1,4 +1,5 @@
 import { BaseComponent, register } from './base-component.js';
+import { apiClient } from './api-client.js';
 
 const sharedDomKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
 const pudDomKeys = ['q', 'w', 'e', 'r'];
@@ -75,6 +76,7 @@ class KeyboardBar extends BaseComponent {
 
     #statusLine;
     #activeBtn = null;
+    #busy = false;
 
     onConnect() {
         this.#statusLine = this.querySelector('.status-line');
@@ -85,19 +87,53 @@ class KeyboardBar extends BaseComponent {
         });
     }
 
-    #onButtonClick(btn) {
-        if (this.#activeBtn) {
-            this.#activeBtn.classList.remove('kb-active');
-            this.#activeBtn.classList.add('kb-inactive');
-        }
+    #setStateClass(btn, state) {
+        btn.classList.remove('kb-active', 'kb-highlighted', 'kb-inactive');
+        btn.classList.add(`kb-${state}`);
+    }
 
-        btn.classList.remove('kb-inactive');
-        btn.classList.add('kb-active');
-        this.#activeBtn = btn;
+    #formatStatus(response) {
+        const { result_type, key, domain } = response;
+        switch (result_type) {
+            case 'bootstrap_success':
+                return 'Bootstrap complete.';
+            case 'domain_selected':
+                return `Selected domain "${domain ?? ''}" [${key}]`;
+            case 'uninhabited_domain':
+                return `Domain [${key}] has no content`;
+            case 'uninhabited_prompt':
+                return `Prompt [${key}] has no content`;
+            case 'unbound_key':
+                return `No action bound to key "${key}"`;
+            case 'prompt_render':
+                return `Rendered prompt for [${key}]`;
+            default:
+                return `Key "${key}" pressed`;
+        }
+    }
+
+    async #onButtonClick(btn) {
+        if (this.#busy) return;
+        this.#busy = true;
 
         const key = btn.dataset.key;
-        const row = btn.closest('div.flex')?.parentElement?.querySelector('.uppercase')?.textContent ?? '';
-        this.#statusLine.textContent = `[${row}] key "${key}" pressed`;
+        try {
+            const response = await apiClient.sendChar(key);
+
+            for (const [k, info] of Object.entries(response.buttons)) {
+                const el = this.querySelector(`.kb-btn[data-key="${k}"]`);
+                if (el) this.#setStateClass(el, info.state);
+            }
+
+            const pressedEl = this.querySelector(`.kb-btn[data-key="${response.key}"]`);
+            this.#activeBtn = pressedEl || null;
+
+            this.#statusLine.textContent = this.#formatStatus(response);
+        } catch (error) {
+            this.#statusLine.textContent = '❌ ' + (error.message || 'Request failed');
+        } finally {
+            this.#busy = false;
+        }
     }
 }
 

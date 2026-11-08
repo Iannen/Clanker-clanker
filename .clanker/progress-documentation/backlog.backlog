@@ -122,6 +122,41 @@ II. The wishlist
         - Ctrl+Y → "Show keyboard button bar"
         - Ctrl+I → "Show message history"
 ```
+```text
+1. Wire keyboard bar to engine via /api/char and shape backend response as structured JSON
+    [x] 'content/modules/web_frontend/web_frontend_service.py': Shape post_response for KbServiceEmission results into structured JSON instead of raw asdict dump
+        - Replace the generic asdict fallback in post_response with explicit handling for KbServiceEmission subclasses
+        - Build a "buttons" dict: for each key in kb, emit {label, state} where state is "highlighted" (selected_dom_btn), "active" (has inhabitant), or "inactive"
+        - Include "result_type" discriminator: "domain_selected" | "unbound_key" | "uninhabited_domain" | "uninhabited_prompt" | "prompt_render" | "bootstrap_success"
+        - Include "key" (the char pressed, from cmd.char)
+        - Include "domain": {name} when result is DomainSelectedResult or UninhabitedDomainResult
+        - Include "prompt": {name}, "domain": {name}, "prompt_text", "lines", "chars" when result is PromptRenderResult
+        - Include "prompt_text" in all KbServiceEmission payloads (frontend ignores it for now, but it's there)
+        - Button state logic mirrors TUIContentShaper._res_ui determination but without template string manipulation
+        - Serialize as JSON with Content-Type application/json
+    [x] 'content/web-ui/frontend/api-client.js': Add sendChar method for /api/char endpoint
+        - Add async sendChar(char) that GETs `/api/char?char=${char}` and returns parsed JSON
+        - Throw on non-ok response
+    [x] 'content/web-ui/frontend/keyboard-bar.js': Consume structured JSON from /api/char and update DOM
+        - On button click, call apiClient.sendChar(key)
+        - Iterate response.buttons and set each .kb-btn's class to kb-active / kb-highlighted / kb-inactive per its state
+        - Set #activeBtn from the response's "key" field (the key that was pressed)
+        - Format status line text from structured data (result_type, key, domain name) — frontend chooses its own wording
+        - Ignore prompt_text field entirely
+        - Handle errors via toast or status line
+```
 Backlog tail, Selected item/items:
-
+```text
+1. Forward rendered prompt as user input on prompt_render
+    [ ] 'content/web-ui/frontend/keyboard-bar.js': On prompt_render response, dispatch prompt-ready CustomEvent with rendered text
+        - In #onButtonClick, after handling button state updates, check if response.result_type === 'prompt_render'
+        - If so, dispatch new CustomEvent('prompt-ready', { detail: response.prompt_text }) on `this`
+        - Still update status line as before (harmless, will be hidden shortly)
+    [ ] 'content/web-ui/frontend/clanker-app.js': Listen for prompt-ready from keyboard bar, switch to messages view, generate response
+        - In onConnect, add: this.#keyboardBar.addEventListener('prompt-ready', (e) => this.#onPromptReady(e.detail))
+        - Add #onPromptReady(promptText) method:
+            - call this.#showMessagesBox() to hide keyboard bar and reveal messages box
+            - call this.#generateResponse(promptText)
+        - No other changes needed; #generateResponse already handles bubbles, streaming, input disable/focus
+```
 Backlog tail end
