@@ -1490,3 +1490,62 @@ CLXXXVII: RENDER PIPELINE INDIRECTION COLLAPSE AND FILE-ACCESS SIMPLIFICATION
     Purpose: Remove single-call-site passthrough methods in the render pipeline and simplify the `File.path` contract so the None-guard in `_res_multi_doc` is unnecessary.
     Actions: Deleted `_hydrate` method from `PromptServiceImpl`; `render_prompt` calls `self.shaper.hydrate(template, repl_map)` directly. Deleted `_get_template`; inlined the single-case match as a direct `self.files.read_asset(e.ClankerAssets.layouts.PROMPT)` with `try/except NoSuchFile → CorruptClanker`. Inlined `_cut_before_regex` and `_cut_from_regex` into `apply_truncation` in `PromptContentShaper`; deleted both helpers (class drops from 5 methods to 3). Changed `File.path` from `str | None` to `str = ""`. Removed the `if file_obj.path is None: raise e.ConfigAssembly` guard in `_res_multi_doc`; the adapter's `InvalidPathToken` handles the edge case. Deleted `ConfigAssembly` exception class (no longer referenced).
     Reflection: The render pipeline is now `render_prompt` + `_get_repl_map` + three resolver helpers on `PromptServiceImpl`. No indirection layers remain. `File.path` defaulting to `""` makes the dataclass honest: a file always has a path, and an empty path is a valid (if unusual) state the adapter rejects with a typed exception rather than a domain-level guard.
+
+CLXXXVIII: REQUEST ENVELOPE AND ITEM-MUTATION ENGINE LOOP
+    Purpose: Unify the TUI and web frontend under a single exchange protocol so the engine loop no longer needs a separate `item` variable or `None` sentinel, and both frontends share the same `get_request` / `post_response` contract.
+    - The engine loop previously reset a bare `Command | Result | None` variable each iteration; the web frontend had no equivalent "request" concept, only a raw command on a queue.
+    - A single `Request(id, item)` dataclass gives every exchange an identity (needed later for web reply-slot correlation) and lets the engine mutate `req.item` in place rather than reassigning a local.
+    Actions:
+    - Added `Request` dataclass (`id: str`, `item: Command | Result`) to `result.py`; changed `FrontendService.get_request()` to return `Request` and `post_response()` to accept `Request`.
+    - Rewrote `AppEngine.run()`: single `req = self.frontend.get_request()`; `match req.item` where each case mutates `req.item = <new Command or Result>`; `if isinstance(req.item, Result): self.frontend.post_response(req); req = self.frontend.get_request()`; `case ExitCommand(): break`; final return is `req.item.exit_msg`. Removed the old `item = None` reset and the separate `item` variable entirely.
+    - `FrontendServiceImpl` (TUI): `__init__` queues a `Request(id=…, item=BootCmd())`; `get_request()` delegates to `TUIRenderer.read_request()`; `post_response(req)` matches on `req.item`.
+    - `TUIRenderer`: queue type changed to `Queue[Request]`; `read_request()` mints a `Request` on the char-read and abort paths, returns `queue.get()` on hit; `post_question` and `get_acknowledgement` mint `Request` before `queue.put`.
+    - `WebFrontendServiceImpl`: `__init__` queues a `Request(id=…, item=BootCmd())`; `_handle_char` mints a `Request`, stashes `_ReplySlot` under `req.id`, puts on queue; `get_request()` pops a `Request`; `post_response(req)` matches on `req.item`, resolves slot via `self._pending.pop(req.id, None)`. `_pending` keyed by `request.id`.
+    Reflection: The engine is now frontend-agnostic: it sees only `Request` in and out. The TUI and web frontend are interchangeable implementations of `FrontendService`. The `Request.id` gives the web layer a stable correlation key without the fragile `id(cmd)` / `id(result.cmd.cmd)` object-identity pattern.
+
+CLXXXIX: WEB SPA BOOT FLOW AND INPUT FOCUS
+    Purpose: Make the SPA self-sufficient at boot—no server-side seed, no hardcoded welcome text—so the user sees the actual bootstrap result as their first message, and input is ready to accept keystrokes immediately.
+    - Previously the web frontend seeded a `BootCmd` in `__init__` and displayed a static "Type a prompt below" welcome. The SPA had no way to trigger boot after load, and the input box was not reliably focused.
+    Actions:
+    - `WebFrontendServiceImpl.__init__`: removed the `self._queue.put(self._mint(BootCmd()))` line; queue starts empty.
+    - `_Handler.do_GET`: added `/api/boot` branch that mints a `Request(id, item=BootCmd())`, stashes a `_ReplySlot` under `req.id`, puts on the queue, waits on the slot, returns payload as text (200).
+    - `post_response`: replaced the old `case StartResult(): print("Web frontend ready.")` with a combined boot-cycle case (`BootstrapSuccess`, `StartResult`, `TerminateResult`, `ClankerizeResult`) that resolves the stashed slot with `req.item.__class__.__name__` encoded as bytes. Placed before the `case _:` wildcard.
+    - `api-client.js`: added `async boot()` method—`fetch('/api/boot')`, check `response.ok`, return `response.text()`.
+    - `clanker-app.js`: `onConnect()` is now `async`; calls `await this.#bootSystem()` before registering the keydown handler. `#bootSystem()` disables input, awaits `apiClient.boot()`, re-enables input, sets welcome-text div's `textContent` to the boot response. On error: toast, re-enable input, leave welcome text as-is.
+    - `#bootSystem()` ends with `this.inputBox.focus()` after the try/catch, ensuring focus lands on the textarea regardless of boot outcome. The redundant `autofocus` attribute on the textarea was left in place.
+    Reflection: The SPA no longer depends on server-side initialization for its first interaction. Boot is an explicit client-initiated round-trip (`/api/boot` → engine → slot resolve → text response), and the welcome text is replaced with the actual boot result string. Input focus is guaranteed post-boot.
+
+CXC: ASSISTANT MESSAGE RENDERING HARDENING
+    Purpose: Make assistant message content safe, readable, and consistent—no raw-HTML injection, no horizontal scrollbars in code blocks, no tab-order traps, and proportional content width.
+    - The `marked.parse` call was interpreting raw HTML from LLM output as live DOM; code blocks introduced nested horizontal scrollbars; code blocks were tab-focusable; and content width was a fixed `rem` value that overflowed on narrow columns.
+    Actions:
+    - Added scoped `.markdown-body` inline `<style>` block in `message.js` covering h1–h3, p, ul/ol, blockquote, hr, table, inline code, links.
+    - Added `marked.use({ renderer: { code(...) } })` wrapping fenced code in a styled container with language label bar.
+    - `#renderContent` applies `markdown-body` class for assistant messages; clears it for user messages.
+    - Added `escapeHtml(s)` helper; before `marked.parse(this.content)`, raw content is HTML-escaped (`&` → `&amp;`, `<` → `&lt;`, `>` → `&gt;`) so LLM-emitted tags render as literal text.
+    - Code renderer: changed `overflow-x-auto` to `whitespace-pre-wrap` (wraps long lines instead of nested scrollbar); added `tabindex="-1"` to the outer code wrapper div to exclude from tab navigation.
+    - `onConnect()`: assistant `max-w-[48rem]` → `max-w-[70%]`; user `max-w-[36rem]` → `max-w-[70%]`. Alignment preserved (`items-start` / `items-end`).
+    - `updateReasoning` now calls `#renderSummaries()` to keep character count live during streaming. Null guards / optional chaining on element lookups via `querySelector` by class.
+    - `index.html`: deleted stray `<!-- class="m-0" -->` comment above `<body>`.
+    Reflection: Markdown rendering is now XSS-safe for LLM output, visually scoped to the component, and layout-responsive. Code blocks wrap instead of scrolling, are excluded from sequential focus, and the content column scales with the viewport rather than a fixed pixel width.
+
+CXCI: KEYBOARD BAR COMPONENT AND VIEW TOGGLE
+    Purpose: Introduce a visual keyboard-bar panel (three mock button rows + status line) as an alternative view to the message canvas, togglable via Ctrl+Y / Ctrl+I, with physical-key binding when focused.
+    - The web SPA had no representation of the keyboard layout; the TUI's button grid had no web equivalent.
+    Actions:
+    - New `keyboard-bar.js`: custom element with three visual rows (shared-dom 1–0, pud-dom q–r, prompt a–f), each button a `<button class="kb-btn kb-inactive" data-key="…">` with a key badge. Status line below. All data hardcoded—no API calls at this stage. Button click updates status text in place. `register('keyboard-bar', KeyboardBar)`.
+    - `clanker-app.js`: imports `keyboard-bar.js`; places `<keyboard-bar>` as sibling to `<messages-box>` in the middle column. Initially `hidden`; messages-box is the default view. Ctrl+Y → hide messages, show keyboard bar, `#keyboardBar.focus()`. Ctrl+I → hide keyboard bar, show messages. Handlers in `#handleGlobalKeydown` (keys previously unbound). Input-box remains visible regardless of active view.
+    - `sidepanel-right.js`: replaced Ctrl+Y placeholder with "Show keyboard button bar"; Ctrl+I with "Show message history".
+    - `keyboard-bar.js` physical key binding: `onConnect` sets `tabIndex = 0`; attaches a `keydown` listener on `this`. If `ctrlKey || altKey || metaKey` → return (bubbles to global). If `event.key` not in `boundKeys` set → return. If button found: `stopPropagation`, `preventDefault`, call `#onButtonClick(btn)`. `disconnectedCallback` removes the listener.
+    Reflection: The keyboard bar is a self-contained, focusable custom element that mirrors the TUI's three-row layout. View toggling is handled at the app level (Ctrl+Y / Ctrl+I), and physical keys are intercepted only while the bar has focus, leaving global shortcuts (Ctrl+Y, Ctrl+I, Ctrl+Enter, etc.) intact.
+
+CXCII: KEYBOARD BAR ENGINE WIRING AND PROMPT FORWARDING
+    Purpose: Connect the keyboard bar to the running engine via `/api/char`, shape the backend response into structured JSON for the frontend, and forward rendered prompt text into the chat as a user message.
+    - The keyboard bar was display-only; it needed a round-trip to the engine to mutate KB state and receive the updated button states.
+    Actions:
+    - `web_frontend_service.py`: `_handle_char` mints `Request(id, item=KbCmd(char=char_val))`, stashes `_ReplySlot` under `req.id`, puts on queue, waits, returns JSON. `post_response`: replaced generic `asdict` fallback with explicit `_shape_kb_emission(result)` for `KbServiceEmission` subclasses. Builds `buttons` dict (label + state: "highlighted" / "active" / "inactive"), `key`, `result_type` discriminator, `domain` / `prompt` / `prompt_text` / `lines` / `chars` as applicable. Serialized as JSON, `Content-Type: application/json`.
+    - `api-client.js`: added `async sendChar(char)`—`GET /api/char?char=…`, parse JSON, throw on non-ok.
+    - `keyboard-bar.js` `#onButtonClick`: calls `apiClient.sendChar(key)`; iterates `response.buttons`, sets each `.kb-btn` class to `kb-active` / `kb-highlighted` / `kb-inactive`; sets `#activeBtn`; formats status line from `result_type`, `key`, `domain`. Ignores `prompt_text`. Error → status line or toast.
+    - `keyboard-bar.js` prompt forwarding: after button state updates, if `response.result_type === 'prompt_render'` and `response.prompt_text` present, dispatches `CustomEvent('prompt-ready', { detail: response.prompt_text })` on `this`.
+    - `clanker-app.js`: `onConnect` adds `this.#keyboardBar.addEventListener('prompt-ready', (e) => this.#onPromptReady(e.detail))`. `#onPromptReady(promptText)` calls `#showMessagesBox()` then `#generateResponse(promptText)`.
+    Reflection: The keyboard bar is now a full input surface: click or physical key → `/api/char` → engine mutates KB → structured JSON back → DOM repaint. On prompt render, the rendered text is forwarded as a user message into the chat, which triggers the LLM response cycle. The keyboard bar and message box are two views of the same session, toggled by Ctrl+Y / Ctrl+I, with the input box always available below.
