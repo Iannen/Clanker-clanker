@@ -71,29 +71,36 @@ class IngestionServiceImpl(IngestionService):
         deleted: list[str] = []
         errors: list[str] = []
 
-        # Parse deletelist
+        working_copy = raw_text
+        writes = []
+
+        file_header_pattern = re.compile(r'^(.*?)(¤\s*filepath\s*=\s*(["\'])(.*?)\3\s*¤)', re.DOTALL)
+
+        while True:
+            match = file_header_pattern.search(working_copy)
+            if not match:
+                break
+            
+            full_header = match.group(2)
+            path = match.group(4).strip()
+            start_idx = match.end()
+            end_header_idx = working_copy.find(full_header, start_idx)
+
+            if end_header_idx == -1:
+                errors.append(f"Malformed file block for {path}: missing closing header")
+                break
+
+            block_end = end_header_idx + len(full_header)
+            curr_write = working_copy[:block_end]
+            writes.append((path, curr_write))
+            working_copy = working_copy[block_end:]
+
         delete_paths: list[str] = []
-        if "¤deletelist¤" in raw_text:
-            delete_section = raw_text.split("¤deletelist¤", 1)[1]
+        if "¤deletelist¤" in working_copy:
+            delete_section = working_copy.split("¤deletelist¤", 1)[1]
             delete_pattern = re.compile(r'¤\s*filepath\s*=\s*(["\'])(.*?)\1\s*¤')
             for d_match in delete_pattern.finditer(delete_section):
                 delete_paths.append(d_match.group(2).strip())
-
-        # Parse file blocks
-        file_pattern = re.compile(
-            r'¤\s*filepath\s*=\s*(["\'])(.*?)\1\s*¤\s*(.*?)\s*¤\s*filepath\s*=\s*\1\2\1\s*¤',
-            re.DOTALL
-        )
-        for match in file_pattern.finditer(raw_text):
-            path = match.group(2).strip()
-            raw_content = match.group(3)
-            tokenized = self._prefix_path(path)
-            clean_content = self._clean_content(raw_content).strip("\n")
-            try:
-                self.files.write_file(tokenized, clean_content)
-                written.append(path)
-            except Exception as ex:
-                errors.append(f"write {path}: {ex}")
 
         for path in delete_paths:
             tokenized = self._prefix_path(path)
@@ -102,6 +109,23 @@ class IngestionServiceImpl(IngestionService):
                 deleted.append(path)
             except Exception as ex:
                 errors.append(f"delete {path}: {ex}")
+
+        cleaned_file_pattern = re.compile(
+            r'¤\s*filepath\s*=\s*(["\'])(.*?)\1\s*¤(.*?)(?:¤\s*filepath\s*=\s*\1\2\1\s*¤)',
+            re.DOTALL
+        )
+
+        for path, curr_write in writes:
+            m = cleaned_file_pattern.search(curr_write)
+            raw_content = m.group(3) if m else curr_write
+
+            tokenized = self._prefix_path(path)
+            clean_content = self._clean_content(raw_content).strip("\n")
+            try:
+                self.files.write_file(tokenized, clean_content)
+                written.append(path)
+            except Exception as ex:
+                errors.append(f"write {path}: {ex}")
 
         return IngestApplyResult(written=written, deleted=deleted, errors=errors)
 

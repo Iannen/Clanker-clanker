@@ -1,18 +1,8 @@
 I. Smallfry
-
-- arrow keys interpreted as esc
-    - this has grown on me though - keep? but formalize if so
-- the rendered UI does not properly display empty buttons for 'qwerty' and 'asdfgh' rows
-    - this is due to the ui template being constrained to 4 buttons for the two keyrows.
-    - ez fix is to adjust template.
-    - rabbithole solution is to have app write template to rowspec
-
 II. The wishlist
 
 1. Set ops on filesets
     - probably requires new ingestion strat, as filesets may depend upon other filesets
-
-
 
 2. Add next numeral line to history output instructions
     [ ] 'a_lib/templates/documentation/backlog.template': Update history output instruction format
@@ -30,7 +20,6 @@ II. The wishlist
 
 
 
-
 ```text
 1. Frontend: Prompt selection no longer auto-sends; fired only on Enter
     [x] 'content/web-ui/frontend/keyboard-bar.js': Stage prompt on render, highlight button, dispatch 'prompt-fired' on Enter
@@ -44,7 +33,7 @@ II. The wishlist
     [x] 'content/backend/server.py': Fix payload["key"] for PromptRenderResult
         - result.cmd is RenderNormalPromptCmd (no .char); now reads result.cmd.cmd.char
 ```
-Backlog tail, Selected item/items:
+
 
 ```text
 1. Add write/delete capability to the disk port layer
@@ -93,24 +82,24 @@ Backlog tail, Selected item/items:
 ```
 ```text
 6. Fix file-block and deletelist parsing in apply_file_changes
-    [ ] 'content/backend/asset_ingestion/ingestion_service.py': Replace brittle literal-newline regexes with permissive delimiters-bounded patterns (matching the proven external script approach)
+    [x] 'content/backend/asset_ingestion/ingestion_service.py': Replace brittle literal-newline regexes with permissive delimiters-bounded patterns (matching the proven external script approach)
         - Replace file_blocks regex with: re.compile(r'¤\s*filepath\s*=\s*(["\'])(.*?)\1\s*¤\s*(.*?)\s*¤\s*filepath\s*=\s*\1\2\1\s*¤', re.DOTALL); iterate with finditer; group(2)=path, group(3)=raw_content
         - Replace deletelist parsing: if "¤deletelist¤" in raw_text, split on that sentinel, then finditer a permissive pattern r'¤\s*filepath\s*=\s*(["\'])(.*?)\1\s*¤' over the remainder; collect group(2)
         - Add .strip() to each extracted path before calling _prefix_path (the proven script strips at write time)
         - Add .strip("\n") to cleaned content before passing to self.files.write_file (strips residual leading/trailing newlines from regex capture)
         - Prohibition: do not change _prefix_path, write_file, delete_file, or IngestApplyResult — only the parsing and content-cleaning layer changes
-    [ ] 'content/backend/asset_ingestion/ingestion_service.py': Replace _clean_content with first/last-fence-index slicing
+    [x] 'content/backend/asset_ingestion/ingestion_service.py': Replace _clean_content with first/last-fence-index slicing
         - New implementation: splitlines(); scan forward for first line whose .strip().startswith("```"), set start_idx = i+1; scan backward for last such line, set end_idx = i; if start_idx < end_idx, slice lines[start_idx:end_idx]; return "\n".join(lines)
         - This handles fences that are not the absolute first/last lines (e.g. blank lines or prose before the opening fence), and handles \r\n via splitlines()
         - Prohibition: do not change the @staticmethod decorator or the method signature
 ```
-
-Backlog tail end
-
 ```text
 1. Sidepanel mode buttons: add Enter key handler
-    [ ] 'content/web-ui/frontend/sidepanel-left.js': Add keydown listener to mode buttons so Enter activates them
+    [x] 'content/web-ui/frontend/sidepanel-left.js': Add keydown listener to mode buttons so Enter activates them
         - In onConnect(), alongside the existing click listener, attach a keydown listener to each [data-mode] button
         - If event.key === 'Enter': call event.stopPropagation() then event.preventDefault(), then invoke this.#switchMode(button.dataset.mode)
         - This mirrors the kb-bar pattern: stopPropagation prevents the document-level handler in clanker-app.js from intercepting Enter and calling preventDefault, which would suppress the native button activation
 ```
+Backlog tail, Selected item/items:
+
+Backlog tail end
