@@ -51,6 +51,33 @@ class LinuxDiskAdapter(DiskPort):
             dest_path.write_text(content, encoding="utf-8")
         except (PermissionError, UnicodeDecodeError) as ex:
             raise FileAccessError from ex
+
+    def write_file(self, tokenized_path: str, content: str) -> None:
+        target_path = self._resolve_tokenized_path(tokenized_path)
+        try:
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            target_path.write_text(content, encoding="utf-8")
+        except (PermissionError, UnicodeDecodeError) as ex:
+            raise FileAccessError from ex
+
+    def delete_file(self, tokenized_path: str) -> None:
+        target_path = self._resolve_tokenized_path(tokenized_path)
+        if not target_path.exists() or not target_path.is_file():
+            raise NoSuchFile from FileNotFoundError(f"File does not exist: {target_path}")
+        try:
+            target_path.unlink()
+        except (PermissionError, OSError) as ex:
+            raise FileAccessError from ex
+
+        base = self.pud_path if target_path.is_relative_to(self.pud_path) else self.clanker_path
+        parent = target_path.parent
+        while parent != base and parent.is_relative_to(base):
+            if not any(parent.iterdir()):
+                parent.rmdir()
+                parent = parent.parent
+            else:
+                break
+
     def is_cwd_script_dir(self) -> bool:
         return self.pud_path.resolve() == self.clanker_path.resolve()
 

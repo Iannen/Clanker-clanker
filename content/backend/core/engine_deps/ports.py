@@ -20,6 +20,12 @@ class DiskPort(ABC):
     ) -> None: ...  # raises: InvalidPathToken, NoSuchFile, FileAccessError
 
     @abstractmethod
+    def write_file(self, tokenized_path: str, content: str) -> None: ...  # raises: InvalidPathToken, FileAccessError
+
+    @abstractmethod
+    def delete_file(self, tokenized_path: str) -> None: ...  # raises: InvalidPathToken, NoSuchFile, FileAccessError
+
+    @abstractmethod
     def is_cwd_script_dir(self) -> bool: ...
 
     @abstractmethod

@@ -1,6 +1,7 @@
+import re
 from backend.stdlib import dataclass, StrEnum
 from backend.core import entities as e
-from backend.core.engine_deps import IngestionService, NoSuchFile, DiskPort, ConfigParseError, ConfigParserPort, StartCmd, StartResult, ClankerizeResult, TerminateResult, Malformed, Missing
+from backend.core.engine_deps import IngestionService, NoSuchFile, DiskPort, ConfigParseError, ConfigParserPort, StartCmd, StartResult, ClankerizeResult, TerminateResult, Malformed, Missing, IngestApplyResult
 
 from . import ErrorCollector, ItemClassifier, Assembler, ClassificationResult
 
@@ -64,3 +65,92 @@ class IngestionServiceImpl(IngestionService):
         for from_path, to_path in e.RepoContract.MAPPINGS:
             self.files.copy_file(from_path=from_path, to_path=to_path)
         return self.get_runtime_config()
+
+    def apply_file_changes(self, raw_text: str) -> IngestApplyResult:
+        written: list[str] = []
+        deleted: list[str] = []
+        errors: list[str] = []
+
+        working_copy = raw_text
+        writes = []
+
+        file_header_pattern = re.compile(r'^(.*?)(¤\s*filepath\s*=\s*(["\'])(.*?)\3\s*¤)', re.DOTALL)
+
+        while True:
+            match = file_header_pattern.search(working_copy)
+            if not match:
+                break
+            
+            full_header = match.group(2)
+            path = match.group(4).strip()
+            start_idx = match.end()
+            end_header_idx = working_copy.find(full_header, start_idx)
+
+            if end_header_idx == -1:
+                errors.append(f"Malformed file block for {path}: missing closing header")
+                break
+
+            block_end = end_header_idx + len(full_header)
+            curr_write = working_copy[:block_end]
+            writes.append((path, curr_write))
+            working_copy = working_copy[block_end:]
+
+        delete_paths: list[str] = []
+        if "¤deletelist¤" in working_copy:
+            delete_section = working_copy.split("¤deletelist¤", 1)[1]
+            delete_pattern = re.compile(r'¤\s*filepath\s*=\s*(["\'])(.*?)\1\s*¤')
+            for d_match in delete_pattern.finditer(delete_section):
+                delete_paths.append(d_match.group(2).strip())
+
+        for path in delete_paths:
+            tokenized = self._prefix_path(path)
+            try:
+                self.files.delete_file(tokenized)
+                deleted.append(path)
+            except Exception as ex:
+                errors.append(f"delete {path}: {ex}")
+
+        cleaned_file_pattern = re.compile(
+            r'¤\s*filepath\s*=\s*(["\'])(.*?)\1\s*¤(.*?)(?:¤\s*filepath\s*=\s*\1\2\1\s*¤)',
+            re.DOTALL
+        )
+
+        for path, curr_write in writes:
+            m = cleaned_file_pattern.search(curr_write)
+            raw_content = m.group(3) if m else curr_write
+
+            tokenized = self._prefix_path(path)
+            clean_content = self._clean_content(raw_content).strip("\n")
+            try:
+                self.files.write_file(tokenized, clean_content)
+                written.append(path)
+            except Exception as ex:
+                errors.append(f"write {path}: {ex}")
+
+        return IngestApplyResult(written=written, deleted=deleted, errors=errors)
+
+    @staticmethod
+    def _prefix_path(path: str) -> str:
+        if path.startswith(e.PathTokens.PUD) or path.startswith(e.PathTokens.SHARED):
+            return path
+        return f"{e.PathTokens.PUD}/{path}"
+
+    @staticmethod
+    def _clean_content(content: str) -> str:
+        lines = content.splitlines()
+        start_idx = 0
+        for i, line in enumerate(lines):
+            if line.strip().startswith("```"):
+                start_idx = i + 1
+                break
+
+        end_idx = len(lines)
+        for i in range(len(lines) - 1, -1, -1):
+            if lines[i].strip().startswith("```"):
+                end_idx = i
+                break
+
+        if start_idx < end_idx:
+            lines = lines[start_idx:end_idx]
+
+        return "\n".join(lines)

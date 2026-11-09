@@ -1612,3 +1612,36 @@ CXCVIII: OLD TUI STASHED
     - Tests and imports within the stashed copy were updated so it still runs standalone.
     Reflection:
     - The TUI is retired in practice but preserved in code; it will be formally removed in a future pass. The `a__` prefix signals an archived artifact outside the active import graph.
+
+CXCIX: PROMPT FIRE GATED ON ENTER
+    Purpose: Decouple prompt staging from prompt firing so the user reviews the staged prompt before it is sent to the model.
+    - The old behavior dispatched a 'prompt-ready' event immediately on button press, which auto-fired the prompt; the new behavior requires an explicit Enter press.
+    Actions:
+    - `keyboard-bar.js`: Enter added to boundKeys; prompt text staged in #stagedPrompt on render; pressed prompt button set to 'kb-highlighted' (persists post-fire); 'prompt-fired' CustomEvent dispatched only on Enter; 'prompt-ready' event removed.
+    - `clanker-app.js`: 'prompt-ready' listener and #onPromptReady removed; 'prompt-fired' handler calls #showMessagesBox() then #generateResponse(e.detail).
+    - `server.py`: _shape_kb_emission now reads `result.cmd.cmd.char` for PromptRenderResult (since RenderNormalPromptCmd carries no top-level `.char`).
+    Reflection:
+    - The two-stage interaction (select → Enter) is now the sole prompt-fire path. The 'prompt-ready' event is fully retired from the codebase.
+
+CC: INGEST PIPELINE (WRITE / DELETE)
+    Purpose: Enable the user to apply file changes (write, delete) from a chat message via Alt+Enter, closing the loop from LLM output back into the repository.
+    - No git operations are performed in this path; the user commits separately.
+    Actions:
+    - `ports.py`: `write_file(tokenized_path, content)` and `delete_file(tokenized_path)` added as abstract methods on DiskPort.
+    - `disk_adapter.py`: LinuxDiskAdapter implements both—write creates parent dirs and calls write_text; delete unlinks and rmdirs the empty parent chain up to the base dir.
+    - `result.py`: `IngestApplyResult(written, deleted, errors)` dataclass extends Result.
+    - `ingestion_service.py`: `apply_file_changes(raw_text)` parses `¤filepath="X"¤` blocks and `¤deletelist¤` sections, strips fence markers, prefixes relative paths with `<PUD>/`, delegates to the disk port, and returns IngestApplyResult.
+    - `server.py`: POST `/api/ingest` route reads `{"content": "..."}`, calls `apply_file_changes`, serialises the result to JSON (200 / 400 / 500).
+    - `api-client.js`: `ingestFileChanges(content)` method added (POST /api/ingest).
+    - `clanker-app.js`: 'Alt+Enter' added to #inputActions and #messageActions; handler reads selected message content, calls apiClient.ingestFileChanges, toasts a summary (e.g. "3 files written, 1 deleted").
+    - Parsing hardening (same file): brittle literal-newline regexes replaced with permissive delimiter-bounded patterns using `finditer` + `re.DOTALL`; `_clean_content` rewritten as first/last-fence-index slicing via `splitlines()`.
+    Reflection:
+    - Permissive parsing mirrors the proven external-script approach and tolerates whitespace/newline variance in LLM output. The ingest path is intentionally decoupled from git—commit is a separate, explicit user action.
+
+CCI: SIDEPANEL MODE BUTTONS — ENTER KEY HANDLER
+    Purpose: Allow keyboard activation of the GPU Box mode buttons without requiring mouse interaction.
+    - Mirrors the kb-bar Enter pattern; stopPropagation prevents the document-level handler in clanker-app.js from intercepting Enter and calling preventDefault (which would suppress native button activation).
+    Actions:
+    - `sidepanel-left.js`: keydown listener attached to each `[data-mode]` button in `onConnect()`; on Enter it calls `event.stopPropagation()` + `event.preventDefault()`, then invokes `this.#switchMode(button.dataset.mode)`.
+    Reflection:
+    - Single-line UX fix; no architectural change. The sidepanel buttons are now reachable via Tab + Enter consistent with the rest of the UI.

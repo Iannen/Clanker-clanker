@@ -59,6 +59,11 @@ class MessagesBox extends BaseComponent {
         this.#selectedMsg = null;
     }
 
+    getSelectedContent() {
+        if (!this.#selectedMsg) return null;
+        return this.#selectedMsg.content || null;
+    }
+
     async copySelected() {
         if (!this.hasMessages()) return { success: false, reason: 'no-messages' };
         if (!this.#selectedMsg) return { success: false, reason: 'nothing-selected' };

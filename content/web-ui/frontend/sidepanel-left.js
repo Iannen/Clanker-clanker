@@ -57,6 +57,13 @@ class SidepanelLeft extends BaseComponent {
             button.addEventListener('click', () => {
                 this.#switchMode(button.dataset.mode);
             });
+            button.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.stopPropagation();
+                    event.preventDefault();
+                    this.#switchMode(button.dataset.mode);
+                }
+            });
         });
     }
 
