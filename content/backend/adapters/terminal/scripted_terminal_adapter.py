@@ -1,0 +1,158 @@
+from dataclasses import dataclass, field, asdict
+from typing import Optional
+from pathlib import Path
+import sys
+import json
+import os
+from core.engine_deps import TerminalPort, IOControl, TerminalFailure, Proposition
+
+class TestSequenceEnded(Exception): pass
+@dataclass
+class ExecutionFrame:
+    latest_input: Optional[str] = None
+    ui_render: Optional[str] = None
+    prompt_render: Optional[str] = None
+    exit_code: Optional[int] = None
+    exit_msg: Optional[str] = None
+    stderr: Optional[str] = None
+    disk_manifest: list[str] = field(default_factory=list)
+
+class ScriptedTerminalAdapter(TerminalPort):
+    START_APP_EVENT = "__START_APP__"
+    END_APP_EVENT = "__END_APP__"
+    CRASH_EVENT = "__CRASH_EVENT__"
+
+    def __init__(self, input_sequence: list[str], framedump_path: Path):
+        self.sandbox_dir = os.getcwd()
+        self.framedump_path = framedump_path
+        self.input_sequence = self._flatten_sequence(input_sequence)
+        self.frames = []
+        self.input_index = 0
+        self.last_write = None
+        self.last_cp = None
+
+        self.frames = [
+            ExecutionFrame(
+                latest_input=self.START_APP_EVENT,
+                ui_render=None,
+                prompt_render=None,
+                disk_manifest=self._get_disk_paths(),
+            )
+        ]
+
+    def _flatten_sequence(self, input_sequence: list[str]) -> list[str]:
+        flattened = [self.START_APP_EVENT]
+        for item in input_sequence:
+            if isinstance(item, str):
+                if len(item) > 1 and not item.startswith("\x1b") and not item.startswith("\033"):
+                    flattened.extend(list(item))
+                else:
+                    flattened.append(item)
+            else:
+                flattened.append(item)
+        return flattened
+
+    def to_clipboard(self, text_content: str) -> int:
+        self.last_cp = text_content
+        return len(text_content.splitlines())
+
+    def write(self, text: str) -> None:
+        self.last_write = text
+
+    def read_char(self) -> str:
+        self.frames.append(ExecutionFrame(
+            latest_input=self.input_sequence[self.input_index],
+            ui_render=self.last_write,
+            prompt_render=self.last_cp,
+            disk_manifest=self._get_disk_paths()
+        ))
+        self.last_cp = self.last_write = None
+        if self.input_index + 1 >= len(self.input_sequence):
+            raise TestSequenceEnded
+        try:
+            self.input_index += 1
+            return self.input_sequence[self.input_index]
+        except Exception as ex:
+            raise TerminalFailure from ex
+
+    def get_acceptance(self, proposition: Proposition) -> bool:
+        try:
+            msg = f"{proposition.subject}\n{proposition.statement}" if proposition.subject else proposition.statement
+            
+            if proposition.required_phrase is None:
+                instructions = "Press [Ctrl+D] to proceed, or [ESC/Ctrl+C] to decline.\n> "
+                base_msg = f"\n{msg}\n{instructions}"
+                self.write(base_msg)
+                while True:
+                    ch = self.read_char()
+                    if ch in IOControl.ABORT_KEYS:
+                        return False
+                    if ch == IOControl.ACCEPT_KEY:
+                        return True
+
+            instructions = f"Type '{proposition.required_phrase}' and press [Ctrl+D] to confirm, or [ESC/Ctrl+C] to cancel.\n> "
+            base_msg = f"\n{msg}\n{instructions}"
+            self.write(base_msg)
+
+            while True:
+                buffer = ""
+                while True:
+                    ch = self.read_char()
+                    if ch in IOControl.ABORT_KEYS:
+                        return False
+                    if ch == IOControl.ACCEPT_KEY:
+                        if buffer == proposition.required_phrase:
+                            sys.stdout.write("\n")
+                            sys.stdout.flush()
+                            return True
+                        break
+                    if ch in IOControl.BACKSPACE_KEYS:
+                        if len(buffer) > 0:
+                            buffer = buffer[:-1]
+                            sys.stdout.write("\b \b")
+                            sys.stdout.flush()
+                    elif ch.isprintable():
+                        buffer += ch
+                        sys.stdout.write(ch)
+                        sys.stdout.flush()
+                
+                err = f"Invalid confirmation. Expected '{proposition.required_phrase}', got '{buffer}'. Try again.\n"
+                self.write(f"{base_msg}{err}> ")
+        except TerminalFailure:
+            raise
+        except (OSError, UnicodeError) as ex:
+            raise TerminalFailure from ex
+
+    def end_test(self, exit_msg: str) -> None:
+        try:
+            self.frames.append(ExecutionFrame(
+                latest_input=self.END_APP_EVENT,
+                ui_render=self.last_write,
+                prompt_render=self.last_cp,
+                exit_code=0,
+                exit_msg=exit_msg,
+                disk_manifest=self._get_disk_paths()
+            ))
+            self.last_write = self.last_cp = None
+
+            report = {
+                "records": [asdict(r) for r in self.frames]
+            }
+
+            self.framedump_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.framedump_path, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2)
+        except (OSError, UnicodeError, TypeError) as ex:
+            raise TerminalFailure from ex
+
+    def _get_disk_paths(self) -> list[str]:
+        if not self.sandbox_dir or not os.path.isdir(self.sandbox_dir):
+            return []
+
+        root = Path(self.sandbox_dir)
+        paths = [
+            str(p.relative_to(root))
+            for p in root.rglob("*")
+            if p.relative_to(root).parts[0] != "framedumps"
+        ]
+        return sorted(paths)
