@@ -8,10 +8,10 @@ pud_filesets:
     content/adapters/terminal/scripted_terminal_adapter.py,
     ]}
 
-  backend: { includes: [content], excludes: [
-    content/a_lib,
-    content/adapters/terminal/scripted_terminal_adapter.py,
-    content/web-ui/frontend,
+  exodus: { includes: [
+    content/backend,
+    content/clank-server.py,
+    content/web-ui
     ]}
 
   frontend: {includes: [content], excludes: [
@@ -58,9 +58,9 @@ pud_domains:
           resolvers:
             - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_migration_mode }
 
-  frontend:
+  exodus:
     resolvers:
-      - { anchor: repo_content, type: repo-content, fileset: ¤ frontend }
+      - { anchor: repo_content, type: repo-content, fileset: ¤ exodus }
     prompts:
       - name: plan
         render:

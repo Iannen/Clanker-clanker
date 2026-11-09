@@ -90,11 +90,43 @@ II. The wishlist
         - remove: `_Handler` class, `_shape_kb_emission` function, all `http.server` / `urllib.request` / `parse_qs` / `urlsplit` imports
         - file becomes ~30 lines of boot + DI + one `.run()` call
 ```
+```text
+1. Refactor 'content/clank-server.py' to a pure DI wiring entrypoint
+    [ ] 'content/clank-server.py': Remove all boot-sequence logic; reduce main() to instantiate, wire, and start.
+        - Remove ingestion.get_runtime_config(), ingestion.initialize_workspace(), kb_service.handle_start() calls
+        - Remove boot_message computation and passing to ClankServer
+        - Keep: instantiate LinuxDiskAdapter, RuamelYamlParserAdapter
+        - Keep: instantiate IngestionServiceImpl, KBServiceImpl, PromptServiceImpl
+        - Instantiate ClankServer with DI'd services (ingestion, kb_service, prompt_service) — no boot_message param
+        - Call server.run()
+        - Preserve the top-level try/except + traceback wrapper
+    [ ] 'content/backend/server.py': (dependent) ClankServer.__init__ drops boot_message param; _handle_boot performs the actual boot sequence via self.ingestion / self.kb_service and returns the result as the response body
+```
 Backlog tail, Selected item/items:
 we are duplicating code from the old sprawling tui + server implementation, into the new 'only server 'implementation.
     - old implementation has clanker.py entrypoint.
     - new implementation has clank-server.py entrypoint.
 
-the next thing to duplicate is the ingestionservice. We will copy all its content into backend/ingestion or similar.
+1. Refactor server.py: eliminate comments, collapse ClankServer into the HTTPServer role
+    [x] 'content/backend/server.py': Strip all comments and docstrings
+        - remove module docstring
+        - remove _shape_kb_emission docstring
+        - remove _Handler class docstring
+        - remove four section-divider comment lines (# ------ GET, # ------ POST, # ------ helpers, # ------ routes)
+        - remove ClankServer class docstring
+        - prohibition: no '#' comments, no '""" ... """' docstrings remain
+    [x] 'content/backend/server.py': ClankServer extends http.server.HTTPServer directly
+        - ClankServer.__init__ accepts ingestion, kb_service, prompt_service, port, gpu_box_url; stores them; calls super().__init__(("127.0.0.1", port), _Handler)
+        - ClankServer.run() calls self.serve_forever() wrapped in try/except KeyboardInterrupt, finally self.server_close()
+        - ClankServer no longer creates a separate HTTPServer instance
+        - ClankServer no longer bolts attributes onto a separate server object
+    [x] 'content/backend/server.py': _Handler remains as the per-connection SimpleHTTPRequestHandler
+        - _Handler.__init__ passes directory=str(_FRONTEND_DIR) to super
+        - all route methods (do_GET, do_POST, _handle_boot, _handle_char, _forward_gpu_box) and helpers (_send_plain, _send_json) stay on _Handler
+        - _Handler accesses services via self.server.<attr> (native http.server wiring, now resolves to ClankServer)
+        - _shape_kb_emission stays as a module-level function
+        - _FRONTEND_DIR, GPU_BOX_URL, PORT, GPU_BOX_PATHS stay as module-level constants
+    [x] 'content/clank-server.py': no changes
+    [x] 'content/backend/__init__.py': no changes
 
 Backlog tail end

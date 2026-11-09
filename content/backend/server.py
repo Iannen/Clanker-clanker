@@ -1,5 +1,3 @@
-"""Class-based Clanker HTTP server."""
-
 import http.server
 import json
 import urllib.request
@@ -8,14 +6,18 @@ from urllib.parse import parse_qs, urlsplit
 
 from core import entities as e
 from core.engine_deps import (
+    BootstrapSuccess,
+    ClankerizeResult,
+    DomainSelectedResult,
     KbCmd,
     KbServiceEmission,
     PromptRenderResult,
-    RenderNormalPromptCmd,
     RenderHotPromptCmd,
-    BootstrapSuccess,
+    RenderNormalPromptCmd,
+    StartCmd,
+    StartResult,
+    TerminateResult,
     UnboundKeyResult,
-    DomainSelectedResult,
     UninhabitedDomainResult,
     UninhabitedPromptResult,
 )
@@ -28,7 +30,6 @@ GPU_BOX_PATHS = frozenset(("/v1/chat/completions", "/api/desktop-mode", "/api/in
 
 
 def _shape_kb_emission(result: KbServiceEmission) -> dict:
-    """Shape a KbServiceEmission into a JSON-serialisable dict for the frontend."""
     kb = result.kb
     payload: dict = {
         "buttons": {},
@@ -75,12 +76,8 @@ def _shape_kb_emission(result: KbServiceEmission) -> dict:
 
 
 class _Handler(http.server.SimpleHTTPRequestHandler):
-    """Single-threaded synchronous HTTP handler."""
-
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, directory=str(_FRONTEND_DIR), **kwargs)
-
-    # ------------------------------------------------------------------ GET
 
     def do_GET(self) -> None:
         if self.path.startswith("/api/boot"):
@@ -92,15 +89,11 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
         else:
             super().do_GET()
 
-    # ----------------------------------------------------------------- POST
-
     def do_POST(self) -> None:
         if self.path in GPU_BOX_PATHS:
             self._forward_gpu_box(self.path)
         else:
             self._send_plain(404, "Not Found")
-
-    # ------------------------------------------------------------- helpers
 
     def _send_plain(self, status: int, text: str) -> None:
         body = text.encode("utf-8")
@@ -118,10 +111,31 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    # --------------------------------------------------------------- routes
-
     def _handle_boot(self) -> None:
-        self._send_plain(200, self.server.boot_message)
+        ingestion = self.server.ingestion
+        kb_service = self.server.kb_service
+
+        result = ingestion.get_runtime_config()
+
+        if isinstance(result, ClankerizeResult):
+            result = ingestion.initialize_workspace()
+
+        if isinstance(result, TerminateResult):
+            self._send_plain(500, f"Boot failed: {result.report.get_critical_complaints()}")
+            return
+
+        if not isinstance(result, (StartCmd, StartResult)):
+            self._send_plain(500, f"Unexpected boot result: {type(result).__name__}")
+            return
+
+        start_cmd = StartCmd(kb=result.kb, ui_render=result.ui_render)
+        kb_service.handle_start(start_cmd)
+
+        boot_message = "Bootstrap completed successfully"
+        if isinstance(result, StartResult) and result.report.get_all_complaints():
+            boot_message = f"Bootstrap completed with {len(result.report.get_all_complaints())} soft complaint(s)"
+
+        self._send_plain(200, boot_message)
 
     def _handle_char(self) -> None:
         parsed = urlsplit(self.path)
@@ -177,37 +191,27 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
             self.wfile.flush()
 
 
-class ClankServer:
-    """Class-based Clanker HTTP server.
-
-    Accepts pre-built services via DI and runs the HTTP loop.
-    """
-
+class ClankServer(http.server.HTTPServer):
     def __init__(
         self,
+        ingestion,
         kb_service,
         prompt_service,
-        boot_message: str,
         port: int = PORT,
         gpu_box_url: str = GPU_BOX_URL,
     ) -> None:
+        super().__init__(("127.0.0.1", port), _Handler)
+        self.ingestion = ingestion
         self.kb_service = kb_service
         self.prompt_service = prompt_service
-        self.boot_message = boot_message
         self.port = port
         self.gpu_box_url = gpu_box_url
 
     def run(self) -> None:
-        server = http.server.HTTPServer(("127.0.0.1", self.port), _Handler)
-        server.kb_service = self.kb_service
-        server.prompt_service = self.prompt_service
-        server.boot_message = self.boot_message
-        server.gpu_box_url = self.gpu_box_url
-
         print(f"Clanker server listening on http://127.0.0.1:{self.port}")
         try:
-            server.serve_forever()
+            self.serve_forever()
         except KeyboardInterrupt:
             pass
         finally:
-            server.server_close()
+            self.server_close()
