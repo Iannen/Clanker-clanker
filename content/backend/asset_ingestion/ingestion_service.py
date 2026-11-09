@@ -71,20 +71,24 @@ class IngestionServiceImpl(IngestionService):
         deleted: list[str] = []
         errors: list[str] = []
 
-        delete_match = re.search(r'¤deletelist¤\n((?:¤filepath="[^"]+"¤\n?)+)', raw_text)
+        # Parse deletelist
         delete_paths: list[str] = []
-        if delete_match:
-            delete_paths = re.findall(r'¤filepath="([^"]+)"¤', delete_match.group(1))
+        if "¤deletelist¤" in raw_text:
+            delete_section = raw_text.split("¤deletelist¤", 1)[1]
+            delete_pattern = re.compile(r'¤\s*filepath\s*=\s*(["\'])(.*?)\1\s*¤')
+            for d_match in delete_pattern.finditer(delete_section):
+                delete_paths.append(d_match.group(2).strip())
 
-        file_blocks = re.findall(
-            r'¤filepath="([^"]+)"¤\n(.*?)\n¤filepath="\1"¤',
-            raw_text,
+        # Parse file blocks
+        file_pattern = re.compile(
+            r'¤\s*filepath\s*=\s*(["\'])(.*?)\1\s*¤\s*(.*?)\s*¤\s*filepath\s*=\s*\1\2\1\s*¤',
             re.DOTALL
         )
-
-        for path, content in file_blocks:
+        for match in file_pattern.finditer(raw_text):
+            path = match.group(2).strip()
+            raw_content = match.group(3)
             tokenized = self._prefix_path(path)
-            clean_content = self._clean_content(content)
+            clean_content = self._clean_content(raw_content).strip("\n")
             try:
                 self.files.write_file(tokenized, clean_content)
                 written.append(path)
@@ -109,9 +113,20 @@ class IngestionServiceImpl(IngestionService):
 
     @staticmethod
     def _clean_content(content: str) -> str:
-        lines = content.split('\n')
-        while lines and lines[0].strip().startswith('```'):
-            lines.pop(0)
-        while lines and lines[-1].strip() == '```':
-            lines.pop()
-        return '\n'.join(lines)
+        lines = content.splitlines()
+        start_idx = 0
+        for i, line in enumerate(lines):
+            if line.strip().startswith("```"):
+                start_idx = i + 1
+                break
+
+        end_idx = len(lines)
+        for i in range(len(lines) - 1, -1, -1):
+            if lines[i].strip().startswith("```"):
+                end_idx = i
+                break
+
+        if start_idx < end_idx:
+            lines = lines[start_idx:end_idx]
+
+        return "\n".join(lines)

@@ -45,24 +45,23 @@ II. The wishlist
         - result.cmd is RenderNormalPromptCmd (no .char); now reads result.cmd.cmd.char
 ```
 Backlog tail, Selected item/items:
-All confirmed. Here's the plan:
 
 ```text
 1. Add write/delete capability to the disk port layer
-    [ ] 'content/backend/core/engine_deps/ports.py': Add two abstract methods to DiskPort
+    [x] 'content/backend/core/engine_deps/ports.py': Add two abstract methods to DiskPort
         - write_file(tokenized_path: str, content: str) -> None — raises: InvalidPathToken, FileAccessError
         - delete_file(tokenized_path: str) -> None — raises: InvalidPathToken, NoSuchFile, FileAccessError
-    [ ] 'content/backend/adapters/disk_adapter.py': Implement the two methods in LinuxDiskAdapter
+    [x] 'content/backend/adapters/disk_adapter.py': Implement the two methods in LinuxDiskAdapter
         - write_file: resolve via _resolve_tokenized_path, create parent dirs, write_text; wrap PermissionError/UnicodeDecodeError as FileAccessError
         - delete_file: resolve via _resolve_tokenized_path, if not exists or not a file raise NoSuchFile; unlink; optionally rmdir empty parent chain up to base dir
 
 2. Add a result type for the apply operation
-    [ ] 'content/backend/core/engine_deps/result.py': New dataclass
+    [x] 'content/backend/core/engine_deps/result.py': New dataclass
         - IngestApplyResult with fields: written list[str], deleted list[str], errors list[str]
         - extends Result (so it fits the existing Result hierarchy)
 
 3. Add apply_file_changes to IngestionServiceImpl
-    [ ] 'content/backend/asset_ingestion/ingestion_service.py': New method on IngestionServiceImpl
+    [x] 'content/backend/asset_ingestion/ingestion_service.py': New method on IngestionServiceImpl
         - signature: apply_file_changes(raw_text: str) -> IngestApplyResult
         - regex-parse ¤filepath="X"¤ blocks (same pattern as git-ops receive)
         - handle ¤deletelist¤ section (same pattern as git-ops receive)
@@ -73,7 +72,7 @@ All confirmed. Here's the plan:
         - do NOT do any git operations
 
 4. Add /api/ingest endpoint to the server
-    [ ] 'content/backend/server.py': New POST route
+    [x] 'content/backend/server.py': New POST route
         - _handle_ingest: read JSON body { "content": "..." }
         - call self.server.ingestion.apply_file_changes(content)
         - serialize IngestApplyResult to JSON, send 200
@@ -81,10 +80,10 @@ All confirmed. Here's the plan:
         - add to do_POST routing (alongside GPU_BOX_PATHS check)
 
 5. Frontend: Alt+Enter handler and API client method
-    [ ] 'content/web-ui/frontend/api-client.js': Add ingestFileChanges(content) method
+    [x] 'content/web-ui/frontend/api-client.js': Add ingestFileChanges(content) method
         - POST /api/ingest with JSON body
         - return parsed JSON response
-    [ ] 'content/web-ui/frontend/clanker-app.js': Wire up Alt+Enter
+    [x] 'content/web-ui/frontend/clanker-app.js': Wire up Alt+Enter
         - add 'Alt+Enter' to #inputActions (and #messageActions if relevant)
         - handler: get selected message content (same source as #copySelected reads from)
         - call apiClient.ingestFileChanges(content)
@@ -92,4 +91,26 @@ All confirmed. Here's the plan:
         - on error: toast with error message
         - do NOT copy to clipboard (that's still Ctrl+Enter only)
 ```
+```text
+6. Fix file-block and deletelist parsing in apply_file_changes
+    [ ] 'content/backend/asset_ingestion/ingestion_service.py': Replace brittle literal-newline regexes with permissive delimiters-bounded patterns (matching the proven external script approach)
+        - Replace file_blocks regex with: re.compile(r'¤\s*filepath\s*=\s*(["\'])(.*?)\1\s*¤\s*(.*?)\s*¤\s*filepath\s*=\s*\1\2\1\s*¤', re.DOTALL); iterate with finditer; group(2)=path, group(3)=raw_content
+        - Replace deletelist parsing: if "¤deletelist¤" in raw_text, split on that sentinel, then finditer a permissive pattern r'¤\s*filepath\s*=\s*(["\'])(.*?)\1\s*¤' over the remainder; collect group(2)
+        - Add .strip() to each extracted path before calling _prefix_path (the proven script strips at write time)
+        - Add .strip("\n") to cleaned content before passing to self.files.write_file (strips residual leading/trailing newlines from regex capture)
+        - Prohibition: do not change _prefix_path, write_file, delete_file, or IngestApplyResult — only the parsing and content-cleaning layer changes
+    [ ] 'content/backend/asset_ingestion/ingestion_service.py': Replace _clean_content with first/last-fence-index slicing
+        - New implementation: splitlines(); scan forward for first line whose .strip().startswith("```"), set start_idx = i+1; scan backward for last such line, set end_idx = i; if start_idx < end_idx, slice lines[start_idx:end_idx]; return "\n".join(lines)
+        - This handles fences that are not the absolute first/last lines (e.g. blank lines or prose before the opening fence), and handles \r\n via splitlines()
+        - Prohibition: do not change the @staticmethod decorator or the method signature
+```
+
 Backlog tail end
+
+```text
+1. Sidepanel mode buttons: add Enter key handler
+    [ ] 'content/web-ui/frontend/sidepanel-left.js': Add keydown listener to mode buttons so Enter activates them
+        - In onConnect(), alongside the existing click listener, attach a keydown listener to each [data-mode] button
+        - If event.key === 'Enter': call event.stopPropagation() then event.preventDefault(), then invoke this.#switchMode(button.dataset.mode)
+        - This mirrors the kb-bar pattern: stopPropagation prevents the document-level handler in clanker-app.js from intercepting Enter and calling preventDefault, which would suppress the native button activation
+```
