@@ -4,8 +4,9 @@ import sys
 import traceback
 
 from adapters import LinuxDiskAdapter, RuamelYamlParserAdapter
-from modules import IngestionServiceImpl, KBServiceImpl, PromptServiceImpl
+from modules import IngestionServiceImpl, PromptServiceImpl
 from backend import ClankServer
+from backend.keyboard import KBServiceImpl
 
 
 def main() -> None:

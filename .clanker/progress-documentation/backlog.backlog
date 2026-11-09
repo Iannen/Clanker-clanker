@@ -102,11 +102,6 @@ II. The wishlist
         - Preserve the top-level try/except + traceback wrapper
     [ ] 'content/backend/server.py': (dependent) ClankServer.__init__ drops boot_message param; _handle_boot performs the actual boot sequence via self.ingestion / self.kb_service and returns the result as the response body
 ```
-Backlog tail, Selected item/items:
-we are duplicating code from the old sprawling tui + server implementation, into the new 'only server 'implementation.
-    - old implementation has clanker.py entrypoint.
-    - new implementation has clank-server.py entrypoint.
-
 1. Refactor server.py: eliminate comments, collapse ClankServer into the HTTPServer role
     [x] 'content/backend/server.py': Strip all comments and docstrings
         - remove module docstring
@@ -128,5 +123,57 @@ we are duplicating code from the old sprawling tui + server implementation, into
         - _FRONTEND_DIR, GPU_BOX_URL, PORT, GPU_BOX_PATHS stay as module-level constants
     [x] 'content/clank-server.py': no changes
     [x] 'content/backend/__init__.py': no changes
+
+```text
+1. Re-point KBService import to backend/ and excise terminal adapter surface
+    [x] 'content/clank-server.py': Source KBServiceImpl from backend, drop modules shim
+        - `from modules import IngestionServiceImpl, KBServiceImpl, PromptServiceImpl` → `from modules import IngestionServiceImpl, PromptServiceImpl`
+        - added `from backend.keyboard import KBServiceImpl`
+        - prohibition: IngestionServiceImpl and PromptServiceImpl import origin unchanged
+    [x] 'content/backend/keyboard/__init__.py': create package init
+        - `from .keyboard_service import KBServiceImpl`
+    [x] 'content/backend/adapters/terminal/linux.py': deleted
+    [x] 'content/backend/adapters/terminal/scripted_terminal_adapter.py': deleted
+    [x] 'content/backend/adapters/terminal/__init__.py': deleted
+    [x] 'content/backend/adapters/__init__.py': remove terminal re-exports
+        - removed `from .terminal.linux import *`
+        - removed `from .terminal.scripted_terminal_adapter import *`
+        - remaining: `from .disk_adapter import *`, `from .yaml_parser import *`
+    [x] 'content/backend/core/engine_deps/ports.py': strip terminal-only types
+        - removed `class IOControl`
+        - removed `class TerminalFailure(Exception)`
+        - removed `@dataclass class Proposition`
+        - removed `class TerminalPort(ABC)` and its four abstract methods
+        - kept DiskPort, ConfigParserPort, NoSuchFile, FileAccessError, InvalidPathToken, ConfigParseError
+```
+Backlog tail, Selected item/items:
+we are duplicating code from the old sprawling tui + server implementation, into the new 'only server 'implementation.
+    - old implementation has clanker.py entrypoint.
+        - this entrypoint and the code that it imports / uses has been hidden. 
+    - new implementation has clank-server.py entrypoint.
+        - uses code from the old system
+        - all relevant code has also been copied over to content/backend dir
+        - we are in process of updating imports, to make the new entrypoint rely on its own code only.
+    - the two 'project' shall be disjointed in time.
+
+The adapters that the new system uses, are they imported from the old system or from the backend dir of the new system?
+
+Looking at `clank-server.py` in isolation, two of the five import lines point at the old system:
+
+- `from adapters import LinuxDiskAdapter, RuamelYamlParserAdapter` → old top-level `adapters` package
+- `from modules import IngestionServiceImpl, PromptServiceImpl` → old top-level `modules` package
+
+The other three (`backend`, `backend.keyboard`, and the `sys`/`traceback` stdlib) are already correct for the new tree.
+
+So "clearing" the entrypoint is a two-line import swap:
+
+```text
+1. Clear clank-server.py entrypoint imports to backend-only paths
+    [ ] 'content/clank-server.py': Replace the two old-system import lines with backend-dir equivalents
+        - Change `from adapters import LinuxDiskAdapter, RuamelYamlParserAdapter` to `from backend.adapters import LinuxDiskAdapter, RuamelYamlParserAdapter`
+        - Change `from modules import IngestionServiceImpl, PromptServiceImpl` to two lines: `from backend.asset_ingestion import IngestionServiceImpl` and `from backend.render_pipeline import PromptServiceImpl`
+        - No changes to main(), the try/except guard, or the already-correct `from backend import ClankServer` / `from backend.keyboard import KBServiceImpl` lines
+        - Prohibition: do not add any import from the old `adapters` or `modules` top-level packages; the entrypoint must resolve all symbols from within `content/backend/` only
+```
 
 Backlog tail end

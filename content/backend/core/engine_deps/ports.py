@@ -1,33 +1,4 @@
-from stdlib import ABC, abstractmethod, dataclass
-
-class IOControl:
-    ACCEPTED = "accepted"
-    DECLINED = "declined"
-    INVALID = "invalid"
-    ABORT_KEYS = ("\x1b", "\x03")
-    ACCEPT_KEY = "\x04"
-    BACKSPACE_KEYS = ("\x7f", "\x08")
-
-class TerminalFailure(Exception): pass
-
-@dataclass
-class Proposition:
-    statement: str
-    subject: str | None = None
-    required_phrase: str | None = None
-
-class TerminalPort(ABC):
-    @abstractmethod
-    def to_clipboard(self, text_content: str) -> int: ...  # raises: TerminalFailure
-
-    @abstractmethod
-    def write(self, text: str) -> None: ...  # raises: TerminalFailure
-
-    @abstractmethod
-    def read_char(self) -> str: ...  # raises: TerminalFailure
-
-    @abstractmethod
-    def get_acceptance(self, proposition: Proposition) -> bool: ...  # raises: TerminalFailure
+from stdlib import ABC, abstractmethod
 
 
 class NoSuchFile(Exception): pass
@@ -68,6 +39,7 @@ class DiskPort(ABC):
         basepath_token: str,
         rel_roots: list[str]
     ) -> set[str]: ...  # raises: InvalidPathToken, NoSuchFile, FileAccessError
+
 
 class ConfigParseError(Exception):pass
 class ConfigParserPort(ABC):
