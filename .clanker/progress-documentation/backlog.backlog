@@ -146,27 +146,6 @@ II. The wishlist
         - removed `class TerminalPort(ABC)` and its four abstract methods
         - kept DiskPort, ConfigParserPort, NoSuchFile, FileAccessError, InvalidPathToken, ConfigParseError
 ```
-Backlog tail, Selected item/items:
-we are duplicating code from the old sprawling tui + server implementation, into the new 'only server 'implementation.
-    - old implementation has clanker.py entrypoint.
-        - this entrypoint and the code that it imports / uses has been hidden. 
-    - new implementation has clank-server.py entrypoint.
-        - uses code from the old system
-        - all relevant code has also been copied over to content/backend dir
-        - we are in process of updating imports, to make the new entrypoint rely on its own code only.
-    - the two 'project' shall be disjointed in time.
-
-The adapters that the new system uses, are they imported from the old system or from the backend dir of the new system?
-
-Looking at `clank-server.py` in isolation, two of the five import lines point at the old system:
-
-- `from adapters import LinuxDiskAdapter, RuamelYamlParserAdapter` → old top-level `adapters` package
-- `from modules import IngestionServiceImpl, PromptServiceImpl` → old top-level `modules` package
-
-The other three (`backend`, `backend.keyboard`, and the `sys`/`traceback` stdlib) are already correct for the new tree.
-
-So "clearing" the entrypoint is a two-line import swap:
-
 ```text
 1. Clear clank-server.py entrypoint imports to backend-only paths
     [x] 'content/clank-server.py': Replace the two old-system import lines with backend-dir equivalents
@@ -175,5 +154,24 @@ So "clearing" the entrypoint is a two-line import swap:
         - No changes to main(), the try/except guard, or the already-correct `from backend import ClankServer` / `from backend.keyboard import KBServiceImpl` lines
         - Prohibition: do not add any import from the old `adapters` or `modules` top-level packages; the entrypoint must resolve all symbols from within `content/backend/` only
 ```
+
+Backlog tail, Selected item/items:
+
+we are duplicating code from an old sprawling tui + server implementation, into the new 'only server 'implementation.
+    - old implementation has clanker.py entrypoint: all code obscured from view
+        - this entrypoint and the code that it imports / uses has been hidden. 
+    - new implementation has clank-server.py entrypoint: all code visible
+        - uses code from the old system
+        - all relevant code has also been copied over to content/backend dir
+        - we are in process of updating imports, to make the new entrypoint rely on its own code only.
+    - the two 'project' shall be disjointed in time.
+
+so essentially we want to bring it to a state where the visible code does not depend upon 'invisible' code
+
+
+ status:
+ the entrypoint now only sources visible code.
+ downstream from that - what remains?
+
 
 Backlog tail end
