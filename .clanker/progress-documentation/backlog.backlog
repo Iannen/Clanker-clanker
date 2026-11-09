@@ -22,8 +22,62 @@ II. The wishlist
 implement prefill info stream:
     - I have this script in randomscripts which spits out prefill info. so it can be done
 
+6. for kb component -> ctrl+enter copy to clipboard
 
+```text
+1. Unused types / members in the backend
+    [x] 'content/backend/core/engine_deps/result.py': Remove dead types
+        - BootCmd — never referenced
+        - ClankerizeCmd — empty, never referenced
+        - ExitCommand — base, never referenced
+        - UserDeclinedStart — never referenced
+        - UserDeclinedClankerize — never referenced
+        - StartupFailed — never referenced
+        - UserAborted — never referenced
+        - Request (id, item) — never constructed
+        - FrontendService ABC — never implemented
 
+2. Unused constants / methods in entities
+    [x] 'content/backend/core/core/entities.py': Remove dead exports
+        - PUD (module-level constant) — all callers use e.PathTokens.PUD
+        - SHR (module-level constant) — all callers use e.PathTokens.SHARED
+        - RepoContract.get_all_target_paths() — never called
+
+3. Dead frontend file
+    [x] 'content/web-ui/frontend/message copy.js': Delete file
+        - duplicate of message.js, never imported (messages-box.js imports './message.js')
+```
 
 Backlog tail, Selected item/items:
+
+```text
+1. Enrich prompt-staged status line with name, domain, size, and mode
+    [ ] 'content/backend/server.py': Add prompt_mode to _shape_kb_emission payload
+        - in the PromptRenderResult case, add payload["prompt_mode"] = type(result.cmd).__name__
+        - no new imports needed; RenderNormalPromptCmd / RenderHotPromptCmd already imported
+    [ ] 'content/web-ui/frontend/keyboard-bar.js': Rewrite #formatStatus prompt_render case
+        - replace static 'Prompt staged — press Enter to send'
+        - read response.prompt, response.domain, response.lines, response.chars, response.prompt_mode
+        - format as: `Prompt "name" of "domain" — n lines, x chars (RenderHotPromptCmd) — press Enter`
+        - keep the 'press Enter' tail so the affordance is still clear
+```
+
 Backlog tail end
+
+```text
+4. Misc dead exports / unused imports / dead attributes
+    [ ] 'content/backend/stdlib.py': Remove 24 unused imports
+        - dead: field, base64, collections, defaultdict, contextmanager, json, os, Path, sys, termios, traceback, tty
+        - dead: Callable, ClassVar, Generator, Generic, TypeVar, Self, Union, zip_longest, ItemsView, Enum, auto, get_original_bases, Queue
+        - keep: dataclass, ABC, abstractmethod, re, Any, fields, get_args, get_origin, types, MISSING, Field, StrEnum, inspect, Type
+
+    [ ] 'content/backend/asset_ingestion/extractors/map_extractor2.py': Remove dead instance attribute
+        - ParserCtx.__init__ assigns self.data but it is never read anywhere; the local `data` param feeds the list comprehension directly
+
+    [ ] 'content/backend/render_pipeline/content_shaper.py': SystemKeys is star-exported but never imported externally
+        - only used within this file (SystemKeys.DELIM in hydrate); the `from .content_shaper import *` in __init__.py leaks it needlessly
+
+    [ ] 'content/backend/core/core/entities.py': Inline private helper constants into enum class bodies
+        - SHR_CFG_FRAGS, SHR_TEMPL, SHR_DOC_TEMPL, SHR_LAYOUTS, PROG_DOCS are module-level constants used only to build ClankerAssets/PudAssets StrEnum values
+        - could be inlined as local names inside the class bodies, keeping PathTokens.PUD/SHARED as the only public module-level tokens
+```

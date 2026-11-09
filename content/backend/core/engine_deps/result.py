@@ -49,32 +49,17 @@ class Report(ABC):
 
 
 class Command: pass
-class BootCmd(Command): pass
 
 @dataclass(slots=True)
 class StartCmd(Command):
     kb: "e.Keyboard"
     ui_render: "e.Render"
 
-class ClankerizeCmd(Command): pass
-
 @dataclass
 class KbCmd(Command): char: str
 
-class ExitCommand(Command): exit_msg: str
-class UserDeclinedStart(ExitCommand): exit_msg = "Bootstrap declined by user"
-class UserDeclinedClankerize(ExitCommand): exit_msg = "User declined to clankerize project"
-class StartupFailed(ExitCommand): exit_msg = "Program could not start"
-class UserAborted(ExitCommand): exit_msg = "Program exited"
-
 
 class Result: pass
-
-
-@dataclass
-class Request:
-    id: str
-    item: Command | Result
 
 
 @dataclass
@@ -144,12 +129,6 @@ class IngestionService(ABC):
     def get_runtime_config(self) -> StartCmd | StartResult | ClankerizeResult | TerminateResult: ...
     @abstractmethod
     def initialize_workspace(self) -> StartCmd | StartResult | ClankerizeResult | TerminateResult: ...
-
-class FrontendService(ABC):
-    @abstractmethod
-    def get_request(self) -> Request: ...
-    @abstractmethod
-    def post_response(self, req: Request) -> None: ...
 
 class PromptService(ABC):
     @abstractmethod

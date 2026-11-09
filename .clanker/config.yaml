@@ -3,19 +3,20 @@ system:
   apply_command: "echo 'No apply command configured' && true"
   
 pud_filesets:
-  old: {includes: [content/a__old_tui], excludes: [content/a_lib]}
+  old_tui: {includes: [content/a__old_tui], excludes: [content/a_lib]}
 
-  exodus: { includes: [
-    content/backend,
-    content/clank-server.py,
-    content/web-ui
+  server: { 
+    includes: [content],
+      excludes: [
+        content/a__old_tui,
+        content/a_lib,
+        content/backend/adapters
     ]}
-
 
 pud_domains:
   old:
     resolvers:
-      - { anchor: repo_content, type: repo-content, fileset: ¤ old}
+      - { anchor: repo_content, type: repo-content, fileset: ¤ old_tui}
     prompts:
       - name: plan
         render:
@@ -30,9 +31,9 @@ pud_domains:
           resolvers:
             - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_migration_mode }
 
-  exodus:
+  server:
     resolvers:
-      - { anchor: repo_content, type: repo-content, fileset: ¤ exodus }
+      - { anchor: repo_content, type: repo-content, fileset: ¤ server }
     prompts:
       - name: plan
         render:

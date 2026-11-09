@@ -39,7 +39,7 @@ class File(Entity):
 @dataclass
 class Filelist(Entity):
     name: str | None
-    files: list[File] 
+    files: list[File]
 
 @dataclass
 class FilesetItem(Entity):
@@ -64,7 +64,7 @@ class Resolver(Entity):
 @dataclass
 class MultiDocResolver(Resolver):
     type = "multi-document-retrieval"
-    files: Filelist 
+    files: Filelist
 
 @dataclass
 class SharedBaseResolver(MultiDocResolver): pass
@@ -74,24 +74,24 @@ class PudBaseResolver(MultiDocResolver): pass
 @dataclass
 class RepoContentResolver(Resolver):
     type = "repo-content"
-    fileset: PudFileset 
+    fileset: PudFileset
 
 @dataclass
 class ManifestResolver(Resolver):
     type = "repo-manifest"
-    pud_fileset: PudFileset 
+    pud_fileset: PudFileset
     shared_fileset: SharedFileset | None
 
 @dataclass
 class Render(Entity):
-    resolvers: list[Resolver] 
+    resolvers: list[Resolver]
     template: str = "prompt_template"
     inherit_base: bool = True
     inherit_domain: bool = True
 
-@dataclass 
+@dataclass
 class UIRender(Entity):
-    resolvers: list[Resolver] 
+    resolvers: list[Resolver]
     template: str = "prompt_template"
     inherit_base: bool = False
     inherit_domain: bool = False
@@ -107,12 +107,12 @@ class Domain(Entity):
     prompts: list[Prompt]
     resolvers: list[Resolver]
 
-@dataclass 
+@dataclass
 class SharedDomain(Domain): pass
-@dataclass 
+@dataclass
 class PudDomain(Domain): pass
 
-@dataclass 
+@dataclass
 class NewBtn(Entity): key: str
 @dataclass
 class PromptButton(NewBtn): inhabitant: Prompt | None
@@ -159,14 +159,11 @@ class PathTokens:
     PUD = "<PUD>"
     SHARED = "<SHARED>"
 
-PUD = PathTokens.PUD
-SHR = PathTokens.SHARED
-
-SHR_CFG_FRAGS = SHR + "/content/a_lib/shared-assets/config-fragments/"
-SHR_TEMPL = SHR + "/content/a_lib/templates/"
+SHR_CFG_FRAGS = PathTokens.SHARED + "/content/a_lib/shared-assets/config-fragments/"
+SHR_TEMPL = PathTokens.SHARED + "/content/a_lib/templates/"
 SHR_DOC_TEMPL = SHR_TEMPL + "documentation/"
-SHR_LAYOUTS = SHR + "/content/a_lib/shared-assets/layouts/"
-PROG_DOCS = PUD + "/.clanker/progress-documentation/"
+SHR_LAYOUTS = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/"
+PROG_DOCS = PathTokens.PUD + "/.clanker/progress-documentation/"
 
 
 
@@ -192,13 +189,13 @@ class ClankerAssets:
 
 class PudAssets:
     class Configs(StrEnum):
-        configuration_file = PUD + "/.clanker/config.yaml"
+        configuration_file = PathTokens.PUD + "/.clanker/config.yaml"
 
     class Directories(StrEnum):
-        CONTENTS = PUD + "/content"
+        CONTENTS = PathTokens.PUD + "/content"
 
     class Files(StrEnum):
-        README = PUD + "/README.md"
+        README = PathTokens.PUD + "/README.md"
 
     class Documentation(StrEnum):
         ARCHITECTURE = PROG_DOCS + "architecture.cdoc"
@@ -219,10 +216,3 @@ class RepoContract:
         (ClankerAssets.templates.DOC_BACKLOG, PudAssets.Documentation.BACKLOG),
         (ClankerAssets.templates.DOC_PROJECT_HISTORY, PudAssets.Documentation.PROJECT_HISTORY),
     ]
-
-    @classmethod
-    def get_all_target_paths(cls) -> set[str]:
-        target_paths = set(cls.DIRS_TO_CREATE)
-        for _, to_path in cls.MAPPINGS:
-            target_paths.add(to_path)
-        return target_paths
