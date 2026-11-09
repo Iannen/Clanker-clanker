@@ -1549,3 +1549,66 @@ CXCII: KEYBOARD BAR ENGINE WIRING AND PROMPT FORWARDING
     - `keyboard-bar.js` prompt forwarding: after button state updates, if `response.result_type === 'prompt_render'` and `response.prompt_text` present, dispatches `CustomEvent('prompt-ready', { detail: response.prompt_text })` on `this`.
     - `clanker-app.js`: `onConnect` adds `this.#keyboardBar.addEventListener('prompt-ready', (e) => this.#onPromptReady(e.detail))`. `#onPromptReady(promptText)` calls `#showMessagesBox()` then `#generateResponse(promptText)`.
     Reflection: The keyboard bar is now a full input surface: click or physical key → `/api/char` → engine mutates KB → structured JSON back → DOM repaint. On prompt render, the rendered text is forwarded as a user message into the chat, which triggers the LLM response cycle. The keyboard bar and message box are two views of the same session, toggled by Ctrl+Y / Ctrl+I, with the input box always available below.
+
+CXCIII: STANDALONE CLANK-SERVER ENTRYPOINT AND GPU BOX FORWARDING
+    Purpose: Establish a self-contained local HTTP server for the web frontend, separate from the old TUI/combo system, with GPU box proxy support.
+    - The web frontend needed a local server to bootstrap, handle keyboard chars, serve static files, and proxy GPU box requests without the old queue/ReplySlot machinery.
+    Actions:
+    - `content/clank-server.py`: standalone entrypoint importing services directly (IngestionServiceImpl, KBServiceImpl, PromptServiceImpl, LinuxDiskAdapter, RuamelYamlParserAdapter); boot sequence instantiates adapters → ingestion → handle_start → store state → start HTTP server; local endpoints /api/boot, /api/char, static file serving via SimpleHTTPRequestHandler; GPU box endpoints (/v1/chat/completions, /api/desktop-mode, /api/inference-mode) dispatch to forwarding logic; single-threaded synchronous handler.
+    - `content/services/gpu_box.py`: initial GPU box forwarding service encapsulating urllib.request logic (request body, headers, Authorization passthrough, structured 502 on upstream failure).
+    - `content/backend/__init__.py`: created as grouping package; `content/services/` deleted entirely; GpuBoxService dropped in favor of inline `urllib.request` in `_forward_gpu_box` with chunked read/flush loop; `GPU_BOX_URL` as module-level constant, no service instance in main().
+    Reflection:
+    - The server is a single-file entrypoint with all HTTP logic; GPU box forwarding is a direct proxy (request in → urlopen → chunked stream out) with no service abstraction layer. The backend package replaces the old `services/` top-level package.
+
+CXCIV: BACKEND PACKAGE STRUCTURE — ENTITIES RELOCATION AND CLASS-BASED SERVER
+    Purpose: Consolidate the standalone server's code into a coherent `backend/` package and encapsulate HTTP logic in a class.
+    - The initial clank-server.py had everything inline; needed a clean package boundary and a class that owns the HTTP server lifecycle.
+    Actions:
+    - `content/backend/entities.py`: exact copy of `content/core/core/entities.py`, serving as local import target for backend-only code; `content/core/core/entities.py` untouched as canonical TUI source.
+    - `content/backend/server.py`: `ClankServer` class holding `_Handler` and `_shape_kb_emission`; `__init__` accepts DI'd deps (kb_service, prompt_service, boot_message); `run()` blocks on `serve_forever`, cleans up on exit.
+    - `content/backend/__init__.py`: exports `ClankServer`.
+    - `content/clank-server.py`: stripped to boot/DI logic only (~30 lines); instantiates adapters, services, ClankServer, calls `.run()`.
+    Reflection:
+    - The backend package now mirrors the old `core/` structure but is self-contained for the web server; the entrypoint is a thin DI wiring script with no HTTP internals.
+
+CXCV: SERVER.PY REFACTOR — COMMENT ELIMINATION AND HTTPSERVER COLLAPSE
+    Purpose: Strip all comments and docstrings from server.py and collapse ClankServer to extend HTTPServer directly.
+    - ClankServer was creating a separate HTTPServer instance and bolting attributes onto it; this was unnecessary indirection.
+    Actions:
+    - Removed all comments, docstrings, and section-divider lines from `content/backend/server.py` (module docstring, `_shape_kb_emission` docstring, `_Handler` class docstring, ClankServer class docstring, four `# ------` dividers).
+    - `ClankServer` extends `http.server.HTTPServer` directly; `__init__` calls `super().__init__(("127.0.0.1", port), _Handler)` and stores DI'd services (ingestion, kb_service, prompt_service, port, gpu_box_url) as instance attributes.
+    - `_Handler` accesses services via `self.server.<attr>` (native http.server wiring resolves to ClankServer).
+    - `_shape_kb_emission` remains module-level; `_FRONTEND_DIR`, `GPU_BOX_URL`, `PORT`, `GPU_BOX_PATHS` are module-level constants.
+    - `content/clank-server.py` and `content/backend/__init__.py`: no changes.
+    Reflection:
+    - The server class is now the HTTP server; no wrapper/adapter layer. `_Handler` uses the standard `self.server` reference to reach DI'd dependencies. Zero comments in the file.
+
+CXCVI: BACKEND IMPORT HYGIENE — KBSERVICE RE-POINT AND TERMINAL EXCISION
+    Purpose: Re-point KBService import to the backend package and remove the terminal adapter surface that the standalone server does not use.
+    - The old `modules` and `adapters` top-level packages were artifacts of the TUI system; the standalone server must resolve all symbols from `content/backend/` only.
+    Actions:
+    - `content/clank-server.py`: `from modules import ...` → `from backend.keyboard import KBServiceImpl`; `from adapters import LinuxDiskAdapter, RuamelYamlParserAdapter` → `from backend.adapters import ...`; `from modules import IngestionServiceImpl, PromptServiceImpl` → `from backend.asset_ingestion import IngestionServiceImpl` + `from backend.render_pipeline import PromptServiceImpl`. Prohibition: no imports from old top-level `adapters` or `modules`.
+    - `content/backend/keyboard/__init__.py`: new package init, `from .keyboard_service import KBServiceImpl`.
+    - `content/backend/adapters/terminal/`: entire directory deleted (linux.py, scripted_terminal_adapter.py, __init__.py).
+    - `content/backend/adapters/__init__.py`: removed terminal re-exports; only `from .disk_adapter import *` and `from .yaml_parser import *` remain.
+    - `content/backend/core/engine_deps/ports.py`: stripped terminal-only types (IOControl, TerminalFailure, Proposition, TerminalPort and its four abstract methods); kept DiskPort, ConfigParserPort, NoSuchFile, FileAccessError, InvalidPathToken, ConfigParseError.
+    Reflection:
+    - The entrypoint resolves every import from within `content/backend/`. The terminal adapter surface is excised; the backend package is self-sufficient for the web server with no TUI dependency.
+
+CXCVII: ABSOLUTE BACKEND.* IMPORT REWRITE
+    Purpose: Replace all bare-name imports (`core`, `stdlib`, `core.engine_deps`) with absolute `backend.*` paths across the entire backend package.
+    - The backend package was copied from the old system where `core` and `stdlib` were top-level; inside `content/backend/` these must become `backend.core` and `backend.stdlib`.
+    Actions:
+    - Part 1 (ingestion + adapters + server): `server.py`, `disk_adapter.py`, `yaml_parser.py`, `error_collector.py`, `map_extractor2.py`, `ingestion_service.py`, `service_workers.py` — all `from core import ...` → `from backend.core import ...`, `from stdlib import ...` → `from backend.stdlib import ...`, `from core.engine_deps import ...` → `from backend.core.engine_deps import ...`.
+    - Part 2 (validators, core internals, keyboard, render_pipeline): `file_list_validator.py`, `fileset_validator.py`, `overflow_validator2.py`, `core/__init__.py` (`import core.core.entities` → `import backend.core.core.entities`), `result.py`, `keyboard_service.py`, `content_shaper.py`, `render_service.py` — same rewrite applied.
+    Reflection:
+    - All backend modules now use absolute `backend.*` paths; no reliance on top-level `core` or `stdlib` packages. The import graph is fully self-contained within `content/backend/`.
+
+CXCVIII: OLD TUI STASHED
+    Purpose: Archive the old clanker TUI system for potential future reference while the web frontend becomes the primary interface.
+    - The TUI/combo system is no longer the active code path; it is preserved in a separate directory pending formal retirement.
+    Actions:
+    - Old clanker TUI moved to `content/a__old_tui/`.
+    - Tests and imports within the stashed copy were updated so it still runs standalone.
+    Reflection:
+    - The TUI is retired in practice but preserved in code; it will be formally removed in a future pass. The `a__` prefix signals an archived artifact outside the active import graph.

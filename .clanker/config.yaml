@@ -3,7 +3,7 @@ system:
   apply_command: "echo 'No apply command configured' && true"
   
 pud_filesets:
-  old: {includes: [content], excludes: [content/a_lib]}
+  old: {includes: [content/a__old_tui], excludes: [content/a_lib]}
 
   exodus: { includes: [
     content/backend,

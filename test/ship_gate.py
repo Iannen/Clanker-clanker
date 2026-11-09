@@ -1,7 +1,7 @@
 #!/usr/bin/env -S python3 -B
 import sys
 from pathlib import Path
-content_dir = Path(__file__).resolve().parent.parent / "content"
+content_dir = Path(__file__).resolve().parent.parent / "content" / "a__old_tui"
 if str(content_dir) not in sys.path:
     sys.path.insert(0, str(content_dir))
 
@@ -9,7 +9,7 @@ if str(content_dir) not in sys.path:
 from orchestrators import TestSuitesRunner, GateInspector
 
 def get_verified_clanker_runnable_path(repo_root: Path) -> Path:
-    clanker_path = repo_root / "content" / "clanker.py"
+    clanker_path = repo_root / "content" / "a__old_tui" / "clanker.py"
     gate_script_path = repo_root / "test" / "ship_gate.py"
 
     if not clanker_path.is_file():
@@ -30,7 +30,7 @@ def get_verified_clanker_runnable_path(repo_root: Path) -> Path:
 
 def verify_execution_context() -> tuple[Path, Path, Path, Path, Path]:
     repo_root = Path.cwd()   
-    content_dir = repo_root / "content"
+    content_dir = repo_root / "content" / "a__old_tui"
     clanker_path = get_verified_clanker_runnable_path(repo_root)
     test_root = repo_root / "test"
     fixture_dir = test_root / "test_repos"
