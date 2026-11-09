@@ -28,12 +28,73 @@ II. The wishlist
     - single click dropoff, none of that double ctrl+d stuff
     - automation of the bl migration
 
+```text
+1. Create clank-server entrypoint and gpu_box service module
+    [x] 'content/clank-server.py': New standalone server entrypoint
+        - imports existing services directly (IngestionServiceImpl, KBServiceImpl, PromptServiceImpl, LinuxDiskAdapter, RuamelYamlParserAdapter)
+        - no AppEngine, no FrontendService, no queue/ReplySlot machinery
+        - boot sequence in entrypoint: instantiate adapters → run ingestion → handle_start → store state → start HTTP server
+        - local endpoints: /api/boot, /api/char, static file serving via SimpleHTTPRequestHandler pointing at content/web-ui/frontend/
+        - GPU box endpoints (/v1/chat/completions, /api/desktop-mode, /api/inference-mode) dispatch to services.gpu_box
+        - single-threaded, synchronous handler — request in, service call, result out
+    [x] 'content/services/__init__.py': Package init, exposes gpu_box service
+    [x] 'content/services/gpu_box.py': GPU box forwarding service
+        - encapsulates the urllib.request forwarding logic (request body, headers, Authorization passthrough)
+        - accepts target path + incoming request data, hits the configured GPU box URL, returns status/headers/body
+        - handler writes bytes back; service does not do HTTP serving, only the outbound call
+        - raises or returns structured error on upstream failure (502)
+```
+```text
+1. Move services → backend, then drop GpuBoxService for direct streaming
+    [x] 'content/backend/__init__.py': New file, empty (grouping only)
+    [x] 'content/services/__init__.py': Deleted
+    [x] 'content/services/gpu_box.py': Deleted
+    [x] 'content/backend/services/__init__.py': Deleted (was moved in, then removed)
+    [x] 'content/backend/services/gpu_box.py': Deleted (was moved in, then removed)
+    [x] 'content/clank-server.py': Removed GpuBoxService dependency
+        - import 'urllib.request' added
+        - 'from backend.services import GpuBoxService' removed
+        - 'from services import GpuBoxService' removed
+        - _forward_gpu_box now does urlopen + chunked read/flush loop directly
+        - GPU_BOX_URL is a module-level constant, no GpuBoxService instance in main()
 
+2. Replicate entities module for the standalone server system
+    [x] 'content/entities.py': New file, exact copy of 'content/core/core/entities.py'
+        - no modifications to the copied content
+        - intended import target for new server-only code
+    [x] 'content/core/core/entities.py': Untouched
+        - no changes, remains as the canonical source for the TUI/combo system
+```
+```text
+1. Relocate top-level entities into backend package
+    [x] 'content/entities.py': Remove file
+        - confirm no module imports this path directly (all imports go through `core`, so it is orphaned)
+        - delete after backend copy is in place
+    [x] 'content/backend/entities.py': Entity definitions moved here
+        - content is identical to existing `content/core/core/entities.py` (canonical source)
+        - serves as local import target for the new backend server class
+
+2. Create class-based server in content/backend
+    [x] 'content/backend/server.py': New class encapsulating current clank-server HTTP logic
+        - class `ClankServer` holds `_Handler` and `_shape_kb_emission`
+        - `__init__` accepts DI'd deps: `kb_service`, `prompt_service`, `boot_message`
+        - `run()` method blocks on `serve_forever`, cleans up on exit
+        - `_Handler` and `_shape_kb_emission` live in this file (inner or module-level, your call)
+    [x] 'content/backend/__init__.py': Export the new server class
+        - `from .server import ClankServer`
+
+3. Re-role clank-server.py as DI + run entrypoint
+    [x] 'content/clank-server.py': Strip server internals, keep boot/DI logic only
+        - retain: adapter instantiation, ingestion run, clankerize/terminate handling, kb/prompt service creation
+        - add: instantiate `ClankServer(kb_service=…, prompt_service=…, boot_message=…)` and call `.run()`
+        - remove: `_Handler` class, `_shape_kb_emission` function, all `http.server` / `urllib.request` / `parse_qs` / `urlsplit` imports
+        - file becomes ~30 lines of boot + DI + one `.run()` call
+```
 Backlog tail, Selected item/items:
+we are duplicating code from the old sprawling tui + server implementation, into the new 'only server 'implementation.
+    - old implementation has clanker.py entrypoint.
+    - new implementation has clank-server.py entrypoint.
 
-I try to make the application be both a TUI and also a web server. I think I punish myself for no reason.
+the next thing to duplicate is the ingestionservice. We will copy all its content into backend/ingestion or similar.
 
-I have decided to halt all development on TUI. I will create a new entrypoint file, and build the application as a more traditional server.
-I will not delete any of the old code untill the new server is on par with anything from the old system.
-For now I need to transition the above set of completed backlog items to the history log.
 Backlog tail end
