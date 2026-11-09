@@ -212,4 +212,9 @@ Backlog tail, Selected item/items:
         - `from stdlib import dataclass` → `from backend.stdlib import dataclass`
         - `from core.engine_deps import (...)` → `from backend.core.engine_deps import (...)`
 ```
+
+Let us also add an item saying 'old clanker TUI has been stashed in 'content/a__old_tui':
+    - tests & imports and such were update, it still works
+    - will retire it in the future
+
 Backlog tail end

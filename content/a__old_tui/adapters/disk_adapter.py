@@ -5,7 +5,7 @@ from core import PathTokens
 
 class LinuxDiskAdapter(DiskPort):
     def __init__(self) -> None:
-        self.clanker_path = Path(os.path.realpath(__file__)).parent.parent.parent
+        self.clanker_path = Path(os.path.realpath(__file__)).parent.parent.parent.parent
         self.pud_path = Path.cwd()
 
     def _resolve_tokenized_path(self, tokenized_path: str) -> Path:
