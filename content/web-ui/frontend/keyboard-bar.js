@@ -5,7 +5,7 @@ const sharedDomKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
 const pudDomKeys = ['q', 'w', 'e', 'r'];
 const promptKeys = ['a', 's', 'd', 'f'];
 
-const boundKeys = new Set([...sharedDomKeys, ...pudDomKeys, ...promptKeys]);
+const boundKeys = new Set([...sharedDomKeys, ...pudDomKeys, ...promptKeys, 'Enter']);
 
 function buildRow(label, keys) {
     const buttons = keys.map(key =>
@@ -79,11 +79,21 @@ class KeyboardBar extends BaseComponent {
     #statusLine;
     #activeBtn = null;
     #busy = false;
+    #stagedPrompt = null;
 
     #handleKeydown = (event) => {
         if (event.ctrlKey || event.altKey || event.metaKey) return;
 
         if (!boundKeys.has(event.key)) return;
+
+        if (event.key === 'Enter') {
+            if (!this.#stagedPrompt) return;
+            event.stopPropagation();
+            event.preventDefault();
+            this.dispatchEvent(new CustomEvent('prompt-fired', { detail: this.#stagedPrompt }));
+            this.#stagedPrompt = null;
+            return;
+        }
 
         const btn = this.querySelector(`.kb-btn[data-key="${event.key}"]`);
         if (!btn) return;
@@ -129,7 +139,7 @@ class KeyboardBar extends BaseComponent {
             case 'unbound_key':
                 return `No action bound to key "${key}"`;
             case 'prompt_render':
-                return `Rendered prompt for [${key}]`;
+                return `Prompt staged — press Enter to send`;
             default:
                 return `Key "${key}" pressed`;
         }
@@ -151,11 +161,14 @@ class KeyboardBar extends BaseComponent {
             const pressedEl = this.querySelector(`.kb-btn[data-key="${response.key}"]`);
             this.#activeBtn = pressedEl || null;
 
-            this.#statusLine.textContent = this.#formatStatus(response);
-
             if (response.result_type === 'prompt_render' && response.prompt_text) {
-                this.dispatchEvent(new CustomEvent('prompt-ready', { detail: response.prompt_text }));
+                this.#stagedPrompt = response.prompt_text;
+                this.#setStateClass(pressedEl, 'highlighted');
+            } else {
+                this.#stagedPrompt = null;
             }
+
+            this.#statusLine.textContent = this.#formatStatus(response);
         } catch (error) {
             this.#statusLine.textContent = '❌ ' + (error.message || 'Request failed');
         } finally {

@@ -69,6 +69,7 @@ def _shape_kb_emission(result: KbServiceEmission) -> dict:
             payload["domain"] = result.cmd.domain.name
             payload["lines"] = result.lines
             payload["chars"] = result.chars
+            payload["key"] = result.cmd.cmd.char
         case _:
             payload["result_type"] = "unknown"
 
