@@ -1,6 +1,6 @@
-from stdlib import dataclass, inspect, Any, fields, get_args, get_origin, types, MISSING, Field
-from core import entities as e
-from core.engine_deps import MissingEntityFields
+from backend.stdlib import dataclass, inspect, Any, fields, get_args, get_origin, types, MISSING, Field
+from backend.core import entities as e
+from backend.core.engine_deps import MissingEntityFields
 
 from ...asset_ingestion import ErrorCollector
 

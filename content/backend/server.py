@@ -4,8 +4,8 @@ import urllib.request
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from core import entities as e
-from core.engine_deps import (
+from backend.core import entities as e
+from backend.core.engine_deps import (
     BootstrapSuccess,
     ClankerizeResult,
     DomainSelectedResult,

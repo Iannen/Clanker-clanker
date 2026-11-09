@@ -1,6 +1,6 @@
-from stdlib import dataclass, StrEnum
-from core import entities as e
-from core.engine_deps import IngestionService, NoSuchFile, DiskPort, ConfigParseError, ConfigParserPort, StartCmd, StartResult, ClankerizeResult, TerminateResult, Malformed, Missing
+from backend.stdlib import dataclass, StrEnum
+from backend.core import entities as e
+from backend.core.engine_deps import IngestionService, NoSuchFile, DiskPort, ConfigParseError, ConfigParserPort, StartCmd, StartResult, ClankerizeResult, TerminateResult, Malformed, Missing
 
 from . import ErrorCollector, ItemClassifier, Assembler, ClassificationResult
 

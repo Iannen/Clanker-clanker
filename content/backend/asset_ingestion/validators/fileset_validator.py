@@ -1,7 +1,7 @@
-from core import entities as e
-from stdlib import dataclass
+from backend.core import entities as e
+from backend.stdlib import dataclass
 from ...asset_ingestion import ErrorCollector, Numap
-from core.engine_deps import UnsatisfiedFilesetSubjects
+from backend.core.engine_deps import UnsatisfiedFilesetSubjects
 
 @dataclass
 class FilesetValidator2:

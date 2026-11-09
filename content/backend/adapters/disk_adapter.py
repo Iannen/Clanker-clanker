@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
-from core.engine_deps import DiskPort, NoSuchFile, FileAccessError, InvalidPathToken
-from core import PathTokens
+from backend.core.engine_deps import DiskPort, NoSuchFile, FileAccessError, InvalidPathToken
+from backend.core import PathTokens
 
 class LinuxDiskAdapter(DiskPort):
     def __init__(self) -> None:

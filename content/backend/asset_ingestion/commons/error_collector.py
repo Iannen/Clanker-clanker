@@ -1,4 +1,4 @@
-from core.engine_deps import Report, Complaint, Critical, Soft
+from backend.core.engine_deps import Report, Complaint, Critical, Soft
 
 
 

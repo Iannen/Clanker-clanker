@@ -1,5 +1,5 @@
-from stdlib import dataclass, ABC, abstractmethod, Any, Field
-from core import entities as e
+from backend.stdlib import dataclass, ABC, abstractmethod, Any, Field
+from backend.core import entities as e
 
 class Complaint(): pass
 class Critical(Complaint): pass

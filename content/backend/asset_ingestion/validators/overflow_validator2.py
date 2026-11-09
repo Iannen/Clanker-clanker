@@ -1,7 +1,7 @@
-from stdlib import dataclass
+from backend.stdlib import dataclass
 from ...asset_ingestion import ErrorCollector, Numap
-from core.engine_deps import DomainOverflow
-from core import entities as e
+from backend.core.engine_deps import DomainOverflow
+from backend.core import entities as e
 
 @dataclass 
 class OverflowHandler2:

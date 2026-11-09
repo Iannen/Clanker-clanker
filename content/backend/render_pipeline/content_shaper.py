@@ -1,5 +1,5 @@
-from stdlib import re
-from core import entities as e
+from backend.stdlib import re
+from backend.core import entities as e
 
 class SystemKeys:
     DELIM = "§"

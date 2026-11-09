@@ -154,82 +154,62 @@ II. The wishlist
         - No changes to main(), the try/except guard, or the already-correct `from backend import ClankServer` / `from backend.keyboard import KBServiceImpl` lines
         - Prohibition: do not add any import from the old `adapters` or `modules` top-level packages; the entrypoint must resolve all symbols from within `content/backend/` only
 ```
-
-
-
-we are duplicating code from an old sprawling tui + server implementation, into a new 'only server 'implementation.
-    - old implementation has clanker.py entrypoint: all code obscured from view
-        - this entrypoint and the code that it imports / uses has been hidden. 
-    - new implementation has clank-server.py entrypoint: all code visible
-        - uses code from the old system
-        - all relevant code has also been copied over to content/backend dir
-        - we are in process of updating imports, to make the new entrypoint rely on its own code only.
-    - the two 'project' shall be disjointed in time.
-
-so essentially we want to bring it to a state where the visible code does not depend upon 'invisible' code
-
-
- status:
- the entrypoint now only sources visible code.
- downstream from that - what remains?
-
 ```text
 1. Rewrite bare-name imports to absolute backend.* paths — part 1 (ingestion + adapters + server)
-    [ ] 'content/backend/server.py': Replace bare `core`/`core.engine_deps` imports with `backend.core` / `backend.core.engine_deps`
+    [x] 'content/backend/server.py': Replace bare `core`/`core.engine_deps` imports with `backend.core` / `backend.core.engine_deps`
         - `from core import entities` → `from backend.core import entities`
         - `from core.engine_deps import (...)` → `from backend.core.engine_deps import (...)`
-    [ ] 'content/backend/adapters/disk_adapter.py': Replace bare `core` / `core.engine_deps` imports with `backend.core` / `backend.core.engine_deps`
+    [x] 'content/backend/adapters/disk_adapter.py': Replace bare `core` / `core.engine_deps` imports with `backend.core` / `backend.core.engine_deps`
         - `from core.engine_deps import DiskPort, NoSuchFile, FileAccessError, InvalidPathToken` → `from backend.core.engine_deps import ...`
         - `from core import PathTokens` → `from backend.core import PathTokens`
-    [ ] 'content/backend/adapters/yaml_parser.py': Replace bare `core.engine_deps` import with `backend.core.engine_deps`
+    [x] 'content/backend/adapters/yaml_parser.py': Replace bare `core.engine_deps` import with `backend.core.engine_deps`
         - `from core.engine_deps import ConfigParserPort, ConfigParseError` → `from backend.core.engine_deps import ...`
-    [ ] 'content/backend/asset_ingestion/commons/error_collector.py': Replace bare `core.engine_deps` import with `backend.core.engine_deps`
+    [x] 'content/backend/asset_ingestion/commons/error_collector.py': Replace bare `core.engine_deps` import with `backend.core.engine_deps`
         - `from core.engine_deps import Report, Complaint, Critical, Soft` → `from backend.core.engine_deps import ...`
-    [ ] 'content/backend/asset_ingestion/extractors/map_extractor2.py': Replace bare `stdlib`, `core`, `core.engine_deps` imports with `backend.stdlib` / `backend.core` / `backend.core.engine_deps`
+    [x] 'content/backend/asset_ingestion/extractors/map_extractor2.py': Replace bare `stdlib`, `core`, `core.engine_deps` imports with `backend.stdlib` / `backend.core` / `backend.core.engine_deps`
         - `from stdlib import dataclass, inspect, Any, fields, get_args, get_origin, types, MISSING, Field` → `from backend.stdlib import ...`
         - `from core import entities as e` → `from backend.core import entities as e`
         - `from core.engine_deps import MissingEntityFields` → `from backend.core.engine_deps import MissingEntityFields`
-    [ ] 'content/backend/asset_ingestion/ingestion_service.py': Replace bare `stdlib`, `core`, `core.engine_deps` imports with `backend.stdlib` / `backend.core` / `backend.core.engine_deps`
+    [x] 'content/backend/asset_ingestion/ingestion_service.py': Replace bare `stdlib`, `core`, `core.engine_deps` imports with `backend.stdlib` / `backend.core` / `backend.core.engine_deps`
         - `from stdlib import dataclass, StrEnum` → `from backend.stdlib import ...`
         - `from core import entities as e` → `from backend.core import entities as e`
         - `from core.engine_deps import IngestionService, NoSuchFile, DiskPort, ConfigParseError, ConfigParserPort, StartCmd, StartResult, ClankerizeResult, TerminateResult, Malformed, Missing` → `from backend.core.engine_deps import ...`
-    [ ] 'content/backend/asset_ingestion/new/service_workers.py': Replace bare `stdlib`, `core`, `core.engine_deps` imports with `backend.stdlib` / `backend.core` / `backend.core.engine_deps`
+    [x] 'content/backend/asset_ingestion/new/service_workers.py': Replace bare `stdlib`, `core`, `core.engine_deps` imports with `backend.stdlib` / `backend.core` / `backend.core.engine_deps`
         - `from stdlib import StrEnum, dataclass` → `from backend.stdlib import ...`
         - `from core import entities as e` → `from backend.core import entities as e`
         - `from core.engine_deps import Complaint` → `from backend.core.engine_deps import Complaint`
 
-Backlog tail, Selected item/items:
-
 2. Rewrite bare-name imports to absolute backend.* paths — part 2 (validators, core internals, keyboard, render_pipeline)
-    [ ] 'content/backend/asset_ingestion/validators/file_list_validator.py': Replace bare `stdlib`, `core`, `core.engine_deps` imports with `backend.stdlib` / `backend.core` / `backend.core.engine_deps`
+    [x] 'content/backend/asset_ingestion/validators/file_list_validator.py': Replace bare `stdlib`, `core`, `core.engine_deps` imports with `backend.stdlib` / `backend.core` / `backend.core.engine_deps`
         - `from stdlib import dataclass` → `from backend.stdlib import dataclass`
         - `from core import entities as e` → `from backend.core import entities as e`
         - `from core.engine_deps import UnsatisfiedFiles, FilenameCollision` → `from backend.core.engine_deps import ...`
-    [ ] 'content/backend/asset_ingestion/validators/fileset_validator.py': Replace bare `core`, `stdlib`, `core.engine_deps` imports with `backend.core` / `backend.stdlib` / `backend.core.engine_deps`
+    [x] 'content/backend/asset_ingestion/validators/fileset_validator.py': Replace bare `core`, `stdlib`, `core.engine_deps` imports with `backend.core` / `backend.stdlib` / `backend.core.engine_deps`
         - `from core import entities as e` → `from backend.core import entities as e`
         - `from stdlib import dataclass` → `from backend.stdlib import dataclass`
         - `from core.engine_deps import UnsatisfiedFilesetSubjects` → `from backend.core.engine_deps import ...`
-    [ ] 'content/backend/asset_ingestion/validators/overflow_validator2.py': Replace bare `stdlib`, `core.engine_deps`, `core` imports with `backend.stdlib` / `backend.core.engine_deps` / `backend.core`
+    [x] 'content/backend/asset_ingestion/validators/overflow_validator2.py': Replace bare `stdlib`, `core.engine_deps`, `core` imports with `backend.stdlib` / `backend.core.engine_deps` / `backend.core`
         - `from stdlib import dataclass` → `from backend.stdlib import dataclass`
         - `from core.engine_deps import DomainOverflow` → `from backend.core.engine_deps import DomainOverflow`
         - `from core import entities as e` → `from backend.core import entities as e`
-    [ ] 'content/backend/core/__init__.py': Fix the bare `import core.core.entities` line
+    [x] 'content/backend/core/__init__.py': Fix the bare `import core.core.entities` line
         - `import core.core.entities as entities` → `import backend.core.core.entities as entities`
         - (the relative `from .core.entities import *` is already fine)
-    [ ] 'content/backend/core/engine_deps/result.py': Replace bare `stdlib` and `core` imports with `backend.stdlib` / `backend.core`
+    [x] 'content/backend/core/engine_deps/result.py': Replace bare `stdlib` and `core` imports with `backend.stdlib` / `backend.core`
         - `from stdlib import dataclass, ABC, abstractmethod, Any, Field` → `from backend.stdlib import ...`
         - `from core import entities as e` → `from backend.core import entities as e`
-    [ ] 'content/backend/keyboard/keyboard_service.py': Replace bare `stdlib`, `core`, `core.engine_deps` imports with `backend.stdlib` / `backend.core` / `backend.core.engine_deps`
+    [x] 'content/backend/keyboard/keyboard_service.py': Replace bare `stdlib`, `core`, `core.engine_deps` imports with `backend.stdlib` / `backend.core` / `backend.core.engine_deps`
         - `from stdlib import dataclass` → `from backend.stdlib import dataclass`
         - `from core import entities as e` → `from backend.core import entities as e`
         - `from core.engine_deps import (...)` → `from backend.core.engine_deps import (...)`
-    [ ] 'content/backend/render_pipeline/content_shaper.py': Replace bare `stdlib` and `core` imports with `backend.stdlib` / `backend.core`
+    [x] 'content/backend/render_pipeline/content_shaper.py': Replace bare `stdlib` and `core` imports with `backend.stdlib` / `backend.core`
         - `from stdlib import re` → `from backend.stdlib import re`
         - `from core import entities as e` → `from backend.core import entities as e`
-    [ ] 'content/backend/render_pipeline/render_service.py': Replace bare `core`, `stdlib`, `core.engine_deps` imports with `backend.core` / `backend.stdlib` / `backend.core.engine_deps`
+    [x] 'content/backend/render_pipeline/render_service.py': Replace bare `core`, `stdlib`, `core.engine_deps` imports with `backend.core` / `backend.stdlib` / `backend.core.engine_deps`
         - `from core import entities as e` → `from backend.core import entities as e`
         - `from stdlib import dataclass` → `from backend.stdlib import dataclass`
         - `from core.engine_deps import (...)` → `from backend.core.engine_deps import (...)`
 ```
+Backlog tail, Selected item/items:
 
 Backlog tail end

@@ -1,6 +1,6 @@
-from stdlib import dataclass
-from core import entities as e
-from core.engine_deps import UnsatisfiedFiles, FilenameCollision
+from backend.stdlib import dataclass
+from backend.core import entities as e
+from backend.core.engine_deps import UnsatisfiedFiles, FilenameCollision
 from ...asset_ingestion import ErrorCollector, Numap
 
 @dataclass

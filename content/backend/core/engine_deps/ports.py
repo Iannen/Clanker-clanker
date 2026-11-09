@@ -1,4 +1,4 @@
-from stdlib import ABC, abstractmethod
+from backend.stdlib import ABC, abstractmethod
 
 
 class NoSuchFile(Exception): pass

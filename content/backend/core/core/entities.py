@@ -1,4 +1,4 @@
-from stdlib import dataclass, Type, re, Any, StrEnum
+from backend.stdlib import dataclass, Type, re, Any, StrEnum
 
 class CorruptClanker(Exception): pass
 

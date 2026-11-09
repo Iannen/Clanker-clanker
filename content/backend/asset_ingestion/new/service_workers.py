@@ -1,7 +1,7 @@
-from stdlib import StrEnum, dataclass
-from core import entities as e
+from backend.stdlib import StrEnum, dataclass
+from backend.core import entities as e
 from ...asset_ingestion import ErrorCollector, OverflowHandler2, FilelistValidator2, FilesetValidator2, Numap
-from core.engine_deps import Complaint
+from backend.core.engine_deps import Complaint
 
 class ClassificationResult(StrEnum):
     ALL_PRESENT = "all"

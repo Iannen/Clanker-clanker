@@ -1,5 +1,5 @@
 from ruamel.yaml import YAML
-from core.engine_deps import ConfigParserPort, ConfigParseError
+from backend.core.engine_deps import ConfigParserPort, ConfigParseError
 
 class RuamelYamlParserAdapter(ConfigParserPort):
     def __init__(self) -> None:
@@ -12,4 +12,3 @@ class RuamelYamlParserAdapter(ConfigParserPort):
             return dict(parsed)
         except Exception as ex:
             raise ConfigParseError(f"Failed to parse YAML config: {ex}") from ex
-        

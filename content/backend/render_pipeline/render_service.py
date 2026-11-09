@@ -1,6 +1,6 @@
-from core import entities as e
-from stdlib import dataclass
-from core.engine_deps import (
+from backend.core import entities as e
+from backend.stdlib import dataclass
+from backend.core.engine_deps import (
     PromptService,
     DiskPort,
     NoSuchFile,

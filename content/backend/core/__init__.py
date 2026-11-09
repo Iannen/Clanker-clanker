@@ -1,2 +1,2 @@
 from .core.entities import *
-import core.core.entities as entities
+import backend.core.core.entities as entities
