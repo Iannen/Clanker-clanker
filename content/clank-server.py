@@ -3,8 +3,9 @@
 import sys
 import traceback
 
-from adapters import LinuxDiskAdapter, RuamelYamlParserAdapter
-from modules import IngestionServiceImpl, PromptServiceImpl
+from backend.adapters import LinuxDiskAdapter, RuamelYamlParserAdapter
+from backend.asset_ingestion import IngestionServiceImpl
+from backend.render_pipeline import PromptServiceImpl
 from backend import ClankServer
 from backend.keyboard import KBServiceImpl
 

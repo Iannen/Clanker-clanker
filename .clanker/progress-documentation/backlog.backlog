@@ -169,7 +169,7 @@ So "clearing" the entrypoint is a two-line import swap:
 
 ```text
 1. Clear clank-server.py entrypoint imports to backend-only paths
-    [ ] 'content/clank-server.py': Replace the two old-system import lines with backend-dir equivalents
+    [x] 'content/clank-server.py': Replace the two old-system import lines with backend-dir equivalents
         - Change `from adapters import LinuxDiskAdapter, RuamelYamlParserAdapter` to `from backend.adapters import LinuxDiskAdapter, RuamelYamlParserAdapter`
         - Change `from modules import IngestionServiceImpl, PromptServiceImpl` to two lines: `from backend.asset_ingestion import IngestionServiceImpl` and `from backend.render_pipeline import PromptServiceImpl`
         - No changes to main(), the try/except guard, or the already-correct `from backend import ClankServer` / `from backend.keyboard import KBServiceImpl` lines
