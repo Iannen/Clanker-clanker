@@ -28,6 +28,8 @@ II. The wishlist
     - single click dropoff, none of that double ctrl+d stuff
     - automation of the bl migration
 
+
+Backlog tail, Selected item/items:
 ```text
 1. Create clank-server entrypoint and gpu_box service module
     [x] 'content/clank-server.py': New standalone server entrypoint
@@ -210,6 +212,4 @@ II. The wishlist
         - `from stdlib import dataclass` → `from backend.stdlib import dataclass`
         - `from core.engine_deps import (...)` → `from backend.core.engine_deps import (...)`
 ```
-Backlog tail, Selected item/items:
-
 Backlog tail end
