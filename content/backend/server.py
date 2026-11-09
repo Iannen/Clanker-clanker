@@ -9,6 +9,7 @@ from backend.core.engine_deps import (
     BootstrapSuccess,
     ClankerizeResult,
     DomainSelectedResult,
+    IngestApplyResult,
     KbCmd,
     KbServiceEmission,
     PromptRenderResult,
@@ -93,6 +94,8 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self) -> None:
         if self.path in GPU_BOX_PATHS:
             self._forward_gpu_box(self.path)
+        elif self.path == "/api/ingest":
+            self._handle_ingest()
         else:
             self._send_plain(404, "Not Found")
 
@@ -154,6 +157,30 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
             result = self.server.prompt_service.render_prompt(result)
 
         payload = _shape_kb_emission(result)
+        self._send_json(200, payload)
+
+    def _handle_ingest(self) -> None:
+        content_length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(content_length) if content_length else b""
+
+        try:
+            data = json.loads(body)
+            content = data["content"]
+        except (json.JSONDecodeError, KeyError) as ex:
+            self._send_plain(400, f"Malformed request body: {ex}")
+            return
+
+        try:
+            result = self.server.ingestion.apply_file_changes(content)
+        except Exception as ex:
+            self._send_plain(500, f"Ingest failed: {ex}")
+            return
+
+        payload = {
+            "written": result.written,
+            "deleted": result.deleted,
+            "errors": result.errors,
+        }
         self._send_json(200, payload)
 
     def _forward_gpu_box(self, path: str) -> None:

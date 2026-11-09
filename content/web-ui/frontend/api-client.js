@@ -30,6 +30,22 @@ export class ApiClient {
         return response.json();
     }
 
+    async ingestFileChanges(content) {
+        const response = await fetch('/api/ingest', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ content })
+        });
+
+        const text = await response.text();
+
+        if (!response.ok) throw new Error(text || response.statusText);
+
+        return JSON.parse(text);
+    }
+
     async switchDesktopMode() { return this.#post('/api/desktop-mode'); }
 
     async switchInferenceMode() { return this.#post('/api/inference-mode'); }

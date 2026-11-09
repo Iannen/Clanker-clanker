@@ -1,6 +1,7 @@
+import re
 from backend.stdlib import dataclass, StrEnum
 from backend.core import entities as e
-from backend.core.engine_deps import IngestionService, NoSuchFile, DiskPort, ConfigParseError, ConfigParserPort, StartCmd, StartResult, ClankerizeResult, TerminateResult, Malformed, Missing
+from backend.core.engine_deps import IngestionService, NoSuchFile, DiskPort, ConfigParseError, ConfigParserPort, StartCmd, StartResult, ClankerizeResult, TerminateResult, Malformed, Missing, IngestApplyResult
 
 from . import ErrorCollector, ItemClassifier, Assembler, ClassificationResult
 
@@ -64,3 +65,53 @@ class IngestionServiceImpl(IngestionService):
         for from_path, to_path in e.RepoContract.MAPPINGS:
             self.files.copy_file(from_path=from_path, to_path=to_path)
         return self.get_runtime_config()
+
+    def apply_file_changes(self, raw_text: str) -> IngestApplyResult:
+        written: list[str] = []
+        deleted: list[str] = []
+        errors: list[str] = []
+
+        delete_match = re.search(r'¤deletelist¤\n((?:¤filepath="[^"]+"¤\n?)+)', raw_text)
+        delete_paths: list[str] = []
+        if delete_match:
+            delete_paths = re.findall(r'¤filepath="([^"]+)"¤', delete_match.group(1))
+
+        file_blocks = re.findall(
+            r'¤filepath="([^"]+)"¤\n(.*?)\n¤filepath="\1"¤',
+            raw_text,
+            re.DOTALL
+        )
+
+        for path, content in file_blocks:
+            tokenized = self._prefix_path(path)
+            clean_content = self._clean_content(content)
+            try:
+                self.files.write_file(tokenized, clean_content)
+                written.append(path)
+            except Exception as ex:
+                errors.append(f"write {path}: {ex}")
+
+        for path in delete_paths:
+            tokenized = self._prefix_path(path)
+            try:
+                self.files.delete_file(tokenized)
+                deleted.append(path)
+            except Exception as ex:
+                errors.append(f"delete {path}: {ex}")
+
+        return IngestApplyResult(written=written, deleted=deleted, errors=errors)
+
+    @staticmethod
+    def _prefix_path(path: str) -> str:
+        if path.startswith(e.PathTokens.PUD) or path.startswith(e.PathTokens.SHARED):
+            return path
+        return f"{e.PathTokens.PUD}/{path}"
+
+    @staticmethod
+    def _clean_content(content: str) -> str:
+        lines = content.split('\n')
+        while lines and lines[0].strip().startswith('```'):
+            lines.pop(0)
+        while lines and lines[-1].strip() == '```':
+            lines.pop()
+        return '\n'.join(lines)

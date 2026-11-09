@@ -32,6 +32,7 @@ class ClankerApp extends BaseComponent {
         'Ctrl+ArrowUp': () => this.#selectMessages('focusLast'),
         'Ctrl+ArrowDown': () => this.#selectMessages('focusFirst'),
         'Ctrl+Enter': () => this.#copySelected(),
+        'Alt+Enter': () => this.#ingestSelected(),
         'Ctrl+1': () => this.messagesBox.toggleReasoning(),
         'Ctrl+2': () => this.messagesBox.toggleContent(),
         'Ctrl+i': () => this.#pullTestPrompt(),
@@ -42,6 +43,7 @@ class ClankerApp extends BaseComponent {
         'Ctrl+ArrowUp': () => this.#navMessages('up'),
         'Ctrl+ArrowDown': () => this.#navMessages('down'),
         'Ctrl+Enter': () => this.#copySelected(),
+        'Alt+Enter': () => this.#ingestSelected(),
         'Ctrl+1': () => this.messagesBox.toggleReasoning(),
         'Ctrl+2': () => this.messagesBox.toggleContent(),
         'Escape': () => this.#focusInput(),
@@ -68,7 +70,11 @@ class ClankerApp extends BaseComponent {
             ? this.#inputActions
             : this.#messageActions;
 
-        const combo = event.ctrlKey ? 'Ctrl+' + event.key : event.key;
+        const combo = event.altKey
+            ? 'Alt+' + event.key
+            : event.ctrlKey
+                ? 'Ctrl+' + event.key
+                : event.key;
         const handler = actions[combo];
 
         if (!handler) return;
@@ -175,6 +181,27 @@ class ClankerApp extends BaseComponent {
             this.toast.show('No messages yet');
         } else {
             this.toast.show('❌ Failed to copy to clipboard');
+        }
+    }
+
+    async #ingestSelected() {
+        const content = this.messagesBox.getSelectedContent();
+        if (!content) {
+            this.toast.show('No message selected to ingest');
+            return;
+        }
+
+        try {
+            const result = await apiClient.ingestFileChanges(content);
+
+            const parts = [];
+            if (result.written.length) parts.push(`${result.written.length} file${result.written.length > 1 ? 's' : ''} written`);
+            if (result.deleted.length) parts.push(`${result.deleted.length} file${result.deleted.length > 1 ? 's' : ''} deleted`);
+            if (result.errors.length) parts.push(`${result.errors.length} error${result.errors.length > 1 ? 's' : ''}`);
+
+            this.toast.show('✅ ' + (parts.join(', ') || 'No changes applied'));
+        } catch (error) {
+            this.toast.show('❌ ' + (error.message || 'Ingest failed'));
         }
     }
 
