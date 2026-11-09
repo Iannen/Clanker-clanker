@@ -47,20 +47,19 @@ implement prefill info stream:
     [x] 'content/web-ui/frontend/message copy.js': Delete file
         - duplicate of message.js, never imported (messages-box.js imports './message.js')
 ```
-
-Backlog tail, Selected item/items:
-
 ```text
 1. Enrich prompt-staged status line with name, domain, size, and mode
-    [ ] 'content/backend/server.py': Add prompt_mode to _shape_kb_emission payload
+    [x] 'content/backend/server.py': Add prompt_mode to _shape_kb_emission payload
         - in the PromptRenderResult case, add payload["prompt_mode"] = type(result.cmd).__name__
         - no new imports needed; RenderNormalPromptCmd / RenderHotPromptCmd already imported
-    [ ] 'content/web-ui/frontend/keyboard-bar.js': Rewrite #formatStatus prompt_render case
+    [x] 'content/web-ui/frontend/keyboard-bar.js': Rewrite #formatStatus prompt_render case
         - replace static 'Prompt staged — press Enter to send'
         - read response.prompt, response.domain, response.lines, response.chars, response.prompt_mode
         - format as: `Prompt "name" of "domain" — n lines, x chars (RenderHotPromptCmd) — press Enter`
         - keep the 'press Enter' tail so the affordance is still clear
 ```
+Backlog tail, Selected item/items:
+
 
 Backlog tail end
 

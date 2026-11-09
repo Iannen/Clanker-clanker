@@ -139,7 +139,12 @@ class KeyboardBar extends BaseComponent {
             case 'unbound_key':
                 return `No action bound to key "${key}"`;
             case 'prompt_render':
-                return `Prompt staged — press Enter to send`;
+                const promptName = response.prompt ?? '';
+                const domName = response.domain ?? '';
+                const lines = response.lines ?? 0;
+                const chars = response.chars ?? 0;
+                const mode = response.prompt_mode ?? '';
+                return `Prompt "${promptName}" of "${domName}" — ${lines} lines, ${chars} chars (${mode}) — press Enter`;
             default:
                 return `Key "${key}" pressed`;
         }
