@@ -67,39 +67,124 @@ II. The wishlist
 ```
 
 Backlog tail, Selected item/items:
-
-8. Standardize delimiters + reorder prompt layout + new file-action output format
-    purpose: better K/V cache hit rate, unambiguous section boundaries, model output symmetry with input, action validation
-
-    [x] 'content/a_lib/shared-assets/layouts/prompt.layout': Reorder slots — base, repo_content, domain_fragments, prompt_fragments
-        - repo_content before domain/prompt because it changes on commit (rare), domain/prompt changes on backlog edit (frequent)
-        - instructions at tail = closer to generation, better compliance
-lets keep with only the 1 subtask. below i want two examples that demonstrate a generate prompt, and expected output for ingestion
-
-<prompt example>
-¤¤ intro ¤¤ 
-¤file1 ¤  # only filename, no backtick envelope for content
-...
-¤file1 ¤ 
-
-¤¤ repo content¤¤ 
-¤ path/to/file.txt¤ # full path and backtick enveloped content for repo items
+```text
+n. Render pipeline: layout-driven prompt assembly via anchor-slot fill, dropping `hydrate` and hardcoded section labels
+    [ ] 'content/backend/render_pipeline/render_service.py': Replace `hydrate`-based substitution with parse-layout → bucket-resolvers → slot-fill → join
+        - `render_prompt`: read layout, call `_parse_layout` to get ordered `list[str]` of anchor names; flatten all resolvers (base + domain + prompt) into one list; bucket into `dict[str, list[Resolver]]` keyed by `.anchor`; for each bucket, call the type-dispatched renderer; build final string by iterating layout anchors in order, emitting `¤¤ {anchor} ¤¤\n{content}` only for anchors that received content; skip anchors with no content
+        - add `_parse_layout(raw: str) -> list[str]`: split on `§`, strip whitespace from each token, return ordered list of anchor names
+        - add `_flatten_resolvers(cmd) -> list[e.Resolver]`: consolidate base/domain/prompt resolvers per existing `inherit_domain` / `inherit_base` logic into a single flat list
+        - add `_render_resolver(resolver) -> str`: match on type, dispatch to existing `_res_*` methods
+        - remove the `self.shaper.hydrate(template, repl_map)` call from `render_prompt`
+    [ ] 'content/backend/render_pipeline/render_service.py': Change per-type renderers to emit `¤ name ¤` file delimiters only (no section headers, no XML-style tags)
+        - `_res_multi_doc`: change `<{name}>\n{content}\n</{name}>` → `¤ {name} ¤\n{content}\n¤ {name} ¤`; join with `"\n\n"`
+        - `_res_repo_content`: remove the `"¤¤ Repository Contents ¤¤"` header line; change `¤filepath="{p}"¤` → `¤ {p} ¤` (opening and closing); join with `"\n\n"`
+        - `_res_manifest` / `_build_manifest`: change `<{tag}>\n...\n</{tag}>` → `¤¤ {tag} ¤¤\n` + `¤ {p} ¤\n{line_count} lines` entries joined by `"\n\n"`
+    [ ] 'content/backend/render_pipeline/content_shaper.py': Remove `hydrate` method (or leave unused); keep `apply_truncation`
+        - `SystemKeys.DELIM` and the regex-based substitution in `hydrate` are no longer needed by the render pipeline
+        - prohibition: do not remove `apply_truncation` — it is still used by `_res_multi_doc`
+    [ ] 'content/a_lib/templates/prompt.layout': Rewrite to contain only `§anchor§` declaration lines, one per line, in display order
+        - example: `§base_fragments§`, `§repo_content§`, `§domain_fragments§`, `§prompt_fragments§` (actual anchors depend on config)
+        - prohibition: no `¤¤` section labels, no free text, no comments in the layout file — it is consumed by `_parse_layout` which only recognises `§...§`
+    [ ] 'content/.clanker/config.yaml' (and/or shared config): Ensure every anchor declared in `prompt.layout` has a corresponding resolver entry with matching `anchor` value
+        - existing anchors (`repo_content`, `domain_fragments`, `prompt_fragments`) are already present in domain/prompt resolver lists
+        - if a new anchor (e.g. `base_fragments`) is added to the layout, a matching resolver entry must exist in the config or the section will silently not render
+        - prohibition: do not add anchors to the layout that have no resolver — they will be dropped at render time, which is correct behaviour, but a dangling anchor in layout with no config entry suggests a bug
 ```
-...
-```
-¤ path/to/file.txt¤
-
-¤¤ domain ¤¤ # same as intro with reg to only filename and no backticks
-...
-¤¤ prompt ¤¤ # same as intro with reg to only filename and no backticks
-...
-</prompt example>
-<output for ingestion example>
-# you go
-
 Backlog tail end
 
+<BL item 9 rev 1>
+Prompt rendering — emit standardised `¤¤` section + `¤ path ¤` file delimiters
+    purpose: match the reordered template so rendered prompts have unambiguous section boundaries and symmetric file markers
+
+    [ ] 'content/backend/render_pipeline/render_service.py': Update `_res_repo_content`, `_res_manifest`, `_res_multi_doc` to emit `¤¤ <section> ¤¤` wrappers and `¤ <path> ¤` file delimiters instead of `¤filepath="path"¤`
+        - repo content: `¤¤ repo content ¤¤` … `¤ <pud-relative-path> ¤` blocks
+        - manifest: `¤¤ shared-manifest ¤¤` / `¤¤ pud-manifest ¤¤` with line-count entries
+        - multi-doc: `¤ <filename> ¤` blocks (drop the `<tag>` wrapper, use bare `¤` delimiters)
+    [ ] 'content/backend/render_pipeline/render_service.py' or `prompt.layout`: Introduce `¤¤ intro ¤¤` section (general-rules fragment)
+        - either a static fragment baked into the template or a new resolver anchor — decide which
+
+``` envisioned prompt format (the bl item shall always contain current vision of prompt format)
+¤¤ intro ¤¤
+¤ general-rules.md ¤
+- be passive, wait for user intent
+- never return unsolicited replacement content
+¤ general-rules.md ¤
+
+¤¤ repo content ¤¤
+¤ path/to/file.py ¤
+```
+def foo():
+    return 42
+```
+¤ path/to/file.py ¤
+
+¤ other/file.txt ¤
+```
+some content here
+```
+¤ other/file.txt ¤
+
+¤¤ domain ¤¤
+¤ plan_mode.mode_instruction ¤
+Converse to learn user intent...
+¤ plan_mode.mode_instruction ¤
+
+¤¤ prompt ¤¤
+¤ output_instruction.md ¤
+Return items inside a plain text code block...
+¤ output_instruction.md ¤
+``` envisioned prompt format end
+</BL item 9 end>
+
+</BL item 10>
+10. Ingestion — parse `¤ path, action=X ¤` output format, drop `¤deletelist¤`
+    purpose: model emits a single uniform block for create/update/delete; parser validates actions and routes to the correct disk op
+
+    [ ] 'content/backend/asset_ingestion/ingestion_service.py': Rewrite `apply_file_changes` to parse `¤ <path>, action=<create|update|delete> ¤` blocks
+        - create / update: extract body between delimiters, write file
+        - delete: zero-content block, delete file
+        - remove `¤deletelist¤` section parsing entirely
+        - return `IngestApplyResult` with written / deleted / errors as before
+
+```envisioned ingestion output format
+¤ path/to/newfile.py, action=create ¤
+```
+def bar():
+    return 99
+```
+¤ path/to/newfile.py ¤
+
+¤ path/to/otherfile.py, action=create ¤
+```
+print("hello")
+```
+¤ path/to/otherfile.py ¤
+
+¤ path/to/existing.py, action=update ¤
+```
+def foo():
+    return 43
+```
+¤ path/to/existing.py ¤
+
+¤ path/to/existing2.py, action=update ¤
+```
+full new content
+```
+¤ path/to/existing2.py ¤
+
+¤ path/to/obsolete.py, action=delete ¤
+¤ path/to/obsolete2.py, action=delete ¤
+</BL item 10 end>
+
 finshed stuffs
+
+8. Prompt layout reorder + standardize delimiters + new file-action output format
+    purpose: better K/V cache hit rate, unambiguous section boundaries, model output symmetry with input, action validation
+
+    [x] 'content/a_lib/shared-assets/layouts/prompt.layout': Reorder slots — base_fragments, repo_content, domain_fragments, prompt_fragments
+        - repo_content before domain/prompt because it changes on commit (rare), domain/prompt changes on backlog edit (frequent)
+        - instructions at tail = closer to generation, better compliance
 ```text
 1. Copy staged prompt to clipboard via Ctrl+Enter in keyboard bar
     [x] 'content/web-ui/frontend/keyboard-bar.js': Add Ctrl+Enter handler in #handleKeydown
