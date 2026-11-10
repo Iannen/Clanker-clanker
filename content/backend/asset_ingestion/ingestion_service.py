@@ -1,5 +1,4 @@
-import re
-from backend.stdlib import dataclass, StrEnum
+from backend.stdlib import dataclass, StrEnum, re
 from backend.core import entities as e
 from backend.core.engine_deps import IngestionService, NoSuchFile, DiskPort, ConfigParseError, ConfigParserPort, StartCmd, StartResult, ClankerizeResult, TerminateResult, Malformed, Missing, IngestApplyResult
 

@@ -58,25 +58,29 @@ implement prefill info stream:
         - format as: `Prompt "name" of "domain" — n lines, x chars (RenderHotPromptCmd) — press Enter`
         - keep the 'press Enter' tail so the affordance is still clear
 ```
-Backlog tail, Selected item/items:
-
-
-Backlog tail end
-
 ```text
 4. Misc dead exports / unused imports / dead attributes
-    [ ] 'content/backend/stdlib.py': Remove 24 unused imports
+    [x] 'content/backend/stdlib.py': Remove 24 unused imports
         - dead: field, base64, collections, defaultdict, contextmanager, json, os, Path, sys, termios, traceback, tty
         - dead: Callable, ClassVar, Generator, Generic, TypeVar, Self, Union, zip_longest, ItemsView, Enum, auto, get_original_bases, Queue
         - keep: dataclass, ABC, abstractmethod, re, Any, fields, get_args, get_origin, types, MISSING, Field, StrEnum, inspect, Type
 
-    [ ] 'content/backend/asset_ingestion/extractors/map_extractor2.py': Remove dead instance attribute
+    [x] 'content/backend/asset_ingestion/extractors/map_extractor2.py': Remove dead instance attribute
         - ParserCtx.__init__ assigns self.data but it is never read anywhere; the local `data` param feeds the list comprehension directly
 
-    [ ] 'content/backend/render_pipeline/content_shaper.py': SystemKeys is star-exported but never imported externally
+    [x] 'content/backend/render_pipeline/content_shaper.py': SystemKeys is star-exported but never imported externally
         - only used within this file (SystemKeys.DELIM in hydrate); the `from .content_shaper import *` in __init__.py leaks it needlessly
-
-    [ ] 'content/backend/core/core/entities.py': Inline private helper constants into enum class bodies
-        - SHR_CFG_FRAGS, SHR_TEMPL, SHR_DOC_TEMPL, SHR_LAYOUTS, PROG_DOCS are module-level constants used only to build ClankerAssets/PudAssets StrEnum values
-        - could be inlined as local names inside the class bodies, keeping PathTokens.PUD/SHARED as the only public module-level tokens
 ```
+Backlog tail, Selected item/items:
+
+i have this from .. import entities as e line, which saves alot of tokens.
+
+can we apply this to other things?
+
+
+Backlog tail end
+
+
+definitly when we're on the kb component, and a prompt is selected, hitting ctrl + enter should copy it to clipboard
+    - ctrl + enter -> to clipboard
+    - enter -> to window

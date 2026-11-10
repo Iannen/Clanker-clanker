@@ -1,7 +1,6 @@
 #!/usr/bin/env -S python3 -B
 
-import sys
-import traceback
+from backend.stdlib import sys, traceback
 
 from backend.adapters import LinuxDiskAdapter, RuamelYamlParserAdapter
 from backend.asset_ingestion import IngestionServiceImpl

@@ -1,8 +1,4 @@
-import http.server
-import json
-import urllib.request
-from pathlib import Path
-from urllib.parse import parse_qs, urlsplit
+from backend.stdlib import http, json, urllib, Path
 
 from backend.core import entities as e
 from backend.core.engine_deps import (
@@ -143,8 +139,8 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
         self._send_plain(200, boot_message)
 
     def _handle_char(self) -> None:
-        parsed = urlsplit(self.path)
-        params = parse_qs(parsed.query)
+        parsed = urllib.parse.urlsplit(self.path)
+        params = urllib.parse.parse_qs(parsed.query)
         char_values = params.get("char", [])
         char_val = char_values[0] if len(char_values) == 1 and char_values[0] else None
 

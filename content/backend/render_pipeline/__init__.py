@@ -1,2 +1,2 @@
-from .content_shaper import *
+from .content_shaper import PromptContentShaper
 from .render_service import PromptServiceImpl
