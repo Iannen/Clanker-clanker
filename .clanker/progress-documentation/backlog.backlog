@@ -1,4 +1,6 @@
+Backlog tail, Selected item/items:
 I. Smallfry
+
 II. The wishlist
 
 1. Set ops on filesets
@@ -9,92 +11,35 @@ II. The wishlist
         - append a trailing 'Next item numeral: <FOLLOWING_ROMAN_NUMERAL>' marker to history output instructions
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 
-3: MUST make it possible to add repo content from other locs than just assets. why is test system bugging out about that.
+4. integrate git ops in the system!
 
+5. implement prefill info stream:
+    - I have this script in randomscripts which spits out prefill info. so it should just be part of normal thing really. can be done
+    - also revisit the ctrl 1/2 keys of msgs to collapse/expand reasoning or content
+    - also aggregate context info
+        - budget, how much is spend etc.
+    - the stopreason, if it is something other than stop token -> let user know
 
-4. git-ops, save file:
-    - perhaps we can have a stack of branches? (main -> dev-1 -> dev-2 -> dev-n)
-        - allows one to hansel and gretel that sob, not having to step to main 
-    - single click dropoff, none of that double ctrl+d stuff
-    - automation of the bl migration
-
-5.
-implement prefill info stream:
-    - I have this script in randomscripts which spits out prefill info. so it can be done
-
-6. for kb component -> ctrl+enter copy to clipboard
 
 7. backlog items, they mention files? so they are filesets, and should be promptable?
+    kinda aspirational this one.
 
-```text
-1. Unused types / members in the backend
-    [x] 'content/backend/core/engine_deps/result.py': Remove dead types
-        - BootCmd — never referenced
-        - ClankerizeCmd — empty, never referenced
-        - ExitCommand — base, never referenced
-        - UserDeclinedStart — never referenced
-        - UserDeclinedClankerize — never referenced
-        - StartupFailed — never referenced
-        - UserAborted — never referenced
-        - Request (id, item) — never constructed
-        - FrontendService ABC — never implemented
+8. prompt render revision -> sort by how static the content is.
+    purpose: less backend cache invalidation, less prefill time, better ux
+     1. static / system prompt stuff. Never changes
+     2. repo content stuff, changes frequently
+     3. instructional stuff, changes rather frequent
 
-2. Unused constants / methods in entities
-    [x] 'content/backend/core/core/entities.py': Remove dead exports
-        - PUD (module-level constant) — all callers use e.PathTokens.PUD
-        - SHR (module-level constant) — all callers use e.PathTokens.SHARED
-        - RepoContract.get_all_target_paths() — never called
-
-3. Dead frontend file
-    [x] 'content/web-ui/frontend/message copy.js': Delete file
-        - duplicate of message.js, never imported (messages-box.js imports './message.js')
-```
-```text
-1. Enrich prompt-staged status line with name, domain, size, and mode
-    [x] 'content/backend/server.py': Add prompt_mode to _shape_kb_emission payload
-        - in the PromptRenderResult case, add payload["prompt_mode"] = type(result.cmd).__name__
-        - no new imports needed; RenderNormalPromptCmd / RenderHotPromptCmd already imported
-    [x] 'content/web-ui/frontend/keyboard-bar.js': Rewrite #formatStatus prompt_render case
-        - replace static 'Prompt staged — press Enter to send'
-        - read response.prompt, response.domain, response.lines, response.chars, response.prompt_mode
-        - format as: `Prompt "name" of "domain" — n lines, x chars (RenderHotPromptCmd) — press Enter`
-        - keep the 'press Enter' tail so the affordance is still clear
-```
-```text
-4. Misc dead exports / unused imports / dead attributes
-    [x] 'content/backend/stdlib.py': Remove 24 unused imports
-        - dead: field, base64, collections, defaultdict, contextmanager, json, os, Path, sys, termios, traceback, tty
-        - dead: Callable, ClassVar, Generator, Generic, TypeVar, Self, Union, zip_longest, ItemsView, Enum, auto, get_original_bases, Queue
-        - keep: dataclass, ABC, abstractmethod, re, Any, fields, get_args, get_origin, types, MISSING, Field, StrEnum, inspect, Type
-
-    [x] 'content/backend/asset_ingestion/extractors/map_extractor2.py': Remove dead instance attribute
-        - ParserCtx.__init__ assigns self.data but it is never read anywhere; the local `data` param feeds the list comprehension directly
-
-    [x] 'content/backend/render_pipeline/content_shaper.py': SystemKeys is star-exported but never imported externally
-        - only used within this file (SystemKeys.DELIM in hydrate); the `from .content_shaper import *` in __init__.py leaks it needlessly
-```
-Backlog tail, Selected item/items:
-
-```text
-1. Alias engine_deps imports to 'd' across backend files
-    [ ] 'content/backend/asset_ingestion/ingestion_service.py': Replace 11-name engine_deps import with `from backend.core import engine_deps as d`
-        - Update all 11 usage sites: d.IngestionService, d.NoSuchFile, d.DiskPort, d.ConfigParseError, d.ConfigParserPort, d.StartCmd, d.StartResult, d.ClankerizeResult, d.TerminateResult, d.Malformed, d.Missing, d.IngestApplyResult
-    [ ] 'content/backend/server.py': Replace 14-name engine_deps import with `from backend.core import engine_deps as d`
-        - Update all 14 usage sites: d.BootstrapSuccess, d.ClankerizeResult, d.DomainSelectedResult, d.IngestApplyResult, d.KbCmd, d.KbServiceEmission, d.PromptRenderResult, d.RenderHotPromptCmd, d.RenderNormalPromptCmd, d.StartCmd, d.StartResult, d.TerminateResult, d.UnboundKeyResult, d.UninhabitedDomainResult, d.UninhabitedPromptResult
-    [ ] 'content/backend/keyboard/keyboard_service.py': Replace 11-name engine_deps import with `from backend.core import engine_deps as d`
-        - Update all usage sites: d.KBService, d.KbCmd, d.KbServiceEmission, d.DomainSelectedResult, d.UnboundKeyResult, d.UninhabitedPromptResult, d.UninhabitedDomainResult, d.BootstrapSuccess, d.RenderNormalPromptCmd, d.RenderHotPromptCmd, d.StartCmd
-    [ ] 'content/backend/render_pipeline/render_service.py': Replace 8-name engine_deps import with `from backend.core import engine_deps as d`
-        - Update all usage sites: d.PromptService, d.DiskPort, d.NoSuchFile, d.RenderNormalPromptCmd, d.RenderHotPromptCmd, d.PromptRenderResult
-    [ ] 'content/backend/asset_ingestion/commons/error_collector.py': Replace 4-name engine_deps import with `from backend.core import engine_deps as d`
-        - Update usage sites: d.Report, d.Complaint, d.Critical, d.Soft
-    [ ] 'content/backend/asset_ingestion/validators/file_list_validator.py': Replace 2-name engine_deps import with `from backend.core import engine_deps as d`
-        - Update usage sites: d.UnsatisfiedFiles, d.FilenameCollision
-```
-
+9. testing! how do I do testing for a system like this? I need a 'all clear, proceed' signal so I can iterate faster and with confidence
 
 Backlog tail end
 
 
-definitly when we're on the kb component, and a prompt is selected, hitting ctrl + enter should copy it to clipboard
-    - ctrl + enter -> to clipboard
-    - enter -> to window
+```text
+1. Copy staged prompt to clipboard via Ctrl+Enter in keyboard bar
+    [x] 'content/web-ui/frontend/keyboard-bar.js': Add Ctrl+Enter handler in #handleKeydown
+        - intercept before the early ctrl/alt/meta return; stopPropagation to suppress global handler
+        - navigator.clipboard.writeText(this.#stagedPrompt) with .then/.catch for status line feedback
+        - no-op if #stagedPrompt is null (no prompt staged yet)
+        - feedback rendered to existing status-line element (not toast), consistent with component's reporting style
+```

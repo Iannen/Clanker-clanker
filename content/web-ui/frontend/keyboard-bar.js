@@ -82,6 +82,20 @@ class KeyboardBar extends BaseComponent {
     #stagedPrompt = null;
 
     #handleKeydown = (event) => {
+        if (event.ctrlKey && event.key === 'Enter') {
+            if (!this.#stagedPrompt) return;
+            event.stopPropagation();
+            event.preventDefault();
+            navigator.clipboard.writeText(this.#stagedPrompt)
+                .then(() => {
+                    this.#statusLine.textContent = '📋 Prompt copied to clipboard';
+                })
+                .catch(() => {
+                    this.#statusLine.textContent = '❌ Failed to copy to clipboard';
+                });
+            return;
+        }
+
         if (event.ctrlKey || event.altKey || event.metaKey) return;
 
         if (!boundKeys.has(event.key)) return;

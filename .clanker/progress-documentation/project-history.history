@@ -1645,3 +1645,32 @@ CCI: SIDEPANEL MODE BUTTONS — ENTER KEY HANDLER
     - `sidepanel-left.js`: keydown listener attached to each `[data-mode]` button in `onConnect()`; on Enter it calls `event.stopPropagation()` + `event.preventDefault()`, then invokes `this.#switchMode(button.dataset.mode)`.
     Reflection:
     - Single-line UX fix; no architectural change. The sidepanel buttons are now reachable via Tab + Enter consistent with the rest of the UI.
+
+CCII: DEAD CODE & UNUSED SYMBOL REMOVAL
+    Purpose: Eliminate dead types, unused module-level constants, a duplicate frontend file, and unnecessary import names to reduce surface area and prevent accidental reuse.
+    - `engine_deps/result.py`: Removed 9 dead types — BootCmd, ClankerizeCmd, ExitCommand, UserDeclinedStart, UserDeclinedClankerize, StartupFailed, UserAborted, Request, FrontendService ABC
+    - `core/entities.py`: Removed module-level `PUD` and `SHR` constants (all callers use `e.PathTokens.PUD` / `e.PathTokens.SHARED`); removed `RepoContract.get_all_target_paths()`
+    - `frontend/message copy.js`: Deleted (exact duplicate of `message.js`; `messages-box.js` imports `./message.js` exclusively)
+    - `stdlib.py`: Removed 24 unused import names (field, base64, collections, defaultdict, contextmanager, json, os, Path, sys, termios, traceback, tty, Callable, ClassVar, Generator, Generic, TypeVar, Self, Union, zip_longest, ItemsView, Enum, auto, get_original_bases, Queue); retained only the symbols actually consumed downstream
+    - `map_extractor2.py`: Removed dead `self.data` attribute in `ParserCtx.__init__` (local `data` param feeds the list comprehension directly)
+    - `content_shaper.py`: Addressed star-export leak of `SystemKeys` (only used internally via `SystemKeys.DELIM`)
+    Reflection:
+    - Pure deletion; zero behavioural change. Shrinks the import surface and removes the risk of future code reaching for a symbol that no longer has a referent.
+
+CCIII: PROMPT STATUS LINE ENRICHMENT
+    Purpose: Make the keyboard-bar status line informative during prompt staging by exposing prompt name, domain, size, and render mode.
+    - `server.py` `_shape_kb_emission`: In the `PromptRenderResult` case, added `payload["prompt_mode"] = type(result.cmd).__name__` (no new imports; `RenderNormalPromptCmd` / `RenderHotPromptCmd` already in scope)
+    - `keyboard-bar.js` `#formatStatus` prompt_render case: Replaced the static `'Prompt staged — press Enter to send'` with a dynamic format reading `response.prompt`, `response.domain`, `response.lines`, `response.chars`, `response.prompt_mode`; renders as `Prompt "name" of "domain" — n lines, x chars (RenderHotPromptCmd) — press Enter`
+    Reflection:
+    - The status line now communicates both prompt identity and render mode at a glance, letting the user distinguish Normal vs Hot staging without opening dev tools. The "press Enter" tail is preserved so the affordance remains clear.
+
+CCIV: ENGINE_DEPS ALIAS IMPORTS
+    Purpose: Replace verbose multi-name `engine_deps` imports with a single module-level alias (`as d`) for uniformity and shorter reference lines across the backend.
+    - `ingestion_service.py`: 11-name import → `from backend.core import engine_deps as d`; all usage sites updated
+    - `server.py`: 14-name import → `from backend.core import engine_deps as d`; all usage sites updated
+    - `keyboard_service.py`: 11-name import → `from backend.core import engine_deps as d`; all usage sites updated
+    - `render_service.py`: 8-name import → `from backend.core import engine_deps as d`; all usage sites updated
+    - `error_collector.py`: 4-name import → `from backend.core import engine_deps as d`; usage sites updated
+    - `file_list_validator.py`: 2-name import → `from backend.core import engine_deps as d`; usage sites updated
+    Reflection:
+    - Uniform `d.` prefix across every backend consumer makes cross-file references consistent and keeps import lines to a single statement. No behavioural or runtime change; purely a readability/consistency refactor.
