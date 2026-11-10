@@ -1,5 +1,7 @@
 
-I. Smallfry
+I. Thoughdump
+
+when we start program, and dump a big repo slab, the 'usermsg' should be collapsed. so we have initstate for msgs?
 
 II. The wishlist
 
@@ -19,16 +21,11 @@ II. The wishlist
     - also aggregate context info
         - budget, how much is spend etc.
     - the stopreason, if it is something other than stop token -> let user know
+    - accept ratio for mtp
 
 
 7. backlog items, they mention files? so they are filesets, and should be promptable?
     kinda aspirational this one.
-
-8. prompt render revision -> sort by how static the content is.
-    purpose: less backend cache invalidation, less prefill time, better ux
-     1. static / system prompt stuff. Never changes
-     2. repo content stuff, changes frequently
-     3. instructional stuff, changes rather frequent
 
 ```text
 9. testing — 'all clear, proceed' gate
@@ -68,64 +65,147 @@ II. The wishlist
        - paste those into webui of providers, converse
        - copy replies which are intented for ingestion over to clank webui, paste
 ```
-Backlog tail, Selected item/items:
+
+III. Under development
+
+9. Rework prompt rendering
+    - prompt layout declares sections. the sections serves as header text for sections, and also as keys that resolvers use to attach their content to.
+        § first section §
+        § second section §
+        § .. §
+
+    Renderservice prompt assembly:
+
+    a. fetch prompt layout, parse into 
+        prompt: dict[str, list[Resolver]] = ['first section': [], 'second section': [], ..]
+        
+    b. flatten all domain / prompt & baseresolver into 
+        resolvers: Resolver = [res1, res2, ..]
+
+    c. use a comprehension to derive a list of unique types of resolvers in resolvers. order alphabetically
+        order = [MultiDocResolver, RepoContentResolver, ..]
+
+    d. for res in resolvers:
+            if not prompt[res.anchor]: raise
+            prompt[res.anchor].append(res)
+
+    e. evict any member of prompt which has an empty list
+
+    f. for value in prompt.items()
+            sort list so order matches that of 'order' from step c
+    
+    g. declare render = ''
+
+    h. for k,v in prompt.items():
+        render += '¤¤ {k} ¤¤'
+        for res in v:
+            dispatch v to helper to get res_content:str
+            render += res_content
+    i. render should now be finished prompt render
+
+
+10. Ingestion — parse `¤ path, action=X ¤` output format, drop `¤deletelist¤`
+    purpose: model emits a single uniform block for create/update/delete; parser validates actions and routes to the correct disk op
+
+    [ ] 'content/backend/asset_ingestion/ingestion_service.py': Rewrite `apply_file_changes` to parse `¤ <path>, action=<create|update|delete> ¤` blocks
+        - create / update: extract body between delimiters, write file
+        - delete: zero-content block, delete file
+        - remove `¤deletelist¤` section parsing entirely
+        - return `IngestApplyResult` with written / deleted / errors as before
+
+envisioned ingestion output format:
+    ¤ create: path/to/newfile.py¤
+    ```
+    def bar():
+        return 99
+    ```
+    ¤ path/to/newfile.py ¤
+
+    ¤ update: path/to/existing.py ¤
+    ```
+    def foo():
+        return 43
+    ```
+    ¤ path/to/existing.py ¤
+
+    ¤ delete: path/to/obsolete.py ¤
+
+</BL item 10 end>
+
+
 ```text
-10. controller class + threading server
-    swap base class: ThreadingHTTPServer (stdlib, same module) so concurrent requests work
-    (streaming no longer blocks keyboard/ingest)
-
-    reshape _Handler into a named Controller that:
-      - holds service refs in __init__
-      - one method per endpoint, decorated with @GET / @POST
-      - methods return (status, content_type, body) tuples
-      - server base does: parse path → lookup ROUTES dict → call method → write response
-      - fallback: unmatched GET → static file serve (super().do_GET)
-      - query params / body passed as args to the method
-    - proxy endpoints (gpu box) return (status, content_type, bytes) — same tuple shape, just bytes
-    - no pip deps, stays stdlib http.server under the hood
-
-    supersmall skeleton:
-
-    ROUTES: dict[tuple[str, str], Callable] = {}
-
-    def GET(path):
-        def deco(fn):
-            ROUTES[("GET", path)] = fn
-            return fn
-        return deco
-
-    def POST(path):
-        def deco(fn):
-            ROUTES[("POST", path)] = fn
-            return fn
-        return deco
-
-    class ClankController:
-        def __init__(self, ingestion, kb_service, prompt_service, gpu_box_url):
-            self.ingestion = ingestion
-            self.kb_service = kb_service
-            self.prompt_service = prompt_service
-            self.gpu_box_url = gpu_box_url
-
-        @GET("/api/boot")
-        def boot(self) -> tuple[int, str, str]: ...
-
-        @GET("/api/char")
-        def char(self, params: dict) -> tuple[int, str, dict]: ...
-
-        @POST("/api/ingest")
-        def ingest(self, body: str) -> tuple[int, str, dict]: ...
-
-        @POST("/v1/chat/completions")
-        def proxy_chat(self, body: bytes, headers: dict) -> tuple[int, str, bytes]: ...
-        # same for /api/desktop-mode, /api/inference-mode
-
-    class Server(ThreadingHTTPServer):
-        # ~20 lines: parse, lookup, call, write, static fallback
+n. Render pipeline: layout-driven prompt assembly via anchor-slot fill, dropping `hydrate` and hardcoded section labels
+    [ ] 'content/backend/render_pipeline/render_service.py': Replace `hydrate`-based substitution with parse-layout → bucket-resolvers → slot-fill → join
+        - `render_prompt`: read layout, call `_parse_layout` to get ordered `list[str]` of anchor names; flatten all resolvers (base + domain + prompt) into one list; bucket into `dict[str, list[Resolver]]` keyed by `.anchor`; for each bucket, call the type-dispatched renderer; build final string by iterating layout anchors in order, emitting `¤¤ {anchor} ¤¤\n{content}` only for anchors that received content; skip anchors with no content
+        - add `_parse_layout(raw: str) -> list[str]`: split on `§`, strip whitespace from each token, return ordered list of anchor names
+        - add `_flatten_resolvers(cmd) -> list[e.Resolver]`: consolidate base/domain/prompt resolvers per existing `inherit_domain` / `inherit_base` logic into a single flat list
+        - add `_render_resolver(resolver) -> str`: match on type, dispatch to existing `_res_*` methods
+        - remove the `self.shaper.hydrate(template, repl_map)` call from `render_prompt`
+    [ ] 'content/backend/render_pipeline/render_service.py': Change per-type renderers to emit `¤ name ¤` file delimiters only (no section headers, no XML-style tags)
+        - `_res_multi_doc`: change `<{name}>\n{content}\n</{name}>` → `¤ {name} ¤\n{content}\n¤ {name} ¤`; join with `"\n\n"`
+        - `_res_repo_content`: remove the `"¤¤ Repository Contents ¤¤"` header line; change `¤filepath="{p}"¤` → `¤ {p} ¤` (opening and closing); join with `"\n\n"`
+        - `_res_manifest` / `_build_manifest`: change `<{tag}>\n...\n</{tag}>` → `¤¤ {tag} ¤¤\n` + `¤ {p} ¤\n{line_count} lines` entries joined by `"\n\n"`
+    [ ] 'content/backend/render_pipeline/content_shaper.py': Remove `hydrate` method (or leave unused); keep `apply_truncation`
+        - `SystemKeys.DELIM` and the regex-based substitution in `hydrate` are no longer needed by the render pipeline
+        - prohibition: do not remove `apply_truncation` — it is still used by `_res_multi_doc`
+    [ ] 'content/a_lib/templates/prompt.layout': Rewrite to contain only `§anchor§` declaration lines, one per line, in display order
+        - example: `§base_fragments§`, `§repo_content§`, `§domain_fragments§`, `§prompt_fragments§` (actual anchors depend on config)
+        - prohibition: no `¤¤` section labels, no free text, no comments in the layout file — it is consumed by `_parse_layout` which only recognises `§...§`
+    [ ] 'content/.clanker/config.yaml' (and/or shared config): Ensure every anchor declared in `prompt.layout` has a corresponding resolver entry with matching `anchor` value
+        - existing anchors (`repo_content`, `domain_fragments`, `prompt_fragments`) are already present in domain/prompt resolver lists
+        - if a new anchor (e.g. `base_fragments`) is added to the layout, a matching resolver entry must exist in the config or the section will silently not render
+        - prohibition: do not add anchors to the layout that have no resolver — they will be dropped at render time, which is correct behaviour, but a dangling anchor in layout with no config entry suggests a bug
 ```
+Backlog tail, Selected item/items:
+9. Rework prompt rendering
+    - The prompt layout file declares sections via `§section_name§` markers. Each marker is both the section header in the output and the key that resolvers attach to via their `anchor` field.
+
+    - `PromptServiceImpl.render_prompt` — replace the flat `hydrate` call with the following assembly:
+
+    a. Fetch the layout from `self.files.read_asset(e.ClankerAssets.layouts.PROMPT)`. Parse it into an ordered list of section names by extracting all `§...§` matches in order of appearance. Build `sections: dict[str, list[e.Resolver]]` initialized with each section name as a key mapped to an empty list.
+
+    b. Collect resolvers (same as current `_get_repl_map` logic, but return the flat `list[e.Resolver]` instead of a resolved dict):
+        - Normal: extend with `cmd.domain.resolvers` if `cmd.prompt.render.inherit_domain`, then extend with `cmd.prompt.render.resolvers`.
+        - Hot: collect `MultiDocResolver` instances from domain + prompt resolvers, extract `.mode_instruction` / `.output_instruction` / `.history` files, build a `lone_resolver`, append it.
+
+    c. Derive the global type order: `order = sorted({type(r) for r in resolvers})` (alphabetical by class name).
+
+    d. For each `res` in `resolvers`:
+        - If `res.anchor not in sections`: raise (or `ec.accept` a soft complaint and skip — pick one, document it).
+        - `sections[res.anchor].append(res)`.
+
+    e. Evict empty sections: `sections = {k: v for k, v in sections.items() if v}`.
+
+    f. Sort each section's list so that the order of resolvers within a section matches `order` (by type name).
+
+    g. `render = ""`.
+
+    h. For each `(section_name, res_list)` in `sections.items()`:
+        - `render += f"¤¤ {section_name} ¤¤\n"`
+        - For each `res` in `res_list`:
+            - Dispatch: `content = self._res_multi_doc(res)[res.anchor]` if `isinstance(res, e.MultiDocResolver)`, else `self._res_repo_content(res)[res.anchor]` if `isinstance(res, e.RepoContentResolver)`, else `self._res_manifest(res)[res.anchor]`.
+            - `render += content`
+        - `render += "\n"`
+
+    i. `render` is the final prompt text. Return it in `PromptRenderResult` as before (lines = `len(render.splitlines())`, chars = `len(render)`).
+
+    - `_res_multi_doc`, `_res_repo_content`, `_res_manifest` are unchanged. They still return `dict[str, str]`; the caller just indexes `[res.anchor]`.
+
+    - `PromptContentShaper.hydrate` is no longer called from the main path. It can remain for any future inline substitution need, or be removed if nothing else uses it. `apply_truncation` stays as-is (called inside `_res_multi_doc`).
+
+    - Hot prompt path: same as above, except step (b) produces the `lone_resolver`. Steps (c)–(i) are identical. The `prompt_mode` field in `PromptRenderResult` already distinguishes `RenderNormalPromptCmd` vs `RenderHotPromptCmd` — no change needed there.
+
+    - Files touched: `content/backend/render_pipeline/render_service.py` (method `render_prompt`, remove or repurpose `_get_repl_map`). No changes to entities, keyboard, ingestion, controller, or the shaper's truncation logic.
 Backlog tail end
 
 finshed stuffs
+
+8. Prompt layout reorder + standardize delimiters + new file-action output format
+    purpose: better K/V cache hit rate, unambiguous section boundaries, model output symmetry with input, action validation
+
+    [x] 'content/a_lib/shared-assets/layouts/prompt.layout': Reorder slots — base_fragments, repo_content, domain_fragments, prompt_fragments
+        - repo_content before domain/prompt because it changes on commit (rare), domain/prompt changes on backlog edit (frequent)
+        - instructions at tail = closer to generation, better compliance
 ```text
 1. Copy staged prompt to clipboard via Ctrl+Enter in keyboard bar
     [x] 'content/web-ui/frontend/keyboard-bar.js': Add Ctrl+Enter handler in #handleKeydown
@@ -133,4 +213,18 @@ finshed stuffs
         - navigator.clipboard.writeText(this.#stagedPrompt) with .then/.catch for status line feedback
         - no-op if #stagedPrompt is null (no prompt staged yet)
         - feedback rendered to existing status-line element (not toast), consistent with component's reporting style
+```
+```text
+10. controller class + threading server
+    [x] 'content/clank-server.py': entrypoint — ClankServer(ThreadingHTTPServer), _Handler(SimpleHTTPRequestHandler), run(), wiring
+        - _Handler dispatch: ROUTES lookup, query params for GET, json body for POST, _write
+        - _write: HTTPResponse → chunk-stream, dict → json.dumps, str → encode
+        - main(): construct adapters, services, ClankController, ClankServer, run
+        - imports ClankController + ROUTES from backend.controller
+    [x] 'content/backend/controller.py': ROUTES, @GET/@POST decorators, ClankController, _shape_kb_emission
+        - @GET("/api/boot"), @GET("/api/char"), @POST("/api/ingest")
+        - @POST("/v1/chat/completions") + @POST("/api/desktop-mode") + @POST("/api/inference-mode") stacked on proxy_gpu
+        - proxy_gpu returns live urllib response for streaming
+    [x] 'content/backend/server.py': deleted
+    [x] 'content/backend/__init__.py': deleted
 ```
