@@ -1,27 +1,7 @@
-import http.server
-import json
-import urllib.request
-from pathlib import Path
-from urllib.parse import parse_qs, urlsplit
+from backend.stdlib import http, json, urllib, Path
 
 from backend.core import entities as e
-from backend.core.engine_deps import (
-    BootstrapSuccess,
-    ClankerizeResult,
-    DomainSelectedResult,
-    IngestApplyResult,
-    KbCmd,
-    KbServiceEmission,
-    PromptRenderResult,
-    RenderHotPromptCmd,
-    RenderNormalPromptCmd,
-    StartCmd,
-    StartResult,
-    TerminateResult,
-    UnboundKeyResult,
-    UninhabitedDomainResult,
-    UninhabitedPromptResult,
-)
+from backend.core import engine_deps as d
 
 _FRONTEND_DIR = Path(__file__).parent.parent / "web-ui" / "frontend"
 GPU_BOX_URL = "https://gpu-box.tailca68f1.ts.net:8787"
@@ -30,7 +10,7 @@ PORT = 8787
 GPU_BOX_PATHS = frozenset(("/v1/chat/completions", "/api/desktop-mode", "/api/inference-mode"))
 
 
-def _shape_kb_emission(result: KbServiceEmission) -> dict:
+def _shape_kb_emission(result: d.KbServiceEmission) -> dict:
     kb = result.kb
     payload: dict = {
         "buttons": {},
@@ -52,24 +32,25 @@ def _shape_kb_emission(result: KbServiceEmission) -> dict:
         payload["buttons"][key] = {"label": label, "state": state}
 
     match result:
-        case BootstrapSuccess():
+        case d.BootstrapSuccess():
             payload["result_type"] = "bootstrap_success"
-        case UnboundKeyResult():
+        case d.UnboundKeyResult():
             payload["result_type"] = "unbound_key"
-        case DomainSelectedResult():
+        case d.DomainSelectedResult():
             payload["result_type"] = "domain_selected"
             payload["domain"] = result.btn.inhabitant.name if result.btn.inhabitant else ""
-        case UninhabitedDomainResult():
+        case d.UninhabitedDomainResult():
             payload["result_type"] = "uninhabited_domain"
             payload["domain"] = result.btn.inhabitant.name if result.btn.inhabitant else ""
-        case UninhabitedPromptResult():
+        case d.UninhabitedPromptResult():
             payload["result_type"] = "uninhabited_prompt"
-        case PromptRenderResult():
+        case d.PromptRenderResult():
             payload["result_type"] = "prompt_render"
             payload["prompt"] = result.cmd.prompt.name
             payload["domain"] = result.cmd.domain.name
             payload["lines"] = result.lines
             payload["chars"] = result.chars
+            payload["prompt_mode"] = type(result.cmd).__name__
             payload["key"] = result.cmd.cmd.char
         case _:
             payload["result_type"] = "unknown"
@@ -121,29 +102,29 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
 
         result = ingestion.get_runtime_config()
 
-        if isinstance(result, ClankerizeResult):
+        if isinstance(result, d.ClankerizeResult):
             result = ingestion.initialize_workspace()
 
-        if isinstance(result, TerminateResult):
+        if isinstance(result, d.TerminateResult):
             self._send_plain(500, f"Boot failed: {result.report.get_critical_complaints()}")
             return
 
-        if not isinstance(result, (StartCmd, StartResult)):
+        if not isinstance(result, (d.StartCmd, d.StartResult)):
             self._send_plain(500, f"Unexpected boot result: {type(result).__name__}")
             return
 
-        start_cmd = StartCmd(kb=result.kb, ui_render=result.ui_render)
+        start_cmd = d.StartCmd(kb=result.kb, ui_render=result.ui_render)
         kb_service.handle_start(start_cmd)
 
         boot_message = "Bootstrap completed successfully"
-        if isinstance(result, StartResult) and result.report.get_all_complaints():
+        if isinstance(result, d.StartResult) and result.report.get_all_complaints():
             boot_message = f"Bootstrap completed with {len(result.report.get_all_complaints())} soft complaint(s)"
 
         self._send_plain(200, boot_message)
 
     def _handle_char(self) -> None:
-        parsed = urlsplit(self.path)
-        params = parse_qs(parsed.query)
+        parsed = urllib.parse.urlsplit(self.path)
+        params = urllib.parse.parse_qs(parsed.query)
         char_values = params.get("char", [])
         char_val = char_values[0] if len(char_values) == 1 and char_values[0] else None
 
@@ -151,9 +132,9 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
             self._send_plain(400, "Missing or invalid 'char' query param")
             return
 
-        result = self.server.kb_service.handle_key(KbCmd(char=char_val))
+        result = self.server.kb_service.handle_key(d.KbCmd(char=char_val))
 
-        if isinstance(result, (RenderNormalPromptCmd, RenderHotPromptCmd)):
+        if isinstance(result, (d.RenderNormalPromptCmd, d.RenderHotPromptCmd)):
             result = self.server.prompt_service.render_prompt(result)
 
         payload = _shape_kb_emission(result)

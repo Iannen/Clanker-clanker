@@ -55,7 +55,6 @@ class EntityField:
 class ParserCtx:
     def __init__(self, entity_cls: type[e.Entity], data: dict = {}):
         self.entity_cls = entity_cls
-        self.data = data
         self.fields: list[EntityField] = [ EntityField.from_field(raw_field, data.get(raw_field.name)) for raw_field in fields(entity_cls)]
         self.unsatisfied_fields: list[Field] = []
         self.instantiated_instances: list[e.Entity] = []

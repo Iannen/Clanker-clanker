@@ -1,31 +1,30 @@
-import re
-from backend.stdlib import dataclass, StrEnum
+from backend.stdlib import dataclass, StrEnum, re
 from backend.core import entities as e
-from backend.core.engine_deps import IngestionService, NoSuchFile, DiskPort, ConfigParseError, ConfigParserPort, StartCmd, StartResult, ClankerizeResult, TerminateResult, Malformed, Missing, IngestApplyResult
+from backend.core import engine_deps as d
 
 from . import ErrorCollector, ItemClassifier, Assembler, ClassificationResult
 
 
 @dataclass(slots=True)
-class IngestionServiceImpl(IngestionService):
-    files: DiskPort
-    cfg_ingestor: ConfigParserPort
+class IngestionServiceImpl(d.IngestionService):
+    files: d.DiskPort
+    cfg_ingestor: d.ConfigParserPort
 
-    def _get_asset_pack(self, token: str, roots) -> e.AssetPack | Missing:
+    def _get_asset_pack(self, token: str, roots) -> e.AssetPack | d.Missing:
         try: return e.AssetPack(token, self.files.get_dir_manifest(token, roots))
-        except NoSuchFile: return Missing(token, roots)
+        except d.NoSuchFile: return d.Missing(token, roots)
 
-    def _get_config(self, config: StrEnum) -> e.Config | Missing | Malformed:
+    def _get_config(self, config: StrEnum) -> e.Config | d.Missing | d.Malformed:
         try:
             raw_content = self.files.get_file_contents(config.value)
             return e.Config(config.name, config.value, self.cfg_ingestor.get_as_dict(raw_content))
-        except NoSuchFile: return Missing(config.name, config.value)
-        except ConfigParseError as ex: return Malformed(config.name, config.value, str(ex))
+        except d.NoSuchFile: return d.Missing(config.name, config.value)
+        except d.ConfigParseError as ex: return d.Malformed(config.name, config.value, str(ex))
 
-    def _get_file_req(self, filereq: StrEnum) -> e.Filereq | Missing:
+    def _get_file_req(self, filereq: StrEnum) -> e.Filereq | d.Missing:
         try: return e.Filereq(filereq.name, filereq.value, self.files.get_file_contents(filereq.value))
         except IsADirectoryError: return e.Filereq(filereq.name, filereq.value, "")
-        except NoSuchFile: return Missing(filereq.name, filereq.value)
+        except d.NoSuchFile: return d.Missing(filereq.name, filereq.value)
 
     def get_runtime_config(self):
         ec = ErrorCollector()
@@ -49,12 +48,12 @@ class IngestionServiceImpl(IngestionService):
         if pud_result is ClassificationResult.MIXED: pud_classifier.complain()
         ui_render, kb = assembler.assemble(pud_result)
 
-        if ec.has_crits(): return TerminateResult(ec)
+        if ec.has_crits(): return d.TerminateResult(ec)
         if pud_result is ClassificationResult.ALL_PRESENT:
             if not ec.get_all_complaints():
-                return StartCmd(kb=kb, ui_render=ui_render)
-            return StartResult(ec, kb, ui_render)
-        if pud_result is ClassificationResult.NONE_PRESENT: return ClankerizeResult(ec)
+                return d.StartCmd(kb=kb, ui_render=ui_render)
+            return d.StartResult(ec, kb, ui_render)
+        if pud_result is ClassificationResult.NONE_PRESENT: return d.ClankerizeResult(ec)
 
     def initialize_workspace(self):
         if self.files.is_cwd_script_dir():
@@ -66,7 +65,7 @@ class IngestionServiceImpl(IngestionService):
             self.files.copy_file(from_path=from_path, to_path=to_path)
         return self.get_runtime_config()
 
-    def apply_file_changes(self, raw_text: str) -> IngestApplyResult:
+    def apply_file_changes(self, raw_text: str) -> d.IngestApplyResult:
         written: list[str] = []
         deleted: list[str] = []
         errors: list[str] = []
@@ -127,7 +126,7 @@ class IngestionServiceImpl(IngestionService):
             except Exception as ex:
                 errors.append(f"write {path}: {ex}")
 
-        return IngestApplyResult(written=written, deleted=deleted, errors=errors)
+        return d.IngestApplyResult(written=written, deleted=deleted, errors=errors)
 
     @staticmethod
     def _prefix_path(path: str) -> str:

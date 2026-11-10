@@ -1,4 +1,6 @@
+
 I. Smallfry
+
 II. The wishlist
 
 1. Set ops on filesets
@@ -9,21 +11,126 @@ II. The wishlist
         - append a trailing 'Next item numeral: <FOLLOWING_ROMAN_NUMERAL>' marker to history output instructions
         - prevent Roman numeral sequence miscalculations when feeding truncated history files back to LLMs
 
-3: MUST make it possible to add repo content from other locs than just assets. why is test system bugging out about that.
+4. integrate git ops in the system!
+
+5. implement prefill info stream:
+    - I have this script in randomscripts which spits out prefill info. so it should just be part of normal thing really. can be done
+    - also revisit the ctrl 1/2 keys of msgs to collapse/expand reasoning or content
+    - also aggregate context info
+        - budget, how much is spend etc.
+    - the stopreason, if it is something other than stop token -> let user know
 
 
-4. git-ops, save file:
-    - perhaps we can have a stack of branches? (main -> dev-1 -> dev-2 -> dev-n)
-        - allows one to hansel and gretel that sob, not having to step to main 
-    - single click dropoff, none of that double ctrl+d stuff
-    - automation of the bl migration
+7. backlog items, they mention files? so they are filesets, and should be promptable?
+    kinda aspirational this one.
 
-5.
-implement prefill info stream:
-    - I have this script in randomscripts which spits out prefill info. so it can be done
+8. prompt render revision -> sort by how static the content is.
+    purpose: less backend cache invalidation, less prefill time, better ux
+     1. static / system prompt stuff. Never changes
+     2. repo content stuff, changes frequently
+     3. instructional stuff, changes rather frequent
 
+```text
+9. testing — 'all clear, proceed' gate
+    test the backend in-process, no server, no browser, no real disk.
+    seams already exist: DiskPort + ConfigParserPort are ABCs, so fake them.
+    what to cover, in risk order:
+      - ingestion / numap entity graph (validators, dep ordering, ingest regex)
+      - kb state machine (handle_start, domain select, prompt select, hot path)
+      - render pipeline (hydration, truncation, hot-prompt resolver, manifest)
+      - apply_file_changes (block parsing, deletelist, fence stripping)
+    shape:
+      - one pytest file or small tests/ dir
+      - fixture factories: in-memory disk (dict of path->content), fake cfg parser, canonical workspace
+      - fake disk records writes/deletes for assertion
+      - the gate is just: run pytest, exit 0 = green light
+    out of scope:
+      - http server wiring (thin delegation)
+      - frontend (display layer)
+      - gpu box proxy (pass-through)
+```
+```text
+11. provider model:
+    Clanker's system config can declare providers.
+    The auth tokens and such would be carried in another file, contained in clanker repo but .gitignored. needs to be safe, anywayy
 
+    a. commercial providers
+       - anything that speaks /v1/chat/completions (this is openai's api?)
+       - user supplies base_url + api_key (or no key for local)
+       - this is the "default" shape, most providers fit here
 
+    b. gpu-box (custom)
+       - the tailnet-hosted thing, local GPU
+       - adds host-side control: desktop/inference mode switching, raw box management
 
+    c. noprovider public browser gui llm offerings on the free tier
+       - basically the user will use the webui to get prompts to clipboard
+       - paste those into webui of providers, converse
+       - copy replies which are intented for ingestion over to clank webui, paste
+```
 Backlog tail, Selected item/items:
+```text
+10. controller class + threading server
+    swap base class: ThreadingHTTPServer (stdlib, same module) so concurrent requests work
+    (streaming no longer blocks keyboard/ingest)
+
+    reshape _Handler into a named Controller that:
+      - holds service refs in __init__
+      - one method per endpoint, decorated with @GET / @POST
+      - methods return (status, content_type, body) tuples
+      - server base does: parse path → lookup ROUTES dict → call method → write response
+      - fallback: unmatched GET → static file serve (super().do_GET)
+      - query params / body passed as args to the method
+    - proxy endpoints (gpu box) return (status, content_type, bytes) — same tuple shape, just bytes
+    - no pip deps, stays stdlib http.server under the hood
+
+    supersmall skeleton:
+
+    ROUTES: dict[tuple[str, str], Callable] = {}
+
+    def GET(path):
+        def deco(fn):
+            ROUTES[("GET", path)] = fn
+            return fn
+        return deco
+
+    def POST(path):
+        def deco(fn):
+            ROUTES[("POST", path)] = fn
+            return fn
+        return deco
+
+    class ClankController:
+        def __init__(self, ingestion, kb_service, prompt_service, gpu_box_url):
+            self.ingestion = ingestion
+            self.kb_service = kb_service
+            self.prompt_service = prompt_service
+            self.gpu_box_url = gpu_box_url
+
+        @GET("/api/boot")
+        def boot(self) -> tuple[int, str, str]: ...
+
+        @GET("/api/char")
+        def char(self, params: dict) -> tuple[int, str, dict]: ...
+
+        @POST("/api/ingest")
+        def ingest(self, body: str) -> tuple[int, str, dict]: ...
+
+        @POST("/v1/chat/completions")
+        def proxy_chat(self, body: bytes, headers: dict) -> tuple[int, str, bytes]: ...
+        # same for /api/desktop-mode, /api/inference-mode
+
+    class Server(ThreadingHTTPServer):
+        # ~20 lines: parse, lookup, call, write, static fallback
+```
 Backlog tail end
+
+finshed stuffs
+```text
+1. Copy staged prompt to clipboard via Ctrl+Enter in keyboard bar
+    [x] 'content/web-ui/frontend/keyboard-bar.js': Add Ctrl+Enter handler in #handleKeydown
+        - intercept before the early ctrl/alt/meta return; stopPropagation to suppress global handler
+        - navigator.clipboard.writeText(this.#stagedPrompt) with .then/.catch for status line feedback
+        - no-op if #stagedPrompt is null (no prompt staged yet)
+        - feedback rendered to existing status-line element (not toast), consistent with component's reporting style
+```

@@ -82,6 +82,20 @@ class KeyboardBar extends BaseComponent {
     #stagedPrompt = null;
 
     #handleKeydown = (event) => {
+        if (event.ctrlKey && event.key === 'Enter') {
+            if (!this.#stagedPrompt) return;
+            event.stopPropagation();
+            event.preventDefault();
+            navigator.clipboard.writeText(this.#stagedPrompt)
+                .then(() => {
+                    this.#statusLine.textContent = '📋 Prompt copied to clipboard';
+                })
+                .catch(() => {
+                    this.#statusLine.textContent = '❌ Failed to copy to clipboard';
+                });
+            return;
+        }
+
         if (event.ctrlKey || event.altKey || event.metaKey) return;
 
         if (!boundKeys.has(event.key)) return;
@@ -139,7 +153,12 @@ class KeyboardBar extends BaseComponent {
             case 'unbound_key':
                 return `No action bound to key "${key}"`;
             case 'prompt_render':
-                return `Prompt staged — press Enter to send`;
+                const promptName = response.prompt ?? '';
+                const domName = response.domain ?? '';
+                const lines = response.lines ?? 0;
+                const chars = response.chars ?? 0;
+                const mode = response.prompt_mode ?? '';
+                return `Prompt "${promptName}" of "${domName}" — ${lines} lines, ${chars} chars (${mode}) — press Enter`;
             default:
                 return `Key "${key}" pressed`;
         }
