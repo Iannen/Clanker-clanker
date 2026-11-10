@@ -66,7 +66,73 @@ II. The wishlist
        - copy replies which are intented for ingestion over to clank webui, paste
 ```
 
-Backlog tail, Selected item/items:
+III. Under development
+
+9. Rework prompt rendering
+    - prompt layout declares sections. the sections serves as header text for sections, and also as keys that resolvers use to attach their content to.
+        § first section §
+        § second section §
+        § .. §
+
+    Renderservice prompt assembly:
+
+    a. fetch prompt layout, parse into 
+        prompt: dict[str, list[Resolver]] = ['first section': [], 'second section': [], ..]
+        
+    b. flatten all domain / prompt & baseresolver into 
+        resolvers: Resolver = [res1, res2, ..]
+
+    c. use a comprehension to derive a list of unique types of resolvers in resolvers. order alphabetically
+        order = [MultiDocResolver, RepoContentResolver, ..]
+
+    d. for res in resolvers:
+            if not prompt[res.anchor]: raise
+            prompt[res.anchor].append(res)
+
+    e. evict any member of prompt which has an empty list
+
+    f. for value in prompt.items()
+            sort list so order matches that of 'order' from step c
+    
+    g. declare render = ''
+
+    h. for k,v in prompt.items():
+        render += '¤¤ {k} ¤¤'
+        for res in v:
+            dispatch v to helper to get res_content:str
+            render += res_content
+    i. render should now be finished prompt render
+
+
+10. Ingestion — parse `¤ path, action=X ¤` output format, drop `¤deletelist¤`
+    purpose: model emits a single uniform block for create/update/delete; parser validates actions and routes to the correct disk op
+
+    [ ] 'content/backend/asset_ingestion/ingestion_service.py': Rewrite `apply_file_changes` to parse `¤ <path>, action=<create|update|delete> ¤` blocks
+        - create / update: extract body between delimiters, write file
+        - delete: zero-content block, delete file
+        - remove `¤deletelist¤` section parsing entirely
+        - return `IngestApplyResult` with written / deleted / errors as before
+
+envisioned ingestion output format:
+    ¤ create: path/to/newfile.py¤
+    ```
+    def bar():
+        return 99
+    ```
+    ¤ path/to/newfile.py ¤
+
+    ¤ update: path/to/existing.py ¤
+    ```
+    def foo():
+        return 43
+    ```
+    ¤ path/to/existing.py ¤
+
+    ¤ delete: path/to/obsolete.py ¤
+
+</BL item 10 end>
+
+
 ```text
 n. Render pipeline: layout-driven prompt assembly via anchor-slot fill, dropping `hydrate` and hardcoded section labels
     [ ] 'content/backend/render_pipeline/render_service.py': Replace `hydrate`-based substitution with parse-layout → bucket-resolvers → slot-fill → join
@@ -90,92 +156,47 @@ n. Render pipeline: layout-driven prompt assembly via anchor-slot fill, dropping
         - if a new anchor (e.g. `base_fragments`) is added to the layout, a matching resolver entry must exist in the config or the section will silently not render
         - prohibition: do not add anchors to the layout that have no resolver — they will be dropped at render time, which is correct behaviour, but a dangling anchor in layout with no config entry suggests a bug
 ```
+Backlog tail, Selected item/items:
+9. Rework prompt rendering
+    - The prompt layout file declares sections via `§section_name§` markers. Each marker is both the section header in the output and the key that resolvers attach to via their `anchor` field.
+
+    - `PromptServiceImpl.render_prompt` — replace the flat `hydrate` call with the following assembly:
+
+    a. Fetch the layout from `self.files.read_asset(e.ClankerAssets.layouts.PROMPT)`. Parse it into an ordered list of section names by extracting all `§...§` matches in order of appearance. Build `sections: dict[str, list[e.Resolver]]` initialized with each section name as a key mapped to an empty list.
+
+    b. Collect resolvers (same as current `_get_repl_map` logic, but return the flat `list[e.Resolver]` instead of a resolved dict):
+        - Normal: extend with `cmd.domain.resolvers` if `cmd.prompt.render.inherit_domain`, then extend with `cmd.prompt.render.resolvers`.
+        - Hot: collect `MultiDocResolver` instances from domain + prompt resolvers, extract `.mode_instruction` / `.output_instruction` / `.history` files, build a `lone_resolver`, append it.
+
+    c. Derive the global type order: `order = sorted({type(r) for r in resolvers})` (alphabetical by class name).
+
+    d. For each `res` in `resolvers`:
+        - If `res.anchor not in sections`: raise (or `ec.accept` a soft complaint and skip — pick one, document it).
+        - `sections[res.anchor].append(res)`.
+
+    e. Evict empty sections: `sections = {k: v for k, v in sections.items() if v}`.
+
+    f. Sort each section's list so that the order of resolvers within a section matches `order` (by type name).
+
+    g. `render = ""`.
+
+    h. For each `(section_name, res_list)` in `sections.items()`:
+        - `render += f"¤¤ {section_name} ¤¤\n"`
+        - For each `res` in `res_list`:
+            - Dispatch: `content = self._res_multi_doc(res)[res.anchor]` if `isinstance(res, e.MultiDocResolver)`, else `self._res_repo_content(res)[res.anchor]` if `isinstance(res, e.RepoContentResolver)`, else `self._res_manifest(res)[res.anchor]`.
+            - `render += content`
+        - `render += "\n"`
+
+    i. `render` is the final prompt text. Return it in `PromptRenderResult` as before (lines = `len(render.splitlines())`, chars = `len(render)`).
+
+    - `_res_multi_doc`, `_res_repo_content`, `_res_manifest` are unchanged. They still return `dict[str, str]`; the caller just indexes `[res.anchor]`.
+
+    - `PromptContentShaper.hydrate` is no longer called from the main path. It can remain for any future inline substitution need, or be removed if nothing else uses it. `apply_truncation` stays as-is (called inside `_res_multi_doc`).
+
+    - Hot prompt path: same as above, except step (b) produces the `lone_resolver`. Steps (c)–(i) are identical. The `prompt_mode` field in `PromptRenderResult` already distinguishes `RenderNormalPromptCmd` vs `RenderHotPromptCmd` — no change needed there.
+
+    - Files touched: `content/backend/render_pipeline/render_service.py` (method `render_prompt`, remove or repurpose `_get_repl_map`). No changes to entities, keyboard, ingestion, controller, or the shaper's truncation logic.
 Backlog tail end
-
-<BL item 9 rev 1>
-Prompt rendering — emit standardised `¤¤` section + `¤ path ¤` file delimiters
-    purpose: match the reordered template so rendered prompts have unambiguous section boundaries and symmetric file markers
-
-    [ ] 'content/backend/render_pipeline/render_service.py': Update `_res_repo_content`, `_res_manifest`, `_res_multi_doc` to emit `¤¤ <section> ¤¤` wrappers and `¤ <path> ¤` file delimiters instead of `¤filepath="path"¤`
-        - repo content: `¤¤ repo content ¤¤` … `¤ <pud-relative-path> ¤` blocks
-        - manifest: `¤¤ shared-manifest ¤¤` / `¤¤ pud-manifest ¤¤` with line-count entries
-        - multi-doc: `¤ <filename> ¤` blocks (drop the `<tag>` wrapper, use bare `¤` delimiters)
-    [ ] 'content/backend/render_pipeline/render_service.py' or `prompt.layout`: Introduce `¤¤ intro ¤¤` section (general-rules fragment)
-        - either a static fragment baked into the template or a new resolver anchor — decide which
-
-``` envisioned prompt format (the bl item shall always contain current vision of prompt format)
-¤¤ intro ¤¤
-¤ general-rules.md ¤
-- be passive, wait for user intent
-- never return unsolicited replacement content
-¤ general-rules.md ¤
-
-¤¤ repo content ¤¤
-¤ path/to/file.py ¤
-```
-def foo():
-    return 42
-```
-¤ path/to/file.py ¤
-
-¤ other/file.txt ¤
-```
-some content here
-```
-¤ other/file.txt ¤
-
-¤¤ domain ¤¤
-¤ plan_mode.mode_instruction ¤
-Converse to learn user intent...
-¤ plan_mode.mode_instruction ¤
-
-¤¤ prompt ¤¤
-¤ output_instruction.md ¤
-Return items inside a plain text code block...
-¤ output_instruction.md ¤
-``` envisioned prompt format end
-</BL item 9 end>
-
-</BL item 10>
-10. Ingestion — parse `¤ path, action=X ¤` output format, drop `¤deletelist¤`
-    purpose: model emits a single uniform block for create/update/delete; parser validates actions and routes to the correct disk op
-
-    [ ] 'content/backend/asset_ingestion/ingestion_service.py': Rewrite `apply_file_changes` to parse `¤ <path>, action=<create|update|delete> ¤` blocks
-        - create / update: extract body between delimiters, write file
-        - delete: zero-content block, delete file
-        - remove `¤deletelist¤` section parsing entirely
-        - return `IngestApplyResult` with written / deleted / errors as before
-
-```envisioned ingestion output format
-¤ path/to/newfile.py, action=create ¤
-```
-def bar():
-    return 99
-```
-¤ path/to/newfile.py ¤
-
-¤ path/to/otherfile.py, action=create ¤
-```
-print("hello")
-```
-¤ path/to/otherfile.py ¤
-
-¤ path/to/existing.py, action=update ¤
-```
-def foo():
-    return 43
-```
-¤ path/to/existing.py ¤
-
-¤ path/to/existing2.py, action=update ¤
-```
-full new content
-```
-¤ path/to/existing2.py ¤
-
-¤ path/to/obsolete.py, action=delete ¤
-¤ path/to/obsolete2.py, action=delete ¤
-</BL item 10 end>
 
 finshed stuffs
 
