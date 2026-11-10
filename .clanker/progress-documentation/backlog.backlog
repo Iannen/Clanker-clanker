@@ -1,5 +1,7 @@
 
-I. Smallfry
+I. Thoughdump
+
+when we start program, and dump a big repo slab, the 'usermsg' should be collapsed. so we have initstate for msgs?
 
 II. The wishlist
 
@@ -19,16 +21,11 @@ II. The wishlist
     - also aggregate context info
         - budget, how much is spend etc.
     - the stopreason, if it is something other than stop token -> let user know
+    - accept ratio for mtp
 
 
 7. backlog items, they mention files? so they are filesets, and should be promptable?
     kinda aspirational this one.
-
-8. prompt render revision -> sort by how static the content is.
-    purpose: less backend cache invalidation, less prefill time, better ux
-     1. static / system prompt stuff. Never changes
-     2. repo content stuff, changes frequently
-     3. instructional stuff, changes rather frequent
 
 ```text
 9. testing — 'all clear, proceed' gate
@@ -68,61 +65,38 @@ II. The wishlist
        - paste those into webui of providers, converse
        - copy replies which are intented for ingestion over to clank webui, paste
 ```
+
 Backlog tail, Selected item/items:
-```text
-10. controller class + threading server
-    swap base class: ThreadingHTTPServer (stdlib, same module) so concurrent requests work
-    (streaming no longer blocks keyboard/ingest)
 
-    reshape _Handler into a named Controller that:
-      - holds service refs in __init__
-      - one method per endpoint, decorated with @GET / @POST
-      - methods return (status, content_type, body) tuples
-      - server base does: parse path → lookup ROUTES dict → call method → write response
-      - fallback: unmatched GET → static file serve (super().do_GET)
-      - query params / body passed as args to the method
-    - proxy endpoints (gpu box) return (status, content_type, bytes) — same tuple shape, just bytes
-    - no pip deps, stays stdlib http.server under the hood
+8. Standardize delimiters + reorder prompt layout + new file-action output format
+    purpose: better K/V cache hit rate, unambiguous section boundaries, model output symmetry with input, action validation
 
-    supersmall skeleton:
+    [x] 'content/a_lib/shared-assets/layouts/prompt.layout': Reorder slots — base, repo_content, domain_fragments, prompt_fragments
+        - repo_content before domain/prompt because it changes on commit (rare), domain/prompt changes on backlog edit (frequent)
+        - instructions at tail = closer to generation, better compliance
+lets keep with only the 1 subtask. below i want two examples that demonstrate a generate prompt, and expected output for ingestion
 
-    ROUTES: dict[tuple[str, str], Callable] = {}
+<prompt example>
+¤¤ intro ¤¤ 
+¤file1 ¤  # only filename, no backtick envelope for content
+...
+¤file1 ¤ 
 
-    def GET(path):
-        def deco(fn):
-            ROUTES[("GET", path)] = fn
-            return fn
-        return deco
-
-    def POST(path):
-        def deco(fn):
-            ROUTES[("POST", path)] = fn
-            return fn
-        return deco
-
-    class ClankController:
-        def __init__(self, ingestion, kb_service, prompt_service, gpu_box_url):
-            self.ingestion = ingestion
-            self.kb_service = kb_service
-            self.prompt_service = prompt_service
-            self.gpu_box_url = gpu_box_url
-
-        @GET("/api/boot")
-        def boot(self) -> tuple[int, str, str]: ...
-
-        @GET("/api/char")
-        def char(self, params: dict) -> tuple[int, str, dict]: ...
-
-        @POST("/api/ingest")
-        def ingest(self, body: str) -> tuple[int, str, dict]: ...
-
-        @POST("/v1/chat/completions")
-        def proxy_chat(self, body: bytes, headers: dict) -> tuple[int, str, bytes]: ...
-        # same for /api/desktop-mode, /api/inference-mode
-
-    class Server(ThreadingHTTPServer):
-        # ~20 lines: parse, lookup, call, write, static fallback
+¤¤ repo content¤¤ 
+¤ path/to/file.txt¤ # full path and backtick enveloped content for repo items
 ```
+...
+```
+¤ path/to/file.txt¤
+
+¤¤ domain ¤¤ # same as intro with reg to only filename and no backticks
+...
+¤¤ prompt ¤¤ # same as intro with reg to only filename and no backticks
+...
+</prompt example>
+<output for ingestion example>
+# you go
+
 Backlog tail end
 
 finshed stuffs
@@ -133,4 +107,18 @@ finshed stuffs
         - navigator.clipboard.writeText(this.#stagedPrompt) with .then/.catch for status line feedback
         - no-op if #stagedPrompt is null (no prompt staged yet)
         - feedback rendered to existing status-line element (not toast), consistent with component's reporting style
+```
+```text
+10. controller class + threading server
+    [x] 'content/clank-server.py': entrypoint — ClankServer(ThreadingHTTPServer), _Handler(SimpleHTTPRequestHandler), run(), wiring
+        - _Handler dispatch: ROUTES lookup, query params for GET, json body for POST, _write
+        - _write: HTTPResponse → chunk-stream, dict → json.dumps, str → encode
+        - main(): construct adapters, services, ClankController, ClankServer, run
+        - imports ClankController + ROUTES from backend.controller
+    [x] 'content/backend/controller.py': ROUTES, @GET/@POST decorators, ClankController, _shape_kb_emission
+        - @GET("/api/boot"), @GET("/api/char"), @POST("/api/ingest")
+        - @POST("/v1/chat/completions") + @POST("/api/desktop-mode") + @POST("/api/inference-mode") stacked on proxy_gpu
+        - proxy_gpu returns live urllib response for streaming
+    [x] 'content/backend/server.py': deleted
+    [x] 'content/backend/__init__.py': deleted
 ```
