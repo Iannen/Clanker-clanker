@@ -24,6 +24,8 @@ implement prefill info stream:
 
 6. for kb component -> ctrl+enter copy to clipboard
 
+7. backlog items, they mention files? so they are filesets, and should be promptable?
+
 ```text
 1. Unused types / members in the backend
     [x] 'content/backend/core/engine_deps/result.py': Remove dead types
@@ -73,9 +75,21 @@ implement prefill info stream:
 ```
 Backlog tail, Selected item/items:
 
-i have this from .. import entities as e line, which saves alot of tokens.
-
-can we apply this to other things?
+```text
+1. Alias engine_deps imports to 'd' across backend files
+    [ ] 'content/backend/asset_ingestion/ingestion_service.py': Replace 11-name engine_deps import with `from backend.core import engine_deps as d`
+        - Update all 11 usage sites: d.IngestionService, d.NoSuchFile, d.DiskPort, d.ConfigParseError, d.ConfigParserPort, d.StartCmd, d.StartResult, d.ClankerizeResult, d.TerminateResult, d.Malformed, d.Missing, d.IngestApplyResult
+    [ ] 'content/backend/server.py': Replace 14-name engine_deps import with `from backend.core import engine_deps as d`
+        - Update all 14 usage sites: d.BootstrapSuccess, d.ClankerizeResult, d.DomainSelectedResult, d.IngestApplyResult, d.KbCmd, d.KbServiceEmission, d.PromptRenderResult, d.RenderHotPromptCmd, d.RenderNormalPromptCmd, d.StartCmd, d.StartResult, d.TerminateResult, d.UnboundKeyResult, d.UninhabitedDomainResult, d.UninhabitedPromptResult
+    [ ] 'content/backend/keyboard/keyboard_service.py': Replace 11-name engine_deps import with `from backend.core import engine_deps as d`
+        - Update all usage sites: d.KBService, d.KbCmd, d.KbServiceEmission, d.DomainSelectedResult, d.UnboundKeyResult, d.UninhabitedPromptResult, d.UninhabitedDomainResult, d.BootstrapSuccess, d.RenderNormalPromptCmd, d.RenderHotPromptCmd, d.StartCmd
+    [ ] 'content/backend/render_pipeline/render_service.py': Replace 8-name engine_deps import with `from backend.core import engine_deps as d`
+        - Update all usage sites: d.PromptService, d.DiskPort, d.NoSuchFile, d.RenderNormalPromptCmd, d.RenderHotPromptCmd, d.PromptRenderResult
+    [ ] 'content/backend/asset_ingestion/commons/error_collector.py': Replace 4-name engine_deps import with `from backend.core import engine_deps as d`
+        - Update usage sites: d.Report, d.Complaint, d.Critical, d.Soft
+    [ ] 'content/backend/asset_ingestion/validators/file_list_validator.py': Replace 2-name engine_deps import with `from backend.core import engine_deps as d`
+        - Update usage sites: d.UnsatisfiedFiles, d.FilenameCollision
+```
 
 
 Backlog tail end

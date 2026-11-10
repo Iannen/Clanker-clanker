@@ -1,6 +1,6 @@
 from backend.stdlib import dataclass
 from backend.core import entities as e
-from backend.core.engine_deps import UnsatisfiedFiles, FilenameCollision
+from backend.core import engine_deps as d
 from ...asset_ingestion import ErrorCollector, Numap
 
 @dataclass
@@ -29,7 +29,7 @@ class FilelistValidator2:
                 unsatisfied_files.append(file_item)
 
         if unsatisfied_files:
-            self.ec.accept(UnsatisfiedFiles(unsatisfied_files))
+            self.ec.accept(d.UnsatisfiedFiles(unsatisfied_files))
             self.numap.prune(unsatisfied_files)
 
     def _resolve_and_collect_collisions(self, pack: e.AssetPack) -> dict[str, str]:
@@ -44,6 +44,6 @@ class FilelistValidator2:
             winner_path = sorted(full_paths, key=lambda p: (p.count("/"), p))[0]
             resolved_map[filename] = winner_path
             if len(full_paths) > 1:
-                self.ec.accept(FilenameCollision(filename, full_paths, winner_path))
+                self.ec.accept(d.FilenameCollision(filename, full_paths, winner_path))
 
         return resolved_map

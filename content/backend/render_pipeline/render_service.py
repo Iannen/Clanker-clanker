@@ -1,32 +1,25 @@
 from backend.core import entities as e
 from backend.stdlib import dataclass
-from backend.core.engine_deps import (
-    PromptService,
-    DiskPort,
-    NoSuchFile,
-    RenderNormalPromptCmd,
-    RenderHotPromptCmd,
-    PromptRenderResult,
-)
+from backend.core import engine_deps as d
 from . import PromptContentShaper
 
 @dataclass(slots=True)
-class PromptServiceImpl(PromptService):
-    files: DiskPort
+class PromptServiceImpl(d.PromptService):
+    files: d.DiskPort
 
     def __post_init__(self) -> None:
         self.shaper: PromptContentShaper = PromptContentShaper()
 
-    def render_prompt(self, cmd: RenderNormalPromptCmd | RenderHotPromptCmd) -> PromptRenderResult:
+    def render_prompt(self, cmd: d.RenderNormalPromptCmd | d.RenderHotPromptCmd) -> d.PromptRenderResult:
         try:
             template = self.files.read_asset(e.ClankerAssets.layouts.PROMPT)
-        except NoSuchFile as ex:
+        except d.NoSuchFile as ex:
             raise e.CorruptClanker(f"Error loading template for '{cmd.prompt.render.template}': {ex}") from ex
         repl_map = self._get_repl_map(cmd)
         text_content = self.shaper.hydrate(template, repl_map)
         lines_count = len(text_content.splitlines())
         char_count = len(text_content)
-        return PromptRenderResult(
+        return d.PromptRenderResult(
             kb=cmd.kb,
             ui_render=cmd.ui_render,
             cmd=cmd,
@@ -35,14 +28,14 @@ class PromptServiceImpl(PromptService):
             chars=char_count,
         )
 
-    def _get_repl_map(self, cmd: RenderNormalPromptCmd | RenderHotPromptCmd) -> dict[str, str]:
+    def _get_repl_map(self, cmd: d.RenderNormalPromptCmd | d.RenderHotPromptCmd) -> dict[str, str]:
         active_resolvers: list[e.Resolver] = []
         match cmd:
-            case RenderNormalPromptCmd():
+            case d.RenderNormalPromptCmd():
                 if cmd.prompt.render.inherit_domain:
                     active_resolvers.extend(cmd.domain.resolvers)
                 active_resolvers.extend(cmd.prompt.render.resolvers)
-            case RenderHotPromptCmd():
+            case d.RenderHotPromptCmd():
                 domain_resolvers = cmd.domain.resolvers
                 prompt_resolvers = cmd.prompt.render.resolvers
 

@@ -1,13 +1,12 @@
-from backend.core.engine_deps import Report, Complaint, Critical, Soft
+from backend.core import engine_deps as d
 
 
-
-class ErrorCollector(Report):
+class ErrorCollector(d.Report):
     def __init__(self) -> None:
-        self._soft_complaints: list[Soft] = []
-        self._critical_complaints: list[Critical] = []
+        self._soft_complaints: list[d.Soft] = []
+        self._critical_complaints: list[d.Critical] = []
 
-    def get_all_complaints(self) -> list[Soft]:
+    def get_all_complaints(self) -> list[d.Soft]:
         return self._soft_complaints+self._critical_complaints
 
     def get_critical_complaints(self) -> list[str]:
@@ -16,7 +15,7 @@ class ErrorCollector(Report):
     def has_crits(self) -> bool:
         return len(self._critical_complaints) > 0
 
-    def accept(self, compl: Complaint) -> None:
+    def accept(self, compl: d.Complaint) -> None:
         match compl:
-            case Critical(): self._critical_complaints.append(compl)
-            case Soft(): self._soft_complaints.append(compl)
+            case d.Critical(): self._critical_complaints.append(compl)
+            case d.Soft(): self._soft_complaints.append(compl)
