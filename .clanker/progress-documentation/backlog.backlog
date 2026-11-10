@@ -1,4 +1,4 @@
-Backlog tail, Selected item/items:
+
 I. Smallfry
 
 II. The wishlist
@@ -30,11 +30,102 @@ II. The wishlist
      2. repo content stuff, changes frequently
      3. instructional stuff, changes rather frequent
 
-9. testing! how do I do testing for a system like this? I need a 'all clear, proceed' signal so I can iterate faster and with confidence
+```text
+9. testing — 'all clear, proceed' gate
+    test the backend in-process, no server, no browser, no real disk.
+    seams already exist: DiskPort + ConfigParserPort are ABCs, so fake them.
+    what to cover, in risk order:
+      - ingestion / numap entity graph (validators, dep ordering, ingest regex)
+      - kb state machine (handle_start, domain select, prompt select, hot path)
+      - render pipeline (hydration, truncation, hot-prompt resolver, manifest)
+      - apply_file_changes (block parsing, deletelist, fence stripping)
+    shape:
+      - one pytest file or small tests/ dir
+      - fixture factories: in-memory disk (dict of path->content), fake cfg parser, canonical workspace
+      - fake disk records writes/deletes for assertion
+      - the gate is just: run pytest, exit 0 = green light
+    out of scope:
+      - http server wiring (thin delegation)
+      - frontend (display layer)
+      - gpu box proxy (pass-through)
+```
+```text
+11. provider model:
+    Clanker's system config can declare providers.
+    The auth tokens and such would be carried in another file, contained in clanker repo but .gitignored. needs to be safe, anywayy
 
+    a. commercial providers
+       - anything that speaks /v1/chat/completions (this is openai's api?)
+       - user supplies base_url + api_key (or no key for local)
+       - this is the "default" shape, most providers fit here
+
+    b. gpu-box (custom)
+       - the tailnet-hosted thing, local GPU
+       - adds host-side control: desktop/inference mode switching, raw box management
+
+    c. noprovider public browser gui llm offerings on the free tier
+       - basically the user will use the webui to get prompts to clipboard
+       - paste those into webui of providers, converse
+       - copy replies which are intented for ingestion over to clank webui, paste
+```
+Backlog tail, Selected item/items:
+```text
+10. controller class + threading server
+    swap base class: ThreadingHTTPServer (stdlib, same module) so concurrent requests work
+    (streaming no longer blocks keyboard/ingest)
+
+    reshape _Handler into a named Controller that:
+      - holds service refs in __init__
+      - one method per endpoint, decorated with @GET / @POST
+      - methods return (status, content_type, body) tuples
+      - server base does: parse path → lookup ROUTES dict → call method → write response
+      - fallback: unmatched GET → static file serve (super().do_GET)
+      - query params / body passed as args to the method
+    - proxy endpoints (gpu box) return (status, content_type, bytes) — same tuple shape, just bytes
+    - no pip deps, stays stdlib http.server under the hood
+
+    supersmall skeleton:
+
+    ROUTES: dict[tuple[str, str], Callable] = {}
+
+    def GET(path):
+        def deco(fn):
+            ROUTES[("GET", path)] = fn
+            return fn
+        return deco
+
+    def POST(path):
+        def deco(fn):
+            ROUTES[("POST", path)] = fn
+            return fn
+        return deco
+
+    class ClankController:
+        def __init__(self, ingestion, kb_service, prompt_service, gpu_box_url):
+            self.ingestion = ingestion
+            self.kb_service = kb_service
+            self.prompt_service = prompt_service
+            self.gpu_box_url = gpu_box_url
+
+        @GET("/api/boot")
+        def boot(self) -> tuple[int, str, str]: ...
+
+        @GET("/api/char")
+        def char(self, params: dict) -> tuple[int, str, dict]: ...
+
+        @POST("/api/ingest")
+        def ingest(self, body: str) -> tuple[int, str, dict]: ...
+
+        @POST("/v1/chat/completions")
+        def proxy_chat(self, body: bytes, headers: dict) -> tuple[int, str, bytes]: ...
+        # same for /api/desktop-mode, /api/inference-mode
+
+    class Server(ThreadingHTTPServer):
+        # ~20 lines: parse, lookup, call, write, static fallback
+```
 Backlog tail end
 
-
+finshed stuffs
 ```text
 1. Copy staged prompt to clipboard via Ctrl+Enter in keyboard bar
     [x] 'content/web-ui/frontend/keyboard-bar.js': Add Ctrl+Enter handler in #handleKeydown
