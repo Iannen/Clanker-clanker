@@ -1,7 +1,10 @@
+import re
+
 from backend.core import entities as e
 from backend.stdlib import dataclass
 from backend.core import engine_deps as d
 from . import PromptContentShaper
+
 
 @dataclass(slots=True)
 class PromptServiceImpl(d.PromptService):
@@ -15,26 +18,60 @@ class PromptServiceImpl(d.PromptService):
             template = self.files.read_asset(e.ClankerAssets.layouts.PROMPT)
         except d.NoSuchFile as ex:
             raise e.CorruptClanker(f"Error loading template for '{cmd.prompt.render.template}': {ex}") from ex
-        repl_map = self._get_repl_map(cmd)
-        text_content = self.shaper.hydrate(template, repl_map)
-        lines_count = len(text_content.splitlines())
-        char_count = len(text_content)
+
+        # a. parse layout into ordered sections
+        section_pattern = re.compile(r"§([^§]+)§")
+        section_names = [m.group(1).strip() for m in section_pattern.finditer(template)]
+        sections: dict[str, list[e.Resolver]] = {name: [] for name in section_names}
+
+        # b. collect resolvers
+        resolvers = self._collect_resolvers(cmd)
+
+        # c. derive global type order (alphabetical by class name)
+        order = sorted({type(r) for r in resolvers}, key=lambda t: t.__name__)
+
+        # d. assign resolvers to sections by anchor
+        for res in resolvers:
+            if res.anchor not in sections:
+                raise e.CorruptClanker(f"Resolver anchor '{res.anchor}' has no matching section in layout")
+            sections[res.anchor].append(res)
+
+        # e. evict empty sections
+        sections = {k: v for k, v in sections.items() if v}
+
+        # f. sort each section's list by type order
+        for key in sections:
+            sections[key].sort(key=lambda r: order.index(type(r)))
+
+        # g-h. build render
+        render = ""
+        for section_name, res_list in sections.items():
+            render += f"¤¤ {section_name} ¤¤\n"
+            for res in res_list:
+                render += self._dispatch(res)
+            render += "\n"
+
+        # i. return
+        lines_count = len(render.splitlines())
+        char_count = len(render)
         return d.PromptRenderResult(
             kb=cmd.kb,
             ui_render=cmd.ui_render,
             cmd=cmd,
-            text=text_content,
+            text=render,
             lines=lines_count,
             chars=char_count,
         )
 
-    def _get_repl_map(self, cmd: d.RenderNormalPromptCmd | d.RenderHotPromptCmd) -> dict[str, str]:
-        active_resolvers: list[e.Resolver] = []
+    def _collect_resolvers(self, cmd: d.RenderNormalPromptCmd | d.RenderHotPromptCmd) -> list[e.Resolver]:
         match cmd:
             case d.RenderNormalPromptCmd():
+                resolvers: list[e.Resolver] = []
                 if cmd.prompt.render.inherit_domain:
-                    active_resolvers.extend(cmd.domain.resolvers)
-                active_resolvers.extend(cmd.prompt.render.resolvers)
+                    resolvers.extend(cmd.domain.resolvers)
+                resolvers.extend(cmd.prompt.render.resolvers)
+                return resolvers
+
             case d.RenderHotPromptCmd():
                 domain_resolvers = cmd.domain.resolvers
                 prompt_resolvers = cmd.prompt.render.resolvers
@@ -47,25 +84,25 @@ class PromptServiceImpl(d.PromptService):
                 instruction_files = [
                     f for r in md_resolvers
                     for f in r.files.files
-                    if f.name.endswith(".mode_instruction") or f.name.endswith(".output_instruction") or f.name.endswith(".history")
+                    if f.name.endswith(".mode_instruction")
+                    or f.name.endswith(".output_instruction")
+                    or f.name.endswith(".history")
                 ]
 
                 lone_resolver = e.MultiDocResolver(
                     anchor="prompt_fragments",
-                    files=e.Filelist(None, files=instruction_files)
+                    files=e.Filelist(None, files=instruction_files),
                 )
-                active_resolvers.append(lone_resolver)
+                return [lone_resolver]
 
-        replacements: dict[str, str] = {}
-        for resolver in active_resolvers:
-            match resolver:
-                case e.MultiDocResolver():
-                    replacements.update(self._res_multi_doc(resolver))
-                case e.RepoContentResolver():
-                    replacements.update(self._res_repo_content(resolver))
-                case e.ManifestResolver():
-                    replacements.update(self._res_manifest(resolver))
-        return replacements
+    def _dispatch(self, res: e.Resolver) -> str:
+        match res:
+            case e.MultiDocResolver():
+                return self._res_multi_doc(res)[res.anchor]
+            case e.RepoContentResolver():
+                return self._res_repo_content(res)[res.anchor]
+            case e.ManifestResolver():
+                return self._res_manifest(res)[res.anchor]
 
     def _res_multi_doc(self, resolver: e.MultiDocResolver) -> dict[str, str]:
         fragments = []
@@ -77,11 +114,23 @@ class PromptServiceImpl(d.PromptService):
         return {resolver.anchor: "\n\n".join(fragments)}
 
     def _res_repo_content(self, resolver: e.RepoContentResolver) -> dict[str, str]:
-        includes = self.files.get_file_paths(e.PathTokens.PUD, [include.value for include in resolver.fileset.includes], missing_ok=False)
-        excludes = self.files.get_file_paths(e.PathTokens.PUD, [exclude.value for exclude in resolver.fileset.excludes], missing_ok=True) if resolver.fileset.excludes else set()
+        includes = self.files.get_file_paths(
+            e.PathTokens.PUD,
+            [include.value for include in resolver.fileset.includes],
+            missing_ok=False,
+        )
+        excludes = (
+            self.files.get_file_paths(
+                e.PathTokens.PUD,
+                [exclude.value for exclude in resolver.fileset.excludes],
+                missing_ok=True,
+            )
+            if resolver.fileset.excludes
+            else set()
+        )
         paths = sorted(includes - excludes)
 
-        file_blocks = ["¤¤ Repository Contents ¤¤"]
+        file_blocks = []
         for p in paths:
             try:
                 content = self.files.read_asset(f"{e.PathTokens.PUD}/{p}").rstrip()
@@ -93,19 +142,31 @@ class PromptServiceImpl(d.PromptService):
 
     def _res_manifest(self, resolver: e.ManifestResolver) -> dict[str, str]:
         manifest_blocks = [
-            self._build_manifest("pud-manifest", e.PathTokens.PUD, resolver.pud_fileset)
+            self._build_manifest("pud-manifest", e.PathTokens.PUD, resolver.pud_fileset),
         ]
 
         if resolver.shared_fileset is not None:
             manifest_blocks.append(
-                self._build_manifest("shared-manifest", e.PathTokens.SHARED, resolver.shared_fileset)
+                self._build_manifest("shared-manifest", e.PathTokens.SHARED, resolver.shared_fileset),
             )
 
         return {resolver.anchor: "\n".join(manifest_blocks)}
 
     def _build_manifest(self, tag: str, basepath_token: str, fileset: e.Fileset) -> str:
-        includes = self.files.get_file_paths(basepath_token, [include.value for include in fileset.includes], missing_ok=False)
-        excludes = self.files.get_file_paths(basepath_token, [exclude.value for exclude in fileset.excludes], missing_ok=True) if fileset.excludes else set()
+        includes = self.files.get_file_paths(
+            basepath_token,
+            [include.value for include in fileset.includes],
+            missing_ok=False,
+        )
+        excludes = (
+            self.files.get_file_paths(
+                basepath_token,
+                [exclude.value for exclude in fileset.excludes],
+                missing_ok=True,
+            )
+            if fileset.excludes
+            else set()
+        )
         paths = sorted(includes - excludes)
         lines = []
         for p in paths:

@@ -41,7 +41,7 @@ class _Handler(SimpleHTTPRequestHandler):
             self._write(404, "text/plain", "Not Found")
             return
         length = int(self.headers.get("Content-Length", 0))
-        raw = self.rfile.read(length) if length else b""
+        raw = self.rfile.read(length) if length else b"{}"
         try:
             body = json.loads(raw)
         except (json.JSONDecodeError, ValueError):

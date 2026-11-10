@@ -13,6 +13,16 @@ pud_filesets:
         content/backend/adapters
     ]}
 
+  debug: {
+    includes: [
+      content/backend,
+      content/web-ui/frontend/api-client.js,
+      content/web-ui/frontend/sidepanel-left.js,
+      content/clank-server.py,
+      content/gpu-box-server-copy
+    ]
+  }
+
 pud_domains:
   old:
     resolvers:
@@ -34,6 +44,24 @@ pud_domains:
   server:
     resolvers:
       - { anchor: repo_content, type: repo-content, fileset: ¤ server }
+    prompts:
+      - name: plan
+        render:
+          resolvers:
+            - { anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ plan_mode }
+      - name: impl
+        render:
+          resolvers:
+            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ do_mode }
+      - name: drain
+        render:
+          resolvers:
+            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_migration_mode }
+
+
+  debug:
+    resolvers:
+      - { anchor: repo_content, type: repo-content, fileset: ¤ debug }
     prompts:
       - name: plan
         render:
