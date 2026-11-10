@@ -13,15 +13,7 @@ pud_filesets:
         content/backend/adapters
     ]}
 
-  debug: {
-    includes: [
-      content/backend,
-      content/web-ui/frontend/api-client.js,
-      content/web-ui/frontend/sidepanel-left.js,
-      content/clank-server.py,
-      content/gpu-box-server-copy
-    ]
-  }
+  test_prompt: {includes: [content/clank-server.py]}
 
 pud_domains:
   old:
@@ -59,19 +51,12 @@ pud_domains:
             - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_migration_mode }
 
 
-  debug:
+  test_prompt:
     resolvers:
-      - { anchor: repo_content, type: repo-content, fileset: ¤ debug }
+      - { anchor: repo_content, type: repo-content, fileset: ¤ test_prompt }
+      - { anchor: domain_fragments, type: multi-document-retrieval, files: [test.doctrine] }
     prompts:
-      - name: plan
+      - name: test
         render:
           resolvers:
-            - { anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ plan_mode }
-      - name: impl
-        render:
-          resolvers:
-            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ do_mode }
-      - name: drain
-        render:
-          resolvers:
-            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_migration_mode }
+            - { anchor: prompt_fragments, type: multi-document-retrieval, files: [web-frontent.doctrine] }

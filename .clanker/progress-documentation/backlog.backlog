@@ -132,21 +132,89 @@ envisioned ingestion output format:
 
 </BL item 10 end>
 
-
-- I think its time to eliminate the use of tag syntax when rendering prompts, in favour of the ¤ ¤ based syntax.
-
 Backlog tail, Selected item/items:
+7. Improve upon structure & clarity of rendered prompts
 
-bug hunt: gpu box status message does not propagate to local webui.
+## CURRENT STRUCTURE EXAMPLE ##
+    ¤¤ base_fragments ¤¤
+    <some-document.md>
+    Truncated document content
+    </some-document.md>
+    <another-document.md>
+    Truncated document content
+    </another-document.md>
+    ¤¤ repo_content ¤¤
+    ¤filepath="path/to/file.py"¤
+    Truncated file content
+    ¤filepath="path/to/file.py"¤
+    ¤filepath="path/to/otherfile.py"¤
+    Truncated file content
+    ¤filepath="path/to/otherfile.py"¤
+    ¤¤ domain_fragments ¤¤
+    <domain_file.txt>
+    Truncated document content
+    </domain_file.txt>
+    <another_domain_file.txt>
+    Truncated document content
+    </another_domain_file.txt>
+    ¤¤ prompt_fragments ¤¤
+    <prompt_spec.txt>
+    Truncated document content
+    </prompt_spec.txt>
+## CURRENT STRUCTURE EXAMPLE END ##
 
-- when I click the 'desktop mode' / 'ai inference mode' buttons in webui, the gpu box does indeed switch modes correctly.
-- the problem is that the status text does not appear in the webui. for a brief moment it will say 'switching', but then that disappears.
+The issue with the above, current structure,  is two fold:
+    - it mixes '¤' and tag/xml like structure elements. The file contents themselves may use tags / xml - so it may be confusing.
+    - its very cramped, reducing human readability
 
-- completions works just fine.
+Below i play around with new structure.
+## DESIRED STRUCTURE EXAMPLE END ##
+    ¤¤ base_fragments ¤¤
 
-- i have included a copy of the gpu box server app which is running.
+    ¤ some-document.md ¤
+    Truncated document content
+    ¤ some-document.md¤
 
-pls help diagnose the issue. is it something to do with wrong reponse content type? or streaming mode? what could it be.
+    ¤ another-document.md ¤
+    Truncated document content
+    ¤ another-document.md ¤
+
+
+    ¤¤ repo_content ¤¤
+
+    ¤ path/to/file.py ¤
+    Truncated file content
+    ¤ path/to/file.py ¤
+
+    ¤ path/to/otherfile.py ¤
+    Truncated file content
+    ¤ path/to/otherfile.py ¤
+
+
+    ¤¤ domain_fragments ¤¤
+
+    ¤ domain_file.txt ¤
+    Truncated document content
+    ¤ domain_file.txt ¤
+
+    ¤ another_domain_file.txt ¤
+    Truncated document content
+    ¤ another_domain_file.txt ¤
+
+
+    ¤¤ prompt_fragments ¤¤
+
+    ¤ prompt_spec.txt ¤ 
+    Truncated document content
+     ¤ prompt_spec.txt ¤
+## DESIRED STRUCTURE EXAMPLE END ##
+
+Uses newlines to help human readers out. I guess it may help LLMs too?
+¤¤ something ¤¤ -> denotes a section
+¤ a path ¤ -> denotes a repo content item ( a source file typically)
+¤ only filename ¤ -> denotes a document, not part of repo content per se (so instructional or things of that nature)
+
+I also toy with the idea of using emojis. Why not wrap documents in some document emoji, rather than arbitrary '¤'
 
 Backlog tail end
 
@@ -193,3 +261,24 @@ n. Render pipeline: layout-driven prompt assembly via anchor-slot fill, dropping
     [x] 'content/backend/render_pipeline/content_shaper.py': Unchanged
         - [x] `SystemKeys.DELIM`, `hydrate`, `apply_truncation` all remain as-is; `apply_truncation` still called by `_res_multi_doc`
 ```text
+```
+1. gpu box status message does not propagate to local webui — RESOLVED
+    [x] 'content/clank-server.py': do_POST fabricated a JSON body for bodyless requests
+        - old _forward passed data=None through faithfully
+        - new do_POST defaulted raw to b"{}", json.loads'd it to {}, then proxy_gpu re-serialized it
+        - GPU box received a Content-Type: application/json POST with {} instead of a bare POST
+        - GPU box still switched mode, but responded with an empty/absent body
+        - browser response.text() yielded "", #setStatus("") cleared the status div
+    [x] 'content/backend/controller.py': proxy_gpu unconditionally attached json body + Content-Type header
+        - widened type hint to body: dict | None
+        - only serializes + sets Content-Type when body is not None
+        - falls back to "text/plain" for missing Content-Type (was "text/event-stream")
+    [x] 'content/web-ui/frontend/api-client.js': no change needed — client was already correct
+        - fetch('/api/desktop-mode') sends no body, which is the right thing
+        - the bug was entirely server-side
+
+    lesson:
+    - a "helpful" default (b"{}") on a proxy path silently mutated the wire protocol
+    - when forwarding HTTP, "no body" is a meaningful state, not a missing one
+    - if the old code looked dumb but worked, the dumbness was the contract
+```
