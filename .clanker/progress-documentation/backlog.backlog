@@ -174,7 +174,7 @@ Backlog tail, Selected item/items:
         - Collect per-operation exceptions into the errors list
         - Return `d.IngestApplyResult(written, deleted, errors)` as before
         - Remove the old regex machinery (`file_header_pattern`, `cleaned_file_pattern`, `delete_pattern`, `_clean_content`)
-```text
+
 5. Standalone test runner for ingestion parser
     [ ] 'content/test/run_tests.py': Create test runner entrypoint
         - Shebang `#!/usr/bin/env -S python3 -B` to suppress pycache
@@ -187,7 +187,6 @@ Backlog tail, Selected item/items:
         - Exposes individual `test_*` functions: test_create, test_update, test_delete, test_missing_closer
         - Each test feeds a raw string covering one case, asserts on the returned creates/updates/deletes/errors lists
         - Exposes a `run()` function that calls all `test_*` in sequence — the runner's contract
-```
 ```
 Backlog tail end
 finshed stuffs
