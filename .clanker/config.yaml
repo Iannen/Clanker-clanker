@@ -12,7 +12,8 @@ pud_filesets:
         content/a__old_tui,
         content/a_lib,
         content/backend/adapters,
-        content/test
+        content/test,
+        content/backend/asset_ingestion
     ]}
 
   test_prompt: {includes: [content/clank-server.py]}
