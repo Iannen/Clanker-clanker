@@ -1,5 +1,6 @@
 system:
-  test_command: "python3 -B test/ship_gate.py"
+  #test_command: "python3 -B test/ship_gate.py"
+  test_command: "PYTHONPATH=content python3 -B -m unittest discover -s content/test -t content/test -p '*.py'"
   apply_command: "echo 'No apply command configured' && true"
   
 pud_filesets:

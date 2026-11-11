@@ -158,15 +158,20 @@ Let us step back and analyse the ingest format our rules dictate - could / shoul
 I guess the instructional becomes something we look at last of all
 
 Backlog tail, Selected item/items:
-```text
+
+Backlog tail end
+
+
+VI. finished stuffs
+
 4. Align repo content ingestion format to mirror render output format
-    [ ] 'content/backend/asset_ingestion/ingestion_parser.py': Create standalone parser helper
+    [x] 'content/backend/asset_ingestion/ingestion_parser.py': Create standalone parser helper
         - Accepts a raw string, returns a result with: creates list[(path, content)], updates list[(path, content)], deletes list[path], errors list[str]
         - Scans line by line; on hitting `¤ (create|update): (.+?) ¤` begins a content block, collects lines until the identical closing bookend; strips triple backticks from the content
         - On hitting `¤ delete: (.+?) ¤` records a standalone delete entry, no content
         - Error case: opening bookend for create/update with no matching closing bookend before EOF → append to errors
         - No dependency on DiskPort, entities, or ErrorCollector — pure string → structured lists
-    [ ] 'content/backend/asset_ingestion/ingestion_service.py': Refactor `apply_file_changes` to delegate to the parser
+    [x] 'content/backend/asset_ingestion/ingestion_service.py': Refactor `apply_file_changes` to delegate to the parser
         - Call the parser with `raw_text`
         - Iterate creates → `self.files.write_file(path, content)`
         - Iterate updates → `self.files.write_file(path, content)`
@@ -176,18 +181,14 @@ Backlog tail, Selected item/items:
         - Remove the old regex machinery (`file_header_pattern`, `cleaned_file_pattern`, `delete_pattern`, `_clean_content`)
 
 5. Standalone test runner for ingestion parser
-    [ ] 'content/test/run_tests.py': Create test runner entrypoint
+    [x] 'content/test/run_tests.py': Create test runner entrypoint
         - Shebang `#!/usr/bin/env -S python3 -B` to suppress pycache
         - Uses `importlib.util` to load test modules by file path — no `__init__.py` required in test dirs
         - Calls each module's `run()` function; catches `AssertionError` per module
         - Prints PASS / FAIL per module, exits 0 if all pass, 1 if any fail
         - Maintains a list of module paths to load; add new test files there as they appear
-    [ ] 'content/test/ingestion/code_ingestion_parser_tests.py': Parser test module
+    [x] 'content/test/ingestion/code_ingestion_parser_tests.py': Parser test module
         - Imports `IngestionParser` from `backend.asset_ingestion.ingestion_parser`
         - Exposes individual `test_*` functions: test_create, test_update, test_delete, test_missing_closer
         - Each test feeds a raw string covering one case, asserts on the returned creates/updates/deletes/errors lists
         - Exposes a `run()` function that calls all `test_*` in sequence — the runner's contract
-```
-Backlog tail end
-finshed stuffs
-

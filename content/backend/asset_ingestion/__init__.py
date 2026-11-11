@@ -5,3 +5,4 @@ from .validators.fileset_validator import *
 from .validators.file_list_validator import *
 from .new.service_workers import *
 from .ingestion_service import *
+from .ingestion_parser import *
