@@ -18,7 +18,7 @@ const html = `
     <toast-notification></toast-notification>
 `;
 
-const className = 'flex flex-col h-screen overflow-hidden antialiased lg:grid lg:grid-cols-[260px_1fr_260px] bg-[#030712] text-[#f3f4f6] font-sans';
+const className = 'flex flex-col h-screen overflow-hidden antialiased lg:lg grid lg:grid-cols-[260px_1fr_260px] bg-[#030712] text-[#f3f4f6] font-sans';
 
 class ClankerApp extends BaseComponent {
     html = html;
@@ -109,7 +109,7 @@ class ClankerApp extends BaseComponent {
 
         this.#keyboardBar.addEventListener('prompt-fired', (e) => {
             this.#showMessagesBox();
-            this.#generateResponse(e.detail);
+            this.#generateResponse(e.detail, { prefill: true });
         });
 
         await this.#bootSystem();
@@ -205,10 +205,11 @@ class ClankerApp extends BaseComponent {
         }
     }
 
-    async #generateResponse(prompt) {
+    async #generateResponse(prompt, { prefill = false } = {}) {
         const userMsg = document.createElement('chat-message');
         userMsg.messageRole = 'user';
         userMsg.content = prompt;
+        if (prefill) userMsg.collapsed = true;
 
         const assistantMsg = document.createElement('chat-message');
         assistantMsg.messageRole = 'assistant';
@@ -219,6 +220,7 @@ class ClankerApp extends BaseComponent {
         try {
             const result = await apiClient.streamChatCompletion({
                 messages: this.messagesBox.getHistory(),
+                max_tokens: prefill ? 1 : undefined,
                 onToken: (token, fullText) => {
                     assistantMsg.updateContent(fullText);
                     this.messagesBox.scrollIfLocked();

@@ -50,7 +50,7 @@ export class ApiClient {
 
     async switchInferenceMode() { return this.#post('/api/inference-mode'); }
 
-    async streamChatCompletion({ messages, onToken, onReasoning } = {}) {
+    async streamChatCompletion({ messages, max_tokens, onToken, onReasoning } = {}) {
         const response = await fetch('/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -58,9 +58,11 @@ export class ApiClient {
             },
             body: JSON.stringify({
                 messages,
-                stream: true
+                stream: true,
+                ...(max_tokens !== undefined ? { max_tokens: max_tokens } : {})
             })
         });
+
 
         if (!response.ok) throw new Error('Server error: ' + response.statusText);
 

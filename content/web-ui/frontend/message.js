@@ -70,6 +70,7 @@ class Message extends BaseComponent {
 
     messageRole = 'assistant';
     counter = 0;
+    collapsed = false;
 
     #content = '';
     #reasoning = '';
@@ -138,6 +139,7 @@ class Message extends BaseComponent {
 
         this.#renderSummaries();
         this.#renderContent();
+        if (this.collapsed) this.contentElement?.removeAttribute('open');
         this.updateReasoning(this.#reasoning);
         this.#renderPerformance();
     }
