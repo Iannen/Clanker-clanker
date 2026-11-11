@@ -26,7 +26,7 @@ from core.engine_deps import (
     UninhabitedPromptResult,
 )
 
-_FRONTEND_DIR = Path(__file__).parent.parent.parent / "web-ui" / "frontend"
+_FRONTEND_DIR = Path(__file__).parent.parent.parent.parent / "web-ui" / "frontend"
 
 
 class _ReplySlot:

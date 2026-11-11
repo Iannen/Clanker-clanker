@@ -13,6 +13,8 @@ pud_filesets:
         content/backend/adapters
     ]}
 
+  test_prompt: {includes: [content/clank-server.py]}
+
 pud_domains:
   old:
     resolvers:
@@ -47,3 +49,14 @@ pud_domains:
         render:
           resolvers:
             - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_migration_mode }
+
+
+  test_prompt:
+    resolvers:
+      - { anchor: repo_content, type: repo-content, fileset: ¤ test_prompt }
+      - { anchor: domain_fragments, type: multi-document-retrieval, files: [test.doctrine] }
+    prompts:
+      - name: test
+        render:
+          resolvers:
+            - { anchor: prompt_fragments, type: multi-document-retrieval, files: [web-frontent.doctrine] }

@@ -41,14 +41,15 @@ class _Handler(SimpleHTTPRequestHandler):
             self._write(404, "text/plain", "Not Found")
             return
         length = int(self.headers.get("Content-Length", 0))
-        raw = self.rfile.read(length) if length else b""
-        try:
-            body = json.loads(raw)
-        except (json.JSONDecodeError, ValueError):
-            self._write(400, "text/plain", "Malformed request body")
-            return
-        status, ctype, resp = entry(self.controller, body)
+        raw = self.rfile.read(length) if length else None
+        body = json.loads(raw) if raw is not None else None
+        if body is None:
+            # No body was sent – pass None so proxy_gpu can forward bodyless
+            status, ctype, resp = entry(self.controller, None)
+        else:
+            status, ctype, resp = entry(self.controller, body)
         self._write(status, ctype, resp)
+
 
     def _write(self, status: int, ctype: str, body):
         if isinstance(body, HTTPResponse):

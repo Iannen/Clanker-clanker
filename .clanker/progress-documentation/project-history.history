@@ -1674,3 +1674,57 @@ CCIV: ENGINE_DEPS ALIAS IMPORTS
     - `file_list_validator.py`: 2-name import → `from backend.core import engine_deps as d`; usage sites updated
     Reflection:
     - Uniform `d.` prefix across every backend consumer makes cross-file references consistent and keeps import lines to a single statement. No behavioural or runtime change; purely a readability/consistency refactor.
+
+CCV: RENDER PIPELINE — LAYOUT-DRIVEN ASSEMBLY, SECTION REORDER, STANDARDIZED DELIMITERS
+    Purpose: Rebuild prompt rendering from string-substitution to layout-driven section assembly; standardize fragment delimiters; reorder sections for K/V cache locality
+    - Layout becomes the single source of truth for section order and boundaries
+    - Uniform `¤ name ¤` delimiters are unambiguous to the model and symmetric between input/output
+    - Instructions live at the tail of the prompt (closer to generation) for better compliance
+    Actions:
+    - `render_service.py` `render_prompt`: parse `§...§` markers via `re.finditer`, build `sections: dict[str, list[Resolver]]`, call `_collect_resolvers(cmd)`, bucket by `.anchor`, evict empty sections, sort each section by class-name order, emit `¤¤ {anchor} ¤¤` header + dispatched fragments joined with blank-line spacing
+    - `render_service.py` `_collect_resolvers`: `RenderNormalPromptCmd` → domain resolvers (gated by `inherit_domain`) + prompt resolvers; `RenderHotPromptCmd` → collect `.mode_instruction` / `.output_instruction` / `.history` files into a single `lone_resolver`, return `[lone_resolver]`
+    - `render_service.py` `_dispatch`: match on resolver type (`MultiDocResolver`, `RepoContentResolver`, `ManifestResolver`), call corresponding `_res_*`, index result by `[res.anchor]`
+    - `render_service.py` `_res_multi_doc`: fragment format `¤ {name} ¤\n{content}\n¤ {name} ¤` (replaced XML-tag wrapping)
+    - `render_service.py` `_res_repo_content`: block format `¤ {p} ¤\n{content}\n¤ {p} ¤` (replaced `¤filepath="..."¤` attribute wrapping)
+    - `render_service.py` `_build_manifest`: block format `¤ {tag} ¤\n{lines}\n¤ {tag} ¤` (replaced `<tag>...</tag>`); join pud-manifest and shared-manifest with `\n\n`
+    - `render_service.py`: remove `self.shaper.hydrate(template, repl_map)` call; raise `e.CorruptClanker` if resolver anchor has no matching section
+    - `prompt.layout`: reorder slots to base_fragments → repo_content → domain_fragments → prompt_fragments (rarely-changing before frequently-changing for K/V cache hit rate)
+    - `content_shaper.py`: unchanged; `apply_truncation` still called by `_res_multi_doc`, `hydrate` no longer on hot path
+    Reflection:
+    - Adding or reordering a section is now a layout-file edit, not a code change; the render pipeline is data-driven
+    - Section reorder places `repo_content` (changes on git commit, rare) before `domain_fragments` / `prompt_fragments` (change on backlog edit, frequent), improving prefix-cache hit rate
+    - `hydrate` removed from main path; `PromptContentShaper` is now truncation-only, reducing coupling
+
+CCVI: SERVER — CONTROLLER, THREADING SERVER, PROXY BODYLESS FIX
+    Purpose: Build the HTTP entrypoint and routing layer; correct bodyless POST forwarding to the GPU box
+    - Replace prior `server.py` / `backend/__init__.py` with a self-contained `clank-server.py` + `controller.py`
+    - Threading server for concurrent request handling without external framework
+    - "No body" is a meaningful HTTP state; fabricating `b"{}"` silently mutated the wire protocol
+    Actions:
+    - `clank-server.py`: `ClankServer(ThreadingHTTPServer)`, `_Handler(SimpleHTTPRequestHandler)`, `run()`, `main()` wiring (adapters, services, controller, server)
+    - `clank-server.py` `_Handler.do_GET`: `ROUTES` lookup, `parse_qs` for query params, fallback to static file serving
+    - `clank-server.py` `_Handler.do_POST`: `ROUTES` lookup, read `Content-Length`, `json.loads` if body present, pass `None` if no body (not fabricated `{}`)
+    - `clank-server.py` `_Handler._write`: three paths — `HTTPResponse` → chunk-stream (for SSE), `dict` → `json.dumps`, `str` → `.encode("utf-8")`; sets `Cache-Control: no-cache` on streamed responses
+    - `controller.py`: `ROUTES: dict[tuple[str, str], Callable]`, `@GET` / `@POST` decorators, `ClankController` class, `_shape_kb_emission(result)` for keyboard-bar JSON payload
+    - `controller.py` routes: `@GET("/api/boot")`, `@GET("/api/char")`, `@POST("/api/ingest")`, `@POST("/v1/chat/completions")` + `@POST("/api/desktop-mode")` + `@POST("/api/inference-mode")` stacked on `proxy_gpu`
+    - `controller.py` `proxy_gpu`: widened hint to `body: dict | None`; only serializes + sets `Content-Type: application/json` when body is not `None`; falls back to `"text/plain"` for missing Content-Type
+    - Delete `content/backend/server.py` and `content/backend/__init__.py`
+    Reflection:
+    - Stacked decorators on `proxy_gpu` (three URL paths → one handler) keeps the routing table minimal
+    - `_write` unifies three response shapes in one method, avoiding per-route serialization logic
+    - The bodyless-POST bug taught that "no body" ≠ "empty body"; the fix is to forward `None` faithfully and let the upstream server decide
+    - `ThreadingHTTPServer` + `SimpleHTTPRequestHandler` gives static-file serving and API routing in one process with zero external dependencies
+
+CCVII: KEYBOARD BAR — CTRL+ENTER CLIPBOARD COPY
+    Purpose: Allow the user to copy the staged prompt to clipboard directly from the keyboard bar, closing the render→stage→copy loop
+    - Staged prompt is held in `#stagedPrompt` after a `prompt_render` response; previously there was no in-component way to copy it
+    Actions:
+    - `keyboard-bar.js` `#handleKeydown`: intercept `Ctrl+Enter` before the early `ctrl/alt/meta` return
+    - `event.stopPropagation()` + `event.preventDefault()` to suppress the global `clanker-app.js` handler
+    - `navigator.clipboard.writeText(this.#stagedPrompt)` with `.then` / `.catch` for success/error feedback
+    - No-op if `#stagedPrompt` is `null` (no prompt staged yet)
+    - Feedback rendered to the existing `.status-line` element (not toast), consistent with the component's reporting style
+    Reflection:
+    - Closes the prompt-staging loop entirely within the keyboard bar: render → stage → copy, no context menu needed
+    - `stopPropagation` is load-bearing: without it, the global handler in `clanker-app.js` would also fire on `Ctrl+Enter` (it maps `Ctrl+Enter` to `#copySelected`)
+    - Using the status line for feedback keeps the component self-contained; no cross-component toast dependency

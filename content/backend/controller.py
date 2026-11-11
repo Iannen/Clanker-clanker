@@ -131,12 +131,18 @@ class ClankController:
     @POST("/v1/chat/completions")
     @POST("/api/desktop-mode")
     @POST("/api/inference-mode")
-    def proxy_gpu(self, body: dict, path: str) -> tuple[int, str, Any]:
+    def proxy_gpu(self, body: dict | None, path: str) -> tuple[int, str, Any]:
+        req_headers: dict[str, str] = {}
+        data = None
+        if body is not None:
+            data = json.dumps(body).encode("utf-8")
+            req_headers["Content-Type"] = "application/json"
+
         req = urllib.request.Request(
             self.gpu_box_url + path,
-            data=json.dumps(body).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
+            data=data,
+            headers=req_headers,
             method="POST",
         )
         resp = urllib.request.urlopen(req)
-        return (resp.status, resp.headers.get("Content-Type", "text/event-stream"), resp)
+        return (resp.status, resp.headers.get("Content-Type", "text/plain"), resp)
