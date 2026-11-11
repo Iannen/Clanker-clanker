@@ -1,6 +1,6 @@
 system:
   #test_command: "python3 -B test/ship_gate.py"
-  test_command: "PYTHONPATH=content python3 -B -m unittest discover -s content/test -t content/test -p '*.py'"
+  test_command: "PYTHONPATH=content python3 -B -m unittest discover -s content/test -t content/test -p '*.py' -v"
   apply_command: "echo 'No apply command configured' && true"
   
 pud_filesets:
@@ -11,7 +11,8 @@ pud_filesets:
       excludes: [
         content/a__old_tui,
         content/a_lib,
-        content/backend/adapters
+        content/backend/adapters,
+        content/test
     ]}
 
   test_prompt: {includes: [content/clank-server.py]}

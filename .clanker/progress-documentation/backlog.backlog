@@ -158,7 +158,7 @@ Let us step back and analyse the ingest format our rules dictate - could / shoul
 I guess the instructional becomes something we look at last of all
 
 Backlog tail, Selected item/items:
-
+We will be doing some prompt engineering analysis today, affirm readiness
 Backlog tail end
 
 
@@ -180,15 +180,14 @@ VI. finished stuffs
         - Return `d.IngestApplyResult(written, deleted, errors)` as before
         - Remove the old regex machinery (`file_header_pattern`, `cleaned_file_pattern`, `delete_pattern`, `_clean_content`)
 
+
 5. Standalone test runner for ingestion parser
-    [x] 'content/test/run_tests.py': Create test runner entrypoint
-        - Shebang `#!/usr/bin/env -S python3 -B` to suppress pycache
-        - Uses `importlib.util` to load test modules by file path — no `__init__.py` required in test dirs
-        - Calls each module's `run()` function; catches `AssertionError` per module
-        - Prints PASS / FAIL per module, exits 0 if all pass, 1 if any fail
-        - Maintains a list of module paths to load; add new test files there as they appear
-    [x] 'content/test/ingestion/code_ingestion_parser_tests.py': Parser test module
-        - Imports `IngestionParser` from `backend.asset_ingestion.ingestion_parser`
-        - Exposes individual `test_*` functions: test_create, test_update, test_delete, test_missing_closer
-        - Each test feeds a raw string covering one case, asserts on the returned creates/updates/deletes/errors lists
-        - Exposes a `run()` function that calls all `test_*` in sequence — the runner's contract
+    [x] 'content/test/ingestion/code_ingestion_parser_tests.py': Parser test module (unittest-based)
+        - Imports `unittest` and `IngestionParser` from `backend.asset_ingestion.ingestion_parser`
+        - Defined as `TestIngestionParser(unittest.TestCase)` class with `setUp`
+        - Exposes `test_create`, `test_update`, `test_delete`, `test_missing_closer` as class methods
+        - Each test feeds a raw string, asserts on the returned creates/updates/deletes/errors lists
+        - No `run()` function; discovered/executed via standard `unittest` discovery (`python -m unittest`)
+    [x] 'content/test/__init__.py' + 'content/test/ingestion/__init__.py': Package markers
+        - Empty `__init__.py` files making test dirs importable as packages
+        - No standalone `run_tests.py` runner was created; the `unittest` framework handles discovery and execution
