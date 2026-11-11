@@ -1,21 +1,30 @@
-## Output Format Guidelines
+# New files, files to modify: 
 
-New / modified files:
+Paired delimiters, fenced content.
+---
 
-* Only complete file contents, never partial
-* Bookended with identical `¤filepath = "path/to/file.py"¤` lines at the start and end of each file block
-* All code contents enclosed in language-appropriate triple backticks between the bookends
+¤ create: path/to/file ¤
+```language identifier
+#complete file contents
+```
+¤ create: path/to/file ¤
 
-Files to be deleted:
+¤ update: path/to/other-file ¤
+```language identifier
+#complete file contents
+```
+¤ update: path/to/other-file ¤
 
-* Preceded by `¤deletelist¤`
-* Simple list of paths formatted as `¤filepath="path/to/obsolete.py"¤`
+# Files to be deleted:
+
+Standalone directive, no content.
+¤ delete: path/to/obsolete.py ¤
 
 ---
 
-### Example Output
+# Example Output
 
-¤filepath = "src/calculator.py"¤
+¤ create: src/calculator.py ¤
 ```python
 def add(a: int, b: int) -> int:
     return a + b
@@ -23,9 +32,9 @@ def add(a: int, b: int) -> int:
 def subtract(a: int, b: int) -> int:
     return a - b
 ```
-¤filepath = "src/calculator.py"¤
+¤ create: src/calculator.py ¤
 
-¤filepath = "tests/test_calculator.py"¤
+¤ update: tests/test_calculator.py ¤
 ```python
 import unittest
 from src.calculator import add, subtract
@@ -37,8 +46,7 @@ class TestCalculator(unittest.TestCase):
 if __name__ == '__main__':
     unittest.main()
 ```
-¤filepath = "tests/test_calculator.py"¤
+¤ update: tests/test_calculator.py ¤
 
-¤deletelist¤
-¤filepath="src/old_calculator.py"¤
-¤filepath="tests/test_old_calculator.py"¤
+¤ delete: src/old_calculator.py ¤
+¤ delete: tests/test_old_calculator.py ¤

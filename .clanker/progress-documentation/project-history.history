@@ -1728,3 +1728,29 @@ CCVII: KEYBOARD BAR — CTRL+ENTER CLIPBOARD COPY
     - Closes the prompt-staging loop entirely within the keyboard bar: render → stage → copy, no context menu needed
     - `stopPropagation` is load-bearing: without it, the global handler in `clanker-app.js` would also fire on `Ctrl+Enter` (it maps `Ctrl+Enter` to `#copySelected`)
     - Using the status line for feedback keeps the component self-contained; no cross-component toast dependency
+
+CCVIII: INGESTION PARSER EXTRACTION — BOOKEND FORMAT ALIGNMENT
+    Purpose: Decouple ingestion parsing from the service layer so the `¤ … ¤` bookend format used in render output can be parsed identically on ingest, unifying the render→ingest data round-trip
+    - The old `apply_file_changes` had embedded regex patterns tightly coupled to `DiskPort` and `ErrorCollector`, making the format fragile and untestable in isolation
+    Actions:
+    - Created `IngestionParser` in `ingestion_parser.py` as a pure string→structured-lists converter with no dependency on `DiskPort`, entities, or `ErrorCollector`
+    - Parser scans line-by-line: `¤ create/update: path ¤` opens a block, collects until the matching closing bookend, strips triple backticks; `¤ delete: path ¤` is a standalone entry
+    - Unclosed bookends are collected into the `errors` list rather than raising
+    - Refactored `IngestionServiceImpl.apply_file_changes` to delegate to `IngestionParser`, iterating creates/updates/deletes and collecting per-op exceptions
+    - Removed the old inline regex machinery (`file_header_pattern`, `cleaned_file_pattern`, `delete_pattern`, `_cleaned_content`)
+    Reflection:
+    - The bookend format is now a true bidirectional contract: render emits `¤ path ¤ … ¤ path ¤`, ingestion accepts the same shape, closing the loop
+    - Pure-function parser is trivially unit-testable without mocking disk or collector dependencies
+    - `_prefix_path` in the service still handles `<PUD>`/`<SHARED>` token prefixing, keeping path resolution at the service boundary
+
+CCIX: INGESTION PARSER TEST SUITE
+    Purpose: Lock in the parser's contract with standalone unittest cases so format regressions are caught before they hit the service layer
+    - The parser is the single choke-point between LLM-emitted ingestion text and disk writes; a silent parse bug would corrupt repo content
+    Actions:
+    - Created `content/test/ingestion/code_ingestion_parser_tests.py` as a `TestIngestionParser(unittest.TestCase)` class
+    - Four test methods: `test_create`, `test_update`, `test_delete`, `test_missing_closer` — each feeds a raw string and asserts on the returned creates/updates/deletes/errors
+    - Added `content/test/__init__.py` and `content/test/ingestion/__init__.py` as package markers for standard `unittest` discovery
+    - No custom `run_tests.py` runner; execution is `python -m unittest discover -s content/test`
+    Reflection:
+    - Relying on `unittest`'s built-in discovery keeps the test infrastructure zero-dependency, consistent with the backend's "no external deps" philosophy
+    - The four cases cover the happy paths (create, update, delete) and the one error path (unclosed bookend), which is the most likely LLM emission failure mode
