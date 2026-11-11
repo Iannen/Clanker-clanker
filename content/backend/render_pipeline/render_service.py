@@ -44,12 +44,14 @@ class PromptServiceImpl(d.PromptService):
             sections[key].sort(key=lambda r: order.index(type(r)))
 
         # g-h. build render
-        render = ""
+        render_parts: list[str] = []
         for section_name, res_list in sections.items():
-            render += f"¤¤ {section_name} ¤¤\n"
-            for res in res_list:
-                render += self._dispatch(res)
-            render += "\n"
+            header = f"¤¤ {section_name} ¤¤"
+            fragments = [self._dispatch(res) for res in res_list]
+            section_content = header + "\n\n" + "\n\n".join(fragments)
+            render_parts.append(section_content)
+
+        render = "\n\n\n".join(render_parts) + "\n"
 
         # i. return
         lines_count = len(render.splitlines())
@@ -109,7 +111,7 @@ class PromptServiceImpl(d.PromptService):
         for file_obj in resolver.files.files:
             raw_content = self.files.read_asset(file_obj.path)
             content = self.shaper.apply_truncation(raw_content, file_obj.truncation_spec)
-            fragments.append(f"<{file_obj.name}>\n{content}\n</{file_obj.name}>")
+            fragments.append(f"¤ {file_obj.name} ¤\n{content}\n¤ {file_obj.name} ¤")
 
         return {resolver.anchor: "\n\n".join(fragments)}
 
@@ -134,7 +136,7 @@ class PromptServiceImpl(d.PromptService):
         for p in paths:
             try:
                 content = self.files.read_asset(f"{e.PathTokens.PUD}/{p}").rstrip()
-                file_blocks.append(f'¤filepath="{p}"¤\n{content}\n¤filepath="{p}"¤')
+                file_blocks.append(f"¤ {p} ¤\n{content}\n¤ {p} ¤")
             except UnicodeDecodeError:
                 pass
 
@@ -150,7 +152,7 @@ class PromptServiceImpl(d.PromptService):
                 self._build_manifest("shared-manifest", e.PathTokens.SHARED, resolver.shared_fileset),
             )
 
-        return {resolver.anchor: "\n".join(manifest_blocks)}
+        return {resolver.anchor: "\n\n".join(manifest_blocks)}
 
     def _build_manifest(self, tag: str, basepath_token: str, fileset: e.Fileset) -> str:
         includes = self.files.get_file_paths(
@@ -177,4 +179,4 @@ class PromptServiceImpl(d.PromptService):
             except UnicodeDecodeError:
                 pass
 
-        return f"<{tag}>\n" + "\n".join(lines) + "\n</" + tag + ">"
+        return f"¤ {tag} ¤\n" + "\n".join(lines) + f"\n¤ {tag} ¤"
