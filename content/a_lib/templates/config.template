@@ -13,7 +13,7 @@ pud_domains:
       - name: manifest
         render:
           resolvers:
-            - { anchor: prompt_fragments, type: multi-document-retrieval, files: [] }            
+            - { anchor: session instructions, type: multi-document-retrieval, files: [] }            
 
   files:
     resolvers:
@@ -22,13 +22,13 @@ pud_domains:
       - name: plan
         render:
           resolvers:
-            - { anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ plan_mode }
+            - { anchor: session instructions, type: multi-document-retrieval, files: ¤ plan_mode }
       - name: impl
         render:
           resolvers:
-            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ do_mode}
+            - {anchor: session instructions, type: multi-document-retrieval, files: ¤ do_mode}
 
       - name: drain
         render:
           resolvers:
-            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_migration_mode}
+            - {anchor: session instructions, type: multi-document-retrieval, files: ¤ doc_migration_mode}

@@ -78,6 +78,10 @@ Backlog tail, Selected item/items:
         - prohibition: do not change dispatch order or section anchoring; only the within-section type ordering changes
         - prohibition: do not reorder across different anchors — precedence only reorders resolvers sharing one anchor
 
+- rename files .output_instructions -> 'output-schema'  
+
+- prompt_fragments - > 'converation instructions'
+
 Backlog tail end
 
 Remove dead code and unnecessary @dataclass(slots=True) usage from the backend and web UI

@@ -92,7 +92,7 @@ class PromptServiceImpl(d.PromptService):
                 ]
 
                 lone_resolver = e.MultiDocResolver(
-                    anchor="prompt_fragments",
+                    anchor="session instructions",
                     files=e.Filelist(None, files=instruction_files),
                 )
                 return [lone_resolver]
