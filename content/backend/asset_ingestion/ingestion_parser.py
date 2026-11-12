@@ -1,6 +1,8 @@
 import re
 from dataclasses import dataclass
 
+from backend.core import entities as e
+
 
 @dataclass
 class IngestionParseResult:
@@ -11,7 +13,12 @@ class IngestionParseResult:
 
 
 class IngestionParser:
-    _bookend_re = re.compile(r'^¤\s*(create|update|delete)\s*:\s*(.+?)\s*¤$')
+    _bookend_re = re.compile(
+        r"^" + e.Delims.FILESET_MEMBER
+        + r"\s*(create|update|delete)\s*:\s*(.+?)\s*"
+        + e.Delims.FILESET_MEMBER
+        + r"$"
+    )
 
     def parse(self, raw_text: str) -> IngestionParseResult:
         lines = raw_text.splitlines()
@@ -39,7 +46,7 @@ class IngestionParser:
                 continue
 
             # create or update: scan forward for the identical closing bookend
-            closing = f"¤ {action}: {path} ¤"
+            closing = f"{e.Delims.FILESET_MEMBER} {action}: {path} {e.Delims.FILESET_MEMBER}"
             j = i + 1
             content_lines: list[str] = []
             found = False

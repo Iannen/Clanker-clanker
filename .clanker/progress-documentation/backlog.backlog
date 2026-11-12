@@ -66,27 +66,20 @@ II. The wishlist
 
 III. Items under development
 
+```text
+3. Auto-substitute delims in .output-template files during multi-doc rendering
+    [ ] 'content/backend/render_pipeline/render_service.py': Dispatch extension check in _res_multi_doc
+        - task: after truncation, if file_obj.name.endswith(".output-template"), call shaper helper
+        - prohibition: keep the check to a single-line if at the call site; no registry, no config
+    [ ] 'content/backend/render_pipeline/content_shaper.py': Add substitute_delims method
+        - task: pure string-in/string-out, calls e.Delims.build_output_template
+        - prohibition: shaper stays filename-agnostic; it doesn't know why it's being called
+    [ ] 'content/backend/core/core/entities.py': Add build_output_template classmethod to Delims
+        - task: replace {{PROMPT_SECTION}}, {{FILESET_MEMBER}}, {{FILELIST_MEMBER}}, {{MANIFEST_MEMBER}} placeholders
+        - prohibition: template file itself stores placeholders, not literal delims
+```
+
 Backlog tail, Selected item/items:
-
-1. Replace hardcoded "¤" / "¤¤" literals with a shared Delims constant class in the render and intake-parsing paths.
-    [ ] 'content/backend/core/core/entities.py': Add a Delims class with four string constants (PROMPT_SECTION="¤¤", FILESET_MEMBER="¤", FILELIST_MEMBER="¤", MANIFEST_MEMBER="¤")
-        - task: keep all four as plain string literals — no methods, no logic, constants only
-        - prohibition: do not touch map_extractor2.py's entity-reference marker (data.startswith("¤")); it is intentionally out of scope for this item
-        - prohibition: do not rename or relocate the class mid-item; callers reference e.Delims.<NAME>
-    [ ] 'content/backend/asset_ingestion/ingestion_parser.py': Reference e.Delims.FILESET_MEMBER for the create/update/delete bookends
-        - task: replace the literal "¤" in the bookend regex (^¤ ... ¤$) with e,Delims.FILESET_MEMBER
-        - task: replace the literal "¤" in the closing-bookend string (f"¤ {action}: {path} ¤") with e.Delims.FILESET_MEMBER
-        - prohibition: regex must be built dynamically (it is a raw string literal), e.g. re.compile(r"^" + e.Delims.FILESET_MEMBER + r"\s*(create|update|delete)\s*:\s*(.+?)\s*" + e.Delims.FILESET_MEMBER + r"$")
-        - prohibition: keep the create|update|delete capture and path group unchanged
-    [ ] 'content/backend/render_pipeline/render_service.py': Reference the four constants at their emit sites
-        - task: PROMPT_SECTION in the section header (f"¤¤ {section} ¤¤")
-        - task: FILESET_MEMBER in _res_repo_content file boundaries
-        - task: FILELIST_MEMBER in _res_multi_doc file boundaries
-        - task: MANIFEST_MEMBER in _res_manifest/_build_manifest boundaries
-        - prohibition: do not alter dispatch order, section anchoring, or output structure — only the delimiter literals change
-        - prohibition: leave the section-pattern regex r"§([^§]+)§" alone — that uses the section-sign character (§), not the delimiter
-
-Backlog tail end
 
 2. Replace resolver type-ordering in prompt rendering with an explicit ordered list
     [ ] 'content/backend/render_pipeline/render_service.py': Swap alphabetical type sort for a fixed resolver precedence list
@@ -98,11 +91,28 @@ Backlog tail end
         - prohibition: do not change dispatch order or section anchoring; only the within-section type ordering changes
         - prohibition: do not reorder across different anchors — precedence only reorders resolvers sharing one anchor
 
-- rename files .output_instructions -> 'output-schema'  
-
-- prompt_fragments - > 'converation instructions'
+Backlog tail end
 
 
+VI. finished stuffs
+
+Replace hardcoded "¤" / "¤¤" literals with a shared Delims constant class in the render and intake-parsing paths.
+    [x] 'content/backend/core/core/entities.py': Add a Delims class with four string constants (PROMPT_SECTION="¤¤", FILESET_MEMBER="¤", FILELIST_MEMBER="¤", MANIFEST_MEMBER="¤")
+        - task: keep all four as plain string literals — no methods, no logic, constants only
+        - prohibition: do not touch map_extractor2.py's entity-reference marker (data.startswith("¤")); it is intentionally out of scope for this item
+        - prohibition: do not rename or relocate the class mid-item; callers reference e.Delims.<NAME>
+    [x] 'content/backend/asset_ingestion/ingestion_parser.py': Reference e.Delims.FILESET_MEMBER for the create/update/delete bookends
+        - task: replace the literal "¤" in the bookend regex (^¤ ... ¤$) with e.Delims.FILESET_MEMBER
+        - task: replace the literal "¤" in the closing-bookend string (f"¤ {action}: {path} ¤") with e.Delims.FILESET_MEMBER
+        - prohibition: regex must be built dynamically (it is a raw string literal), e.g. re.compile(r"^" + e.Delims.FILESET_MEMBER + r"\s*(create|update|delete)\s*:\s*(.+?)\s*" + e.Delims.FILESET_MEMBER + r"$")
+        - prohibition: keep the create|update|delete capture and path group unchanged
+    [x] 'content/backend/render_pipeline/render_service.py': Reference the four constants at their emit sites
+        - task: PROMPT_SECTION in the section header (f"¤¤ {section} ¤¤")
+        - task: FILESET_MEMBER in _res_repo_content file boundaries
+        - task: FILELIST_MEMBER in _res_multi_doc file boundaries
+        - task: MANIFEST_MEMBER in _res_manifest/_build_manifest boundaries
+        - prohibition: do not alter dispatch order, section anchoring, or output structure — only the delimiter literals change
+        - prohibition: leave the section-pattern regex r"§([^§]+)§" alone — that uses the section-sign character (§), not the delimiter
 
 Remove dead code and unnecessary @dataclass(slots=True) usage from the backend and web UI
     [x] 'web-ui/frontend/api-client.js': delete getTestPrompt() method (calls never-registered /api/test-prompt)
@@ -121,5 +131,3 @@ Remove dead code and unnecessary @dataclass(slots=True) usage from the backend a
         - [x] change @dataclass(slots=True) to @dataclass
     [x] 'backend/render_pipeline/render_service.py': remove slots=True from @dataclass(PromptServiceImpl)
         - [x] change @dataclass(slots=True) to @dataclass
-
-VI. finished stuffs

@@ -46,7 +46,7 @@ class PromptServiceImpl(d.PromptService):
         # g-h. build render
         render_parts: list[str] = []
         for section_name, res_list in sections.items():
-            header = f"¤¤ {section_name} ¤¤"
+            header = f"{e.Delims.PROMPT_SECTION} {section_name} {e.Delims.PROMPT_SECTION}"
             fragments = [self._dispatch(res) for res in res_list]
             section_content = header + "\n\n" + "\n\n".join(fragments)
             render_parts.append(section_content)
@@ -111,7 +111,7 @@ class PromptServiceImpl(d.PromptService):
         for file_obj in resolver.files.files:
             raw_content = self.files.read_asset(file_obj.path)
             content = self.shaper.apply_truncation(raw_content, file_obj.truncation_spec)
-            fragments.append(f"¤ {file_obj.name} ¤\n{content}\n¤ {file_obj.name} ¤")
+            fragments.append(f"{e.Delims.FILELIST_MEMBER} {file_obj.name} {e.Delims.FILELIST_MEMBER}\n{content}\n{e.Delims.FILELIST_MEMBER} {file_obj.name} {e.Delims.FILELIST_MEMBER}")
 
         return {resolver.anchor: "\n\n".join(fragments)}
 
@@ -136,7 +136,7 @@ class PromptServiceImpl(d.PromptService):
         for p in paths:
             try:
                 content = self.files.read_asset(f"{e.PathTokens.PUD}/{p}").rstrip()
-                file_blocks.append(f"¤ {p} ¤\n{content}\n¤ {p} ¤")
+                file_blocks.append(f"{e.Delims.FILESET_MEMBER} {p} {e.Delims.FILESET_MEMBER}\n{content}\n{e.Delims.FILESET_MEMBER} {p} {e.Delims.FILESET_MEMBER}")
             except UnicodeDecodeError:
                 pass
 
@@ -179,4 +179,4 @@ class PromptServiceImpl(d.PromptService):
             except UnicodeDecodeError:
                 pass
 
-        return f"¤ {tag} ¤\n" + "\n".join(lines) + f"\n¤ {tag} ¤"
+        return f"{e.Delims.MANIFEST_MEMBER} {tag} {e.Delims.MANIFEST_MEMBER}\n" + "\n".join(lines) + f"\n{e.Delims.MANIFEST_MEMBER} {tag} {e.Delims.MANIFEST_MEMBER}"

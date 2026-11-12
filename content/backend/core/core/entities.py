@@ -155,6 +155,18 @@ class AssetPack(RepoItem):
         self.paths = paths
 
 
+class Delims:
+    PROMPT_SECTION = "¤¤" # 🔖
+    FILESET_MEMBER = "¤" #🗃️
+    FILELIST_MEMBER = "¤" # 📃
+    MANIFEST_MEMBER = "¤" # 🗄️
+"""
+class Delims:
+    PROMPT_SECTION = "🔖" # 
+    FILESET_MEMBER = "🗃️" #
+    FILELIST_MEMBER = "📃" # 
+    MANIFEST_MEMBER = "🗄️" # 
+"""
 class PathTokens:
     PUD = "<PUD>"
     SHARED = "<SHARED>"

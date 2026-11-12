@@ -19,6 +19,8 @@ pud_filesets:
         content/test
     ]}
 
+  test: {includes: [content/demofile.py]}
+
 pud_domains:
   old_tui:
     resolvers:
@@ -32,6 +34,15 @@ pud_domains:
   web-clank:
     resolvers:
       - { anchor: repository, type: repo-content, fileset: ¤ server }
+      - { anchor: project documentation, type: multi-document-retrieval, files: ¤ backlog_excerpt}
+    prompts:
+      - ¤ plan
+      - ¤ implement
+      - ¤ document
+
+  test:
+    resolvers:
+      - { anchor: repository, type: repo-content, fileset: ¤ test }
       - { anchor: project documentation, type: multi-document-retrieval, files: ¤ backlog_excerpt}
     prompts:
       - ¤ plan

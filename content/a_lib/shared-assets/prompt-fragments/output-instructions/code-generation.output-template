@@ -1,29 +1,21 @@
 ## create new files:
 
 ¤ create: path1 ¤
-```
-<complete file contents>
-```
+```\n<complete file contents>\n```
 ¤ create: path1 ¤
 
 ¤ create: path2 ¤
-```
-<complete file contents>
-```
+```\n<complete file contents>\n```
 ¤ create: path2 ¤
 
 ## update files:
 
 ¤ update: path3 ¤
-```
-<complete file contents>
-```
+```\n<complete file contents>\n```
 ¤ update: path3 ¤
 
 ¤ update: path4 ¤
-```
-<complete file contents>
-```
+```\n<complete file contents>\n```
 ¤ update: path4 ¤
 
 ## delete files:
