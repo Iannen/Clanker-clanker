@@ -5,6 +5,19 @@ from backend.stdlib import dataclass
 from backend.core import engine_deps as d
 from . import PromptContentShaper
 
+TYPE_ORDER: list[type] = [
+    e.ManifestResolver,
+    e.RepoContentResolver,
+    e.MultiDocResolver,
+]
+
+
+def _resolver_rank(r: e.Resolver) -> int:
+    for i, cls in enumerate(TYPE_ORDER):
+        if isinstance(r, cls):
+            return i
+    return len(TYPE_ORDER)
+
 
 @dataclass
 class PromptServiceImpl(d.PromptService):
@@ -27,23 +40,20 @@ class PromptServiceImpl(d.PromptService):
         # b. collect resolvers
         resolvers = self._collect_resolvers(cmd)
 
-        # c. derive global type order (alphabetical by class name)
-        order = sorted({type(r) for r in resolvers}, key=lambda t: t.__name__)
-
-        # d. assign resolvers to sections by anchor
+        # c. assign resolvers to sections by anchor
         for res in resolvers:
             if res.anchor not in sections:
                 raise e.CorruptClanker(f"Resolver anchor '{res.anchor}' has no matching section in layout")
             sections[res.anchor].append(res)
 
-        # e. evict empty sections
+        # d. evict empty sections
         sections = {k: v for k, v in sections.items() if v}
 
-        # f. sort each section's list by type order
+        # e. sort each section's list by precedence
         for key in sections:
-            sections[key].sort(key=lambda r: order.index(type(r)))
+            sections[key].sort(key=_resolver_rank)
 
-        # g-h. build render
+        # f-g. build render
         render_parts: list[str] = []
         for section_name, res_list in sections.items():
             header = f"{e.Delims.PROMPT_SECTION} {section_name} {e.Delims.PROMPT_SECTION}"
@@ -53,7 +63,7 @@ class PromptServiceImpl(d.PromptService):
 
         render = "\n\n\n".join(render_parts) + "\n"
 
-        # i. return
+        # h. return
         lines_count = len(render.splitlines())
         char_count = len(render)
         return d.PromptRenderResult(

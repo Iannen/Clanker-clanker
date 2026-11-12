@@ -1,7 +1,6 @@
-Discuss relevant bl items with user to identify targets.
-Iff below conditions are all met for III members, ask for 'acceptance' to issue replacement code in acc with output instructions
-- Only by user agreement 
-- Only if all required files have been provided
-- Only if path to implementation is clear and unambigous
+Evaluate repository contents against selected backlog items:
+- Are all required files present and is the implementation path clear/unambiguous?
 
-(clean up imports opportunistically)
+**Strict Output Rules:**
+- **If YES:** Output the completed code changes using the `code-generation.output-template`. 
+- **If NO:** Output a concise bulleted list of missing files or ambiguities blocking progress.
