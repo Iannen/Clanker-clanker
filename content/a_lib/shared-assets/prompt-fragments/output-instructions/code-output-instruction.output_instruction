@@ -1,7 +1,4 @@
-# New files, files to modify: 
-
-Paired delimiters, fenced content.
----
+# schema
 
 ¤ create: path/to/file ¤
 ```language identifier
@@ -9,20 +6,18 @@ Paired delimiters, fenced content.
 ```
 ¤ create: path/to/file ¤
 
+
 ¤ update: path/to/other-file ¤
 ```language identifier
 #complete file contents
 ```
 ¤ update: path/to/other-file ¤
 
-# Files to be deleted:
 
-Standalone directive, no content.
-¤ delete: path/to/obsolete.py ¤
+¤ delete: path/to/obsolete_file ¤
+¤ delete: path/to/other_obsolete_file ¤
 
----
-
-# Example Output
+# example output:
 
 ¤ create: src/calculator.py ¤
 ```python
@@ -33,6 +28,7 @@ def subtract(a: int, b: int) -> int:
     return a - b
 ```
 ¤ create: src/calculator.py ¤
+
 
 ¤ update: tests/test_calculator.py ¤
 ```python
@@ -47,6 +43,7 @@ if __name__ == '__main__':
     unittest.main()
 ```
 ¤ update: tests/test_calculator.py ¤
+
 
 ¤ delete: src/old_calculator.py ¤
 ¤ delete: tests/test_old_calculator.py ¤

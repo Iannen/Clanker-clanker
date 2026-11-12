@@ -53,6 +53,21 @@ const html = `
         </details>
 
         <div
+            class="prefill-bar w-full max-w-[48rem] px-3 pt-2 mt-2 border-t border-[#1f2937]/50"
+        >
+            <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-mono font-bold text-[#6ee7b7]">Prefill</span>
+                <span class="prefill-stats text-[10px] leading-relaxed text-[#6b7280] font-mono"></span>
+            </div>
+            <div class="w-full bg-[#030712] rounded-full border border-[#1f2937] h-1.5 overflow-hidden">
+                <div
+                    class="prefill-fill h-full bg-[#059669] transition-[width] duration-150"
+                    style="width: 0%"
+                ></div>
+            </div>
+        </div>
+
+        <div
             class="performance-footer hidden w-full max-w-[48rem] px-3 pt-2 mt-2 border-t border-[#1f2937]/50 text-[10px] leading-relaxed text-[#6b7280] font-mono"
         ></div>
     </div>
@@ -70,11 +85,13 @@ class Message extends BaseComponent {
 
     messageRole = 'assistant';
     counter = 0;
+    collapsed = false;
 
     #content = '';
     #reasoning = '';
     #timings = null;
     #complete = false;
+    #prefillState = null;
 
     get content() {
         return this.#content;
@@ -106,6 +123,9 @@ class Message extends BaseComponent {
         this.reasoningElement = this.wrapper.querySelector('.reasoning-section');
         this.contentElement = this.wrapper.querySelector('.content-section');
         this.performanceElement = this.wrapper.querySelector('.performance-footer');
+        this.prefillElement = this.wrapper.querySelector('.prefill-bar');
+        this.prefillFill = this.prefillElement?.querySelector('.prefill-fill');
+        this.prefillStats = this.prefillElement?.querySelector('.prefill-stats');
 
         this.reasoningSummary = this.reasoningElement?.querySelector('summary');
         this.reasoningBody = this.reasoningElement?.querySelector('.reasoning-body');
@@ -125,6 +145,7 @@ class Message extends BaseComponent {
             this.contentBody?.classList.add('px-4', 'whitespace-pre-wrap');
 
             this.reasoningElement?.classList.add('hidden');
+            this.prefillElement?.classList.add('hidden');
             this.performanceElement?.classList.add('hidden');
         } else {
             this.wrapper.classList.add('items-start');
@@ -138,6 +159,7 @@ class Message extends BaseComponent {
 
         this.#renderSummaries();
         this.#renderContent();
+        if (this.collapsed) this.contentElement?.removeAttribute('open');
         this.updateReasoning(this.#reasoning);
         this.#renderPerformance();
     }
@@ -203,11 +225,62 @@ class Message extends BaseComponent {
         this.#renderSummaries();
     }
 
+    // Surface a single prompt_progress tick. `cache` is the llama.cpp KV cache
+    // hit ratio in [0,1]; if the gpu-box ever emits it as an already-percentage
+    // value (>1), the formatter treats it as such.
+    onPrefill(pp) {
+        if (this.messageRole !== 'assistant') return;
+        this.#renderPrefill(pp);
+    }
+
+    #renderPrefill(pp) {
+        const { processed, total, time_ms, cache } = pp;
+        if (!this.prefillElement) return;
+        this.prefillElement.classList.remove('hidden');
+
+        const pct = total > 0 ? processed / total : 0;
+        const pctStr = `${Math.round(pct * 100)}%`;
+
+        const prev = this.#prefillState;
+        let rateStr = '';
+        if (prev) {
+            const dtMs = (pp.time_ms ?? 0) - prev.time_ms;
+            const dProc = pp.processed - prev.processed;
+            if (dtMs > 0 && dProc >= 0) {
+                rateStr = ` ${Math.round(dProc / (dtMs / 1000))} tok/s`;
+            }
+        } else if ((pp.time_ms ?? 0) > 0 && pp.processed > 0) {
+            rateStr = ` ${Math.round(pp.processed / (pp.time_ms / 1000))} tok/s`;
+        }
+
+        const cacheStr =
+            cache != null && cache !== undefined
+                ? ` · cache: ${Math.round(cache <= 1 ? cache * 100 : cache)}%`
+                : '';
+
+        this.prefillFill.style.width = pctStr;
+        this.prefillStats.textContent = `${pctStr}${rateStr} · ${((pp.time_ms ?? 0) / 1000).toFixed(1)}s${cacheStr}`.trim();
+
+        this.#prefillState = { processed: pp.processed, time_ms: pp.time_ms };
+    }
+
+    hidePrefillBar() { this.#hidePrefillBar(); }
+
+    #hidePrefillBar() {
+        if (this.prefillElement) this.prefillElement.classList.add('hidden');
+        this.#prefillState = null;
+    }
+
     setPerformanceTimings(timings) {
         this.#timings = timings;
         this.#complete = true;
 
-        if (this.initialized) this.#renderPerformance();
+        if (this.initialized) {
+            this.#renderPerformance();
+            // Hide the prefill bar only once the real stats are in, so the user
+            // sees the prefill progress until the message completes.
+            this.#hidePrefillBar();
+        }
     }
 
     #renderPerformance() {
@@ -270,6 +343,7 @@ class Message extends BaseComponent {
 
         this.contentBody.classList.remove('text-[#f3f4f6]');
         this.contentBody.classList.add('text-[#f87171]');
+        this.hidePrefillBar();
     }
 
     setSelected(selected) {

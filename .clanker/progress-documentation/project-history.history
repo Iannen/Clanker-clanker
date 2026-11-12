@@ -1754,3 +1754,29 @@ CCIX: INGESTION PARSER TEST SUITE
     Reflection:
     - Relying on `unittest`'s built-in discovery keeps the test infrastructure zero-dependency, consistent with the backend's "no external deps" philosophy
     - The four cases cover the happy paths (create, update, delete) and the one error path (unclosed bookend), which is the most likely LLM emission failure mode
+
+CCXL: PREFILL PROMPT MECHANISM
+    Purpose: Enable the keyboard bar to stage rendered prompts as collapsed, pre-filled input so users preview and edit before submitting.
+    - Core requirement: the keyboard bar renders prompts via the char API but had no way to inject them back into the input box, so every prompt had to be typed manually, defeating the domain/prompt discovery UX.
+    - Architectural motivation: thread a `prefill` flag end-to-end (keyboard-bar → clanker-app → api-client → backend) and collapse the user/prompt message while sending max_tokens=1 so the model treats it as a stub, not a full turn.
+    Actions:
+    - `content/web-ui/frontend/clanker-app.js`: add options arg `{ prefill = false } = {}` to `#generateResponse`, call it with `{ prefill: true }` from the `prompt-fired` listener and unchanged from the `submit` listener, create the user message with `userMsg.collapsed = true` when prefill, pass `max_tokens: prefill ? 1 : undefined` into the `streamChatCompletion` call.
+    - `content/web-ui/frontend/message.js`: add `collapsed = false;` class field; in `onConnect`, after rendering, if `collapsed` is true call `this.contentElement?.removeAttribute('open');` — gate only the prompt/user message, never the assistant reply.
+    - `content/web-ui/frontend/api-client.js`: destructure `max_tokens` from the `streamChatCompletion` options and spread `...(max_tokens !== undefined ? { max_tokens: max_tokens } : {})` into the body so it's omitted for normal prompts.
+    Reflection:
+    - The prefill path is now a closed loop (keyboard renders → stage → submit), giving users a preview/edit step without manual retyping.
+    - Trade-off: `max_tokens=1` for prefill relies on the model returning a short stub; a backend-enforced contract would be more robust but is out of scope.
+    - The collapsed flag is narrowly scoped to the prompt message, keeping the assistant reply always expanded.
+
+CCXI: SURFACE PREFILL PROGRESS
+    Purpose: Surface GPU-box prefill (prompt-processing) progress to the user during prompt generation instead of leaving a dead wait.
+    - Core requirement: the SSE `prompt_progress` events already stream through the controller's `proxy_gpu` pass-through, but the frontend ignored them, so users saw no signal while the prompt was being processed.
+    - Architectural motivation: thread `prompt_progress` from the SSE parser through a new `onPrefill` callback into the message component's progress bar.
+    Actions:
+    - `content/web-ui/frontend/api-client.js`: destructure `onPrefill` from the `streamChatCompletion` options; in `processLine`, add `if (json.prompt_progress) { onPrefill?.(json.prompt_progress); }` before the reasoning/content branches so every tick is forwarded without drop/coalesce; use fields `processed`, `total`, `time_ms`, `cache`.
+    - `content/web-ui/frontend/message.js`: add a `.prefill-bar` element; on first `onPrefill` show it and set width = `processed/total` with percentage and elapsed seconds; compute a rolling tok/s rate from consecutive ticks (fall back to `processed / (time_ms / 1000)` on the first tick); hide on first content token or completion.
+    - `content/web-ui/frontend/clanker-app.js`: pass `onPrefill: (pp) => assistantMsg.onPrefill(pp)` into the `streamChatCompletion` call, targeting the assistant message.
+    Reflection:
+    - The prefill → generation transition is now visible end-to-end, improving perceived latency during prompt processing.
+    - The bar is decoupled from the collapsed toggle, so prefill feedback never bleeds into the rendered reply.
+    - Trade-off: rate computation assumes monotonic `processed`/`time_ms`; a guard against out-of-order ticks would harden it.

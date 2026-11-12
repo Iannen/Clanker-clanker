@@ -11,7 +11,7 @@ pud_filesets:
       excludes: [
         content/a__old_tui,
         content/a_lib,
-        content/backend/adapters,
+#        content/backend/adapters,
         content/test,
         content/backend/asset_ingestion
     ]}
