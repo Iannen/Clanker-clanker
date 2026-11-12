@@ -1,0 +1,32 @@
+## create new files:
+
+¤ create: path1 ¤
+```
+<complete file contents>
+```
+¤ create: path1 ¤
+
+¤ create: path2 ¤
+```
+<complete file contents>
+```
+¤ create: path2 ¤
+
+## update files:
+
+¤ update: path3 ¤
+```
+<complete file contents>
+```
+¤ update: path3 ¤
+
+¤ update: path4 ¤
+```
+<complete file contents>
+```
+¤ update: path4 ¤
+
+## delete files:
+
+¤ delete: path5 ¤
+¤ delete: path6 ¤

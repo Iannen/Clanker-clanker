@@ -17,7 +17,7 @@ filelists:
     ]
   do_mode: [
     do-mode.mode_instruction, 
-    code-output-instruction.output_instruction, 
+    code-generation.output-template,  
     {name: backlog.backlog, from_line: 'Backlog tail, Selected item/items:', up_to: 'Backlog tail end'}
     ]
   doc_migration_mode: [
@@ -38,7 +38,7 @@ prompts:
   implement:
     render:
       resolvers:
-        - { anchor: repository, type: multi-document-retrieval, files: [code-output-instruction.output_instruction]} 
+        - { anchor: repository, type: multi-document-retrieval, files: [code-generation.output-template]} 
         - { anchor: session instructions, type: multi-document-retrieval, files: [do-mode.mode_instruction]} 
   document:
     render:
