@@ -50,7 +50,7 @@ class Report(ABC):
 
 class Command: pass
 
-@dataclass(slots=True)
+@dataclass
 class StartCmd(Command):
     kb: "e.Keyboard"
     ui_render: "e.Render"

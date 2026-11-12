@@ -6,7 +6,7 @@ from backend.core import engine_deps as d
 from . import PromptContentShaper
 
 
-@dataclass(slots=True)
+@dataclass
 class PromptServiceImpl(d.PromptService):
     files: d.DiskPort
 

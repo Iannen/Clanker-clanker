@@ -68,24 +68,29 @@ III. Items under development
 
 Backlog tail, Selected item/items:
 
-1. Remove dead code and unnecessary @dataclass(slots=True) usage from the backend and web UI
-    [ ] 'web-ui/frontend/api-client.js': delete getTestPrompt() method (calls never-registered /api/test-prompt)
-        - remove the getTestPrompt() async method entirely
-    [ ] 'web-ui/frontend/clanker-app.js': delete #pullTestPrompt() and its 'Ctrl+i' entry
-        - remove the #pullTestPrompt() method
-        - remove the 'Ctrl+i': () => this.#pullTestPrompt() line from #inputActions
-        - leave the global Ctrl+i handler in #handleGlobalKeydown untouched (different feature)
-    [ ] 'backend/render_pipeline/content_shaper.py': delete hydrate() and the now-orphaned SystemKeys class
-        - remove the hydrate() method body
-        - remove the SystemKeys class (its only user was hydrate)
-        - keep the `re` import (still used by apply_truncation)
-    [ ] 'backend/core/engine_deps/result.py': remove slots=True from @dataclass(StartCmd)
-        - change @dataclass(slots=True) to @dataclass
-    [ ] 'backend/keyboard/keyboard_service.py': remove slots=True from @dataclass(KBServiceImpl)
-        - change @dataclass(slots=True) to @dataclass
-    [ ] 'backend/render_pipeline/render_service.py': remove slots=True from @dataclass(PromptServiceImpl)
-        - change @dataclass(slots=True) to @dataclass
+prompt render pipeline:
+
+- what happens if the prompt layout declares sections which no resolver uses?
+- the inverse, what happens if a resolver references a section - but it does not exist?
 
 Backlog tail end
+
+Remove dead code and unnecessary @dataclass(slots=True) usage from the backend and web UI
+    [x] 'web-ui/frontend/api-client.js': delete getTestPrompt() method (calls never-registered /api/test-prompt)
+        - [x] remove the getTestPrompt() async method entirely
+    [x] 'web-ui/frontend/clanker-app.js': delete #pullTestPrompt() and its 'Ctrl+i' entry
+        - [x] remove the #pullTestPrompt() method
+        - [x] remove the 'Ctrl+i': () => this.#pullTestPrompt() line from #inputActions
+        - [x] leave the global Ctrl+i handler in #handleGlobalKeydown untouched (different feature)
+    [x] 'backend/render_pipeline/content_shaper.py': delete hydrate() and the now-orphaned SystemKeys class
+        - [x] remove the hydrate() method body
+        - [x] remove the SystemKeys class (its only user was hydrate)
+        - [x] keep the `re` import (still used by apply_truncation)
+    [x] 'backend/core/engine_deps/result.py': remove slots=True from @dataclass(StartCmd)
+        - [x] change @dataclass(slots=True) to @dataclass
+    [x] 'backend/keyboard/keyboard_service.py': remove slots=True from @dataclass(KBServiceImpl)
+        - [x] change @dataclass(slots=True) to @dataclass
+    [x] 'backend/render_pipeline/render_service.py': remove slots=True from @dataclass(PromptServiceImpl)
+        - [x] change @dataclass(slots=True) to @dataclass
 
 VI. finished stuffs
