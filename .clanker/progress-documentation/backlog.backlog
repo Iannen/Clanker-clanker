@@ -68,7 +68,27 @@ III. Items under development
 
 Backlog tail, Selected item/items:
 
-1. Replace resolver type-ordering in prompt rendering with an explicit ordered list
+1. Replace hardcoded "¤" / "¤¤" literals with a shared Delimiters constant class in the render and intake-parsing paths.
+    [ ] 'content/backend/core/core/entities.py': Add a Delimiters class with four string constants (PROMPT_SECTION="¤¤", FILESET_MEMBER="¤", FILELIST_MEMBER="¤", MANIFEST_MEMBER="¤")
+        - task: keep all four as plain string literals — no methods, no logic, constants only
+        - prohibition: do not touch map_extractor2.py's entity-reference marker (data.startswith("¤")); it is intentionally out of scope for this item
+        - prohibition: do not rename or relocate the class mid-item; callers reference Delimiters.<NAME>
+    [ ] 'content/backend/asset_ingestion/ingestion_parser.py': Reference Delimiters.FILESET_MEMBER for the create/update/delete bookends
+        - task: replace the literal "¤" in the bookend regex (^¤ ... ¤$) with Delimiters.FILESET_MEMBER
+        - task: replace the literal "¤" in the closing-bookend string (f"¤ {action}: {path} ¤") with Delimiters.FILESET_MEMBER
+        - prohibition: regex must be built dynamically (it is a raw string literal), e.g. re.compile(r"^" + Delimiters.FILESET_MEMBER + r"\s*(create|update|delete)\s*:\s*(.+?)\s*" + Delimiters.FILESET_MEMBER + r"$")
+        - prohibition: keep the create|update|delete capture and path group unchanged
+    [ ] 'content/backend/render_pipeline/render_service.py': Reference the four constants at their emit sites
+        - task: PROMPT_SECTION in the section header (f"¤¤ {section} ¤¤")
+        - task: FILESET_MEMBER in _res_repo_content file boundaries
+        - task: FILELIST_MEMBER in _res_multi_doc file boundaries
+        - task: MANIFEST_MEMBER in _res_manifest/_build_manifest boundaries
+        - prohibition: do not alter dispatch order, section anchoring, or output structure — only the delimiter literals change
+        - prohibition: leave the section-pattern regex r"§([^§]+)§" alone — that uses the section-sign character (§), not the delimiter
+
+Backlog tail end
+
+2. Replace resolver type-ordering in prompt rendering with an explicit ordered list
     [ ] 'content/backend/render_pipeline/render_service.py': Swap alphabetical type sort for a fixed resolver precedence list
         - task: define a module-level TYPE_ORDER list (e.g. ManifestResolver, RepoContentResolver, MultiDocResolver) capturing intent instead of class-name alphabetics
         - task: rank resolvers by precedence using isinstance so PudBaseResolver/SharedBaseResolver subclasses fall into the MultiDoc slot (avoid .index() KeyError on subclass types)
@@ -82,7 +102,7 @@ Backlog tail, Selected item/items:
 
 - prompt_fragments - > 'converation instructions'
 
-Backlog tail end
+
 
 Remove dead code and unnecessary @dataclass(slots=True) usage from the backend and web UI
     [x] 'web-ui/frontend/api-client.js': delete getTestPrompt() method (calls never-registered /api/test-prompt)
