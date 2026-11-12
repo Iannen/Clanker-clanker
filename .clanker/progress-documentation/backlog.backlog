@@ -1,8 +1,6 @@
 
 I. Thoughdump
 
-when we start program, and dump a big repo slab, the 'usermsg' should be collapsed. so we have initstate for msgs?
-
 II. The wishlist
 
 1. Set ops on filesets
@@ -70,51 +68,24 @@ III. Items under development
 
 Backlog tail, Selected item/items:
 
-It's a frontend-only change. The controller's `proxy_gpu` streams the raw SSE response straight through to the browser (see `clank-server.py` `_write` → `HTTPResponse` branch), so the GPU box's `prompt_progress` events already reach the client. The only gap is that `streamChatCompletion` in `api-client.js` parses each SSE line but ignores `.prompt_progress`.
-
-Recommended surface: a progress bar on the **assistant** message, shown on first `prompt_progress` and hidden the instant the first content delta arrives. Keep it on the assistant message (not the collapsed user prompt) so it stays visible during prefill.
-
-```
-¤ backlog.backlog ¤
-Backlog tail, Selected item/items:
-
-Surface GPU-box prefill progress to the user during prompt generation. The SSE `prompt_progress` events already stream through the controller's proxy_gpu pass-through to the browser; the frontend must surface them instead of ignoring them.
-
-    [ ] 'content/web-ui/frontend/api-client.js': Forward `prompt_progress` SSE events via a new `onPrefill` callback.
-        - Destructure `onPrefill` from the `streamChatCompletion` options.
-        - In `processLine`, add a branch before the reasoning/content branches: `if (json.prompt_progress) { onPrefill?.(json.prompt_progress); }` using fields `processed`, `total`, `time_ms`, `cache`.
-        - Prohibit: do not drop or coalesce `prompt_progress` events — every tick must be forwarded.
-
-    [ ] 'content/web-ui/frontend/message.js': Add a prefill progress bar shown during prefill and hidden once content begins.
-        - Add a `.prefill-bar` element to the assistant message (independent of the collapsed toggle).
-        - On first `onPrefill`, show the bar and set width = `processed/total`; render percentage and elapsed seconds.
-        - Compute a rolling tokens/sec rate from consecutive ticks: `(processed_now − processed_prev) / ((time_ms_now − time_ms_prev) / 1000)`. Display it next to the percentage once a prior tick exists; on the very first tick (no prior) skip the rate or fall back to `processed / (time_ms / 1000)`.
-        - Hide the bar when the first content token arrives or when the message completes.
-        - Prohibit: do not let the bar persist into the rendered reply.
-
-    [ ] 'content/web-ui/frontend/clanker-app.js': Wire `onPrefill` into the `streamChatCompletion` call, targeting the assistant message.
-        - Pass `onPrefill: (pp) => assistantMsg.onPrefill(pp)`.
-        - Prohibit: do not couple prefill feedback to the collapsed user/prompt message.
+1. Remove dead code and unnecessary @dataclass(slots=True) usage from the backend and web UI
+    [ ] 'web-ui/frontend/api-client.js': delete getTestPrompt() method (calls never-registered /api/test-prompt)
+        - remove the getTestPrompt() async method entirely
+    [ ] 'web-ui/frontend/clanker-app.js': delete #pullTestPrompt() and its 'Ctrl+i' entry
+        - remove the #pullTestPrompt() method
+        - remove the 'Ctrl+i': () => this.#pullTestPrompt() line from #inputActions
+        - leave the global Ctrl+i handler in #handleGlobalKeydown untouched (different feature)
+    [ ] 'backend/render_pipeline/content_shaper.py': delete hydrate() and the now-orphaned SystemKeys class
+        - remove the hydrate() method body
+        - remove the SystemKeys class (its only user was hydrate)
+        - keep the `re` import (still used by apply_truncation)
+    [ ] 'backend/core/engine_deps/result.py': remove slots=True from @dataclass(StartCmd)
+        - change @dataclass(slots=True) to @dataclass
+    [ ] 'backend/keyboard/keyboard_service.py': remove slots=True from @dataclass(KBServiceImpl)
+        - change @dataclass(slots=True) to @dataclass
+    [ ] 'backend/render_pipeline/render_service.py': remove slots=True from @dataclass(PromptServiceImpl)
+        - change @dataclass(slots=True) to @dataclass
 
 Backlog tail end
 
 VI. finished stuffs
-
-Prefill prompts from keyboard bar with max_tokens=1 and collapsed prompt message
-
-    [x] 'content/web-ui/frontend/clanker-app.js': Route the `prefill` flag from the `prompt-fired` event into `#generateResponse` and thread it to the API call.
-        - Add an options argument `{ prefill = false } = {}` to `#generateResponse(prompt, options = {})`.
-        - In the `prompt-fired` listener, call `this.#generateResponse(e.detail, { prefill: true });`
-        - In the `submit` listener, call `this.#generateResponse(prompt);` (no options, unchanged).
-        - Create the user/prompt message, set `userMsg.collapsed = true` when `prefill` is true.
-        - Pass `max_tokens: prefill ? 1 : undefined` into the `streamChatCompletion` call.
-
-    [x] 'content/web-ui/frontend/message.js': Add a `collapsed` flag honored at instantiation.
-        - Add `collapsed = false;` as a class field on `Message`.
-        - In `onConnect`, after `this.#renderContent()`, if `this.collapsed` is true, call `this.contentElement?.removeAttribute('open');`
-        - Prohibit: do not gate the assistant message on this flag — only the prompt/user message is collapsed.
-
-    [x] 'content/web-ui/frontend/api-client.js': Forward `max_tokens` to the backend only when provided.
-        - Destructure `max_tokens` from the `streamChatCompletion` options.
-        - In the request body, spread `...(max_tokens !== undefined ? { max_tokens: max_tokens } : {})`.
-        - Prohibit: always sending `max_tokens` — it must be omitted for normal (non-prefill) prompts.

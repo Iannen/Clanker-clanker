@@ -50,7 +50,7 @@ export class ApiClient {
 
     async switchInferenceMode() { return this.#post('/api/inference-mode'); }
 
-    async streamChatCompletion({ messages, max_tokens, onToken, onReasoning } = {}) {
+    async streamChatCompletion({ messages, max_tokens, onToken, onReasoning, onPrefill } = {}) {
         const response = await fetch('/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -59,6 +59,7 @@ export class ApiClient {
             body: JSON.stringify({
                 messages,
                 stream: true,
+                return_progress: true,
                 ...(max_tokens !== undefined ? { max_tokens: max_tokens } : {})
             })
         });
@@ -96,6 +97,13 @@ export class ApiClient {
                     json.timings &&
                     typeof json.timings === 'object'
                 ) timings = json.timings;
+
+                // prompt_progress arrives between prefill and content deltas;
+                // forward every tick before the reasoning/content branches so
+                // no prompt_progress event is dropped or coalesced.
+                if (json.prompt_progress) {
+                    onPrefill?.(json.prompt_progress);
+                }
 
                 const delta = json.choices?.[0]?.delta ?? {};
 

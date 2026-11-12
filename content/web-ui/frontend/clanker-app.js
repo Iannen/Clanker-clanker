@@ -228,11 +228,13 @@ class ClankerApp extends BaseComponent {
                 onReasoning: (reasoningToken, reasoningText) => {
                     assistantMsg.updateReasoning(reasoningText);
                     this.messagesBox.scrollIfLocked();
-                }
+                },
+                onPrefill: (pp) => assistantMsg.onPrefill(pp),
             });
             assistantMsg.setPerformanceTimings(result.timings);
         } catch (error) {
             assistantMsg.appendError(error.message);
+            assistantMsg.hidePrefillBar();
         } finally {
             this.inputBox.setDisabled(false);
             if (this.#selectedElement === this.inputBox) this.inputBox.focus();
