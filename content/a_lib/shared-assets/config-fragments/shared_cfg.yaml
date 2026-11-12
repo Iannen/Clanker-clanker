@@ -1,5 +1,5 @@
 shared_base_resolver:
-    {anchor: base_fragments, type: multi-document-retrieval, files: [general-rules.md]}
+    {anchor: general instructions, type: multi-document-retrieval, files: [general-rules.md]}
 
 pud_filesets:
   content-dir: {includes: [content]}
@@ -10,19 +10,31 @@ shared_filesets:
   clanker-shared-assets: {includes: [content/a_lib/shared-assets]}
 
 filelists:
-  plan_mode_instructions: [plan-mode.mode_instruction, backlog-output-instructions.output_instruction]
-  do_mode_instructions: [do-mode.mode_instruction, code-output-instruction.output_instruction]
-  doc_management_mode_instructions: [doc-management-mode.mode_instruction, {name: project-history.history, tail_lines: 16}, history-output-instructions.output_instruction]
-  backlog_at_consultant: [{name: backlog.backlog, from_line: 'Backlog tail, Selected item/items:', up_to: 'Backlog tail end'}]
-  plan_mode: [plan-mode.mode_instruction, backlog-output-instructions.output_instruction, {name: backlog.backlog, from_line: 'Backlog tail, Selected item/items:', up_to: 'Backlog tail end'}]
-  do_mode: [do-mode.mode_instruction, code-output-instruction.output_instruction, {name: backlog.backlog, from_line: 'Backlog tail, Selected item/items:', up_to: 'Backlog tail end'}]
-  doc_migration_mode: [doc-management-mode.mode_instruction, {name: project-history.history, tail_lines: 16}, history-output-instructions.output_instruction, {name: backlog.backlog, from_line: 'Backlog tail, Selected item/items:', up_to: 'Backlog tail end'}] 
+  plan_mode: [
+    plan-mode.mode_instruction, 
+    backlog-output-instructions.output_instruction, 
+    {name: backlog.backlog, from_line: 'Backlog tail, Selected item/items:', up_to: 'Backlog tail end'}
+    ]
+  do_mode: [
+    do-mode.mode_instruction, 
+    code-output-instruction.output_instruction, 
+    {name: backlog.backlog, from_line: 'Backlog tail, Selected item/items:', up_to: 'Backlog tail end'}
+    ]
+  doc_migration_mode: [
+    doc-management-mode.mode_instruction, 
+    {name: project-history.history, tail_lines: 16}, 
+    history-output-instructions.output_instruction, 
+    {name: backlog.backlog, from_line: 'Backlog tail, Selected item/items:', up_to: 'Backlog tail end'}
+    ] 
+
+  backlog_excerpt: [{name: backlog.backlog, from_line: 'Backlog tail, Selected item/items:', up_to: 'Backlog tail end'}]
+
 
 shared_domains:
     config-dev:
       resolvers:
-        - { anchor: repo_content, type: repo-content, fileset: ¤ content-dir }
-        - { anchor: domain_fragments, type: multi-document-retrieval, files: [config.yaml, system_cfg.yaml, shared_cfg.yaml] }
+        - { anchor: repository, type: repo-content, fileset: ¤ content-dir }
+        - { anchor: project documentation, type: multi-document-retrieval, files: [config.yaml, system_cfg.yaml, shared_cfg.yaml] }
       prompts:
         - name: config-dev
           render:
@@ -36,57 +48,57 @@ shared_domains:
         - name: only m
           render:
             resolvers:
-              - { anchor: domain_fragments, type: repo-manifest, pud_fileset: ¤ content-dir, shared_fileset: ¤clanker-shared-assets }
+              - { anchor: project documentation, type: repo-manifest, pud_fileset: ¤ content-dir, shared_fileset: ¤clanker-shared-assets }
         - name: core
           render:
             resolvers:
-              - { anchor: domain_fragments, type: multi-document-retrieval, files: [config-development.mode_instruction] }
-              - { anchor: repo_content, type: repo-content, fileset: ¤ content-dir }
+              - { anchor: project documentation, type: multi-document-retrieval, files: [config-development.mode_instruction] }
+              - { anchor: repository, type: repo-content, fileset: ¤ content-dir }
 
     readme:
       resolvers:
-        - { anchor: repo_content, type: repo-content, includes: [README.md] } 
+        - { anchor: repository, type: repo-content, includes: [README.md] } 
       prompts:
         - name: structure
           render:
             resolvers:
-              - { anchor: domain_fragments, type: multi-document-retrieval, files: [readme.structure_spec] }
+              - { anchor: project documentation, type: multi-document-retrieval, files: [readme.structure_spec] }
               - { anchor: prompt_fragments, type: multi-document-retrieval, files: [readme_structure.mode_instruction] }
         - name: content 
           render:
             resolvers:
-              - { anchor: domain_fragments, type: multi-document-retrieval, files: [readme_messaging.intent] }
+              - { anchor: project documentation, type: multi-document-retrieval, files: [readme_messaging.intent] }
               - { anchor: prompt_fragments, type: multi-document-retrieval, files: [readme_content.mode_instruction] }
 
     north-star:
       resolvers:
-        - { anchor: domain_fragments, type: multi-document-retrieval, files: [north-star.cdoc, backlog.backlog] }
+        - { anchor: project documentation, type: multi-document-retrieval, files: [north-star.cdoc, backlog.backlog] }
       prompts:
         - name: core
           render:
             resolvers:
               - { anchor: prompt_fragments, type: multi-document-retrieval, files: [north-star-mode.mode_instruction] }
-              - { anchor: repo_content, type: repo-content, fileset: ¤ content-dir }
+              - { anchor: repository, type: repo-content, fileset: ¤ content-dir }
 
 
               
 
     debloat:
       resolvers:
-        - { anchor: domain_fragments, type: multi-document-retrieval, files: [domain-debloat.md] }
+        - { anchor: project documentation, type: multi-document-retrieval, files: [domain-debloat.md] }
       prompts:
         - name: debloat
           render:
             resolvers:
               - { anchor: prompt_fragments, type: multi-document-retrieval, files: [debloat-instructions.md] }
-              - { anchor: repo_content, type: repo-content, fileset: ¤ content-dir }
+              - { anchor: repository, type: repo-content, fileset: ¤ content-dir }
 
     presentation:
       resolvers:
-        - { anchor: domain_fragments, type: multi-document-retrieval, files: [] }
+        - { anchor: project documentation, type: multi-document-retrieval, files: [] }
       prompts:
         - name: debloat
           render:
             resolvers:
-              - { anchor: repo_content, type: repo-content, fileset: ¤ presentation }
+              - { anchor: repository, type: repo-content, fileset: ¤ presentation }
 

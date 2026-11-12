@@ -68,10 +68,15 @@ III. Items under development
 
 Backlog tail, Selected item/items:
 
-prompt render pipeline:
-
-- what happens if the prompt layout declares sections which no resolver uses?
-- the inverse, what happens if a resolver references a section - but it does not exist?
+1. Replace resolver type-ordering in prompt rendering with an explicit ordered list
+    [ ] 'content/backend/render_pipeline/render_service.py': Swap alphabetical type sort for a fixed resolver precedence list
+        - task: define a module-level TYPE_ORDER list (e.g. ManifestResolver, RepoContentResolver, MultiDocResolver) capturing intent instead of class-name alphabetics
+        - task: rank resolvers by precedence using isinstance so PudBaseResolver/SharedBaseResolver subclasses fall into the MultiDoc slot (avoid .index() KeyError on subclass types)
+        - task: apply that rank in the section sort (render_service.py, the section-sort step) replacing the current {type(r) for r in resolvers} alphabetical derivation
+        - task: confirm the swap is intentional — repo and multidoc exchange positions relative to the previous alphabetical order
+        - task: keep it scoped to render_service.py only; no other file encodes resolver ordering
+        - prohibition: do not change dispatch order or section anchoring; only the within-section type ordering changes
+        - prohibition: do not reorder across different anchors — precedence only reorders resolvers sharing one anchor
 
 Backlog tail end
 
