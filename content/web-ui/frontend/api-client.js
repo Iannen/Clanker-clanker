@@ -12,12 +12,6 @@ export class ApiClient {
         return responseText;
     }
 
-    async getTestPrompt() {
-        const response = await fetch('/api/test-prompt');
-        if (!response.ok) throw new Error(response.statusText);
-        return response.text();
-    }
-
     async boot() {
         const response = await fetch('/api/boot');
         if (!response.ok) throw new Error(response.statusText);

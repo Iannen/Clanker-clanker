@@ -1,65 +1,39 @@
 system:
-  #test_command: "python3 -B test/ship_gate.py"
   test_command: "PYTHONPATH=content python3 -B -m unittest discover -s content/test -t content/test -p '*.py' -v"
   apply_command: "echo 'No apply command configured' && true"
   
 pud_filesets:
-  old_tui: {includes: [content/a__old_tui], excludes: [content/a_lib]}
+  old_tui: {includes: [content/a__old_tui], 
+    excludes: [
+      content/a_lib,
+      content/backend,
+      content/test,
+      content/web-ui,
+      content/clank-server.py]}
 
   server: { 
     includes: [content],
       excludes: [
         content/a__old_tui,
         content/a_lib,
-#        content/backend/adapters,
-        content/test,
-        content/backend/asset_ingestion
+        content/test
     ]}
 
-  test_prompt: {includes: [content/clank-server.py]}
-
 pud_domains:
-  old:
+  old_tui:
     resolvers:
-      - { anchor: repo_content, type: repo-content, fileset: ¤ old_tui}
+      - { anchor: repository, type: repo-content, fileset: ¤ old_tui }
+      - { anchor: project documentation, type: multi-document-retrieval, files: ¤ backlog_excerpt}
     prompts:
-      - name: plan
-        render:
-          resolvers:
-            - { anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ plan_mode }
-      - name: impl
-        render:
-          resolvers:
-            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ do_mode }
-      - name: drain
-        render:
-          resolvers:
-            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_migration_mode }
+      - ¤ plan
+      - ¤ implement
+      - ¤ document
 
-  server:
+  web-clank:
     resolvers:
-      - { anchor: repo_content, type: repo-content, fileset: ¤ server }
+      - { anchor: repository, type: repo-content, fileset: ¤ server }
+      - { anchor: project documentation, type: multi-document-retrieval, files: ¤ backlog_excerpt}
     prompts:
-      - name: plan
-        render:
-          resolvers:
-            - { anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ plan_mode }
-      - name: impl
-        render:
-          resolvers:
-            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ do_mode }
-      - name: drain
-        render:
-          resolvers:
-            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_migration_mode }
-
-
-  test_prompt:
-    resolvers:
-      - { anchor: repo_content, type: repo-content, fileset: ¤ test_prompt }
-      - { anchor: domain_fragments, type: multi-document-retrieval, files: [test.doctrine] }
-    prompts:
-      - name: test
-        render:
-          resolvers:
-            - { anchor: prompt_fragments, type: multi-document-retrieval, files: [web-frontent.doctrine] }
+      - ¤ plan
+      - ¤ implement
+      - ¤ document

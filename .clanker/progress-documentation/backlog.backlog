@@ -68,24 +68,58 @@ III. Items under development
 
 Backlog tail, Selected item/items:
 
-1. Remove dead code and unnecessary @dataclass(slots=True) usage from the backend and web UI
-    [ ] 'web-ui/frontend/api-client.js': delete getTestPrompt() method (calls never-registered /api/test-prompt)
-        - remove the getTestPrompt() async method entirely
-    [ ] 'web-ui/frontend/clanker-app.js': delete #pullTestPrompt() and its 'Ctrl+i' entry
-        - remove the #pullTestPrompt() method
-        - remove the 'Ctrl+i': () => this.#pullTestPrompt() line from #inputActions
-        - leave the global Ctrl+i handler in #handleGlobalKeydown untouched (different feature)
-    [ ] 'backend/render_pipeline/content_shaper.py': delete hydrate() and the now-orphaned SystemKeys class
-        - remove the hydrate() method body
-        - remove the SystemKeys class (its only user was hydrate)
-        - keep the `re` import (still used by apply_truncation)
-    [ ] 'backend/core/engine_deps/result.py': remove slots=True from @dataclass(StartCmd)
-        - change @dataclass(slots=True) to @dataclass
-    [ ] 'backend/keyboard/keyboard_service.py': remove slots=True from @dataclass(KBServiceImpl)
-        - change @dataclass(slots=True) to @dataclass
-    [ ] 'backend/render_pipeline/render_service.py': remove slots=True from @dataclass(PromptServiceImpl)
-        - change @dataclass(slots=True) to @dataclass
+1. Replace hardcoded "¤" / "¤¤" literals with a shared Delimiters constant class in the render and intake-parsing paths.
+    [ ] 'content/backend/core/core/entities.py': Add a Delimiters class with four string constants (PROMPT_SECTION="¤¤", FILESET_MEMBER="¤", FILELIST_MEMBER="¤", MANIFEST_MEMBER="¤")
+        - task: keep all four as plain string literals — no methods, no logic, constants only
+        - prohibition: do not touch map_extractor2.py's entity-reference marker (data.startswith("¤")); it is intentionally out of scope for this item
+        - prohibition: do not rename or relocate the class mid-item; callers reference Delimiters.<NAME>
+    [ ] 'content/backend/asset_ingestion/ingestion_parser.py': Reference Delimiters.FILESET_MEMBER for the create/update/delete bookends
+        - task: replace the literal "¤" in the bookend regex (^¤ ... ¤$) with Delimiters.FILESET_MEMBER
+        - task: replace the literal "¤" in the closing-bookend string (f"¤ {action}: {path} ¤") with Delimiters.FILESET_MEMBER
+        - prohibition: regex must be built dynamically (it is a raw string literal), e.g. re.compile(r"^" + Delimiters.FILESET_MEMBER + r"\s*(create|update|delete)\s*:\s*(.+?)\s*" + Delimiters.FILESET_MEMBER + r"$")
+        - prohibition: keep the create|update|delete capture and path group unchanged
+    [ ] 'content/backend/render_pipeline/render_service.py': Reference the four constants at their emit sites
+        - task: PROMPT_SECTION in the section header (f"¤¤ {section} ¤¤")
+        - task: FILESET_MEMBER in _res_repo_content file boundaries
+        - task: FILELIST_MEMBER in _res_multi_doc file boundaries
+        - task: MANIFEST_MEMBER in _res_manifest/_build_manifest boundaries
+        - prohibition: do not alter dispatch order, section anchoring, or output structure — only the delimiter literals change
+        - prohibition: leave the section-pattern regex r"§([^§]+)§" alone — that uses the section-sign character (§), not the delimiter
 
 Backlog tail end
+
+2. Replace resolver type-ordering in prompt rendering with an explicit ordered list
+    [ ] 'content/backend/render_pipeline/render_service.py': Swap alphabetical type sort for a fixed resolver precedence list
+        - task: define a module-level TYPE_ORDER list (e.g. ManifestResolver, RepoContentResolver, MultiDocResolver) capturing intent instead of class-name alphabetics
+        - task: rank resolvers by precedence using isinstance so PudBaseResolver/SharedBaseResolver subclasses fall into the MultiDoc slot (avoid .index() KeyError on subclass types)
+        - task: apply that rank in the section sort (render_service.py, the section-sort step) replacing the current {type(r) for r in resolvers} alphabetical derivation
+        - task: confirm the swap is intentional — repo and multidoc exchange positions relative to the previous alphabetical order
+        - task: keep it scoped to render_service.py only; no other file encodes resolver ordering
+        - prohibition: do not change dispatch order or section anchoring; only the within-section type ordering changes
+        - prohibition: do not reorder across different anchors — precedence only reorders resolvers sharing one anchor
+
+- rename files .output_instructions -> 'output-schema'  
+
+- prompt_fragments - > 'converation instructions'
+
+
+
+Remove dead code and unnecessary @dataclass(slots=True) usage from the backend and web UI
+    [x] 'web-ui/frontend/api-client.js': delete getTestPrompt() method (calls never-registered /api/test-prompt)
+        - [x] remove the getTestPrompt() async method entirely
+    [x] 'web-ui/frontend/clanker-app.js': delete #pullTestPrompt() and its 'Ctrl+i' entry
+        - [x] remove the #pullTestPrompt() method
+        - [x] remove the 'Ctrl+i': () => this.#pullTestPrompt() line from #inputActions
+        - [x] leave the global Ctrl+i handler in #handleGlobalKeydown untouched (different feature)
+    [x] 'backend/render_pipeline/content_shaper.py': delete hydrate() and the now-orphaned SystemKeys class
+        - [x] remove the hydrate() method body
+        - [x] remove the SystemKeys class (its only user was hydrate)
+        - [x] keep the `re` import (still used by apply_truncation)
+    [x] 'backend/core/engine_deps/result.py': remove slots=True from @dataclass(StartCmd)
+        - [x] change @dataclass(slots=True) to @dataclass
+    [x] 'backend/keyboard/keyboard_service.py': remove slots=True from @dataclass(KBServiceImpl)
+        - [x] change @dataclass(slots=True) to @dataclass
+    [x] 'backend/render_pipeline/render_service.py': remove slots=True from @dataclass(PromptServiceImpl)
+        - [x] change @dataclass(slots=True) to @dataclass
 
 VI. finished stuffs

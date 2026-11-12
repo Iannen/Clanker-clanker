@@ -1,9 +1,6 @@
 from backend.stdlib import re
 from backend.core import entities as e
 
-class SystemKeys:
-    DELIM = "§"
-
 class PromptContentShaper:
 
     def apply_truncation(self, content: str, spec: e.TruncationSpec | None) -> str:
@@ -37,10 +34,3 @@ class PromptContentShaper:
             if pattern.search(line):
                 return idx
         return None
-
-    def hydrate(self, template: str, replacements: dict[str, str]) -> str:
-        pattern = re.compile(rf"{SystemKeys.DELIM}([^{SystemKeys.DELIM}]+){SystemKeys.DELIM}")
-        return pattern.sub(
-            lambda m: replacements.get(m.group(1).strip(), m.group(0)),
-            template
-        )

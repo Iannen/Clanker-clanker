@@ -2,7 +2,7 @@ from backend.stdlib import dataclass
 from backend.core import entities as e
 from backend.core import engine_deps as d
 
-@dataclass(slots=True)
+@dataclass
 class KBServiceImpl(d.KBService):
     def handle_start(self, cmd: d.StartCmd) -> d.BootstrapSuccess:
         self.kb = cmd.kb

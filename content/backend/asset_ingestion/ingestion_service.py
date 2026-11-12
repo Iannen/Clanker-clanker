@@ -6,7 +6,7 @@ from . import ErrorCollector, ItemClassifier, Assembler, ClassificationResult
 from .ingestion_parser import IngestionParser
 
 
-@dataclass(slots=True)
+@dataclass
 class IngestionServiceImpl(d.IngestionService):
     files: d.DiskPort
     cfg_ingestor: d.ConfigParserPort

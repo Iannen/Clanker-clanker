@@ -8,12 +8,12 @@ pud_filesets:
 pud_domains:
   analysis:
     resolvers:
-      - { anchor: domain_fragments, type: repo-manifest, pud_fileset: ¤ content }
+      - { anchor: project documentation, type: repo-manifest, pud_fileset: ¤ content }
     prompts:
       - name: manifest
         render:
           resolvers:
-            - { anchor: prompt_fragments, type: multi-document-retrieval, files: [] }            
+            - { anchor: session instructions, type: multi-document-retrieval, files: [] }            
 
   files:
     resolvers:
@@ -22,15 +22,13 @@ pud_domains:
       - name: plan
         render:
           resolvers:
-            - { anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ plan_mode_instructions }
-            - { anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant}
+            - { anchor: session instructions, type: multi-document-retrieval, files: ¤ plan_mode }
       - name: impl
         render:
           resolvers:
-            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ do_mode_instructions}
-            - { anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant}
+            - {anchor: session instructions, type: multi-document-retrieval, files: ¤ do_mode}
+
       - name: drain
         render:
           resolvers:
-            - {anchor: prompt_fragments, type: multi-document-retrieval, files: ¤ doc_management_mode_instructions}
-            - {anchor: domain_fragments, type: multi-document-retrieval, files: ¤ backlog_at_consultant}
+            - {anchor: session instructions, type: multi-document-retrieval, files: ¤ doc_migration_mode}
