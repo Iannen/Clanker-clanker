@@ -56,7 +56,7 @@ class PromptServiceImpl(d.PromptService):
         # f-g. build render
         render_parts: list[str] = []
         for section_name, res_list in sections.items():
-            header = f"{e.Delims.PROMPT_OPEN} {section_name} {e.Delims.PROMPT_CLOSE}"
+            header = f"{e.Delims.PROMPT_OPEN[1]}{section_name}{e.Delims.PROMPT_CLOSE[1]}"
             fragments = [self._dispatch(res) for res in res_list]
             section_content = header + "\n\n" + "\n\n".join(fragments)
             render_parts.append(section_content)
@@ -120,11 +120,11 @@ class PromptServiceImpl(d.PromptService):
         fragments = []
         for file_obj in resolver.files.files:
             raw_content = self.files.read_asset(file_obj.path)
-            content = self.shaper.apply_truncation(raw_content, file_obj.truncation_spec)
+            content = self.shaper.process(raw_content, file_obj)
             fragments.append(
-                f"{e.Delims.FILELIST_START_OPEN} {file_obj.name} {e.Delims.FILELIST_START_CLOSE}\n"
+                f"{e.Delims.FILELIST_START_OPEN[1]}{file_obj.name}{e.Delims.FILELIST_START_CLOSE[1]}\n"
                 f"{content}\n"
-                f"{e.Delims.FILELIST_END_OPEN} {file_obj.name} {e.Delims.FILELIST_END_CLOSE}"
+                f"{e.Delims.FILELIST_END_OPEN[1]}{file_obj.name}{e.Delims.FILELIST_END_CLOSE[1]}"
             )
 
         return {resolver.anchor: "\n\n".join(fragments)}
@@ -151,9 +151,9 @@ class PromptServiceImpl(d.PromptService):
             try:
                 content = self.files.read_asset(f"{e.PathTokens.PUD}/{p}").rstrip()
                 file_blocks.append(
-                    f"{e.Delims.FILESET_START_OPEN} {p} {e.Delims.FILESET_START_CLOSE}\n"
+                    f"{e.Delims.FILESET_START_OPEN[1]}{p}{e.Delims.FILESET_START_CLOSE[1]}\n"
                     f"{content}\n"
-                    f"{e.Delims.FILESET_END_OPEN} {p} {e.Delims.FILESET_END_CLOSE}"
+                    f"{e.Delims.FILESET_END_OPEN[1]}{p}{e.Delims.FILESET_END_CLOSE[1]}"
                 )
             except UnicodeDecodeError:
                 pass
@@ -197,4 +197,4 @@ class PromptServiceImpl(d.PromptService):
             except UnicodeDecodeError:
                 pass
 
-        return f"{e.Delims.MANIFEST_MEMBER} {tag} {e.Delims.MANIFEST_MEMBER}\n" + "\n".join(lines) + f"\n{e.Delims.MANIFEST_MEMBER} {tag} {e.Delims.MANIFEST_MEMBER}"
+        return f"{e.Delims.MANIFEST_MEMBER[1]}{tag}{e.Delims.MANIFEST_MEMBER[1]}\n" + "\n".join(lines) + f"\n{e.Delims.MANIFEST_MEMBER[1]}{tag}{e.Delims.MANIFEST_MEMBER[1]}"

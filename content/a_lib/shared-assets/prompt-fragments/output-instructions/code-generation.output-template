@@ -1,24 +1,24 @@
-## create new files:
+## To create new files:
 
-¤ create: path1 ¤
-```\n<complete file contents>\n```
-¤ create: path1 ¤
+§fsul§create: path1§fsur§
+<complete file contents>
+§fel§create: path1§fer§
 
-¤ create: path2 ¤
-```\n<complete file contents>\n```
-¤ create: path2 ¤
+§fsul§create: path2§fsur§
+<complete file contents>
+§fel§create: path2§fer§
 
-## update files:
+## To update files:
 
-¤ update: path3 ¤
-```\n<complete file contents>\n```
-¤ update: path3 ¤
+§fsul§update: path3§fsur§
+<complete file contents>
+§fel§update: path3§fer§
 
-¤ update: path4 ¤
-```\n<complete file contents>\n```
-¤ update: path4 ¤
+§fsul§update: path4§fsur§
+<complete file contents>
+§fel§update: path4§fer§
 
-## delete files:
+## To delete files:
 
-¤ delete: path5 ¤
-¤ delete: path6 ¤
+§fsul§delete: path5§fsur§
+§fsul§delete: path6§fsur§

@@ -68,27 +68,66 @@ III. Items under development
 
 
 Backlog tail, Selected item/items:
-
-2. Route all MDR filelist entries through a unified shaper processing step that performs §NN§ placeholder substitution (by extension) before truncation
-    [ ] 'content/backend/render_pipeline/content_shaper.py': Add extension-aware placeholder substitution as a pre-step within the shaper's processing pass
-        - expand the shaper's entry point to accept the filename (or File entity) alongside content and truncation spec
-        - check filename against a recognized set of extensions (e.g. `.output-template`)
-        - if extension matches: apply a fixed lookup map replacing §01§, §02§, §03§… with the current e.Delims token values
-        - if extension does not match: content passes through unchanged (no-op), only truncation applies
-        - placeholder tokens use §NN§ form so they cannot collide with active e.Delims values (¤, 🔖, 🗃️, etc.)
-        - substitution runs before truncation so from_line / up_to / tail_lines operate on final text
-    [ ] 'content/backend/render_pipeline/render_service.py': Update _res_multi_doc to pass file_obj.name (or the File entity) into the shaper call
-        - existing self.shaper.apply_truncation(raw_content, file_obj.truncation_spec) becomes the unified processing call with filename context
-        - no structural change to dispatch; every filelist entry already flows through the shaper, this just widens what that pass does
-    [ ] 'content/test/render/render_contentshaper.py'
-        - write test 
-
+```text
+1. Prune redundant disk-port surface and dead backup
+    [ ] 'backend/render_pipeline/render_service copy.py.bak': Delete file
+        - Dead backup, never imported, only differs in f-string spacing around delimiters
+    [ ] 'backend/core/engine_deps/ports.py': Remove `read_asset` abstract method from `DiskPort`
+        - Pure delegation to `get_file_contents`, no behavioral or error-surface difference
+    [ ] 'backend/adapters/disk_adapter.py': Remove `read_asset` override from `LinuxDiskAdapter`
+        - Same: one-line forward to `get_file_contents`, no added logic
+    [ ] 'backend/render_pipeline/render_service.py': Swap four `read_asset(...)` calls to `get_file_contents(...)`
+        - Template load in `render_prompt`, `_res_multi_doc`, `_res_repo_content`, `_build_manifest`
+```
 Backlog tail end
 
 
 VI. finished stuffs
 
-1. Expand Delims vocabulary: 4 distinct symbol constants per bookend type
+Add extension-aware placeholder substitution to the shaper, driven by Delims tuple pairs
+    [x] 'content/backend/core/core/entities.py': Convert Delims constants from bare strings to ("placeholder", "value") tuples
+        - PROMPT_OPEN = ("§po§", "#")
+        - PROMPT_CLOSE = ("§pc§", "")
+        - FILESET_START_OPEN = ("§fsul§", "<")
+        - FILESET_START_CLOSE = ("§fsur§", ">")
+        - FILESET_END_OPEN = ("§fel§", "</")
+        - FILESET_END_CLOSE = ("§fer§", ">")
+        - FILELIST_START_OPEN = ("§llul§", "<")
+        - FILELIST_START_CLOSE = ("§llur§", ">")
+        - FILELIST_END_OPEN = ("§llel§", "</")
+        - FILELIST_END_CLOSE = ("§ller§", ">")
+        - MANIFEST_MEMBER = ("§mm§", "🗄️")
+    [x] 'content/backend/asset_ingestion/ingestion_parser.py': Index [1] on every Delims reference; make closing bookend regex-matched (whitespace-optional) to match opening bookend leniency
+        - _bookend_re: e.Delims.FILESET_START_OPEN[1], e.Delims.FILESET_START_CLOSE[1]
+        - _close_bookend_re: new compiled pattern using e.Delims.FILESET_END_OPEN[1], e.Delims.FILESET_END_CLOSE[1] with \s* around action and path
+        - closing match: regex .match() + group(1)==action and group(2).strip()==path instead of exact string ==
+    [x] 'content/backend/render_pipeline/render_service.py': Index [1] on every Delims reference; widen shaper call to pass File entity; remove injected spaces from all f-string bookends
+        - _res_multi_doc: FILELIST_START_OPEN[1], FILELIST_END_CLOSE[1], FILELIST_END_CLOSE[1] — no space between delims and name
+        - _res_repo_content: FILESET_START_OPEN[1], FILESET_END_OPEN[1], FILESET_END_CLOSE[1] — no space
+        - _res_manifest: MANIFEST_MEMBER[1] — no space
+        - header: f"{PROMPT_OPEN[1]}{section_name}{PROMPT_CLOSE[1]}" — no space
+        - replace self.shaper.apply_truncation(raw_content, file_obj.truncation_spec) with self.shaper.process(raw_content, file_obj)
+    [x] 'content/backend/render_pipeline/content_shaper.py': Add process() as public entry; substitution pre-step gated on .output-template extension
+        - process(content: str, file: e.File | None) -> str
+        - if file is None or file.name does not end with ".output-template": skip substitution, apply truncation only
+        - if extension matches: iterate Delims.__dict__.values(), for each tuple pair replace pair[0] with pair[1] in content
+        - truncation (from_line / up_to / tail_lines) operates on post-substitution text
+        - keep apply_truncation as internal helper, unchanged
+    [x] 'content/test/ingestion/code_ingestion_parser_tests.py': Index [1] on Delims references in _start_bookend and _end_bookend helpers
+        - _start_bookend: e.Delims.FILESET_START_OPEN[1], e.Delims.FILESET_START_CLOSE[1]
+        - _end_bookend: e.Delims.FILESET_END_OPEN[1], e.Delims.FILESET_END_CLOSE[1]
+    [x] 'content/test/render/__init__.py': Create empty file so unittest discover can import the render test package
+    [x] 'content/test/render/render_contentshaper_tests.py': Write tests for substitution + truncation interplay
+        - non-template file passes through unchanged (no substitution)
+        - .output-template file: §fsul§ → <, §fsur§ → >, §fel§ → </, etc.
+        - truncation still applies correctly to post-substitution text
+        - verify no §…§ tokens survive in output of a .output-template file
+        - verify a non-.output-template file that happens to contain §fsul§ is left untouched
+    [x] 'code-generation.output-template' (session instruction document): Rewrite to use §…§ placeholders in bookends; remove backticks from content blocks; remove all spaces from bookend markup
+        - §fsul§create: path1§fsur§ / §fel§create: path1§fer§
+        - delete entries: §fsul§delete: path5§fsur§
+        - after substitution LLM emits <create: path1> / </create: path1> — parseable by IngestionParser
+Expand Delims vocabulary: 4 distinct symbol constants per bookend type
     [x] 'content/backend/core/core/entities.py': Declare 4 separate constants for FILESET and 4 for FILELIST (manifest: TBD, leave as-is for now)
         - FILESET_START_OPEN, FILESET_START_CLOSE, FILESET_END_OPEN, FILESET_END_CLOSE
         - FILELIST_START_OPEN, FILELIST_START_CLOSE, FILELIST_END_OPEN, FILELIST_END_CLOSE
@@ -106,7 +145,7 @@ VI. finished stuffs
     [x] 'content/test/ingestion/code_ingestion_parser_tests.py': Refactor raw-string fixtures to compose from e.Delims constants rather than hardcoding "¤" literals
         - build bookend strings from FILESET_START_OPEN/CLOSE, FILESET_END_OPEN/CLOSE so fixtures stay in sync if any constant's value changes later
 
-2. Replace resolver type-ordering in prompt rendering with an explicit ordered list
+Replace resolver type-ordering in prompt rendering with an explicit ordered list
     [x] 'content/backend/render_pipeline/render_service.py': Swap alphabetical type sort for a fixed resolver precedence list
         - task: define a module-level TYPE_ORDER list (e.g. ManifestResolver, RepoContentResolver, MultiDocResolver) capturing intent instead of class-name alphabetics
         - task: rank resolvers by precedence using isinstance so PudBaseResolver/SharedBaseResolver subclasses fall into the MultiDoc slot (avoid .index() KeyError on subclass types)

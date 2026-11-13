@@ -5,11 +5,11 @@ from backend.asset_ingestion.ingestion_parser import IngestionParser
 
 
 def _start_bookend(action: str, path: str) -> str:
-    return f"{e.Delims.FILESET_START_OPEN} {action}: {path} {e.Delims.FILESET_START_CLOSE}"
+    return f"{e.Delims.FILESET_START_OPEN[1]} {action}: {path} {e.Delims.FILESET_START_CLOSE[1]}"
 
 
 def _end_bookend(action: str, path: str) -> str:
-    return f"{e.Delims.FILESET_END_OPEN} {action}: {path} {e.Delims.FILESET_END_CLOSE}"
+    return f"{e.Delims.FILESET_END_OPEN[1]} {action}: {path} {e.Delims.FILESET_END_CLOSE[1]}"
 
 
 class TestIngestionParser(unittest.TestCase):

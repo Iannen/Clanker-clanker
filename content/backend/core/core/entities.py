@@ -155,17 +155,17 @@ class AssetPack(RepoItem):
         self.paths = paths
 
 class Delims:
-    PROMPT_OPEN = "#"
-    PROMPT_CLOSE = ""
-    FILESET_START_OPEN = "<"
-    FILESET_START_CLOSE = ">"
-    FILESET_END_OPEN = "</"
-    FILESET_END_CLOSE = ">"
-    FILELIST_START_OPEN = "<"
-    FILELIST_START_CLOSE = ">"
-    FILELIST_END_OPEN = "</"
-    FILELIST_END_CLOSE = ">"
-    MANIFEST_MEMBER = "🗄️"
+    PROMPT_OPEN = ("§po§", "#")
+    PROMPT_CLOSE = ("§pc§", "")
+    FILESET_START_OPEN = ("§fsul§", "<")
+    FILESET_START_CLOSE = ("§fsur§", ">")
+    FILESET_END_OPEN = ("§fel§", "</")
+    FILESET_END_CLOSE = ("§fer§", ">")
+    FILELIST_START_OPEN = ("§llul§", "<")
+    FILELIST_START_CLOSE = ("§llur§", ">")
+    FILELIST_END_OPEN = ("§llel§", "</")
+    FILELIST_END_CLOSE = ("§ller§", ">")
+    MANIFEST_MEMBER = ("§mm§", "🗄️")
 
 class PathTokens:
     PUD = "<PUD>"
