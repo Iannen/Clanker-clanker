@@ -154,19 +154,19 @@ class AssetPack(RepoItem):
         self.token = token
         self.paths = paths
 
+class Delims:
+    PROMPT_OPEN = "#"
+    PROMPT_CLOSE = ""
+    FILESET_START_OPEN = "<"
+    FILESET_START_CLOSE = ">"
+    FILESET_END_OPEN = "</"
+    FILESET_END_CLOSE = ">"
+    FILELIST_START_OPEN = "<"
+    FILELIST_START_CLOSE = ">"
+    FILELIST_END_OPEN = "</"
+    FILELIST_END_CLOSE = ">"
+    MANIFEST_MEMBER = "🗄️"
 
-class Delims:
-    PROMPT_SECTION = "¤¤" # 🔖
-    FILESET_MEMBER = "¤" #🗃️
-    FILELIST_MEMBER = "¤" # 📃
-    MANIFEST_MEMBER = "¤" # 🗄️
-"""
-class Delims:
-    PROMPT_SECTION = "🔖" # 
-    FILESET_MEMBER = "🗃️" #
-    FILELIST_MEMBER = "📃" # 
-    MANIFEST_MEMBER = "🗄️" # 
-"""
 class PathTokens:
     PUD = "<PUD>"
     SHARED = "<SHARED>"
@@ -176,7 +176,6 @@ SHR_TEMPL = PathTokens.SHARED + "/content/a_lib/templates/"
 SHR_DOC_TEMPL = SHR_TEMPL + "documentation/"
 SHR_LAYOUTS = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/"
 PROG_DOCS = PathTokens.PUD + "/.clanker/progress-documentation/"
-
 
 
 class ClankerAssets:

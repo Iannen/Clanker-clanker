@@ -66,29 +66,45 @@ II. The wishlist
 
 III. Items under development
 
-```text
-3. Auto-substitute delims in .output-template files during multi-doc rendering
-    [ ] 'content/backend/render_pipeline/render_service.py': Dispatch extension check in _res_multi_doc
-        - task: after truncation, if file_obj.name.endswith(".output-template"), call shaper helper
-        - prohibition: keep the check to a single-line if at the call site; no registry, no config
-    [ ] 'content/backend/render_pipeline/content_shaper.py': Add substitute_delims method
-        - task: pure string-in/string-out, calls e.Delims.build_output_template
-        - prohibition: shaper stays filename-agnostic; it doesn't know why it's being called
-    [ ] 'content/backend/core/core/entities.py': Add build_output_template classmethod to Delims
-        - task: replace {{PROMPT_SECTION}}, {{FILESET_MEMBER}}, {{FILELIST_MEMBER}}, {{MANIFEST_MEMBER}} placeholders
-        - prohibition: template file itself stores placeholders, not literal delims
-```
 
 Backlog tail, Selected item/items:
 
-1. example backlog item
-    [ ] 'path/file.txt'
-        - mock subtask
+2. Route all MDR filelist entries through a unified shaper processing step that performs §NN§ placeholder substitution (by extension) before truncation
+    [ ] 'content/backend/render_pipeline/content_shaper.py': Add extension-aware placeholder substitution as a pre-step within the shaper's processing pass
+        - expand the shaper's entry point to accept the filename (or File entity) alongside content and truncation spec
+        - check filename against a recognized set of extensions (e.g. `.output-template`)
+        - if extension matches: apply a fixed lookup map replacing §01§, §02§, §03§… with the current e.Delims token values
+        - if extension does not match: content passes through unchanged (no-op), only truncation applies
+        - placeholder tokens use §NN§ form so they cannot collide with active e.Delims values (¤, 🔖, 🗃️, etc.)
+        - substitution runs before truncation so from_line / up_to / tail_lines operate on final text
+    [ ] 'content/backend/render_pipeline/render_service.py': Update _res_multi_doc to pass file_obj.name (or the File entity) into the shaper call
+        - existing self.shaper.apply_truncation(raw_content, file_obj.truncation_spec) becomes the unified processing call with filename context
+        - no structural change to dispatch; every filelist entry already flows through the shaper, this just widens what that pass does
+    [ ] 'content/test/render/render_contentshaper.py'
+        - write test 
 
 Backlog tail end
 
 
 VI. finished stuffs
+
+1. Expand Delims vocabulary: 4 distinct symbol constants per bookend type
+    [x] 'content/backend/core/core/entities.py': Declare 4 separate constants for FILESET and 4 for FILELIST (manifest: TBD, leave as-is for now)
+        - FILESET_START_OPEN, FILESET_START_CLOSE, FILESET_END_OPEN, FILESET_END_CLOSE
+        - FILELIST_START_OPEN, FILELIST_START_CLOSE, FILELIST_END_OPEN, FILELIST_END_CLOSE
+        - initial values can all be "¤" (preserving current wire format), but they are *distinct fields* so any one can be swapped independently
+        - PROMPT_SECTION: currently "¤¤" — split to PROMPT_OPEN + PROMPT_CLOSE if desired, or leave as single constant
+        - prohibition: do not consolidate into a single shared token; the whole point is per-position independence
+    [x] 'content/backend/render_pipeline/render_service.py': Align _res_multi_doc and _res_repo_content to reference the 4-symbol constants
+        - _res_multi_doc (filelist): `FILELIST_START_OPEN name FILELIST_START_CLOSE\n{content}\nFILELIST_END_OPEN name FILELIST_END_CLOSE`
+        - _res_repo_content (fileset): `FILESET_START_OPEN path FILESET_START_CLOSE\n{content}\nFILESET_END_OPEN path FILESET_END_CLOSE`
+        - _res_manifest: leave as-is or update to a manifest 4-set (low priority)
+        - section headers: `PROMPT_OPEN {section} PROMPT_CLOSE` (if split)
+    [x] 'content/backend/asset_ingestion/ingestion_parser.py': Align _bookend_re and the closing-bookend string builder to the 4-symbol FILESET constants
+        - regex: `^FILESET_START_OPEN\s*(create|update|delete)\s*:\s*(.+?)\s*FILESET_START_CLOSE$`
+        - closing bookend string: `f"{FILESET_END_OPEN} {action}: {path} {FILESET_END_CLOSE}"`
+    [x] 'content/test/ingestion/code_ingestion_parser_tests.py': Refactor raw-string fixtures to compose from e.Delims constants rather than hardcoding "¤" literals
+        - build bookend strings from FILESET_START_OPEN/CLOSE, FILESET_END_OPEN/CLOSE so fixtures stay in sync if any constant's value changes later
 
 2. Replace resolver type-ordering in prompt rendering with an explicit ordered list
     [x] 'content/backend/render_pipeline/render_service.py': Swap alphabetical type sort for a fixed resolver precedence list

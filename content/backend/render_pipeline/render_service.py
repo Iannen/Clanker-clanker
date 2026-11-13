@@ -56,7 +56,7 @@ class PromptServiceImpl(d.PromptService):
         # f-g. build render
         render_parts: list[str] = []
         for section_name, res_list in sections.items():
-            header = f"{e.Delims.PROMPT_SECTION} {section_name} {e.Delims.PROMPT_SECTION}"
+            header = f"{e.Delims.PROMPT_OPEN} {section_name} {e.Delims.PROMPT_CLOSE}"
             fragments = [self._dispatch(res) for res in res_list]
             section_content = header + "\n\n" + "\n\n".join(fragments)
             render_parts.append(section_content)
@@ -121,7 +121,11 @@ class PromptServiceImpl(d.PromptService):
         for file_obj in resolver.files.files:
             raw_content = self.files.read_asset(file_obj.path)
             content = self.shaper.apply_truncation(raw_content, file_obj.truncation_spec)
-            fragments.append(f"{e.Delims.FILELIST_MEMBER} {file_obj.name} {e.Delims.FILELIST_MEMBER}\n{content}\n{e.Delims.FILELIST_MEMBER} {file_obj.name} {e.Delims.FILELIST_MEMBER}")
+            fragments.append(
+                f"{e.Delims.FILELIST_START_OPEN} {file_obj.name} {e.Delims.FILELIST_START_CLOSE}\n"
+                f"{content}\n"
+                f"{e.Delims.FILELIST_END_OPEN} {file_obj.name} {e.Delims.FILELIST_END_CLOSE}"
+            )
 
         return {resolver.anchor: "\n\n".join(fragments)}
 
@@ -146,7 +150,11 @@ class PromptServiceImpl(d.PromptService):
         for p in paths:
             try:
                 content = self.files.read_asset(f"{e.PathTokens.PUD}/{p}").rstrip()
-                file_blocks.append(f"{e.Delims.FILESET_MEMBER} {p} {e.Delims.FILESET_MEMBER}\n{content}\n{e.Delims.FILESET_MEMBER} {p} {e.Delims.FILESET_MEMBER}")
+                file_blocks.append(
+                    f"{e.Delims.FILESET_START_OPEN} {p} {e.Delims.FILESET_START_CLOSE}\n"
+                    f"{content}\n"
+                    f"{e.Delims.FILESET_END_OPEN} {p} {e.Delims.FILESET_END_CLOSE}"
+                )
             except UnicodeDecodeError:
                 pass
 

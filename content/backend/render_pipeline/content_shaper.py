@@ -34,3 +34,8 @@ class PromptContentShaper:
             if pattern.search(line):
                 return idx
         return None
+
+
+"""
+
+"""

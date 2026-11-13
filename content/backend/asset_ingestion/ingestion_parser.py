@@ -14,9 +14,9 @@ class IngestionParseResult:
 
 class IngestionParser:
     _bookend_re = re.compile(
-        r"^" + e.Delims.FILESET_MEMBER
+        r"^" + e.Delims.FILESET_START_OPEN
         + r"\s*(create|update|delete)\s*:\s*(.+?)\s*"
-        + e.Delims.FILESET_MEMBER
+        + e.Delims.FILESET_START_CLOSE
         + r"$"
     )
 
@@ -46,7 +46,7 @@ class IngestionParser:
                 continue
 
             # create or update: scan forward for the identical closing bookend
-            closing = f"{e.Delims.FILESET_MEMBER} {action}: {path} {e.Delims.FILESET_MEMBER}"
+            closing = f"{e.Delims.FILESET_END_OPEN} {action}: {path} {e.Delims.FILESET_END_CLOSE}"
             j = i + 1
             content_lines: list[str] = []
             found = False
