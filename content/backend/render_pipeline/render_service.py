@@ -28,7 +28,7 @@ class PromptServiceImpl(d.PromptService):
 
     def render_prompt(self, cmd: d.RenderNormalPromptCmd | d.RenderHotPromptCmd) -> d.PromptRenderResult:
         try:
-            template = self.files.read_asset(e.ClankerAssets.layouts.PROMPT)
+            template = self.files.get_file_contents(e.ClankerAssets.layouts.PROMPT)
         except d.NoSuchFile as ex:
             raise e.CorruptClanker(f"Error loading template for '{cmd.prompt.render.template}': {ex}") from ex
 
@@ -119,7 +119,7 @@ class PromptServiceImpl(d.PromptService):
     def _res_multi_doc(self, resolver: e.MultiDocResolver) -> dict[str, str]:
         fragments = []
         for file_obj in resolver.files.files:
-            raw_content = self.files.read_asset(file_obj.path)
+            raw_content = self.files.get_file_contents(file_obj.path)
             content = self.shaper.process(raw_content, file_obj)
             fragments.append(
                 f"{e.Delims.FILELIST_START_OPEN[1]}{file_obj.name}{e.Delims.FILELIST_START_CLOSE[1]}\n"
@@ -149,7 +149,7 @@ class PromptServiceImpl(d.PromptService):
         file_blocks = []
         for p in paths:
             try:
-                content = self.files.read_asset(f"{e.PathTokens.PUD}/{p}").rstrip()
+                content = self.files.get_file_contents(f"{e.PathTokens.PUD}/{p}").rstrip()
                 file_blocks.append(
                     f"{e.Delims.FILESET_START_OPEN[1]}{p}{e.Delims.FILESET_START_CLOSE[1]}\n"
                     f"{content}\n"
@@ -191,7 +191,7 @@ class PromptServiceImpl(d.PromptService):
         lines = []
         for p in paths:
             try:
-                content = self.files.read_asset(f"{basepath_token}/{p}")
+                content = self.files.get_file_contents(f"{basepath_token}/{p}")
                 line_count = len(content.splitlines())
                 lines.append(f"{p} : {line_count} lines")
             except UnicodeDecodeError:

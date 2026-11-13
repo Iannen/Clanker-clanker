@@ -68,21 +68,21 @@ III. Items under development
 
 
 Backlog tail, Selected item/items:
-```text
-1. Prune redundant disk-port surface and dead backup
-    [ ] 'backend/render_pipeline/render_service copy.py.bak': Delete file
-        - Dead backup, never imported, only differs in f-string spacing around delimiters
-    [ ] 'backend/core/engine_deps/ports.py': Remove `read_asset` abstract method from `DiskPort`
-        - Pure delegation to `get_file_contents`, no behavioral or error-surface difference
-    [ ] 'backend/adapters/disk_adapter.py': Remove `read_asset` override from `LinuxDiskAdapter`
-        - Same: one-line forward to `get_file_contents`, no added logic
-    [ ] 'backend/render_pipeline/render_service.py': Swap four `read_asset(...)` calls to `get_file_contents(...)`
-        - Template load in `render_prompt`, `_res_multi_doc`, `_res_repo_content`, `_build_manifest`
-```
+
 Backlog tail end
 
 
 VI. finished stuffs
+
+1. Prune redundant disk-port surface and dead backup
+    [x] 'content/backend/render_pipeline/render_service copy.py.bak': Delete file
+        - Dead backup, never imported, only differs in f-string spacing around delimiters
+    [x] 'content/backend/core/engine_deps/ports.py': Remove `read_asset` abstract method from `DiskPort`
+        - Pure delegation to `get_file_contents`, no behavioral or error-surface difference
+    [x] 'content/backend/adapters/disk_adapter.py': Remove `read_asset` override from `LinuxDiskAdapter`
+        - Same: one-line forward to `get_file_contents`, no added logic
+    [x] 'content/backend/render_pipeline/render_service.py': Swap four `read_asset(...)` calls to `get_file_contents(...)`
+        - Template load in `render_prompt`, `_res_multi_doc`, `_res_repo_content`, `_build_manifest`
 
 Add extension-aware placeholder substitution to the shaper, driven by Delims tuple pairs
     [x] 'content/backend/core/core/entities.py': Convert Delims constants from bare strings to ("placeholder", "value") tuples

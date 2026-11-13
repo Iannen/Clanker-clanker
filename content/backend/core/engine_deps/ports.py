@@ -29,9 +29,6 @@ class DiskPort(ABC):
     def is_cwd_script_dir(self) -> bool: ...
 
     @abstractmethod
-    def read_asset(self, tokenized_path: str) -> str: ...  # raises: InvalidPathToken, NoSuchFile, FileAccessError
-
-    @abstractmethod
     def get_file_paths(
         self,
         basepath_token: str,
