@@ -205,9 +205,13 @@ class ClankerApp extends BaseComponent {
         this.messagesBox.addMessages(userMsg, assistantMsg);
         this.inputBox.setDisabled(true);
 
+        const history = this.messagesBox.getHistory();
+        const totalChars = history.reduce((sum, m) => sum + (m.content?.length ?? 0), 0);
+        assistantMsg.sentChars = totalChars;
+
         try {
             const result = await apiClient.streamChatCompletion({
-                messages: this.messagesBox.getHistory(),
+                messages: history,
                 onToken: (token, fullText) => {
                     assistantMsg.updateContent(fullText);
                     this.messagesBox.scrollIfLocked();
@@ -221,7 +225,6 @@ class ClankerApp extends BaseComponent {
             assistantMsg.setPerformanceTimings(result.timings);
         } catch (error) {
             assistantMsg.appendError(error.message);
-            assistantMsg.hidePrefillBar();
         } finally {
             this.inputBox.setDisabled(false);
             if (this.#selectedElement === this.inputBox) this.inputBox.focus();

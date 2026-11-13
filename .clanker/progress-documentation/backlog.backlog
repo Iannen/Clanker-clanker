@@ -83,9 +83,20 @@ III. Items under development
 
 Backlog tail, Selected item/items:
 
-```text
+Backlog tail end
+
+
+
+VI. finished stuffs
+
+1. Remove max_tokens override for keyboard-originated prompts
+    [x] 'content/web-ui/frontend/clanker-app.js': Drop the `max_tokens` arg from the `streamChatCompletion` call
+        - remove `max_tokens: prefill ? 1 : undefined,` from the options object passed to `apiClient.streamChatCompletion(...)` inside `#generateResponse`
+        - `prefill` flag stays as-is; it still controls `userMsg.collapsed = true`
+        - no changes needed in `api-client.js` (the `max_tokens` param on `streamChatCompletion` can remain as a generic pass-through, just never exercised from this call site)
+
 1. Unify message stats into a single phased footer
-    [ ] 'content/web-ui/frontend/message.js': Replace separate prefill-bar and performance-footer with one always-present stats line that reformats per phase
+    [x] 'content/web-ui/frontend/message.js': Replace separate prefill-bar and performance-footer with one always-present stats line that reformats per phase
         - remove the `.prefill-bar` div from the HTML template entirely
         - repurpose `.performance-footer` as the single stats element; visible from first data tick, not hidden until completion
         - track internal phase state: prefill → reasoning → content → final
@@ -99,46 +110,7 @@ Backlog tail, Selected item/items:
         - final reasoning/content token split derived as `predicted_n * (reasoning_chars / total_gen_chars)`
         - remove `hidePrefillBar`, `#hidePrefillBar`, `#prefillState`, prefill-related fields from the element
         - remove `prefill-bar` CSS and DOM references
-    [ ] 'content/web-ui/frontend/clanker-app.js': Pass sent char count to assistant message before streaming begins
+    [x] 'content/web-ui/frontend/clanker-app.js': Pass sent char count to assistant message before streaming begins
         - compute `totalChars` from `this.messagesBox.getHistory()` (sum of `content.length`)
         - set `assistantMsg.sentChars = totalChars` before the `streamChatCompletion` call
         - no other changes to the streaming callback wiring
-```
-Backlog tail end
-I thought I would make better use of the data, available, and also present it better to the user.
-
-The idea is that we have only one 'stats' elements. while the msg is still streaming, we use the data we have. When the final one ticks, we get the truth and can just use that outright (in my thinking at least)
-
-``` chrome dev inspection of completion call content
-data: {"choices":[{"finish_reason":null,"index":0,"delta":{"role":"assistant","content":null}}],"created":1794584321,"id":"chatcmpl-0sLTmFSyLc5UXwQrAdB6Dbh2vws5RF3U","model":"/home/user/Models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf","system_fingerprint":"b12332-a8575a3ef","object":"chat.completion.chunk","prompt_progress":{"total":31964,"cache":0,"processed":0,"time_ms":0}}
-
-data: {"choices":[{"finish_reason":null,"index":0,"delta":{"role":"assistant","content":null}}],"created":1794584324,"id":"chatcmpl-0sLTmFSyLc5UXwQrAdB6Dbh2vws5RF3U","model":"/home/user/Models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf","system_fingerprint":"b12332-a8575a3ef","object":"chat.completion.chunk","prompt_progress":{"total":31964,"cache":0,"processed":2048,"time_ms":2237}}
-
-<truncated intermediary data deliveries>
-
-data: {"choices":[{"finish_reason":null,"index":0,"delta":{"role":"assistant","content":null}}],"created":1794584353,"id":"chatcmpl-0sLTmFSyLc5UXwQrAdB6Dbh2vws5RF3U","model":"/home/user/Models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf","system_fingerprint":"b12332-a8575a3ef","object":"chat.completion.chunk","prompt_progress":{"total":31964,"cache":0,"processed":31960,"time_ms":31469}}
-
-data: {"choices":[{"finish_reason":null,"index":0,"delta":{"role":"assistant","content":null}}],"created":1794584353,"id":"chatcmpl-0sLTmFSyLc5UXwQrAdB6Dbh2vws5RF3U","model":"/home/user/Models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf","system_fingerprint":"b12332-a8575a3ef","object":"chat.completion.chunk","prompt_progress":{"total":31964,"cache":0,"processed":31964,"time_ms":31537}}
-
-data: {"choices":[{"finish_reason":null,"index":0,"delta":{"role":"assistant","content":null}}],"created":1794584353,"id":"chatcmpl-0sLTmFSyLc5UXwQrAdB6Dbh2vws5RF3U","model":"/home/user/Models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf","system_fingerprint":"b12332-a8575a3ef","object":"chat.completion.chunk"}
-
-data: {"choices":[{"finish_reason":null,"index":0,"delta":{"reasoning_content":"The"}}],"created":1794584353,"id":"chatcmpl-0sLTmFSyLc5UXwQrAdB6Dbh2vws5RF3U","model":"/home/user/Models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf","system_fingerprint":"b12332-a8575a3ef","object":"chat.completion.chunk"}
-
-data: {"choices":[{"finish_reason":"length","index":0,"delta":{}}],"created":1794584353,"id":"chatcmpl-0sLTmFSyLc5UXwQrAdB6Dbh2vws5RF3U","model":"/home/user/Models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf","system_fingerprint":"b12332-a8575a3ef","object":"chat.completion.chunk","timings":{"cache_n":0,"prompt_n":31964,"prompt_ms":31538.1,"prompt_per_token_ms":0.9866756350894756,"prompt_per_second":1013.504301146867,"predicted_n":1,"predicted_ms":0.001,"predicted_per_token_ms":0.0,"predicted_per_second":0.0}}
-
-data: [DONE]
-```
-
-
-
-
-
-
-
-VI. finished stuffs
-
-1. Remove max_tokens override for keyboard-originated prompts
-    [x] 'content/web-ui/frontend/clanker-app.js': Drop the `max_tokens` arg from the `streamChatCompletion` call
-        - remove `max_tokens: prefill ? 1 : undefined,` from the options object passed to `apiClient.streamChatCompletion(...)` inside `#generateResponse`
-        - `prefill` flag stays as-is; it still controls `userMsg.collapsed = true`
-        - no changes needed in `api-client.js` (the `max_tokens` param on `streamChatCompletion` can remain as a generic pass-through, just never exercised from this call site)
