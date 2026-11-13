@@ -81,9 +81,6 @@ class LinuxDiskAdapter(DiskPort):
     def is_cwd_script_dir(self) -> bool:
         return self.pud_path.resolve() == self.clanker_path.resolve()
 
-    def read_asset(self, tokenized_path: str) -> str:
-        return self.get_file_contents(tokenized_path)
-
     def get_file_paths(
         self,
         basepath_token: str,

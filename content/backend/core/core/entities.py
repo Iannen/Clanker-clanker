@@ -154,6 +154,18 @@ class AssetPack(RepoItem):
         self.token = token
         self.paths = paths
 
+class Delims:
+    PROMPT_OPEN = ("§po§", "#")
+    PROMPT_CLOSE = ("§pc§", "")
+    FILESET_START_OPEN = ("§fsul§", "<")
+    FILESET_START_CLOSE = ("§fsur§", ">")
+    FILESET_END_OPEN = ("§fel§", "</")
+    FILESET_END_CLOSE = ("§fer§", ">")
+    FILELIST_START_OPEN = ("§llul§", "<")
+    FILELIST_START_CLOSE = ("§llur§", ">")
+    FILELIST_END_OPEN = ("§llel§", "</")
+    FILELIST_END_CLOSE = ("§ller§", ">")
+    MANIFEST_MEMBER = ("§mm§", "🗄️")
 
 class PathTokens:
     PUD = "<PUD>"
@@ -164,7 +176,6 @@ SHR_TEMPL = PathTokens.SHARED + "/content/a_lib/templates/"
 SHR_DOC_TEMPL = SHR_TEMPL + "documentation/"
 SHR_LAYOUTS = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/"
 PROG_DOCS = PathTokens.PUD + "/.clanker/progress-documentation/"
-
 
 
 class ClankerAssets:

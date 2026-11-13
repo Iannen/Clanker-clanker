@@ -5,6 +5,19 @@ from backend.stdlib import dataclass
 from backend.core import engine_deps as d
 from . import PromptContentShaper
 
+TYPE_ORDER: list[type] = [
+    e.ManifestResolver,
+    e.RepoContentResolver,
+    e.MultiDocResolver,
+]
+
+
+def _resolver_rank(r: e.Resolver) -> int:
+    for i, cls in enumerate(TYPE_ORDER):
+        if isinstance(r, cls):
+            return i
+    return len(TYPE_ORDER)
+
 
 @dataclass
 class PromptServiceImpl(d.PromptService):
@@ -15,7 +28,7 @@ class PromptServiceImpl(d.PromptService):
 
     def render_prompt(self, cmd: d.RenderNormalPromptCmd | d.RenderHotPromptCmd) -> d.PromptRenderResult:
         try:
-            template = self.files.read_asset(e.ClankerAssets.layouts.PROMPT)
+            template = self.files.get_file_contents(e.ClankerAssets.layouts.PROMPT)
         except d.NoSuchFile as ex:
             raise e.CorruptClanker(f"Error loading template for '{cmd.prompt.render.template}': {ex}") from ex
 
@@ -27,33 +40,30 @@ class PromptServiceImpl(d.PromptService):
         # b. collect resolvers
         resolvers = self._collect_resolvers(cmd)
 
-        # c. derive global type order (alphabetical by class name)
-        order = sorted({type(r) for r in resolvers}, key=lambda t: t.__name__)
-
-        # d. assign resolvers to sections by anchor
+        # c. assign resolvers to sections by anchor
         for res in resolvers:
             if res.anchor not in sections:
                 raise e.CorruptClanker(f"Resolver anchor '{res.anchor}' has no matching section in layout")
             sections[res.anchor].append(res)
 
-        # e. evict empty sections
+        # d. evict empty sections
         sections = {k: v for k, v in sections.items() if v}
 
-        # f. sort each section's list by type order
+        # e. sort each section's list by precedence
         for key in sections:
-            sections[key].sort(key=lambda r: order.index(type(r)))
+            sections[key].sort(key=_resolver_rank)
 
-        # g-h. build render
+        # f-g. build render
         render_parts: list[str] = []
         for section_name, res_list in sections.items():
-            header = f"¤¤ {section_name} ¤¤"
+            header = f"{e.Delims.PROMPT_OPEN[1]}{section_name}{e.Delims.PROMPT_CLOSE[1]}"
             fragments = [self._dispatch(res) for res in res_list]
             section_content = header + "\n\n" + "\n\n".join(fragments)
             render_parts.append(section_content)
 
         render = "\n\n\n".join(render_parts) + "\n"
 
-        # i. return
+        # h. return
         lines_count = len(render.splitlines())
         char_count = len(render)
         return d.PromptRenderResult(
@@ -109,9 +119,13 @@ class PromptServiceImpl(d.PromptService):
     def _res_multi_doc(self, resolver: e.MultiDocResolver) -> dict[str, str]:
         fragments = []
         for file_obj in resolver.files.files:
-            raw_content = self.files.read_asset(file_obj.path)
-            content = self.shaper.apply_truncation(raw_content, file_obj.truncation_spec)
-            fragments.append(f"¤ {file_obj.name} ¤\n{content}\n¤ {file_obj.name} ¤")
+            raw_content = self.files.get_file_contents(file_obj.path)
+            content = self.shaper.process(raw_content, file_obj)
+            fragments.append(
+                f"{e.Delims.FILELIST_START_OPEN[1]}{file_obj.name}{e.Delims.FILELIST_START_CLOSE[1]}\n"
+                f"{content}\n"
+                f"{e.Delims.FILELIST_END_OPEN[1]}{file_obj.name}{e.Delims.FILELIST_END_CLOSE[1]}"
+            )
 
         return {resolver.anchor: "\n\n".join(fragments)}
 
@@ -135,8 +149,12 @@ class PromptServiceImpl(d.PromptService):
         file_blocks = []
         for p in paths:
             try:
-                content = self.files.read_asset(f"{e.PathTokens.PUD}/{p}").rstrip()
-                file_blocks.append(f"¤ {p} ¤\n{content}\n¤ {p} ¤")
+                content = self.files.get_file_contents(f"{e.PathTokens.PUD}/{p}").rstrip()
+                file_blocks.append(
+                    f"{e.Delims.FILESET_START_OPEN[1]}{p}{e.Delims.FILESET_START_CLOSE[1]}\n"
+                    f"{content}\n"
+                    f"{e.Delims.FILESET_END_OPEN[1]}{p}{e.Delims.FILESET_END_CLOSE[1]}"
+                )
             except UnicodeDecodeError:
                 pass
 
@@ -173,10 +191,10 @@ class PromptServiceImpl(d.PromptService):
         lines = []
         for p in paths:
             try:
-                content = self.files.read_asset(f"{basepath_token}/{p}")
+                content = self.files.get_file_contents(f"{basepath_token}/{p}")
                 line_count = len(content.splitlines())
                 lines.append(f"{p} : {line_count} lines")
             except UnicodeDecodeError:
                 pass
 
-        return f"¤ {tag} ¤\n" + "\n".join(lines) + f"\n¤ {tag} ¤"
+        return f"{e.Delims.MANIFEST_MEMBER[1]}{tag}{e.Delims.MANIFEST_MEMBER[1]}\n" + "\n".join(lines) + f"\n{e.Delims.MANIFEST_MEMBER[1]}{tag}{e.Delims.MANIFEST_MEMBER[1]}"

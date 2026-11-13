@@ -1,0 +1,24 @@
+## To create new files:
+
+§fsul§create: path1§fsur§
+<complete file contents>
+§fel§create: path1§fer§
+
+§fsul§create: path2§fsur§
+<complete file contents>
+§fel§create: path2§fer§
+
+## To update files:
+
+§fsul§update: path3§fsur§
+<complete file contents>
+§fel§update: path3§fer§
+
+§fsul§update: path4§fsur§
+<complete file contents>
+§fel§update: path4§fer§
+
+## To delete files:
+
+§fsul§delete: path5§fsur§
+§fsul§delete: path6§fsur§
