@@ -208,7 +208,6 @@ class ClankerApp extends BaseComponent {
         try {
             const result = await apiClient.streamChatCompletion({
                 messages: this.messagesBox.getHistory(),
-                max_tokens: prefill ? 1 : undefined,
                 onToken: (token, fullText) => {
                     assistantMsg.updateContent(fullText);
                     this.messagesBox.scrollIfLocked();

@@ -1780,3 +1780,46 @@ CCXI: SURFACE PREFILL PROGRESS
     - The prefill → generation transition is now visible end-to-end, improving perceived latency during prompt processing.
     - The bar is decoupled from the collapsed toggle, so prefill feedback never bleeds into the rendered reply.
     - Trade-off: rate computation assumes monotonic `processed`/`time_ms`; a guard against out-of-order ticks would harden it.
+
+CCXII: PRUNE DEAD CODE AND REDUNDANT SURFACE
+    Purpose: Remove unused code paths, redundant API surface, and dead frontend/backend artifacts that add maintenance weight without functional value.
+    - Core requirement: the codebase had accumulated pure-delegation wrappers, dead backup files, orphaned helper classes, and unused UI methods that no longer served a purpose.
+    Actions:
+    - `content/backend/adapters/disk_adapter.py`: Remove `read_asset` override from `LinuxDiskAdapter`
+    - `content/backend/core/engine_deps/ports.py`: Remove `read_asset` abstract method from `DiskPort`
+    - `content/backend/render_pipeline/render_service.py`: Swap four `read_asset(...)` calls to `get_file_contents(...)`; remove `slots=True` from `@dataclass(PromptServiceImpl)`
+    - `content/backend/render_pipeline/render_service copy.py.bak`: Delete dead backup file
+    - `content/backend/render_pipeline/content_shaper.py`: Delete `hydrate()` method and orphaned `SystemKeys` class
+    - `content/backend/core/engine_deps/result.py`: Remove `slots=True` from `@dataclass(StartCmd)`
+    - `content/backend/keyboard/keyboard_service.py`: Remove `slots=True` from `@dataclass(KBServiceImpl)`
+    - `content/web-ui/frontend/api-client.js`: Delete `getTestPrompt()` method
+    - `content/web-ui/frontend/clanker-app.js`: Delete `#pullTestPrompt()` and its 'Ctrl+i' entry from `#inputActions`
+    Reflection:
+    - DiskPort surface is now minimal — every method maps to a distinct disk operation with no pure-delegation wrappers.
+    - Trade-off: `slots=True` removal is negligible at runtime but eliminates a subtle source of attribute-access bugs if fields are added post-init.
+
+CCXIII: INTRODUCE AND EVOLVE THE DELIMS DELIMITER SYSTEM
+    Purpose: Replace scattered hardcoded delimiter literals with a centralized, per-position-independent constant class, then extend it to drive extension-aware placeholder substitution in the content shaper.
+    - Core requirement: delimiter tokens were hardcoded as bare strings in multiple files, making them impossible to evolve independently per position; the shaper also had no mechanism to translate placeholder syntax into wire-format delimiters for template files.
+    Actions:
+    - `content/backend/core/core/entities.py`: Add `Delims` class; convert constants to `("placeholder", "value")` tuple pairs; expand FILESET and FILELIST into 4 distinct position constants each (START_OPEN, START_CLOSE, END_OPEN, END_CLOSE)
+    - `content/backend/asset_ingestion/ingestion_parser.py`: Reference `e.Delims.FILESET_*` constants in regex and closing-bookend builder; index `[1]` on tuple pairs
+    - `content/backend/render_pipeline/render_service.py`: Index `[1]` on every Delims reference; remove injected spaces from f-string bookends; widen shaper call to `self.shaper.process(raw_content, file_obj)`
+    - `content/backend/render_pipeline/content_shaper.py`: Add `process()` as public entry point; substitution pre-step gated on `.output-template` extension, iterating `Delims.__dict__.values()`
+    - `content/test/ingestion/code_ingestion_parser_tests.py`: Refactor fixtures to compose from `e.Delims` constants
+    - `content/test/render/render_contentshaper_tests.py`: New test suite covering substitution + truncation interplay
+    - `code-generation.output-template`: Rewrite to use `§…§` placeholders in bookends
+    Reflection:
+    - Delimiters are now per-position independent — any single token can be swapped without collateral changes.
+    - The shaper's substitution step is extension-gated, so non-template files pass through untouched even if they contain delimiter-like text.
+    - Trade-off: the `§…§` placeholder vocabulary in output-templates is now a contract between the LLM emission format and `IngestionParser`; changing a Delims value requires a matching template rewrite.
+
+CCXIV: EXPLICIT RESOLVER PRECEDENCE IN PROMPT RENDERING
+    Purpose: Replace alphabetical type-name sorting of resolvers within a section with an intentional, maintainable precedence order that reflects rendering priority.
+    - Core requirement: the previous sort was an emergent artifact of `type(r).__name__` alphabetics, which produced arbitrary ordering and broke silently for subclasses.
+    Actions:
+    - `content/backend/render_pipeline/render_service.py`: Define module-level `TYPE_ORDER` list (`ManifestResolver`, `RepoContentResolver`, `MultiDocResolver`); add `_resolver_rank()` using `isinstance` so subclasses (e.g. `PudBaseResolver`, `SharedBaseResolver`) rank into the `MultiDocResolver` slot; apply rank in the per-section sort step
+    Reflection:
+    - Resolver ordering is now a single declarative list; swapping positions is a one-line edit.
+    - `isinstance`-based ranking avoids `KeyError` on subclass types that would miss a direct `type(r)` lookup.
+    - Scope is limited to within-section ordering; cross-anchor dispatch and section anchoring are unchanged.

@@ -16,7 +16,7 @@ pud_filesets:
       excludes: [
         content/a__old_tui,
         content/a_lib,
-        content/web-ui
+        #content/web-ui
     ]}
 
   test: {includes: [content/demofile.py]}

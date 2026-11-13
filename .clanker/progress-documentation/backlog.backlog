@@ -65,128 +65,80 @@ II. The wishlist
 ```
 
 III. Items under development
-
+```text
+1. Add GET /api/repositories to list sibling projects and clanker
+    [ ] 'backend/controller.py': Register new GET /api/repositories route returning a JSON array of repository ids
+        - Return 200 with application/json
+        - Body is a sorted list of directory-name ids
+        - Do not verify whether siblings are clanker projects (out of scope)
+    [ ] 'backend/adapters/disk_adapter.py': Add list_sibling_repositories() method to the disk adapter
+        - Scan the parent directory of clanker_path (the projects dir)
+        - Predicate: entry must be a directory, not hidden (no dot prefix), not a symlink
+        - Return sorted directory names (alphabetical)
+        - clanker is included automatically as a sibling; do not double-add
+    [ ] 'backend/core/engine_deps/ports.py': Add list_sibling_repositories() to the DiskPort interface
+        - Ensure the controller can call it through the DiskPort abstraction
+        - Mark raised exceptions if applicable
+```
 
 Backlog tail, Selected item/items:
 
+```text
+1. Unify message stats into a single phased footer
+    [ ] 'content/web-ui/frontend/message.js': Replace separate prefill-bar and performance-footer with one always-present stats line that reformats per phase
+        - remove the `.prefill-bar` div from the HTML template entirely
+        - repurpose `.performance-footer` as the single stats element; visible from first data tick, not hidden until completion
+        - track internal phase state: prefill → reasoning → content → final
+        - on first `onPrefill(pp)`: start prefill timer, render running prefill (processed/total, cached, elapsed, tps)
+        - on first non-empty `updateReasoning`: freeze prefill section, start reasoning timer, render frozen prefill + running reasoning (est ~tok via chars_per_token, elapsed)
+        - on first non-empty `updateContent`: freeze reasoning section, start content timer, render frozen prefill + frozen reasoning + running content
+        - on `setPerformanceTimings(timings)`: freeze all, render final with authoritative values (prompt_n, prompt_per_second, predicted_n, predicted_per_second, cache_n)
+        - final line appends `mtp X%` only if `timings.draft_n` and `timings.draft_n_accepted` are both present
+        - compute `chars_per_token` from a `sentChars` property (set by caller) divided by `prompt_progress.total`
+        - use `~` prefix on estimated token counts (reasoning/content running and final split)
+        - final reasoning/content token split derived as `predicted_n * (reasoning_chars / total_gen_chars)`
+        - remove `hidePrefillBar`, `#hidePrefillBar`, `#prefillState`, prefill-related fields from the element
+        - remove `prefill-bar` CSS and DOM references
+    [ ] 'content/web-ui/frontend/clanker-app.js': Pass sent char count to assistant message before streaming begins
+        - compute `totalChars` from `this.messagesBox.getHistory()` (sum of `content.length`)
+        - set `assistantMsg.sentChars = totalChars` before the `streamChatCompletion` call
+        - no other changes to the streaming callback wiring
+```
 Backlog tail end
+I thought I would make better use of the data, available, and also present it better to the user.
+
+The idea is that we have only one 'stats' elements. while the msg is still streaming, we use the data we have. When the final one ticks, we get the truth and can just use that outright (in my thinking at least)
+
+``` chrome dev inspection of completion call content
+data: {"choices":[{"finish_reason":null,"index":0,"delta":{"role":"assistant","content":null}}],"created":1794584321,"id":"chatcmpl-0sLTmFSyLc5UXwQrAdB6Dbh2vws5RF3U","model":"/home/user/Models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf","system_fingerprint":"b12332-a8575a3ef","object":"chat.completion.chunk","prompt_progress":{"total":31964,"cache":0,"processed":0,"time_ms":0}}
+
+data: {"choices":[{"finish_reason":null,"index":0,"delta":{"role":"assistant","content":null}}],"created":1794584324,"id":"chatcmpl-0sLTmFSyLc5UXwQrAdB6Dbh2vws5RF3U","model":"/home/user/Models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf","system_fingerprint":"b12332-a8575a3ef","object":"chat.completion.chunk","prompt_progress":{"total":31964,"cache":0,"processed":2048,"time_ms":2237}}
+
+<truncated intermediary data deliveries>
+
+data: {"choices":[{"finish_reason":null,"index":0,"delta":{"role":"assistant","content":null}}],"created":1794584353,"id":"chatcmpl-0sLTmFSyLc5UXwQrAdB6Dbh2vws5RF3U","model":"/home/user/Models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf","system_fingerprint":"b12332-a8575a3ef","object":"chat.completion.chunk","prompt_progress":{"total":31964,"cache":0,"processed":31960,"time_ms":31469}}
+
+data: {"choices":[{"finish_reason":null,"index":0,"delta":{"role":"assistant","content":null}}],"created":1794584353,"id":"chatcmpl-0sLTmFSyLc5UXwQrAdB6Dbh2vws5RF3U","model":"/home/user/Models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf","system_fingerprint":"b12332-a8575a3ef","object":"chat.completion.chunk","prompt_progress":{"total":31964,"cache":0,"processed":31964,"time_ms":31537}}
+
+data: {"choices":[{"finish_reason":null,"index":0,"delta":{"role":"assistant","content":null}}],"created":1794584353,"id":"chatcmpl-0sLTmFSyLc5UXwQrAdB6Dbh2vws5RF3U","model":"/home/user/Models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf","system_fingerprint":"b12332-a8575a3ef","object":"chat.completion.chunk"}
+
+data: {"choices":[{"finish_reason":null,"index":0,"delta":{"reasoning_content":"The"}}],"created":1794584353,"id":"chatcmpl-0sLTmFSyLc5UXwQrAdB6Dbh2vws5RF3U","model":"/home/user/Models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf","system_fingerprint":"b12332-a8575a3ef","object":"chat.completion.chunk"}
+
+data: {"choices":[{"finish_reason":"length","index":0,"delta":{}}],"created":1794584353,"id":"chatcmpl-0sLTmFSyLc5UXwQrAdB6Dbh2vws5RF3U","model":"/home/user/Models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf","system_fingerprint":"b12332-a8575a3ef","object":"chat.completion.chunk","timings":{"cache_n":0,"prompt_n":31964,"prompt_ms":31538.1,"prompt_per_token_ms":0.9866756350894756,"prompt_per_second":1013.504301146867,"predicted_n":1,"predicted_ms":0.001,"predicted_per_token_ms":0.0,"predicted_per_second":0.0}}
+
+data: [DONE]
+```
+
+
+
+
+
 
 
 VI. finished stuffs
 
-1. Prune redundant disk-port surface and dead backup
-    [x] 'content/backend/render_pipeline/render_service copy.py.bak': Delete file
-        - Dead backup, never imported, only differs in f-string spacing around delimiters
-    [x] 'content/backend/core/engine_deps/ports.py': Remove `read_asset` abstract method from `DiskPort`
-        - Pure delegation to `get_file_contents`, no behavioral or error-surface difference
-    [x] 'content/backend/adapters/disk_adapter.py': Remove `read_asset` override from `LinuxDiskAdapter`
-        - Same: one-line forward to `get_file_contents`, no added logic
-    [x] 'content/backend/render_pipeline/render_service.py': Swap four `read_asset(...)` calls to `get_file_contents(...)`
-        - Template load in `render_prompt`, `_res_multi_doc`, `_res_repo_content`, `_build_manifest`
-
-Add extension-aware placeholder substitution to the shaper, driven by Delims tuple pairs
-    [x] 'content/backend/core/core/entities.py': Convert Delims constants from bare strings to ("placeholder", "value") tuples
-        - PROMPT_OPEN = ("§po§", "#")
-        - PROMPT_CLOSE = ("§pc§", "")
-        - FILESET_START_OPEN = ("§fsul§", "<")
-        - FILESET_START_CLOSE = ("§fsur§", ">")
-        - FILESET_END_OPEN = ("§fel§", "</")
-        - FILESET_END_CLOSE = ("§fer§", ">")
-        - FILELIST_START_OPEN = ("§llul§", "<")
-        - FILELIST_START_CLOSE = ("§llur§", ">")
-        - FILELIST_END_OPEN = ("§llel§", "</")
-        - FILELIST_END_CLOSE = ("§ller§", ">")
-        - MANIFEST_MEMBER = ("§mm§", "🗄️")
-    [x] 'content/backend/asset_ingestion/ingestion_parser.py': Index [1] on every Delims reference; make closing bookend regex-matched (whitespace-optional) to match opening bookend leniency
-        - _bookend_re: e.Delims.FILESET_START_OPEN[1], e.Delims.FILESET_START_CLOSE[1]
-        - _close_bookend_re: new compiled pattern using e.Delims.FILESET_END_OPEN[1], e.Delims.FILESET_END_CLOSE[1] with \s* around action and path
-        - closing match: regex .match() + group(1)==action and group(2).strip()==path instead of exact string ==
-    [x] 'content/backend/render_pipeline/render_service.py': Index [1] on every Delims reference; widen shaper call to pass File entity; remove injected spaces from all f-string bookends
-        - _res_multi_doc: FILELIST_START_OPEN[1], FILELIST_END_CLOSE[1], FILELIST_END_CLOSE[1] — no space between delims and name
-        - _res_repo_content: FILESET_START_OPEN[1], FILESET_END_OPEN[1], FILESET_END_CLOSE[1] — no space
-        - _res_manifest: MANIFEST_MEMBER[1] — no space
-        - header: f"{PROMPT_OPEN[1]}{section_name}{PROMPT_CLOSE[1]}" — no space
-        - replace self.shaper.apply_truncation(raw_content, file_obj.truncation_spec) with self.shaper.process(raw_content, file_obj)
-    [x] 'content/backend/render_pipeline/content_shaper.py': Add process() as public entry; substitution pre-step gated on .output-template extension
-        - process(content: str, file: e.File | None) -> str
-        - if file is None or file.name does not end with ".output-template": skip substitution, apply truncation only
-        - if extension matches: iterate Delims.__dict__.values(), for each tuple pair replace pair[0] with pair[1] in content
-        - truncation (from_line / up_to / tail_lines) operates on post-substitution text
-        - keep apply_truncation as internal helper, unchanged
-    [x] 'content/test/ingestion/code_ingestion_parser_tests.py': Index [1] on Delims references in _start_bookend and _end_bookend helpers
-        - _start_bookend: e.Delims.FILESET_START_OPEN[1], e.Delims.FILESET_START_CLOSE[1]
-        - _end_bookend: e.Delims.FILESET_END_OPEN[1], e.Delims.FILESET_END_CLOSE[1]
-    [x] 'content/test/render/__init__.py': Create empty file so unittest discover can import the render test package
-    [x] 'content/test/render/render_contentshaper_tests.py': Write tests for substitution + truncation interplay
-        - non-template file passes through unchanged (no substitution)
-        - .output-template file: §fsul§ → <, §fsur§ → >, §fel§ → </, etc.
-        - truncation still applies correctly to post-substitution text
-        - verify no §…§ tokens survive in output of a .output-template file
-        - verify a non-.output-template file that happens to contain §fsul§ is left untouched
-    [x] 'code-generation.output-template' (session instruction document): Rewrite to use §…§ placeholders in bookends; remove backticks from content blocks; remove all spaces from bookend markup
-        - §fsul§create: path1§fsur§ / §fel§create: path1§fer§
-        - delete entries: §fsul§delete: path5§fsur§
-        - after substitution LLM emits <create: path1> / </create: path1> — parseable by IngestionParser
-Expand Delims vocabulary: 4 distinct symbol constants per bookend type
-    [x] 'content/backend/core/core/entities.py': Declare 4 separate constants for FILESET and 4 for FILELIST (manifest: TBD, leave as-is for now)
-        - FILESET_START_OPEN, FILESET_START_CLOSE, FILESET_END_OPEN, FILESET_END_CLOSE
-        - FILELIST_START_OPEN, FILELIST_START_CLOSE, FILELIST_END_OPEN, FILELIST_END_CLOSE
-        - initial values can all be "¤" (preserving current wire format), but they are *distinct fields* so any one can be swapped independently
-        - PROMPT_SECTION: currently "¤¤" — split to PROMPT_OPEN + PROMPT_CLOSE if desired, or leave as single constant
-        - prohibition: do not consolidate into a single shared token; the whole point is per-position independence
-    [x] 'content/backend/render_pipeline/render_service.py': Align _res_multi_doc and _res_repo_content to reference the 4-symbol constants
-        - _res_multi_doc (filelist): `FILELIST_START_OPEN name FILELIST_START_CLOSE\n{content}\nFILELIST_END_OPEN name FILELIST_END_CLOSE`
-        - _res_repo_content (fileset): `FILESET_START_OPEN path FILESET_START_CLOSE\n{content}\nFILESET_END_OPEN path FILESET_END_CLOSE`
-        - _res_manifest: leave as-is or update to a manifest 4-set (low priority)
-        - section headers: `PROMPT_OPEN {section} PROMPT_CLOSE` (if split)
-    [x] 'content/backend/asset_ingestion/ingestion_parser.py': Align _bookend_re and the closing-bookend string builder to the 4-symbol FILESET constants
-        - regex: `^FILESET_START_OPEN\s*(create|update|delete)\s*:\s*(.+?)\s*FILESET_START_CLOSE$`
-        - closing bookend string: `f"{FILESET_END_OPEN} {action}: {path} {FILESET_END_CLOSE}"`
-    [x] 'content/test/ingestion/code_ingestion_parser_tests.py': Refactor raw-string fixtures to compose from e.Delims constants rather than hardcoding "¤" literals
-        - build bookend strings from FILESET_START_OPEN/CLOSE, FILESET_END_OPEN/CLOSE so fixtures stay in sync if any constant's value changes later
-
-Replace resolver type-ordering in prompt rendering with an explicit ordered list
-    [x] 'content/backend/render_pipeline/render_service.py': Swap alphabetical type sort for a fixed resolver precedence list
-        - task: define a module-level TYPE_ORDER list (e.g. ManifestResolver, RepoContentResolver, MultiDocResolver) capturing intent instead of class-name alphabetics
-        - task: rank resolvers by precedence using isinstance so PudBaseResolver/SharedBaseResolver subclasses fall into the MultiDoc slot (avoid .index() KeyError on subclass types)
-        - task: apply that rank in the section sort (render_service.py, the section-sort step) replacing the current {type(r) for r in resolvers} alphabetical derivation
-        - task: confirm the swap is intentional — repo and multidoc exchange positions relative to the previous alphabetical order
-        - task: keep it scoped to render_service.py only; no other file encodes resolver ordering
-        - prohibition: do not change dispatch order or section anchoring; only the within-section type ordering changes
-        - prohibition: do not reorder across different anchors — precedence only reorders resolvers sharing one anchor
-
-Replace hardcoded "¤" / "¤¤" literals with a shared Delims constant class in the render and intake-parsing paths.
-    [x] 'content/backend/core/core/entities.py': Add a Delims class with four string constants (PROMPT_SECTION="¤¤", FILESET_MEMBER="¤", FILELIST_MEMBER="¤", MANIFEST_MEMBER="¤")
-        - task: keep all four as plain string literals — no methods, no logic, constants only
-        - prohibition: do not touch map_extractor2.py's entity-reference marker (data.startswith("¤")); it is intentionally out of scope for this item
-        - prohibition: do not rename or relocate the class mid-item; callers reference e.Delims.<NAME>
-    [x] 'content/backend/asset_ingestion/ingestion_parser.py': Reference e.Delims.FILESET_MEMBER for the create/update/delete bookends
-        - task: replace the literal "¤" in the bookend regex (^¤ ... ¤$) with e.Delims.FILESET_MEMBER
-        - task: replace the literal "¤" in the closing-bookend string (f"¤ {action}: {path} ¤") with e.Delims.FILESET_MEMBER
-        - prohibition: regex must be built dynamically (it is a raw string literal), e.g. re.compile(r"^" + e.Delims.FILESET_MEMBER + r"\s*(create|update|delete)\s*:\s*(.+?)\s*" + e.Delims.FILESET_MEMBER + r"$")
-        - prohibition: keep the create|update|delete capture and path group unchanged
-    [x] 'content/backend/render_pipeline/render_service.py': Reference the four constants at their emit sites
-        - task: PROMPT_SECTION in the section header (f"¤¤ {section} ¤¤")
-        - task: FILESET_MEMBER in _res_repo_content file boundaries
-        - task: FILELIST_MEMBER in _res_multi_doc file boundaries
-        - task: MANIFEST_MEMBER in _res_manifest/_build_manifest boundaries
-        - prohibition: do not alter dispatch order, section anchoring, or output structure — only the delimiter literals change
-        - prohibition: leave the section-pattern regex r"§([^§]+)§" alone — that uses the section-sign character (§), not the delimiter
-
-Remove dead code and unnecessary @dataclass(slots=True) usage from the backend and web UI
-    [x] 'web-ui/frontend/api-client.js': delete getTestPrompt() method (calls never-registered /api/test-prompt)
-        - [x] remove the getTestPrompt() async method entirely
-    [x] 'web-ui/frontend/clanker-app.js': delete #pullTestPrompt() and its 'Ctrl+i' entry
-        - [x] remove the #pullTestPrompt() method
-        - [x] remove the 'Ctrl+i': () => this.#pullTestPrompt() line from #inputActions
-        - [x] leave the global Ctrl+i handler in #handleGlobalKeydown untouched (different feature)
-    [x] 'backend/render_pipeline/content_shaper.py': delete hydrate() and the now-orphaned SystemKeys class
-        - [x] remove the hydrate() method body
-        - [x] remove the SystemKeys class (its only user was hydrate)
-        - [x] keep the `re` import (still used by apply_truncation)
-    [x] 'backend/core/engine_deps/result.py': remove slots=True from @dataclass(StartCmd)
-        - [x] change @dataclass(slots=True) to @dataclass
-    [x] 'backend/keyboard/keyboard_service.py': remove slots=True from @dataclass(KBServiceImpl)
-        - [x] change @dataclass(slots=True) to @dataclass
-    [x] 'backend/render_pipeline/render_service.py': remove slots=True from @dataclass(PromptServiceImpl)
-        - [x] change @dataclass(slots=True) to @dataclass
+1. Remove max_tokens override for keyboard-originated prompts
+    [x] 'content/web-ui/frontend/clanker-app.js': Drop the `max_tokens` arg from the `streamChatCompletion` call
+        - remove `max_tokens: prefill ? 1 : undefined,` from the options object passed to `apiClient.streamChatCompletion(...)` inside `#generateResponse`
+        - `prefill` flag stays as-is; it still controls `userMsg.collapsed = true`
+        - no changes needed in `api-client.js` (the `max_tokens` param on `streamChatCompletion` can remain as a generic pass-through, just never exercised from this call site)
