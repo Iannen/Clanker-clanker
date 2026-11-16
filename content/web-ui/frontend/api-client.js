@@ -5,11 +5,13 @@ export class ApiClient {
             ...options
         });
 
-        const responseText = await response.text();
+        if (!response.ok) {
+            const body = await response.json().catch(() => null);
+            const msg = body?.error?.message ?? body?.error ?? response.statusText;
+            throw new Error(msg);
+        }
 
-        if (!response.ok) throw new Error(responseText || response.statusText);
-
-        return responseText;
+        return response.json();
     }
 
     async boot() {
@@ -43,22 +45,20 @@ export class ApiClient {
     async switchDesktopMode() { return this.#post('/api/desktop-mode'); }
 
     async switchInferenceMode() { return this.#post('/api/inference-mode'); }
-
-    async streamChatCompletion({ messages, max_tokens, onToken, onReasoning, onPrefill } = {}) {
-        const response = await fetch('/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                messages,
-                stream: true,
-                return_progress: true,
-                ...(max_tokens !== undefined ? { max_tokens: max_tokens } : {})
-            })
-        });
-
-
+        async streamChatCompletion({ messages, max_tokens, onToken, onReasoning, onPrefill } = {}) {
+                const response = await fetch('/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'qwen-47k',
+                        messages,
+                        stream: true,
+                        return_progress: true,
+                        ...(max_tokens !== undefined ? { max_tokens: max_tokens } : {})
+                    })
+                });
         if (!response.ok) throw new Error('Server error: ' + response.statusText);
 
         const reader = response.body.getReader();

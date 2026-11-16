@@ -1,7 +1,6 @@
-Return items inside a plain text code block (` ```text `)
+<assistant comments>
 
-Format:
-
+```
 n. Appropriately descriptive header sentence 
     [ ] 'file1.path': Brief content change synopsis
         - task / prohibition / other info 1
@@ -9,3 +8,4 @@ n. Appropriately descriptive header sentence
     [ ] 'file1.path': Brief content change synopsis
         - task / prohibition / other info 1
         ..
+```
