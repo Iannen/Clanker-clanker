@@ -11,7 +11,7 @@ class IngestionServiceImpl(d.IngestionService):
     files: d.DiskPort
     cfg_ingestor: d.ConfigParserPort
 
-    def _get_asset_pack(self, token: str, roots) -> e.AssetPack | d.Missing:
+    def _get_asset_pack(self, token: str, roots: list[str] | None = None) -> e.AssetPack | d.Missing:
         try: return e.AssetPack(token, self.files.get_dir_manifest(token, roots))
         except d.NoSuchFile: return d.Missing(token, roots)
 
@@ -42,7 +42,7 @@ class IngestionServiceImpl(d.IngestionService):
             clank_classifier.classify(self._get_asset_pack(e.PathTokens.SHARED, ["content/a_lib"])),
             pud_classifier.classify(self._get_config(e.PudAssets.Configs.configuration_file)),
             pud_classifier.classify(self._get_asset_pack(e.PathTokens.PUD, [".clanker"])),
-            pud_classifier.classify(self._get_asset_pack(e.PathTokens.PUD, ["content", "README.md"])),
+            pud_classifier.classify(self._get_asset_pack(e.PathTokens.PUD)),
         )
         clank_classifier.complain()
         pud_result = pud_classifier.evaluate()
