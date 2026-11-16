@@ -1,24 +1,18 @@
-## To create new files:
+§cfsul§path1§fsoet§
+{{COMPLETE_FILE_CONTENTS}}
+§cfsbl§path1§fsoet§
 
-§fsul§create: path1§fsur§
-<complete file contents>
-§fel§create: path1§fer§
+§cfsul§path2§fsoet§
+{{COMPLETE_FILE_CONTENTS}}
+§cfsbl§path2§fsoet§
 
-§fsul§create: path2§fsur§
-<complete file contents>
-§fel§create: path2§fer§
+§ufsul§path3§fsoet§
+{{COMPLETE_FILE_CONTENTS}}
+§ufsbl§path3§fsoet§
 
-## To update files:
+§ufsul§path4§fsoet§
+{{COMPLETE_FILE_CONTENTS}}
+§ufsbl§path4§fsoet§
 
-§fsul§update: path3§fsur§
-<complete file contents>
-§fel§update: path3§fer§
-
-§fsul§update: path4§fsur§
-<complete file contents>
-§fel§update: path4§fer§
-
-## To delete files:
-
-§fsul§delete: path5§fsur§
-§fsul§delete: path6§fsur§
+§dfsul§path5§fscet§
+§dfsul§path6§fscet§

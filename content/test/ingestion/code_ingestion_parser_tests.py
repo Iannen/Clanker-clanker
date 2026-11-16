@@ -4,12 +4,24 @@ from backend.core import entities as e
 from backend.asset_ingestion.ingestion_parser import IngestionParser
 
 
-def _start_bookend(action: str, path: str) -> str:
-    return f"{e.Delims.FILESET_START_OPEN[1]} {action}: {path} {e.Delims.FILESET_START_CLOSE[1]}"
+def _create_open(path: str) -> str:
+    return f"{e.Delims.CREATE_FILESET_UL[1]}{path}{e.Delims.FILESET_OPEN_END_TAG[1]}"
 
 
-def _end_bookend(action: str, path: str) -> str:
-    return f"{e.Delims.FILESET_END_OPEN[1]} {action}: {path} {e.Delims.FILESET_END_CLOSE[1]}"
+def _create_close(path: str) -> str:
+    return f"{e.Delims.CREATE_FILESET_BL[1]}{path}{e.Delims.FILESET_OPEN_END_TAG[1]}"
+
+
+def _update_open(path: str) -> str:
+    return f"{e.Delims.UPDATE_FILESET_UL[1]}{path}{e.Delims.FILESET_OPEN_END_TAG[1]}"
+
+
+def _update_close(path: str) -> str:
+    return f"{e.Delims.UPDATE_FILESET_BL[1]}{path}{e.Delims.FILESET_OPEN_END_TAG[1]}"
+
+
+def _delete_tag(path: str) -> str:
+    return f"{e.Delims.DELETE_FILESET_UL[1]}{path}{e.Delims.FILESET_CLOSED_END_TAG[1]}"
 
 
 class TestIngestionParser(unittest.TestCase):
@@ -19,12 +31,12 @@ class TestIngestionParser(unittest.TestCase):
 
     def test_create(self):
         raw = "\n".join([
-            _start_bookend("create", "src/calculator.py"),
+            _create_open("src/calculator.py"),
             "```python",
             "def add(a: int, b: int) -> int:",
             "    return a + b",
             "```",
-            _end_bookend("create", "src/calculator.py"),
+            _create_close("src/calculator.py"),
         ])
         result = self.parser.parse(raw)
         self.assertEqual(
@@ -37,12 +49,12 @@ class TestIngestionParser(unittest.TestCase):
 
     def test_update(self):
         raw = "\n".join([
-            _start_bookend("update", "src/calculator.py"),
+            _update_open("src/calculator.py"),
             "```python",
             "def subtract(a: int, b: int) -> int:",
             "    return a - b",
             "```",
-            _end_bookend("update", "src/calculator.py"),
+            _update_close("src/calculator.py"),
         ])
         result = self.parser.parse(raw)
         self.assertEqual(result.creates, [])
@@ -55,8 +67,8 @@ class TestIngestionParser(unittest.TestCase):
 
     def test_delete(self):
         raw = "\n".join([
-            _start_bookend("delete", "src/old_calculator.py"),
-            _start_bookend("delete", "tests/test_old_calculator.py"),
+            _delete_tag("src/old_calculator.py"),
+            _delete_tag("tests/test_old_calculator.py"),
         ])
         result = self.parser.parse(raw)
         self.assertEqual(result.creates, [])
@@ -69,10 +81,26 @@ class TestIngestionParser(unittest.TestCase):
 
     def test_missing_closer(self):
         raw = "\n".join([
-            _start_bookend("create", "src/foo.py"),
+            _create_open("src/foo.py"),
             "```python",
             "x = 1",
             "```",
+        ])
+        result = self.parser.parse(raw)
+        self.assertEqual(result.creates, [])
+        self.assertEqual(result.updates, [])
+        self.assertEqual(result.deletes, [])
+        self.assertEqual(len(result.errors), 1)
+        self.assertIn("create", result.errors[0])
+        self.assertIn("src/foo.py", result.errors[0])
+
+    def test_mismatched_closer_not_accepted(self):
+        raw = "\n".join([
+            _create_open("src/foo.py"),
+            "```python",
+            "x = 1",
+            "```",
+            _update_close("src/foo.py"),
         ])
         result = self.parser.parse(raw)
         self.assertEqual(result.creates, [])

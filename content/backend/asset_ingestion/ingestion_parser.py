@@ -13,18 +13,22 @@ class IngestionParseResult:
 
 
 class IngestionParser:
-    _bookend_re = re.compile(
-        r"^" + e.Delims.FILESET_START_OPEN[1]
-        + r"\s*(create|update|delete)\s*:\s*(.+?)\s*"
-        + e.Delims.FILESET_START_CLOSE[1]
-        + r"$"
+    _open_re = re.compile(
+        r"^(?:"
+        + r"(?P<create_open>" + re.escape(e.Delims.CREATE_FILESET_UL[1]) + r")(?P<create_path>.+?)" + re.escape(e.Delims.FILESET_OPEN_END_TAG[1])
+        + r"|"
+        + r"(?P<update_open>" + re.escape(e.Delims.UPDATE_FILESET_UL[1]) + r")(?P<update_path>.+?)" + re.escape(e.Delims.FILESET_OPEN_END_TAG[1])
+        + r"|"
+        + r"(?P<delete_open>" + re.escape(e.Delims.DELETE_FILESET_UL[1]) + r")(?P<delete_path>.+?)" + re.escape(e.Delims.FILESET_CLOSED_END_TAG[1])
+        + r")$"
     )
 
-    _close_bookend_re = re.compile(
-        r"^" + e.Delims.FILESET_END_OPEN[1]
-        + r"\s*(create|update|delete)\s*:\s*(.+?)\s*"
-        + e.Delims.FILESET_END_CLOSE[1]
-        + r"$"
+    _close_re = re.compile(
+        r"^(?:"
+        + r"(?P<create_close>" + re.escape(e.Delims.CREATE_FILESET_BL[1]) + r")(?P<create_path>.+?)" + re.escape(e.Delims.FILESET_OPEN_END_TAG[1])
+        + r"|"
+        + r"(?P<update_close>" + re.escape(e.Delims.UPDATE_FILESET_BL[1]) + r")(?P<update_path>.+?)" + re.escape(e.Delims.FILESET_OPEN_END_TAG[1])
+        + r")$"
     )
 
     def parse(self, raw_text: str) -> IngestionParseResult:
@@ -38,28 +42,40 @@ class IngestionParser:
         n = len(lines)
 
         while i < n:
-            m = self._bookend_re.match(lines[i].strip())
+            m = self._open_re.match(lines[i].strip())
 
             if m is None:
                 i += 1
                 continue
 
-            action = m.group(1)
-            path = m.group(2).strip()
-
-            if action == "delete":
-                deletes.append(path)
+            if m.group("delete_open") is not None:
+                deletes.append(m.group("delete_path").strip())
                 i += 1
                 continue
 
-            # create or update: scan forward for the matching closing bookend
+            if m.group("create_open") is not None:
+                action = "create"
+                path = m.group("create_path").strip()
+                close_group = "create_close"
+                close_path_group = "create_path"
+            else:
+                action = "update"
+                path = m.group("update_path").strip()
+                close_group = "update_close"
+                close_path_group = "update_path"
+
+            # scan forward for the matching closing bookend (same action and path)
             j = i + 1
             content_lines: list[str] = []
             found = False
 
             while j < n:
-                cm = self._close_bookend_re.match(lines[j].strip())
-                if cm and cm.group(1) == action and cm.group(2).strip() == path:
+                cm = self._close_re.match(lines[j].strip())
+                if (
+                    cm
+                    and cm.group(close_group) is not None
+                    and cm.group(close_path_group).strip() == path
+                ):
                     found = True
                     break
                 content_lines.append(lines[j])
