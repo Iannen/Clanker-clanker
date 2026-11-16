@@ -83,13 +83,26 @@ III. Items under development
 
 
 
-Backlog tail, Selected item/items:
+
 
 - repocontent to take content from all of repo, not restricted
 - combine repo and manifest into one
     - one fileset for repo content with full contents
     - one fileset for repo content with manifest content, unless members are in above
     - perhaps similar deal for shared. or strike shared? i dno
+
+Backlog tail, Selected item/items:
+
+3. Permit all pud repository content in repo resolver
+    [ ] 'backend/core/engine_deps/ports.py': Make `rel_roots` on `get_dir_manifest` optional
+        - omitting `rel_roots` means the manifest covers everything under the token
+        - `rel_roots` must be typed `list[str] | None` with default `None`
+    [ ] 'content/backend/asset_ingestion/ingestion_service.py': Omit roots for the PUD content asset pack
+        - change the `pud_content_assets` call site so `get_dir_manifest` receives no `rel_roots`
+        - the clank-side pack (`["content/a_lib"]`) stays as-is
+    [ ] 'content/backend/adapters/': Verify `LinuxDiskAdapter.get_dir_manifest` handles `None` roots
+        - confirm it returns all file paths under the token when `rel_roots` is `None`
+        - confirm existing behavior with explicit roots is unchanged
 
 Backlog tail end
 
