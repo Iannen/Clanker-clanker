@@ -12,16 +12,16 @@ pud_filesets:
       content/clank-server.py]}
 
   server: { 
-    includes: [content],
-      excludes: [
-        content/a__old_tui,
-        content/a_lib,
-        content/backend/adapters,
-        content/backend/asset_ingestion,
-        content/backend/keyboard,
-        content/backend/render_pipeline,
-        #content/web-ui,
-        content/test,
+    includes: [
+      content/backend/adapters,
+      content/backend/asset_ingestion,
+      content/backend/core,
+      content/backend/keyboard,
+      content/backend/render_pipeline,
+      content/backend/controller.py,
+      content/backend/stdlib.py,
+      content/test,
+      content/clank-server.py,
     ]}
 
   test: {includes: [content/demofile.py]}
@@ -47,7 +47,7 @@ pud_domains:
 
   test:
     resolvers:
-      - { anchor: repository, type: repo-content, fileset: ¤ test }
+      - { anchor: repository, type: repo-content, fileset: ¤ prompt_syntax }
       - { anchor: project documentation, type: multi-document-retrieval, files: ¤ backlog_excerpt}
     prompts:
       - ¤ plan

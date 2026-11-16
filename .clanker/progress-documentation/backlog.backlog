@@ -81,13 +81,28 @@ III. Items under development
         - Mark raised exceptions if applicable
 ```
 
+
+
+
+
+- repocontent to take content from all of repo, not restricted
+- combine repo and manifest into one
+    - one fileset for repo content with full contents
+    - one fileset for repo content with manifest content, unless members are in above
+    - perhaps similar deal for shared. or strike shared? i dno
+
 Backlog tail, Selected item/items:
 
-1. Stats footer never re-renders during reasoning and content streaming phases
-    [ ] 'content/web-ui/frontend/message.js': Add #renderStats() call so the stats line updates live when the phase transitions
-        - in #maybeAdvancePhase(), after any phase change occurs, call this.#renderStats()
-        - this is the single chokepoint both updateReasoning and the content setter funnel through, so one insertion covers both transitions (prefill→reasoning, reasoning→content)
-        - no other call sites need changing: onPrefill already calls #renderStats(), and setPerformanceTimings already calls it for the final phase
+3. Permit all pud repository content in repo resolver
+    [ ] 'backend/core/engine_deps/ports.py': Make `rel_roots` on `get_dir_manifest` optional
+        - omitting `rel_roots` means the manifest covers everything under the token
+        - `rel_roots` must be typed `list[str] | None` with default `None`
+    [ ] 'content/backend/asset_ingestion/ingestion_service.py': Omit roots for the PUD content asset pack
+        - change the `pud_content_assets` call site so `get_dir_manifest` receives no `rel_roots`
+        - the clank-side pack (`["content/a_lib"]`) stays as-is
+    [ ] 'content/backend/adapters/': Verify `LinuxDiskAdapter.get_dir_manifest` handles `None` roots
+        - confirm it returns all file paths under the token when `rel_roots` is `None`
+        - confirm existing behavior with explicit roots is unchanged
 
 Backlog tail end
 
@@ -120,3 +135,21 @@ VI. finished stuffs
         - compute `totalChars` from `this.messagesBox.getHistory()` (sum of `content.length`)
         - set `assistantMsg.sentChars = totalChars` before the `streamChatCompletion` call
         - no other changes to the streaming callback wiring
+
+1. Stats footer re-renders on phase transition
+    [x] 'content/web-ui/frontend/message.js': #renderStats() already called in #maybeAdvancePhase() for both transitions
+        - in #maybeAdvancePhase(), after any phase change occurs, call this.#renderStats()
+        - this is the single chokepoint both updateReasoning and the content setter funnel through, so one insertion covers both transitions (prefill→reasoning, reasoning→content)
+        - no other call sites need changing: onPrefill already calls #renderStats(), and setPerformanceTimings already calls it for the final phase
+
+1. Migrate ingestion parser and test suite off deprecated fileset delimiters onto current action-specific delimiters
+    [x] 'content/backend/asset_ingestion/ingestion_parser.py': Replace deprecated FILESET_* bookend matching with non-deprecated CREATE/UPDATE/DELETE_FILESET_* delimiters
+        - Match `<create path="...">` ... `</create path="...">`, `<update path="...">` ... `</update path="...">`, and self-closing `<delete path="..."/>`
+        - Enforce strict action and path matching between opening and closing tags to prevent mismatched/crisscrossed bookends
+        - Leave `entities.py` and other files untouched
+    [x] 'content/test/ingestion/code_ingestion_parser_tests.py': Update parser unit tests to use non-deprecated action-specific delimiters
+        - Replace deprecated `_start_bookend` / `_end_bookend` helpers with `_create_open`, `_create_close`, `_update_open`, `_update_close`, and `_delete_tag`
+        - Add `test_mismatched_closer_not_accepted` to verify crisscrossed tags fail with an unclosed bookend error
+    [x] 'content/test/render/render_contentshaper_tests.py': Update content shaper tests from deprecated `§fsul§`/`§fsur§`/`§fel§`/`§fer§` tokens to current delimiters
+        - Migrate existing placeholder and truncation tests to `FILELIST_*` (`§llul§`/`§llur§`/`§llel§`/`§ller§`) tokens
+        - Add `test_template_file_fileset_placeholder_substitution` covering `CREATE_FILESET_*`, `UPDATE_FILESET_*`, and `DELETE_FILESET_*` expansion

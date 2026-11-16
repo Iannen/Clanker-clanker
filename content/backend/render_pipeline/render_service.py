@@ -151,9 +151,9 @@ class PromptServiceImpl(d.PromptService):
             try:
                 content = self.files.get_file_contents(f"{e.PathTokens.PUD}/{p}").rstrip()
                 file_blocks.append(
-                    f"{e.Delims.FILESET_START_OPEN[1]}{p}{e.Delims.FILESET_START_CLOSE[1]}\n"
+                    f"{e.Delims.READ_FILESET_UL[1]}{p}{e.Delims.FILESET_OPEN_END_TAG[1]}\n"
                     f"{content}\n"
-                    f"{e.Delims.FILESET_END_OPEN[1]}{p}{e.Delims.FILESET_END_CLOSE[1]}"
+                    f"{e.Delims.READ_FILESET_BL[1]}{p}{e.Delims.FILESET_OPEN_END_TAG[1]}"
                 )
             except UnicodeDecodeError:
                 pass

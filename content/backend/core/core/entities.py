@@ -155,17 +155,25 @@ class AssetPack(RepoItem):
         self.paths = paths
 
 class Delims:
-    PROMPT_OPEN = ("§po§", "#")
-    PROMPT_CLOSE = ("§pc§", "")
-    FILESET_START_OPEN = ("§fsul§", "<")
-    FILESET_START_CLOSE = ("§fsur§", ">")
-    FILESET_END_OPEN = ("§fel§", "</")
-    FILESET_END_CLOSE = ("§fer§", ">")
     FILELIST_START_OPEN = ("§llul§", "<")
     FILELIST_START_CLOSE = ("§llur§", ">")
     FILELIST_END_OPEN = ("§llel§", "</")
     FILELIST_END_CLOSE = ("§ller§", ">")
     MANIFEST_MEMBER = ("§mm§", "🗄️")
+
+    PROMPT_OPEN = ("§po§", "#")
+    PROMPT_CLOSE = ("§pc§", "")
+    CREATE_FILESET_UL = ("§cfsul§", "<create path=\"")
+    READ_FILESET_UL = ("§rfsul§", "<file path=\"")
+    UPDATE_FILESET_UL = ("§ufsul§", "<update path=\"")
+    DELETE_FILESET_UL = ("§dfsul§", "<delete path=\"")
+
+    CREATE_FILESET_BL = ("§cfsbl§", "</create path=\"")
+    READ_FILESET_BL = ("§rfsbl§", "</file path=\"")
+    UPDATE_FILESET_BL = ("§ufsbl§", "</update path=\"")
+
+    FILESET_OPEN_END_TAG = ("§fsoet§", "\">")
+    FILESET_CLOSED_END_TAG = ("§fscet§", "\"/>")
 
 class PathTokens:
     PUD = "<PUD>"
