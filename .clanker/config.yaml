@@ -16,7 +16,12 @@ pud_filesets:
       excludes: [
         content/a__old_tui,
         content/a_lib,
-        #content/web-ui
+        content/backend/adapters,
+        content/backend/asset_ingestion,
+        content/backend/keyboard,
+        content/backend/render_pipeline,
+        #content/web-ui,
+        content/test,
     ]}
 
   test: {includes: [content/demofile.py]}

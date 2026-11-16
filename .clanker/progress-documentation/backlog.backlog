@@ -83,6 +83,12 @@ III. Items under development
 
 Backlog tail, Selected item/items:
 
+1. Stats footer never re-renders during reasoning and content streaming phases
+    [ ] 'content/web-ui/frontend/message.js': Add #renderStats() call so the stats line updates live when the phase transitions
+        - in #maybeAdvancePhase(), after any phase change occurs, call this.#renderStats()
+        - this is the single chokepoint both updateReasoning and the content setter funnel through, so one insertion covers both transitions (prefill→reasoning, reasoning→content)
+        - no other call sites need changing: onPrefill already calls #renderStats(), and setPerformanceTimings already calls it for the final phase
+
 Backlog tail end
 
 

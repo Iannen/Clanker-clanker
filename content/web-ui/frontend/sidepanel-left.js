@@ -77,13 +77,13 @@ class SidepanelLeft extends BaseComponent {
         this.#setStatus('Switching...');
 
         try {
-            const responseText = await action();
-
-            this.#setStatus(responseText);
+            const response = await action();
+            this.#setStatus(response.mode);
         } catch (error) {
             this.#setStatus(error.message || 'Error communicating with server.');
         }
     }
+
 }
 
 register('sidepanel-left', SidepanelLeft);

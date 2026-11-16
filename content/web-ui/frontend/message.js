@@ -244,12 +244,14 @@ class Message extends BaseComponent {
             this.#prefillEnd = performance.now();
             this.#phase = 'reasoning';
             this.#reasoningStart = performance.now();
+            this.#renderStats();
         }
 
         if (this.#phase === 'reasoning' && this.#content.length > 0) {
             this.#reasoningEnd = performance.now();
             this.#phase = 'content';
             this.#contentStart = performance.now();
+            this.#renderStats();
         }
     }
 
