@@ -111,7 +111,7 @@ class ClankController:
 
         result = self.kb_service.handle_key(d.KbCmd(char=char_val))
 
-        if isinstance(result, (d.RenderNormalPromptCmd, d.RenderHotPromptCmd)):
+        if isinstance(result, d.RenderNormalPromptCmd):
             result = self.prompt_service.render_prompt(result)
 
         return (200, "application/json", _shape_kb_emission(result))

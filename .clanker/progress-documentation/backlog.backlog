@@ -76,27 +76,6 @@ combine repo and manifest into one
 
 Backlog tail, Selected item/items:
 
-```
-1. Remove unused hotprompt rendering path
-    [ ] 'content/backend/core/engine_deps/result.py': Delete RenderHotPromptCmd class
-        - Remove the @dataclass definition and any references to it
-    [ ] 'content/backend/keyboard/keyboard_service.py': Remove last_prompt state and hot-prompt branch
-        - Delete the self.last_prompt = None assignment in handle_start
-        - In _handle_prompt_btn, remove the "if self.last_prompt is not None and btn.inhabitant == self.last_prompt" branch
-        - Always return RenderNormalPromptCmd; drop the last_prompt bookkeeping
-    [ ] 'content/backend/render_pipeline/render_service.py': Remove RenderHotPromptCmd case from _collect_resolvers
-        - Delete the "case d.RenderHotPromptCmd()" branch (the lone_resolver construction from instruction/history files)
-        - _collect_resolvers now only handles RenderNormalPromptCmd
-    [ ] 'content/backend/controller.py': Simplify prompt dispatch check
-        - Change isinstance(result, (d.RenderNormalPromptCmd, d.RenderHotPromptCmd)) to isinstance(result, d.RenderNormalPromptCmd)
-```
-
-
-Backlog tail end
-
-
-VI. finished stuffs
-
 1. Remove max_tokens override for keyboard-originated prompts
     [x] 'content/web-ui/frontend/clanker-app.js': Drop the `max_tokens` arg from the `streamChatCompletion` call
         - remove `max_tokens: prefill ? 1 : undefined,` from the options object passed to `apiClient.streamChatCompletion(...)` inside `#generateResponse`
@@ -208,3 +187,21 @@ VI. finished stuffs
         - mid-convo pick overwrites existing repo-context in place
         - #generateResponse: repo context prepended to history[0].content (transient, DOM unaffected) on every send
     [x] 'content/web-ui/frontend/keyboard-bar.js': No changes
+
+1. Remove unused hotprompt rendering path
+    [x] 'content/backend/core/engine_deps/result.py': Delete RenderHotPromptCmd class
+        - Remove the @dataclass definition and any references to it
+    [x] 'content/backend/keyboard/keyboard_service.py': Remove last_prompt state and hot-prompt branch
+        - Delete the self.last_prompt = None assignment in handle_start
+        - In _handle_prompt_btn, remove the "if self.last_prompt is not None and btn.inhabitant == self.last_prompt" branch
+        - Always return RenderNormalPromptCmd; drop the last_prompt bookkeeping
+    [x] 'content/backend/render_pipeline/render_service.py': Remove RenderHotPromptCmd case from _collect_resolvers
+        - Delete the "case d.RenderHotPromptCmd()" branch (the lone_resolver construction from instruction/history files)
+        - _collect_resolvers now only handles RenderNormalPromptCmd
+    [x] 'content/backend/controller.py': Simplify prompt dispatch check
+        - Change isinstance(result, (d.RenderNormalPromptCmd, d.RenderHotPromptCmd)) to isinstance(result, d.RenderNormalPromptCmd)
+
+Backlog tail end
+
+
+VI. finished stuffs
