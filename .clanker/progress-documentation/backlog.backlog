@@ -76,7 +76,20 @@ combine repo and manifest into one
 
 Backlog tail, Selected item/items:
 
-hotprompt functionality is not used any more. i think we can remove that. lets map out what this does for us
+```
+1. Remove unused hotprompt rendering path
+    [ ] 'content/backend/core/engine_deps/result.py': Delete RenderHotPromptCmd class
+        - Remove the @dataclass definition and any references to it
+    [ ] 'content/backend/keyboard/keyboard_service.py': Remove last_prompt state and hot-prompt branch
+        - Delete the self.last_prompt = None assignment in handle_start
+        - In _handle_prompt_btn, remove the "if self.last_prompt is not None and btn.inhabitant == self.last_prompt" branch
+        - Always return RenderNormalPromptCmd; drop the last_prompt bookkeeping
+    [ ] 'content/backend/render_pipeline/render_service.py': Remove RenderHotPromptCmd case from _collect_resolvers
+        - Delete the "case d.RenderHotPromptCmd()" branch (the lone_resolver construction from instruction/history files)
+        - _collect_resolvers now only handles RenderNormalPromptCmd
+    [ ] 'content/backend/controller.py': Simplify prompt dispatch check
+        - Change isinstance(result, (d.RenderNormalPromptCmd, d.RenderHotPromptCmd)) to isinstance(result, d.RenderNormalPromptCmd)
+```
 
 
 Backlog tail end
