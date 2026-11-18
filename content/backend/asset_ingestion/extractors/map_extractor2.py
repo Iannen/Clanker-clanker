@@ -238,11 +238,6 @@ class FileParser(BaseParser2):
         if isinstance(data, str): return {"name": data}
         return {"name": data.pop("name"), "truncation_spec": data if data else None}
 
-class RepoContentResParser(BaseParser2):
-    entity_cls = e.RepoContentResolver
-    def preprocess(self, data: dict) -> dict:
-        return data
-
 class FilesetItemparser(BaseParser2):
     entity_cls = e.FilesetItem
     def preprocess(self, data): return {"value":data}

@@ -67,7 +67,6 @@ class PromptServiceImpl(d.PromptService):
         char_count = len(render)
         return d.PromptRenderResult(
             kb=cmd.kb,
-            ui_render=cmd.ui_render,
             cmd=cmd,
             text=render,
             lines=lines_count,

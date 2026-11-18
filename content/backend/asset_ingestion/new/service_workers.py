@@ -40,7 +40,7 @@ class Assembler:
     pud_doc_assets: e.AssetPack  | None
     pud_content_assets: e.AssetPack  | None
 
-    def assemble(self, pud_res: ClassificationResult) ->  tuple[e.Render, e.Keyboard]:
+    def assemble(self, pud_res: ClassificationResult) -> e.Keyboard | None:
 
         numap = Numap(self.collector, self.clank_cfg, self.pud_cfg, self.sys_cfg)
         numap.extract_all()

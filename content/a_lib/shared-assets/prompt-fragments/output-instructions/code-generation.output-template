@@ -3,7 +3,7 @@
 §cfsbl§path1§fsoet§
 
 §cfsul§path2§fsoet§
-{{COMPLETE_FILE_CONTENTS}}
+{{ONLY USE 'create' TAG FOR NEW FILES}}
 §cfsbl§path2§fsoet§
 
 §ufsul§path3§fsoet§
@@ -11,7 +11,7 @@
 §ufsbl§path3§fsoet§
 
 §ufsul§path4§fsoet§
-{{COMPLETE_FILE_CONTENTS}}
+{{ALWAYS USE 'update' TAG FOR EXISTING FILES}}
 §ufsbl§path4§fsoet§
 
 §dfsul§path5§fscet§

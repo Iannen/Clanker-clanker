@@ -85,13 +85,6 @@ class Render(Entity):
     inherit_domain: bool = True
 
 @dataclass
-class UIRender(Entity):
-    resolvers: list[Resolver]
-    template: str = "prompt_template"
-    inherit_base: bool = False
-    inherit_domain: bool = False
-
-@dataclass
 class Prompt(Entity):
     name: str
     render: Render

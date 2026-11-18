@@ -7,8 +7,8 @@ from backend.core import entities as e
 class OverflowHandler2:
     ec: ErrorCollector
 
-    def do_it(self, numap: Numap) -> tuple[e.UIRender | None, e.Keyboard | None]:
-        if not numap.get_entity(e.Keyboard, e.Keyboard.key_name): return None, None
+    def do_it(self, numap: Numap) -> e.Keyboard | None:
+        if not numap.get_entity(e.Keyboard, e.Keyboard.key_name): return None
 
         baseres = self._get_proper_baseres(numap)
         clank_doms = numap.get_entities(e.SharedDomain)
@@ -19,8 +19,7 @@ class OverflowHandler2:
 
         if clank_doms: self._handle_domain_overflow(clank_doms, shared_dom_btns, baseres)
         if pud_doms: self._handle_domain_overflow(pud_doms, pud_dom_btns, baseres)
-        ui_render = numap.get_entity(e.UIRender, e.UIRender.key_name)
-        return ui_render, kb
+        return kb
 
     def _get_proper_baseres(self, numap: Numap) -> e.Resolver:
         clank_br = numap.get_entity(e.SharedBaseResolver, e.SharedBaseResolver.key_name)

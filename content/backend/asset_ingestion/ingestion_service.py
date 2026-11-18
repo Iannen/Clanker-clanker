@@ -47,13 +47,13 @@ class IngestionServiceImpl(d.IngestionService):
         clank_classifier.complain()
         pud_result = pud_classifier.evaluate()
         if pud_result is ClassificationResult.MIXED: pud_classifier.complain()
-        ui_render, kb = assembler.assemble(pud_result)
+        kb = assembler.assemble(pud_result)
 
         if ec.has_crits(): return d.TerminateResult(ec)
         if pud_result is ClassificationResult.ALL_PRESENT:
             if not ec.get_all_complaints():
-                return d.StartCmd(kb=kb, ui_render=ui_render)
-            return d.StartResult(ec, kb, ui_render)
+                return d.StartCmd(kb=kb)
+            return d.StartResult(ec, kb)
         if pud_result is ClassificationResult.NONE_PRESENT: return d.ClankerizeResult(ec)
 
     def initialize_workspace(self):
