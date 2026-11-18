@@ -25,25 +25,7 @@ II. The wishlist
 7. backlog items, they mention files? so they are filesets, and should be promptable?
     kinda aspirational this one.
 
-```text
-9. testing — 'all clear, proceed' gate
-    test the backend in-process, no server, no browser, no real disk.
-    seams already exist: DiskPort + ConfigParserPort are ABCs, so fake them.
-    what to cover, in risk order:
-      - ingestion / numap entity graph (validators, dep ordering, ingest regex)
-      - kb state machine (handle_start, domain select, prompt select, hot path)
-      - render pipeline (hydration, truncation, hot-prompt resolver, manifest)
-      - apply_file_changes (block parsing, deletelist, fence stripping)
-    shape:
-      - one pytest file or small tests/ dir
-      - fixture factories: in-memory disk (dict of path->content), fake cfg parser, canonical workspace
-      - fake disk records writes/deletes for assertion
-      - the gate is just: run pytest, exit 0 = green light
-    out of scope:
-      - http server wiring (thin delegation)
-      - frontend (display layer)
-      - gpu box proxy (pass-through)
-```
+
 ```text
 11. provider model:
     Clanker's system config can declare providers.
@@ -82,13 +64,6 @@ III. Items under development
 ```
 
 
-
-
-
-
-
-Backlog tail, Selected item/items:
-
 Just some ideas on the board:
 
 - combine repo and manifest into one
@@ -97,14 +72,14 @@ Just some ideas on the board:
     - perhaps similar deal for shared. or strike shared? i dno
 
 - receive non-repo content (new backlog items, history items) via endpoints in similar fashion to repo content
+Backlog tail, Selected item/items:
 
-- make ingestion of repo content safer
-    - if there are any errors, this indicates something is amiss
-    - then no updates / writes should occur
-    - this may be the behaviour now- i am not certain
+in the frontend, we currently have a (usermsg / assistant reply) x N turns type thing going on.
 
+is that so? what we send to the model, is this essentially just a list of str like [user:hello, assistant:why hello there, user: ... and so on]
+
+lets talk it through
 Backlog tail end
-
 
 
 VI. finished stuffs
@@ -163,3 +138,35 @@ VI. finished stuffs
     [x] 'content/backend/adapters/': Verify `LinuxDiskAdapter.get_dir_manifest` handles `None` roots
         - confirm it returns all file paths under the token when `rel_roots` is `None`
         - confirm existing behavior with explicit roots is unchanged
+
+7. Gate ingestion writes behind pre-flight validation and rework result shape
+
+    [x] 'content/backend/core/engine_deps/result.py': Rework IngestApplyResult
+        - replace written / deleted / errors with six fields:
+          created, updated, deleted, missing_paths, unexpected_paths, parse_errors
+        - happy-path lists are empty whenever any error list is non-empty, and vice versa
+        - all-or-nothing contract: no partial results
+
+    [x] 'content/backend/asset_ingestion/ingestion_service.py': Add pre-flight validation to apply_file_changes
+        - after parsing, reject (no disk ops) if parsed.errors is non-empty
+        - verify every create path does NOT exist → collect failures into unexpected_paths
+        - verify every update path DOES exist → collect failures into missing_paths
+        - verify every delete path DOES exist → collect failures into missing_paths
+        - existence checks via get_file_contents, catching NoSuchFile
+        - if any check fails, return result with only the relevant error list(s) populated
+        - if all checks pass, perform disk ops; populate the matching happy-path list
+        - keep per-item try/except around actual writes/deletes for runtime surprises (permission, etc.)
+
+    [x] 'content/backend/controller.py': Adapt ingest handler to new result shape
+        - replace manual dict construction with dataclasses.asdict(result)
+        - response JSON keys now match the six field names directly
+        - no more bundling creates+updates into 'written'
+        - 200 when all error lists are empty (job done)
+        - 400 when any of parse_errors / missing_paths / unexpected_paths is non-empty (rejected, no disk ops)
+        - 500 on unhandled server-side exception (permission denied, disk failure, etc.)
+
+    [x] Subtask: align the JS SPA to handle the new response shape
+        - ingest response now carries created / updated / deleted / missing_paths / unexpected_paths / parse_errors
+        - UI must render distinct feedback for each category rather than a single written/errors pair
+        - 400 responses surface the specific error lists to the user for correction
+        - 500 responses treated as server failure (alert / retry)

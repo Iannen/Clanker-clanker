@@ -35,30 +35,29 @@ export class ApiClient {
             body: JSON.stringify({ content })
         });
 
-        const text = await response.text();
+        const data = await response.json().catch(() => null);
 
-        if (!response.ok) throw new Error(text || response.statusText);
-
-        return JSON.parse(text);
+        return { status: response.status, data };
     }
 
     async switchDesktopMode() { return this.#post('/api/desktop-mode'); }
 
     async switchInferenceMode() { return this.#post('/api/inference-mode'); }
-        async streamChatCompletion({ messages, max_tokens, onToken, onReasoning, onPrefill } = {}) {
-                const response = await fetch('/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: 'qwen-47k',
-                        messages,
-                        stream: true,
-                        return_progress: true,
-                        ...(max_tokens !== undefined ? { max_tokens: max_tokens } : {})
-                    })
-                });
+
+    async streamChatCompletion({ messages, max_tokens, onToken, onReasoning, onPrefill } = {}) {
+        const response = await fetch('/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: 'qwen-47k',
+                messages,
+                stream: true,
+                return_progress: true,
+                ...(max_tokens !== undefined ? { max_tokens: max_tokens } : {})
+            })
+        });
         if (!response.ok) throw new Error('Server error: ' + response.statusText);
 
         const reader = response.body.getReader();
@@ -92,9 +91,6 @@ export class ApiClient {
                     typeof json.timings === 'object'
                 ) timings = json.timings;
 
-                // prompt_progress arrives between prefill and content deltas;
-                // forward every tick before the reasoning/content branches so
-                // no prompt_progress event is dropped or coalesced.
                 if (json.prompt_progress) {
                     onPrefill?.(json.prompt_progress);
                 }

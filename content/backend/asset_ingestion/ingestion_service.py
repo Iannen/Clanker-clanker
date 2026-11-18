@@ -69,25 +69,69 @@ class IngestionServiceImpl(d.IngestionService):
     def apply_file_changes(self, raw_text: str) -> d.IngestApplyResult:
         parsed = IngestionParser().parse(raw_text)
 
-        written: list[str] = []
+        # Pre-flight: reject on parse errors
+        if parsed.errors:
+            return d.IngestApplyResult(
+                created=[], updated=[], deleted=[],
+                missing_paths=[], unexpected_paths=[],
+                parse_errors=list(parsed.errors),
+            )
+
+        # Pre-flight: create paths must NOT exist
+        unexpected_paths: list[str] = []
+        for path, _ in parsed.creates:
+            tokenized = self._prefix_path(path)
+            try:
+                self.files.get_file_contents(tokenized)
+                unexpected_paths.append(path)
+            except d.NoSuchFile:
+                pass
+
+        # Pre-flight: update paths must exist
+        missing_paths: list[str] = []
+        for path, _ in parsed.updates:
+            tokenized = self._prefix_path(path)
+            try:
+                self.files.get_file_contents(tokenized)
+            except d.NoSuchFile:
+                missing_paths.append(path)
+
+        # Pre-flight: delete paths must exist
+        for path in parsed.deletes:
+            tokenized = self._prefix_path(path)
+            try:
+                self.files.get_file_contents(tokenized)
+            except d.NoSuchFile:
+                missing_paths.append(path)
+
+        if unexpected_paths or missing_paths:
+            return d.IngestApplyResult(
+                created=[], updated=[], deleted=[],
+                missing_paths=missing_paths,
+                unexpected_paths=unexpected_paths,
+                parse_errors=[],
+            )
+
+        # All checks passed – perform disk operations
+        created: list[str] = []
+        updated: list[str] = []
         deleted: list[str] = []
-        errors: list[str] = list(parsed.errors)
 
         for path, content in parsed.creates:
             tokenized = self._prefix_path(path)
             try:
                 self.files.write_file(tokenized, content.strip("\n"))
-                written.append(path)
+                created.append(path)
             except Exception as ex:
-                errors.append(f"write {path}: {ex}")
+                raise RuntimeError(f"Write failed for {path}: {ex}") from ex
 
         for path, content in parsed.updates:
             tokenized = self._prefix_path(path)
             try:
                 self.files.write_file(tokenized, content.strip("\n"))
-                written.append(path)
+                updated.append(path)
             except Exception as ex:
-                errors.append(f"update {path}: {ex}")
+                raise RuntimeError(f"Update failed for {path}: {ex}") from ex
 
         for path in parsed.deletes:
             tokenized = self._prefix_path(path)
@@ -95,9 +139,12 @@ class IngestionServiceImpl(d.IngestionService):
                 self.files.delete_file(tokenized)
                 deleted.append(path)
             except Exception as ex:
-                errors.append(f"delete {path}: {ex}")
+                raise RuntimeError(f"Delete failed for {path}: {ex}") from ex
 
-        return d.IngestApplyResult(written=written, deleted=deleted, errors=errors)
+        return d.IngestApplyResult(
+            created=created, updated=updated, deleted=deleted,
+            missing_paths=[], unexpected_paths=[], parse_errors=[],
+        )
 
     @staticmethod
     def _prefix_path(path: str) -> str:

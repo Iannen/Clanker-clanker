@@ -105,9 +105,13 @@ class PromptRenderResult(KbServiceEmission, Result):
 
 @dataclass
 class IngestApplyResult(Result):
-    written: list[str]
+    created: list[str]
+    updated: list[str]
     deleted: list[str]
-    errors: list[str]
+    missing_paths: list[str]
+    unexpected_paths: list[str]
+    parse_errors: list[str]
+
 
 @dataclass
 class IngestionResult(Result): report: Report

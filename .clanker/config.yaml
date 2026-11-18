@@ -13,15 +13,16 @@ pud_filesets:
 
   server: { 
     includes: [
-      content/backend/adapters,
+#      content/backend/adapters,
       content/backend/asset_ingestion,
       content/backend/core,
       content/backend/keyboard,
       content/backend/render_pipeline,
       content/backend/controller.py,
       content/backend/stdlib.py,
-      content/test,
+  #    content/test,
       content/clank-server.py,
+      content/web-ui
     ]}
 
   test: {includes: [content/demofile.py]}
@@ -47,7 +48,7 @@ pud_domains:
 
   test:
     resolvers:
-      - { anchor: repository, type: repo-content, fileset: ¤ prompt_syntax }
+      - { anchor: repository, type: repo-content, fileset: ¤ test }
       - { anchor: project documentation, type: multi-document-retrieval, files: ¤ backlog_excerpt}
     prompts:
       - ¤ plan

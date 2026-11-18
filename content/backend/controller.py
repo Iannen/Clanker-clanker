@@ -1,5 +1,6 @@
 import json
 import urllib.request
+from dataclasses import asdict
 from typing import Any, Callable
 
 from backend.core import entities as e
@@ -122,11 +123,9 @@ class ClankController:
         except Exception as ex:
             return (500, "text/plain", f"Ingest failed: {ex}")
 
-        return (200, "application/json", {
-            "written": result.written,
-            "deleted": result.deleted,
-            "errors": result.errors,
-        })
+        has_errors = bool(result.missing_paths or result.unexpected_paths or result.parse_errors)
+        status = 400 if has_errors else 200
+        return (status, "application/json", asdict(result))
 
     @POST("/v1/chat/completions")
     @POST("/api/desktop-mode")
