@@ -6,18 +6,9 @@ pud_filesets:
   content: { includes: [content]}
 
 pud_domains:
-  analysis:
-    resolvers:
-      - { anchor: project documentation, type: repo-manifest, pud_fileset: ¤ content }
-    prompts:
-      - name: manifest
-        render:
-          resolvers:
-            - { anchor: session instructions, type: multi-document-retrieval, files: [] }            
-
   files:
     resolvers:
-      - { anchor: repo_content, type: repo-content, fileset: ¤ content}
+      - { anchor: repo_content, type: repo-content, content_fileset: ¤ content}
     prompts:
       - name: plan
         render:
