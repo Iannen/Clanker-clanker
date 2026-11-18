@@ -106,8 +106,8 @@ class ClankerApp extends BaseComponent {
         });
 
         this.#keyboardBar.addEventListener('prompt-fired', (e) => {
+            this.messagesBox.setRepoContext(e.detail);
             this.#showMessagesBox();
-            this.#generateResponse(e.detail, { prefill: true });
         });
 
         await this.#bootSystem();
@@ -218,6 +218,11 @@ class ClankerApp extends BaseComponent {
         this.inputBox.setDisabled(true);
 
         const history = this.messagesBox.getHistory();
+        const repoCtx = this.messagesBox.getRepoContext();
+        if (repoCtx && history.length > 0) {
+            history[0].content = repoCtx + '\n\n' + history[0].content;
+        }
+
         const totalChars = history.reduce((sum, m) => sum + (m.content?.length ?? 0), 0);
         assistantMsg.sentChars = totalChars;
 

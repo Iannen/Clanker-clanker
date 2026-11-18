@@ -66,19 +66,19 @@ III. Items under development
 
 Just some ideas on the board:
 
-- combine repo and manifest into one
-    - one fileset for repo content with full contents
-    - one fileset for repo content with manifest content, unless members are in above
-    - perhaps similar deal for shared. or strike shared? i dno
-
 - receive non-repo content (new backlog items, history items) via endpoints in similar fashion to repo content
+
+
+combine repo and manifest into one
+  - one fileset for repo content with full contents
+  - one fileset for repo content with manifest content, unless members are in above
+  - perhaps similar deal for shared. or strike shared? i dno
+
 Backlog tail, Selected item/items:
 
-in the frontend, we currently have a (usermsg / assistant reply) x N turns type thing going on.
+hotprompt functionality is not used any more. i think we can remove that. lets map out what this does for us
 
-is that so? what we send to the model, is this essentially just a list of str like [user:hello, assistant:why hello there, user: ... and so on]
 
-lets talk it through
 Backlog tail end
 
 
@@ -170,3 +170,28 @@ VI. finished stuffs
         - UI must render distinct feedback for each category rather than a single written/errors pair
         - 400 responses surface the specific error lists to the user for correction
         - 500 responses treated as server failure (alert / retry)
+
+2. Add repo-context element as a selectable, non-array chat adornment
+    [x] 'content/web-ui/frontend/repo-context.js': New BaseComponent — collapsed <details>, selectable, copyable
+        - summary label: "(<▼|▶>, ctrl+1) Repo context: N characters"
+        - body: monospace pre-wrap, text-[#9ca3af]
+        - .text getter/setter stores raw context string
+        - .content getter returns .text (satisfies getSelectedContent contract)
+        - .setSelected(bool) — same bg + shadow highlight as chat-message
+        - .focus() / .scrollIntoView()
+        - .toggle() — flips <details> open/closed, re-renders summary label
+        - messageRole = 'repo-context'
+        - NOT appended to #messages array
+    [x] 'content/web-ui/frontend/messages-box.js': Wire repo-context into selection & navigation
+        - #repoCtxEl field
+        - setRepoContext(text): create <repo-context> if absent (insert before welcome text or first message), overwrite .text if present
+        - getRepoContext(): return #repoCtxEl?.text || null
+        - selectPreviousMsg(): if selected is #repoCtxEl → select #messages[0]; elif at index 0 and #repoCtxEl exists → select #repoCtxEl
+        - selectNextMsg(): if selected is #repoCtxEl → select #messages[0]
+        - toggleReasoning(): if selected is #repoCtxEl → call #repoCtxEl.toggle(); else existing path
+        - getHistory(): no change (repo-context never in #messages)
+    [x] 'content/web-ui/frontend/clanker-app.js': KB prompt-fired no longer fires a chat turn
+        - prompt-fired handler: messagesBox.setRepoContext(e.detail) + #showMessagesBox(), no #generateResponse, no usermsg
+        - mid-convo pick overwrites existing repo-context in place
+        - #generateResponse: repo context prepended to history[0].content (transient, DOM unaffected) on every send
+    [x] 'content/web-ui/frontend/keyboard-bar.js': No changes
