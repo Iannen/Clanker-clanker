@@ -26,7 +26,7 @@ class PromptServiceImpl(d.PromptService):
     def __post_init__(self) -> None:
         self.shaper: PromptContentShaper = PromptContentShaper()
 
-    def render_prompt(self, cmd: d.RenderNormalPromptCmd | d.RenderHotPromptCmd) -> d.PromptRenderResult:
+    def render_prompt(self, cmd: d.RenderNormalPromptCmd) -> d.PromptRenderResult:
         try:
             template = self.files.get_file_contents(e.ClankerAssets.layouts.PROMPT)
         except d.NoSuchFile as ex:
@@ -75,37 +75,12 @@ class PromptServiceImpl(d.PromptService):
             chars=char_count,
         )
 
-    def _collect_resolvers(self, cmd: d.RenderNormalPromptCmd | d.RenderHotPromptCmd) -> list[e.Resolver]:
-        match cmd:
-            case d.RenderNormalPromptCmd():
-                resolvers: list[e.Resolver] = []
-                if cmd.prompt.render.inherit_domain:
-                    resolvers.extend(cmd.domain.resolvers)
-                resolvers.extend(cmd.prompt.render.resolvers)
-                return resolvers
-
-            case d.RenderHotPromptCmd():
-                domain_resolvers = cmd.domain.resolvers
-                prompt_resolvers = cmd.prompt.render.resolvers
-
-                md_resolvers = [
-                    r for r in (domain_resolvers + prompt_resolvers)
-                    if isinstance(r, e.MultiDocResolver)
-                ]
-
-                instruction_files = [
-                    f for r in md_resolvers
-                    for f in r.files.files
-                    if f.name.endswith(".mode_instruction")
-                    or f.name.endswith(".output_instruction")
-                    or f.name.endswith(".history")
-                ]
-
-                lone_resolver = e.MultiDocResolver(
-                    anchor="session instructions",
-                    files=e.Filelist(None, files=instruction_files),
-                )
-                return [lone_resolver]
+    def _collect_resolvers(self, cmd: d.RenderNormalPromptCmd) -> list[e.Resolver]:
+        resolvers: list[e.Resolver] = []
+        if cmd.prompt.render.inherit_domain:
+            resolvers.extend(cmd.domain.resolvers)
+        resolvers.extend(cmd.prompt.render.resolvers)
+        return resolvers
 
     def _dispatch(self, res: e.Resolver) -> str:
         match res:

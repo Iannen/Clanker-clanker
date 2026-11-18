@@ -90,11 +90,6 @@ class RenderNormalPromptCmd(KbServiceEmission, Command):
     prompt: e.Prompt
     domain: e.Domain
 
-@dataclass
-class RenderHotPromptCmd(KbServiceEmission, Command):
-    prompt: e.Prompt
-    domain: e.Domain
-
 
 @dataclass
 class PromptRenderResult(KbServiceEmission, Result):
@@ -136,7 +131,7 @@ class IngestionService(ABC):
 
 class PromptService(ABC):
     @abstractmethod
-    def render_prompt(self, cmd: RenderNormalPromptCmd | RenderHotPromptCmd) -> PromptRenderResult: ...
+    def render_prompt(self, cmd: RenderNormalPromptCmd) -> PromptRenderResult: ...
 
 class KBService(ABC):
     @abstractmethod

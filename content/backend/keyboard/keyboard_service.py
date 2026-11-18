@@ -7,7 +7,6 @@ class KBServiceImpl(d.KBService):
     def handle_start(self, cmd: d.StartCmd) -> d.BootstrapSuccess:
         self.kb = cmd.kb
         self.ui_render = cmd.ui_render
-        self.last_prompt = None
         return d.BootstrapSuccess(kb=self.kb, ui_render=self.ui_render, cmd=cmd)
 
     def handle_key(self, cmd: d.KbCmd) -> d.KbServiceEmission:
@@ -22,7 +21,6 @@ class KBServiceImpl(d.KBService):
 
     def _handle_dom_btn(self, btn: e.DomButton, cmd: d.KbCmd) -> d.KbServiceEmission:
         self.kb.set_selected_dom_btn(btn)
-        self.last_prompt = None
         prompt_btns = self.kb.get_btns(e.PromptButton)
         for p_ptn in prompt_btns:
             p_ptn.inhabitant = None
@@ -40,10 +38,4 @@ class KBServiceImpl(d.KBService):
         if dom is None:
             return d.UninhabitedPromptResult(kb=self.kb, ui_render=self.ui_render, btn=btn, cmd=cmd)
 
-        if self.last_prompt is not None and btn.inhabitant == self.last_prompt:
-            prompt = self.last_prompt
-            self.last_prompt = None
-            return d.RenderHotPromptCmd(kb=self.kb, ui_render=self.ui_render, cmd=cmd, prompt=prompt, domain=dom)
-
-        self.last_prompt = btn.inhabitant
         return d.RenderNormalPromptCmd(kb=self.kb, ui_render=self.ui_render, cmd=cmd, prompt=btn.inhabitant, domain=dom)
