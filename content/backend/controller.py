@@ -93,7 +93,7 @@ class ClankController:
         if not isinstance(result, (d.StartCmd, d.StartResult)):
             return (500, "text/plain", f"Unexpected boot result: {type(result).__name__}")
 
-        start_cmd = d.StartCmd(kb=result.kb, ui_render=result.ui_render)
+        start_cmd = d.StartCmd(kb=result.kb)
         self.kb_service.handle_start(start_cmd)
 
         boot_message = "Bootstrap completed successfully"

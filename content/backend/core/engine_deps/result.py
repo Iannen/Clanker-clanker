@@ -53,7 +53,6 @@ class Command: pass
 @dataclass
 class StartCmd(Command):
     kb: "e.Keyboard"
-    ui_render: "e.Render"
 
 @dataclass
 class KbCmd(Command): char: str
@@ -65,7 +64,6 @@ class Result: pass
 @dataclass
 class KbServiceEmission:
     kb: e.Keyboard
-    ui_render: e.Render
     cmd: Command
 
 
@@ -114,7 +112,6 @@ class IngestionResult(Result): report: Report
 @dataclass
 class StartResult(IngestionResult):
     kb: e.Keyboard
-    ui_render: e.Render
 
 @dataclass
 class ClankerizeResult(IngestionResult): pass

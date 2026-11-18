@@ -69,16 +69,65 @@ Just some ideas on the board:
 - receive non-repo content (new backlog items, history items) via endpoints in similar fashion to repo content
 
 
-combine repo and manifest into one
-  - one fileset for repo content with full contents
-  - one fileset for repo content with manifest content, unless members are in above
-  - perhaps similar deal for shared. or strike shared? i dno
-
 Backlog tail, Selected item/items:
 
-
+- make the frontend responsible for tracking seleced domain
+- make boot endpoint return shared & pud domains to frontend
+- the promptrenderctx or whatever should originate with frontend.
 
 Backlog tail end
 
 
 VI. finished stuffs
+
+1. Merge `ManifestResolver` into `RepoContentResolver` — two nullable PUD filesets, content-over-metadata overlap
+    [x] `content/backend/core/core/entities.py`: Remove `ManifestResolver` class; rework `RepoContentResolver` to carry `content_fileset: PudFileset | None` and `meta_fileset: PudFileset | None`; add `FILE_META_UL` / `FILE_META_CLOSE` delimiter pair for the single-line metadata tag
+        - `content_fileset` produces full-content blocks (existing `READ_FILESET` delims)
+        - `meta_fileset` produces line-count metadata blocks (new delims, format: `<file_meta path="…" loc=N/>`)
+        - files present in both sets are emitted in content only, removed from metadata
+        - content blocks precede metadata blocks in output
+        - drop `SharedFileset` from the resolver entirely (shared-manifest capability is gone)
+    [x] `content/backend/render_pipeline/render_service.py`: Absorb `_res_manifest` and `_build_manifest` into `_res_repo_content`; add overlap subtraction (`B - A`); emit content blocks then metadata blocks; drop `ManifestResolver` from `TYPE_ORDER` and from `_dispatch` match arms
+        - `_res_repo_content` resolves `content_fileset` → full blocks, `meta_fileset` → metadata blocks, applies `meta_paths -= content_paths`
+        - `_dispatch` match loses the `ManifestResolver` case
+        - `TYPE_ORDER` shrinks to `[RepoContentResolver, MultiDocResolver]`
+    [x] `content/backend/asset_ingestion/extractors/map_extractor2.py`: Simplify `RepoContentResParser.preprocess` to identity `return data` (both filesets are now explicit named keys in the config dict)
+        - no longer needs the `if "fileset" in data` guard or the wrap-and-pop pattern
+    (the user will update yaml of existing RepoContentResolver to declare 'content_fileset' rather than 'fileset')
+
+1. Remove obsolete UIRender entity and all downstream plumbing
+    [x] 'content/backend/core/core/entities.py': Delete UIRender class
+        - UIRender is a Render subclass with inherit_base/inherit_domain set to False
+        - No other entity has a field typed UIRender, so no parse dependency breakage
+    [x] 'content/backend/core/engine_deps/result.py': Remove ui_render field from dataclasses
+        - StartCmd: drop ui_render field
+        - KbServiceEmission: drop ui_render field (all subclasses inherit it away)
+        - StartResult: drop ui_render field
+    [x] 'content/backend/asset_ingestion/validators/overflow_validator2.py': Stop fetching and returning UIRender
+        - do_it: remove ui_render = numap.get_entity(e.UIRender, e.UIRender.key_name)
+        - do_it: early return becomes return None (was return None, None)
+        - do_it: final return becomes just kb (was ui_render, kb)
+        - do_it return type: tuple[e.UIRender | None, e.Keyboard | None] → e.Keyboard | None
+    [x] 'content/backend/asset_ingestion/new/service_workers.py': Assembler.assemble returns keyboard only
+        - assemble return type: tuple[e.UIRender | None, e.Keyboard | None] → e.Keyboard | None
+        - body: return OverflowHandler2(...).do_it(numap) unchanged shape-wise, just single value
+    [x] 'content/backend/asset_ingestion/ingestion_service.py': Stop destructuring and passing ui_render
+        - get_runtime_config: ui_render, kb = assembler.assemble(...) → kb = assembler.assemble(...)
+        - get_runtime_config: d.StartCmd(kb=kb, ui_render=ui_render) → d.StartCmd(kb=kb)
+        - get_runtime_config: d.StartResult(ec, kb, ui_render) → d.StartResult(ec, kb)
+    [x] 'content/backend/keyboard/keyboard_service.py': Stop storing and threading ui_render
+        - handle_start: remove self.ui_render = cmd.ui_render
+        - handle_key: remove ui_render=self.ui_render from all return constructions
+        - _handle_dom_btn: same
+        - _handle_prompt_btn: same
+    [x] 'content/backend/render_pipeline/render_service.py': Stop passing ui_render into result
+        - render_prompt: remove ui_render=cmd.ui_render from PromptRenderResult(...) constructor
+    [x] 'content/backend/controller.py': Stop passing ui_render into StartCmd
+        - boot: d.StartCmd(kb=result.kb, ui_render=result.ui_render) → d.StartCmd(kb=result.kb)
+
+2. Remove obsolete RepoContentResParser subclass
+    [x] 'content/backend/asset_ingestion/extractors/map_extractor2.py': Delete RepoContentResParser class
+        - Its preprocess is a no-op (returns data unchanged, identical to BaseParser2)
+        - RepoContentResolver fields (anchor, content_fileset, meta_fileset) are all handled by the generic BaseParser2 path
+        - build_ordered_parsers will fall back to BaseParser2(ec) for RepoContentResolver, registered under both class and "repo-content" type string
+        - No other code references RepoContentResParser by name

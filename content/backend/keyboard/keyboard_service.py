@@ -6,13 +6,12 @@ from backend.core import engine_deps as d
 class KBServiceImpl(d.KBService):
     def handle_start(self, cmd: d.StartCmd) -> d.BootstrapSuccess:
         self.kb = cmd.kb
-        self.ui_render = cmd.ui_render
-        return d.BootstrapSuccess(kb=self.kb, ui_render=self.ui_render, cmd=cmd)
+        return d.BootstrapSuccess(kb=self.kb, cmd=cmd)
 
     def handle_key(self, cmd: d.KbCmd) -> d.KbServiceEmission:
         btn = self.kb.get(cmd.char)
         if btn is None:
-            return d.UnboundKeyResult(kb=self.kb, ui_render=self.ui_render, cmd=cmd)
+            return d.UnboundKeyResult(kb=self.kb, cmd=cmd)
         match btn:
             case e.DomButton():
                 return self._handle_dom_btn(btn, cmd)
@@ -25,17 +24,17 @@ class KBServiceImpl(d.KBService):
         for p_ptn in prompt_btns:
             p_ptn.inhabitant = None
         if not btn.inhabitant:
-            return d.UninhabitedDomainResult(kb=self.kb, ui_render=self.ui_render, btn=btn, cmd=cmd)
+            return d.UninhabitedDomainResult(kb=self.kb, btn=btn, cmd=cmd)
         for prompt_btn, prompt in zip(prompt_btns, btn.inhabitant.prompts):
             prompt_btn.inhabitant = prompt
-        return d.DomainSelectedResult(kb=self.kb, ui_render=self.ui_render, btn=btn, cmd=cmd)
+        return d.DomainSelectedResult(kb=self.kb, btn=btn, cmd=cmd)
 
     def _handle_prompt_btn(self, btn: e.PromptButton, cmd: d.KbCmd) -> d.KbServiceEmission:
         if btn.inhabitant is None:
-            return d.UninhabitedPromptResult(kb=self.kb, ui_render=self.ui_render, btn=btn, cmd=cmd)
+            return d.UninhabitedPromptResult(kb=self.kb, btn=btn, cmd=cmd)
 
         dom = self.kb.selected_dom_btn.inhabitant if self.kb.selected_dom_btn else None
         if dom is None:
-            return d.UninhabitedPromptResult(kb=self.kb, ui_render=self.ui_render, btn=btn, cmd=cmd)
+            return d.UninhabitedPromptResult(kb=self.kb, btn=btn, cmd=cmd)
 
-        return d.RenderNormalPromptCmd(kb=self.kb, ui_render=self.ui_render, cmd=cmd, prompt=btn.inhabitant, domain=dom)
+        return d.RenderNormalPromptCmd(kb=self.kb, cmd=cmd, prompt=btn.inhabitant, domain=dom)

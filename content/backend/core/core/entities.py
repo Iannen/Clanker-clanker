@@ -74,13 +74,8 @@ class PudBaseResolver(MultiDocResolver): pass
 @dataclass
 class RepoContentResolver(Resolver):
     type = "repo-content"
-    fileset: PudFileset
-
-@dataclass
-class ManifestResolver(Resolver):
-    type = "repo-manifest"
-    pud_fileset: PudFileset
-    shared_fileset: SharedFileset | None
+    content_fileset: PudFileset | None
+    meta_fileset: PudFileset | None
 
 @dataclass
 class Render(Entity):
@@ -88,13 +83,6 @@ class Render(Entity):
     template: str = "prompt_template"
     inherit_base: bool = True
     inherit_domain: bool = True
-
-@dataclass
-class UIRender(Entity):
-    resolvers: list[Resolver]
-    template: str = "prompt_template"
-    inherit_base: bool = False
-    inherit_domain: bool = False
 
 @dataclass
 class Prompt(Entity):
@@ -174,6 +162,9 @@ class Delims:
 
     FILESET_OPEN_END_TAG = ("§fsoet§", "\">")
     FILESET_CLOSED_END_TAG = ("§fscet§", "\"/>")
+
+    FILE_META_UL = ("§fmul§", "<file_meta path=\"")
+    FILE_META_CLOSE = ("§fmc§", "\"/>")
 
 class PathTokens:
     PUD = "<PUD>"

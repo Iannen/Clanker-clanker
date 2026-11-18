@@ -6,7 +6,6 @@ from backend.core import engine_deps as d
 from . import PromptContentShaper
 
 TYPE_ORDER: list[type] = [
-    e.ManifestResolver,
     e.RepoContentResolver,
     e.MultiDocResolver,
 ]
@@ -68,7 +67,6 @@ class PromptServiceImpl(d.PromptService):
         char_count = len(render)
         return d.PromptRenderResult(
             kb=cmd.kb,
-            ui_render=cmd.ui_render,
             cmd=cmd,
             text=render,
             lines=lines_count,
@@ -88,8 +86,6 @@ class PromptServiceImpl(d.PromptService):
                 return self._res_multi_doc(res)[res.anchor]
             case e.RepoContentResolver():
                 return self._res_repo_content(res)[res.anchor]
-            case e.ManifestResolver():
-                return self._res_manifest(res)[res.anchor]
 
     def _res_multi_doc(self, resolver: e.MultiDocResolver) -> dict[str, str]:
         fragments = []
@@ -105,71 +101,62 @@ class PromptServiceImpl(d.PromptService):
         return {resolver.anchor: "\n\n".join(fragments)}
 
     def _res_repo_content(self, resolver: e.RepoContentResolver) -> dict[str, str]:
-        includes = self.files.get_file_paths(
-            e.PathTokens.PUD,
-            [include.value for include in resolver.fileset.includes],
-            missing_ok=False,
-        )
-        excludes = (
-            self.files.get_file_paths(
+        content_blocks: list[str] = []
+        content_paths: set[str] = set()
+
+        if resolver.content_fileset:
+            includes = self.files.get_file_paths(
                 e.PathTokens.PUD,
-                [exclude.value for exclude in resolver.fileset.excludes],
-                missing_ok=True,
+                [include.value for include in resolver.content_fileset.includes],
+                missing_ok=False,
             )
-            if resolver.fileset.excludes
-            else set()
-        )
-        paths = sorted(includes - excludes)
-
-        file_blocks = []
-        for p in paths:
-            try:
-                content = self.files.get_file_contents(f"{e.PathTokens.PUD}/{p}").rstrip()
-                file_blocks.append(
-                    f"{e.Delims.READ_FILESET_UL[1]}{p}{e.Delims.FILESET_OPEN_END_TAG[1]}\n"
-                    f"{content}\n"
-                    f"{e.Delims.READ_FILESET_BL[1]}{p}{e.Delims.FILESET_OPEN_END_TAG[1]}"
+            excludes = (
+                self.files.get_file_paths(
+                    e.PathTokens.PUD,
+                    [exclude.value for exclude in resolver.content_fileset.excludes],
+                    missing_ok=True,
                 )
-            except UnicodeDecodeError:
-                pass
-
-        return {resolver.anchor: "\n\n".join(file_blocks)}
-
-    def _res_manifest(self, resolver: e.ManifestResolver) -> dict[str, str]:
-        manifest_blocks = [
-            self._build_manifest("pud-manifest", e.PathTokens.PUD, resolver.pud_fileset),
-        ]
-
-        if resolver.shared_fileset is not None:
-            manifest_blocks.append(
-                self._build_manifest("shared-manifest", e.PathTokens.SHARED, resolver.shared_fileset),
+                if resolver.content_fileset.excludes
+                else set()
             )
+            content_paths = set(includes - excludes)
+            for p in sorted(content_paths):
+                try:
+                    content = self.files.get_file_contents(f"{e.PathTokens.PUD}/{p}").rstrip()
+                    content_blocks.append(
+                        f"{e.Delims.READ_FILESET_UL[1]}{p}{e.Delims.FILESET_OPEN_END_TAG[1]}\n"
+                        f"{content}\n"
+                        f"{e.Delims.READ_FILESET_BL[1]}{p}{e.Delims.FILESET_OPEN_END_TAG[1]}"
+                    )
+                except UnicodeDecodeError:
+                    pass
 
-        return {resolver.anchor: "\n\n".join(manifest_blocks)}
-
-    def _build_manifest(self, tag: str, basepath_token: str, fileset: e.Fileset) -> str:
-        includes = self.files.get_file_paths(
-            basepath_token,
-            [include.value for include in fileset.includes],
-            missing_ok=False,
-        )
-        excludes = (
-            self.files.get_file_paths(
-                basepath_token,
-                [exclude.value for exclude in fileset.excludes],
-                missing_ok=True,
+        meta_blocks: list[str] = []
+        if resolver.meta_fileset:
+            meta_includes = self.files.get_file_paths(
+                e.PathTokens.PUD,
+                [include.value for include in resolver.meta_fileset.includes],
+                missing_ok=False,
             )
-            if fileset.excludes
-            else set()
-        )
-        paths = sorted(includes - excludes)
-        lines = []
-        for p in paths:
-            try:
-                content = self.files.get_file_contents(f"{basepath_token}/{p}")
-                line_count = len(content.splitlines())
-                lines.append(f"{p} : {line_count} lines")
-            except UnicodeDecodeError:
-                pass
+            meta_excludes = (
+                self.files.get_file_paths(
+                    e.PathTokens.PUD,
+                    [exclude.value for exclude in resolver.meta_fileset.excludes],
+                    missing_ok=True,
+                )
+                if resolver.meta_fileset.excludes
+                else set()
+            )
+            meta_paths = sorted(meta_includes - meta_excludes - content_paths)
+            for p in meta_paths:
+                try:
+                    content = self.files.get_file_contents(f"{e.PathTokens.PUD}/{p}")
+                    line_count = len(content.splitlines())
+                    meta_blocks.append(
+                        f"{e.Delims.FILE_META_UL[1]}{p} loc={line_count}{e.Delims.FILE_META_CLOSE[1]}"
+                    )
+                except UnicodeDecodeError:
+                    pass
 
-        return f"{e.Delims.MANIFEST_MEMBER[1]}{tag}{e.Delims.MANIFEST_MEMBER[1]}\n" + "\n".join(lines) + f"\n{e.Delims.MANIFEST_MEMBER[1]}{tag}{e.Delims.MANIFEST_MEMBER[1]}"
+        all_blocks = content_blocks + meta_blocks
+        return {resolver.anchor: "\n\n".join(all_blocks)}
