@@ -11,11 +11,12 @@ function buildRow(label, keys) {
     const buttons = keys.map(key =>
         `<button type="button" class="kb-btn kb-inactive" data-key="${key}">
             <span class="key-badge">${key}</span>
+            <span class="btn-label"></span>
         </button>`
     ).join('\n            ');
 
     return `
-        <div class="mb-3">
+        <div class="mb-3" data-row="${label}">
             <div class="text-xs font-mono text-[#6b7280] mb-1 uppercase tracking-wider">${label}</div>
             <div class="flex gap-1 flex-wrap">
                 ${buttons}
@@ -40,9 +41,17 @@ const html = `
             font-size: 0.75rem;
             cursor: pointer;
             transition: background 0.15s, color 0.15s, border-color 0.15s;
+            gap: 0.25rem;
         }
         .kb-btn .key-badge {
             font-weight: 700;
+        }
+        .kb-btn .btn-label {
+            font-size: 0.625rem;
+            max-width: 8rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         .kb-inactive {
             background: #030712;
@@ -77,9 +86,19 @@ class KeyboardBar extends BaseComponent {
     className = className;
 
     #statusLine;
-    #activeBtn = null;
     #busy = false;
     #stagedPrompt = null;
+    #sharedDomains = [];
+    #pudDomains = [];
+    #selectedDomain = null;
+
+    setDomains(shared, pud) {
+        this.#sharedDomains = shared || [];
+        this.#pudDomains = pud || [];
+        this.#selectedDomain = null;
+        this.#stagedPrompt = null;
+        this.#refreshAllStates();
+    }
 
     #handleKeydown = (event) => {
         if (event.ctrlKey && event.key === 'Enter') {
@@ -109,12 +128,14 @@ class KeyboardBar extends BaseComponent {
             return;
         }
 
-        const btn = this.querySelector(`.kb-btn[data-key="${event.key}"]`);
-        if (!btn) return;
-
         event.stopPropagation();
         event.preventDefault();
-        this.#onButtonClick(btn);
+
+        if (sharedDomKeys.includes(event.key) || pudDomKeys.includes(event.key)) {
+            this.#onDomainKey(event.key);
+        } else if (promptKeys.includes(event.key)) {
+            this.#onPromptKey(event.key);
+        }
     };
 
     onConnect() {
@@ -124,7 +145,14 @@ class KeyboardBar extends BaseComponent {
         this.#statusLine.textContent = 'Ready.';
 
         this.querySelectorAll('.kb-btn').forEach(btn => {
-            btn.addEventListener('click', () => this.#onButtonClick(btn));
+            btn.addEventListener('click', () => {
+                const key = btn.dataset.key;
+                if (sharedDomKeys.includes(key) || pudDomKeys.includes(key)) {
+                    this.#onDomainKey(key);
+                } else if (promptKeys.includes(key)) {
+                    this.#onPromptKey(key);
+                }
+            });
         });
 
         this.addEventListener('keydown', this.#handleKeydown);
@@ -139,57 +167,107 @@ class KeyboardBar extends BaseComponent {
         btn.classList.add(`kb-${state}`);
     }
 
-    #formatStatus(response) {
-        const { result_type, key, domain } = response;
-        switch (result_type) {
-            case 'bootstrap_success':
-                return 'Bootstrap complete.';
-            case 'domain_selected':
-                return `Selected domain "${domain ?? ''}" [${key}]`;
-            case 'uninhabited_domain':
-                return `Domain [${key}] has no content`;
-            case 'uninhabited_prompt':
-                return `Prompt [${key}] has no content`;
-            case 'unbound_key':
-                return `No action bound to key "${key}"`;
-            case 'prompt_render':
-                const promptName = response.prompt ?? '';
-                const domName = response.domain ?? '';
-                const lines = response.lines ?? 0;
-                const chars = response.chars ?? 0;
-                const mode = response.prompt_mode ?? '';
-                return `Prompt "${promptName}" of "${domName}" — ${lines} lines, ${chars} chars (${mode}) — press Enter`;
-            default:
-                return `Key "${key}" pressed`;
+    #setBtnLabel(btn, label) {
+        const labelEl = btn.querySelector('.btn-label');
+        if (labelEl) labelEl.textContent = label || '';
+    }
+
+    #refreshAllStates() {
+        for (const key of sharedDomKeys) {
+            const btn = this.querySelector(`.kb-btn[data-key="${key}"]`);
+            if (!btn) continue;
+            const idx = sharedDomKeys.indexOf(key);
+            const dom = this.#sharedDomains[idx];
+            if (this.#selectedDomain && dom === this.#selectedDomain) {
+                this.#setStateClass(btn, 'highlighted');
+            } else if (dom) {
+                this.#setStateClass(btn, 'active');
+                this.#setBtnLabel(btn, dom.name);
+            } else {
+                this.#setStateClass(btn, 'inactive');
+                this.#setBtnLabel(btn, '');
+            }
+        }
+
+        for (const key of pudDomKeys) {
+            const btn = this.querySelector(`.kb-btn[data-key="${key}"]`);
+            if (!btn) continue;
+            const idx = pudDomKeys.indexOf(key);
+            const dom = this.#pudDomains[idx];
+            if (this.#selectedDomain && dom === this.#selectedDomain) {
+                this.#setStateClass(btn, 'highlighted');
+            } else if (dom) {
+                this.#setStateClass(btn, 'active');
+                this.#setBtnLabel(btn, dom.name);
+            } else {
+                this.#setStateClass(btn, 'inactive');
+                this.#setBtnLabel(btn, '');
+            }
+        }
+
+        for (const key of promptKeys) {
+            const btn = this.querySelector(`.kb-btn[data-key="${key}"]`);
+            if (!btn) continue;
+            const idx = promptKeys.indexOf(key);
+            const prompt = this.#selectedDomain?.prompts?.[idx];
+            if (prompt) {
+                this.#setStateClass(btn, 'active');
+                this.#setBtnLabel(btn, prompt.name);
+            } else {
+                this.#setStateClass(btn, 'inactive');
+                this.#setBtnLabel(btn, '');
+            }
         }
     }
 
-    async #onButtonClick(btn) {
+    #onDomainKey(key) {
+        let domains = sharedDomKeys.includes(key) ? this.#sharedDomains : this.#pudDomains;
+        let keys = sharedDomKeys.includes(key) ? sharedDomKeys : pudDomKeys;
+        const idx = keys.indexOf(key);
+        const domain = domains[idx];
+
+        if (!domain) {
+            this.#statusLine.textContent = `Domain [${key}] has no content`;
+            return;
+        }
+
+        this.#selectedDomain = domain;
+        this.#stagedPrompt = null;
+        this.#refreshAllStates();
+        this.#statusLine.textContent = `Selected domain "${domain.name}" [${key}]`;
+    }
+
+    async #onPromptKey(key) {
         if (this.#busy) return;
+
+        if (!this.#selectedDomain) {
+            this.#statusLine.textContent = `Select a domain first`;
+            return;
+        }
+
+        const idx = promptKeys.indexOf(key);
+        const prompt = this.#selectedDomain.prompts?.[idx];
+
+        if (!prompt) {
+            this.#statusLine.textContent = `Prompt [${key}] has no content`;
+            return;
+        }
+
         this.#busy = true;
-
-        const key = btn.dataset.key;
         try {
-            const response = await apiClient.sendChar(key);
+            const response = await apiClient.renderPrompt(this.#selectedDomain, prompt);
 
-            for (const [k, info] of Object.entries(response.buttons)) {
-                const el = this.querySelector(`.kb-btn[data-key="${k}"]`);
-                if (el) this.#setStateClass(el, info.state);
-            }
+            this.#stagedPrompt = response.text;
 
-            const pressedEl = this.querySelector(`.kb-btn[data-key="${response.key}"]`);
-            this.#activeBtn = pressedEl || null;
+            const pressedBtn = this.querySelector(`.kb-btn[data-key="${key}"]`);
+            if (pressedBtn) this.#setStateClass(pressedBtn, 'highlighted');
 
-            if (response.result_type === 'prompt_render' && response.prompt_text) {
-                this.#stagedPrompt = response.prompt_text;
-                this.#setStateClass(pressedEl, 'highlighted');
-            } else {
-                this.#stagedPrompt = null;
-            }
-
-            this.#statusLine.textContent = this.#formatStatus(response);
+            const lines = response.lines ?? 0;
+            const chars = response.chars ?? 0;
+            this.#statusLine.textContent =
+                `Prompt "${prompt.name}" of "${this.#selectedDomain.name}" — ${lines} lines, ${chars} chars — press Enter`;
         } catch (error) {
-            this.#statusLine.textContent = '❌ ' + (error.message || 'Request failed');
+            this.#statusLine.textContent = '❌ ' + (error.message || 'Prompt render failed');
         } finally {
             this.#busy = false;
         }

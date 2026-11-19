@@ -75,25 +75,41 @@ Just some ideas on the board:
 - the promptrenderctx or whatever should originate with frontend.
 
 Backlog tail, Selected item/items:
-1. Detach keyboard-bar from `/api/char`; handle domain selection locally, use `/api/render-prompt` for prompt resolution
-    [ ] 'content/web-ui/frontend/api-client.js': Add `renderPrompt(domain, prompt)` POST method
-        - new async method that POSTs to `/api/render-prompt` with `{ domain, prompt }` body
-        - returns parsed JSON (`{ text, lines, chars }`)
-        - `sendChar` stays in the file (unchanged) but is no longer called by keyboard-bar
-    [ ] 'content/web-ui/frontend/keyboard-bar.js': Refactor to track domains locally; split key handling into domain-local vs prompt-remote
-        - add `#sharedDomains`, `#pudDomains`, `#selectedDomain` state
-        - add public `setDomains(shared, pud)` method to receive boot data
-        - add `#onDomainKey(key)`: pure local mutation — set `#selectedDomain`, update all button states (highlighted / active / inactive), set prompt button labels from `domain.prompts`, no API call
-        - add `#onPromptKey(key)`: look up `#selectedDomain.prompts[i]` by position, call `apiClient.renderPrompt(domain, prompt)`, on success set `#stagedPrompt` and highlight the pressed button
-        - `#handleKeydown` and button click handlers route to `#onDomainKey` / `#onPromptKey` instead of the old `#onButtonClick` → `sendChar`
-        - `#formatStatus` simplified: domain status is set inline (no `result_type` from API); prompt status uses the `renderPrompt` response fields (`text`, `lines`, `chars`)
-        - Enter / Ctrl+Enter behaviour unchanged (still dispatch `prompt-fired` / copy `#stagedPrompt`)
-        - button state classes (`kb-active`, `kb-highlighted`, `kb-inactive`) driven entirely by local state, not by a backend response
-    [ ] 'content/web-ui/frontend/clanker-app.js': Pass boot domain data into keyboard-bar after successful boot
-        - in `#bootSystem()`, after `apiClient.boot()` succeeds, call `this.#keyboardBar.setDomains(boot.shared_domains, boot.pud_domains)`
-        - no other changes to clanker-app
-
-No backend changes needed — `/api/render-prompt` already accepts the `{ domain, prompt }` shape and `deserialize_domain_prompt` handles it. `/api/char` remains available but is simply no longer called from the UI.
+```
+1. Prune dead keyboard/char endpoint code after keyboard-bar refactor
+    [ ] 'content/web-ui/frontend/api-client.js': Remove `sendChar` method
+        - delete the `async sendChar(char) { ... }` block
+        - no other code in the frontend references it
+    [ ] 'content/backend/controller.py': Remove `GET("/api/char")` route and its helper
+        - delete the `char` method (entire `@GET("/api/char")` block)
+        - delete `_shape_kb_emission` function (sole caller was `char`)
+        - in `ClankController.__init__`: remove `kb_service` param and `self.kb_service = kb_service`
+        - in `boot()`: remove `start_cmd = d.StartCmd(kb=result.kb)` and `self.kb_service.handle_start(start_cmd)`
+    [ ] 'content/backend/keyboard/__init__.py': Delete file
+    [ ] 'content/backend/keyboard/keyboard_service.py': Delete file
+        - `KBServiceImpl`, `handle_start`, `handle_key`, `_handle_dom_btn`, `_handle_prompt_btn` all dead
+    [ ] 'content/backend/render_pipeline/render_service.py': Remove `render_prompt` and `_collect_resolvers`
+        - `render_prompt` (takes `RenderNormalPromptCmd`) had sole caller in `controller.char`
+        - `_collect_resolvers` only called by `render_prompt`
+        - `render_from_entities`, `_collect_resolvers_from`, `_assemble_render`, `_dispatch`, `_res_multi_doc`, `_res_repo_content` stay
+    [ ] 'content/backend/core/engine_deps/result.py': Remove dead types
+        - delete `KbCmd`
+        - delete `KbServiceEmission`
+        - delete `BootstrapSuccess`
+        - delete `UnboundKeyResult`
+        - delete `DomainSelectedResult`
+        - delete `UninhabitedDomainResult`
+        - delete `UninhabitedPromptResult`
+        - delete `RenderNormalPromptCmd`
+        - delete `PromptRenderResult` (sole producer was `render_prompt`)
+        - delete `KBService` ABC (both abstract methods dead)
+        - in `PromptService` ABC: remove `render_prompt` abstract method, keep `render_from_entities`
+        - `StartCmd`, `Command`, `Result`, `PromptRenderOutput`, `BootResult`, all Complaint types, `IngestionService` stay
+    [ ] 'content/clank-server.py': Remove kb_service wiring
+        - delete `from backend.keyboard import KBServiceImpl`
+        - delete `kb_service = KBServiceImpl()`
+        - remove `kb_service=kb_service` kwarg from `ClankController(...)` call
+```
 Backlog tail end
 
 
@@ -195,3 +211,21 @@ VI. finished stuffs
         - 200: return (200, "application/json", asdict(result))
         - 400: ValueError → return (400, "text/plain", str(ex))
         - 500: unexpected exception → return (500, "text/plain", str(ex))
+
+1. Detach keyboard-bar from `/api/char`; handle domain selection locally, use `/api/render-prompt` for prompt resolution
+    [x] 'content/web-ui/frontend/api-client.js': Add `renderPrompt(domain, prompt)` POST method
+        - new async method that POSTs to `/api/render-prompt` with `{ domain, prompt }` body
+        - returns parsed JSON (`{ text, lines, chars }`)
+        - `sendChar` stays in the file (unchanged) but is no longer called by keyboard-bar
+    [x] 'content/web-ui/frontend/keyboard-bar.js': Refactor to track domains locally; split key handling into domain-local vs prompt-remote
+        - add `#sharedDomains`, `#pudDomains`, `#selectedDomain` state
+        - add public `setDomains(shared, pud)` method to receive boot data
+        - add `#onDomainKey(key)`: pure local mutation — set `#selectedDomain`, update all button states (highlighted / active / inactive), set prompt button labels from `domain.prompts`, no API call
+        - add `#onPromptKey(key)`: look up `#selectedDomain.prompts[i]` by position, call `apiClient.renderPrompt(domain, prompt)`, on success set `#stagedPrompt` and highlight the pressed button
+        - `#handleKeydown` and button click handlers route to `#onDomainKey` / `#onPromptKey` instead of the old `#onButtonClick` → `sendChar`
+        - `#formatStatus` simplified: domain status is set inline (no `result_type` from API); prompt status uses the `renderPrompt` response fields (`text`, `lines`, `chars`)
+        - Enter / Ctrl+Enter behaviour unchanged (still dispatch `prompt-fired` / copy `#stagedPrompt`)
+        - button state classes (`kb-active`, `kb-highlighted`, `kb-inactive`) driven entirely by local state, not by a backend response
+    [x] 'content/web-ui/frontend/clanker-app.js': Pass boot domain data into keyboard-bar after successful boot
+        - in `#bootSystem()`, after `apiClient.boot()` succeeds, call `this.#keyboardBar.setDomains(boot.shared_domains, boot.pud_domains)`
+        - no other changes to clanker-app

@@ -26,6 +26,24 @@ export class ApiClient {
         return response.json();
     }
 
+    async renderPrompt(domain, prompt) {
+        const response = await fetch('/api/render-prompt', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ domain, prompt })
+        });
+
+        if (!response.ok) {
+            const body = await response.json().catch(() => null);
+            const msg = body?.error?.message ?? body?.error ?? response.statusText;
+            throw new Error(msg);
+        }
+
+        return response.json();
+    }
+
     async ingestFileChanges(content) {
         const response = await fetch('/api/ingest', {
             method: 'POST',

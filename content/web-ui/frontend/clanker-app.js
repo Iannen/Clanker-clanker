@@ -119,6 +119,7 @@ class ClankerApp extends BaseComponent {
         this.inputBox.setDisabled(true);
         try {
             const boot = await apiClient.boot();
+            this.#keyboardBar.setDomains(boot.shared_domains, boot.pud_domains);
             this.inputBox.setDisabled(false);
             this.messagesBox.welcomeText.textContent = "Bootstrap completed successfully";
         } catch (error) {
