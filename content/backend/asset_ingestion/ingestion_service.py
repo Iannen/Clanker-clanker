@@ -27,7 +27,7 @@ class IngestionServiceImpl(d.IngestionService):
         except IsADirectoryError: return e.Filereq(filereq.name, filereq.value, "")
         except d.NoSuchFile: return d.Missing(filereq.name, filereq.value)
 
-    def get_runtime_config(self):
+    def get_runtime_config(self) -> tuple[d.StartCmd | d.StartResult | d.ClankerizeResult | d.TerminateResult, d.BootResult | None]:
         ec = ErrorCollector()
         clank_classifier = ItemClassifier(ec)
         pud_classifier = ItemClassifier(ec)
@@ -47,16 +47,17 @@ class IngestionServiceImpl(d.IngestionService):
         clank_classifier.complain()
         pud_result = pud_classifier.evaluate()
         if pud_result is ClassificationResult.MIXED: pud_classifier.complain()
-        kb = assembler.assemble(pud_result)
+        kb, shared_doms, pud_doms = assembler.assemble(pud_result)
+        boot = d.BootResult(shared_domains=shared_doms, pud_domains=pud_doms)
 
-        if ec.has_crits(): return d.TerminateResult(ec)
+        if ec.has_crits(): return d.TerminateResult(ec), None
         if pud_result is ClassificationResult.ALL_PRESENT:
             if not ec.get_all_complaints():
-                return d.StartCmd(kb=kb)
-            return d.StartResult(ec, kb)
-        if pud_result is ClassificationResult.NONE_PRESENT: return d.ClankerizeResult(ec)
+                return d.StartCmd(kb=kb), boot
+            return d.StartResult(ec, kb), boot
+        if pud_result is ClassificationResult.NONE_PRESENT: return d.ClankerizeResult(ec), None
 
-    def initialize_workspace(self):
+    def initialize_workspace(self) -> tuple[d.StartCmd | d.StartResult | d.ClankerizeResult | d.TerminateResult, d.BootResult | None]:
         if self.files.is_cwd_script_dir():
             raise e.CorruptClanker("Clanker repository initialized is beyond scope of app.")
         for dir_path in e.RepoContract.DIRS_TO_CREATE:

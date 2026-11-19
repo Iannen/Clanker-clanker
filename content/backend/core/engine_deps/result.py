@@ -40,6 +40,11 @@ class MissingEntityFields(Soft):
     missing_fields: list[Field]
     data: dict
 
+@dataclass
+class BootResult:
+    shared_domains: list[e.SharedDomain]
+    pud_domains: list[e.PudDomain]
+
 
 class Report(ABC):
     @abstractmethod
@@ -122,9 +127,9 @@ class TerminateResult(IngestionResult): pass
 
 class IngestionService(ABC):
     @abstractmethod
-    def get_runtime_config(self) -> StartCmd | StartResult | ClankerizeResult | TerminateResult: ...
+    def get_runtime_config(self) -> tuple[StartCmd | StartResult | ClankerizeResult | TerminateResult, BootResult | None]: ...
     @abstractmethod
-    def initialize_workspace(self) -> StartCmd | StartResult | ClankerizeResult | TerminateResult: ...
+    def initialize_workspace(self) -> tuple[StartCmd | StartResult | ClankerizeResult | TerminateResult, BootResult | None]: ...
 
 class PromptService(ABC):
     @abstractmethod

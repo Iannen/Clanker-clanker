@@ -69,12 +69,34 @@ Just some ideas on the board:
 - receive non-repo content (new backlog items, history items) via endpoints in similar fashion to repo content
 
 
-Backlog tail, Selected item/items:
 
 - make the frontend responsible for tracking seleced domain
 - make boot endpoint return shared & pud domains to frontend
 - the promptrenderctx or whatever should originate with frontend.
 
+Backlog tail, Selected item/items:
+```
+9. Add POST /api/render-prompt endpoint for direct domain+prompt rendering
+    [ ] 'content/backend/core/engine_deps/result.py': Add PromptRenderOutput dataclass
+        - fields: text: str, lines: int, chars: int
+        - standalone dataclass, does not inherit KbServiceEmission
+    [ ] 'content/backend/core/engine_deps/result.py': Add render_from_entities to PromptService ABC
+        - signature: render_from_entities(self, domain: e.Domain, prompt: e.Prompt) -> PromptRenderOutput
+    [ ] 'content/backend/asset_ingestion/ingestion_service.py': Add deserialization method to IngestionServiceImpl
+        - accepts a dict with keys "domain" and "prompt" (each a nested dict matching the boot response shape)
+        - recursively constructs e.Domain and e.Prompt from the dicts (including nested Render, Resolver, Filelist, File, TruncationSpec)
+        - Resolver subclass discrimination by key inspection (files → MultiDocResolver, content_fileset/meta_fileset → RepoContentResolver)
+        - raises ValueError if domain or prompt keys are missing or structurally malformed
+    [ ] 'content/backend/render_pipeline/render_service.py': Implement render_from_entities on PromptServiceImpl
+        - accepts (domain, prompt), runs the existing render pipeline (template load, section parse, resolver collection, dispatch, assembly)
+        - returns PromptRenderOutput(text=..., lines=..., chars=...)
+    [ ] 'content/backend/controller.py': Add POST /api/render-prompt route
+        - expects body: {"domain": {...}, "prompt": {...}}
+        - calls ingestion deserialization to get (e.Domain, e.Prompt), then prompt_service.render_from_entities
+        - 200: return (200, "application/json", asdict(result))
+        - 400: ValueError → return (400, "text/plain", str(ex))
+        - 500: unexpected exception → return (500, "text/plain", str(ex))
+```
 Backlog tail end
 
 
@@ -131,3 +153,27 @@ VI. finished stuffs
         - RepoContentResolver fields (anchor, content_fileset, meta_fileset) are all handled by the generic BaseParser2 path
         - build_ordered_parsers will fall back to BaseParser2(ec) for RepoContentResolver, registered under both class and "repo-content" type string
         - No other code references RepoContentResParser by name
+
+7. Return structured BootResult from boot endpoint instead of plain string
+    [x] 'content/backend/core/engine_deps/result.py': Add BootResult dataclass
+        - fields: shared_domains: list[e.SharedDomain], pud_domains: list[e.PudDomain]
+    [x] 'content/backend/core/engine_deps/result.py': Update IngestionService ABC signatures
+        - get_runtime_config and initialize_workspace return tuple[StartCmd | StartResult | ClankerizeResult | TerminateResult, BootResult | None]
+    [x] 'content/backend/asset_ingestion/new/service_workers.py': Assembler.assemble returns (kb, shared_doms, pud_doms)
+        - gather shared_doms = numap.get_entities(e.SharedDomain), pud_doms = numap.get_entities(e.PudDomain)
+        - return (kb, shared_doms, pud_doms) instead of bare kb
+    [x] 'content/backend/asset_ingestion/ingestion_service.py': get_runtime_config constructs BootResult, returns tuple
+        - unpack (kb, shared_doms, pud_doms) from assembler.assemble
+        - on StartCmd/StartResult path: build BootResult(shared_domains=shared_doms, pud_domains=pud_doms), return (result, boot)
+        - on TerminateResult/ClankerizeResult path: return (result, None)
+    [x] 'content/backend/asset_ingestion/ingestion_service.py': initialize_workspace propagates the tuple
+        - return self.get_runtime_config() already does this, just confirm signature matches
+    [x] 'content/backend/controller.py': boot() unpacks tuple, returns JSON on 200
+        - unpack (result, boot) from ingestion.get_runtime_config() / initialize_workspace()
+        - 200 path: return (200, "application/json", asdict(boot))
+        - 500 / TerminateResult / ClankerizeResult path unchanged (text/plain)
+    [x] 'content/web-ui/frontend/api-client.js': boot() parses JSON response
+        - change from response.text() to response.json()
+    [x] 'content/web-ui/frontend/clanker-app.js': #bootSystem consumes JSON payload
+        - on 200: set welcomeText.textContent = "Bootstrap completed successfully"
+        - ignore structured body for now (future use: domain listing, counts, etc.)

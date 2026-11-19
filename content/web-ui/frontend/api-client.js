@@ -17,7 +17,7 @@ export class ApiClient {
     async boot() {
         const response = await fetch('/api/boot');
         if (!response.ok) throw new Error(response.statusText);
-        return response.text();
+        return response.json();
     }
 
     async sendChar(char) {

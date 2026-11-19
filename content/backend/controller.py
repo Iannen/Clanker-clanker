@@ -81,11 +81,11 @@ class ClankController:
         self.gpu_box_url = gpu_box_url
 
     @GET("/api/boot")
-    def boot(self, params: dict) -> tuple[int, str, str]:
-        result = self.ingestion.get_runtime_config()
+    def boot(self, params: dict) -> tuple[int, str, str | dict]:
+        result, boot = self.ingestion.get_runtime_config()
 
         if isinstance(result, d.ClankerizeResult):
-            result = self.ingestion.initialize_workspace()
+            result, boot = self.ingestion.initialize_workspace()
 
         if isinstance(result, d.TerminateResult):
             return (500, "text/plain", f"Boot failed: {result.report.get_critical_complaints()}")
@@ -96,11 +96,7 @@ class ClankController:
         start_cmd = d.StartCmd(kb=result.kb)
         self.kb_service.handle_start(start_cmd)
 
-        boot_message = "Bootstrap completed successfully"
-        if isinstance(result, d.StartResult) and result.report.get_all_complaints():
-            boot_message = f"Bootstrap completed with {len(result.report.get_all_complaints())} soft complaint(s)"
-
-        return (200, "text/plain", boot_message)
+        return (200, "application/json", asdict(boot))
 
     @GET("/api/char")
     def char(self, params: dict) -> tuple[int, str, dict]:

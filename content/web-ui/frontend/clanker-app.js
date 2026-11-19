@@ -118,9 +118,9 @@ class ClankerApp extends BaseComponent {
     async #bootSystem() {
         this.inputBox.setDisabled(true);
         try {
-            const msg = await apiClient.boot();
+            const boot = await apiClient.boot();
             this.inputBox.setDisabled(false);
-            this.messagesBox.welcomeText.textContent = msg;
+            this.messagesBox.welcomeText.textContent = "Bootstrap completed successfully";
         } catch (error) {
             this.inputBox.setDisabled(false);
             this.toast.show('❌ ' + (error.message || 'Boot failed'));
