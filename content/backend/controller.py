@@ -112,6 +112,21 @@ class ClankController:
 
         return (200, "application/json", _shape_kb_emission(result))
 
+    @POST("/api/render-prompt")
+    def render_prompt(self, body: dict, path: str) -> tuple[int, str, dict | str]:
+        try:
+            domain, prompt = self.ingestion.deserialize_domain_prompt(body)
+        except ValueError as ex:
+            return (400, "text/plain", str(ex))
+        except Exception as ex:
+            return (500, "text/plain", str(ex))
+
+        try:
+            result = self.prompt_service.render_from_entities(domain, prompt)
+            return (200, "application/json", asdict(result))
+        except Exception as ex:
+            return (500, "text/plain", str(ex))
+
     @POST("/api/ingest")
     def ingest(self, body: dict, path: str) -> tuple[int, str, dict]:
         try:

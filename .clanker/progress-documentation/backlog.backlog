@@ -75,28 +75,25 @@ Just some ideas on the board:
 - the promptrenderctx or whatever should originate with frontend.
 
 Backlog tail, Selected item/items:
-```
-9. Add POST /api/render-prompt endpoint for direct domain+prompt rendering
-    [ ] 'content/backend/core/engine_deps/result.py': Add PromptRenderOutput dataclass
-        - fields: text: str, lines: int, chars: int
-        - standalone dataclass, does not inherit KbServiceEmission
-    [ ] 'content/backend/core/engine_deps/result.py': Add render_from_entities to PromptService ABC
-        - signature: render_from_entities(self, domain: e.Domain, prompt: e.Prompt) -> PromptRenderOutput
-    [ ] 'content/backend/asset_ingestion/ingestion_service.py': Add deserialization method to IngestionServiceImpl
-        - accepts a dict with keys "domain" and "prompt" (each a nested dict matching the boot response shape)
-        - recursively constructs e.Domain and e.Prompt from the dicts (including nested Render, Resolver, Filelist, File, TruncationSpec)
-        - Resolver subclass discrimination by key inspection (files → MultiDocResolver, content_fileset/meta_fileset → RepoContentResolver)
-        - raises ValueError if domain or prompt keys are missing or structurally malformed
-    [ ] 'content/backend/render_pipeline/render_service.py': Implement render_from_entities on PromptServiceImpl
-        - accepts (domain, prompt), runs the existing render pipeline (template load, section parse, resolver collection, dispatch, assembly)
-        - returns PromptRenderOutput(text=..., lines=..., chars=...)
-    [ ] 'content/backend/controller.py': Add POST /api/render-prompt route
-        - expects body: {"domain": {...}, "prompt": {...}}
-        - calls ingestion deserialization to get (e.Domain, e.Prompt), then prompt_service.render_from_entities
-        - 200: return (200, "application/json", asdict(result))
-        - 400: ValueError → return (400, "text/plain", str(ex))
-        - 500: unexpected exception → return (500, "text/plain", str(ex))
-```
+1. Detach keyboard-bar from `/api/char`; handle domain selection locally, use `/api/render-prompt` for prompt resolution
+    [ ] 'content/web-ui/frontend/api-client.js': Add `renderPrompt(domain, prompt)` POST method
+        - new async method that POSTs to `/api/render-prompt` with `{ domain, prompt }` body
+        - returns parsed JSON (`{ text, lines, chars }`)
+        - `sendChar` stays in the file (unchanged) but is no longer called by keyboard-bar
+    [ ] 'content/web-ui/frontend/keyboard-bar.js': Refactor to track domains locally; split key handling into domain-local vs prompt-remote
+        - add `#sharedDomains`, `#pudDomains`, `#selectedDomain` state
+        - add public `setDomains(shared, pud)` method to receive boot data
+        - add `#onDomainKey(key)`: pure local mutation — set `#selectedDomain`, update all button states (highlighted / active / inactive), set prompt button labels from `domain.prompts`, no API call
+        - add `#onPromptKey(key)`: look up `#selectedDomain.prompts[i]` by position, call `apiClient.renderPrompt(domain, prompt)`, on success set `#stagedPrompt` and highlight the pressed button
+        - `#handleKeydown` and button click handlers route to `#onDomainKey` / `#onPromptKey` instead of the old `#onButtonClick` → `sendChar`
+        - `#formatStatus` simplified: domain status is set inline (no `result_type` from API); prompt status uses the `renderPrompt` response fields (`text`, `lines`, `chars`)
+        - Enter / Ctrl+Enter behaviour unchanged (still dispatch `prompt-fired` / copy `#stagedPrompt`)
+        - button state classes (`kb-active`, `kb-highlighted`, `kb-inactive`) driven entirely by local state, not by a backend response
+    [ ] 'content/web-ui/frontend/clanker-app.js': Pass boot domain data into keyboard-bar after successful boot
+        - in `#bootSystem()`, after `apiClient.boot()` succeeds, call `this.#keyboardBar.setDomains(boot.shared_domains, boot.pud_domains)`
+        - no other changes to clanker-app
+
+No backend changes needed — `/api/render-prompt` already accepts the `{ domain, prompt }` shape and `deserialize_domain_prompt` handles it. `/api/char` remains available but is simply no longer called from the UI.
 Backlog tail end
 
 
@@ -177,3 +174,24 @@ VI. finished stuffs
     [x] 'content/web-ui/frontend/clanker-app.js': #bootSystem consumes JSON payload
         - on 200: set welcomeText.textContent = "Bootstrap completed successfully"
         - ignore structured body for now (future use: domain listing, counts, etc.)
+
+9. Add POST /api/render-prompt endpoint for direct domain+prompt rendering
+    [x] 'content/backend/core/engine_deps/result.py': Add PromptRenderOutput dataclass
+        - fields: text: str, lines: int, chars: int
+        - standalone dataclass, does not inherit KbServiceEmission
+    [x] 'content/backend/core/engine_deps/result.py': Add render_from_entities to PromptService ABC
+        - signature: render_from_entities(self, domain: e.Domain, prompt: e.Prompt) -> PromptRenderOutput
+    [x] 'content/backend/asset_ingestion/ingestion_service.py': Add deserialization method to IngestionServiceImpl
+        - accepts a dict with keys "domain" and "prompt" (each a nested dict matching the boot response shape)
+        - recursively constructs e.Domain and e.Prompt from the dicts (including nested Render, Resolver, Filelist, File, TruncationSpec)
+        - Resolver subclass discrimination by key inspection (files → MultiDocResolver, content_fileset/meta_fileset → RepoContentResolver)
+        - raises ValueError if domain or prompt keys are missing or structurally malformed
+    [x] 'content/backend/render_pipeline/render_service.py': Implement render_from_entities on PromptServiceImpl
+        - accepts (domain, prompt), runs the existing render pipeline (template load, section parse, resolver collection, dispatch, assembly)
+        - returns PromptRenderOutput(text=..., lines=..., chars=...)
+    [x] 'content/backend/controller.py': Add POST /api/render-prompt route
+        - expects body: {"domain": {...}, "prompt": {...}}
+        - calls ingestion deserialization to get (e.Domain, e.Prompt), then prompt_service.render_from_entities
+        - 200: return (200, "application/json", asdict(result))
+        - 400: ValueError → return (400, "text/plain", str(ex))
+        - 500: unexpected exception → return (500, "text/plain", str(ex))

@@ -31,28 +31,56 @@ class PromptServiceImpl(d.PromptService):
         except d.NoSuchFile as ex:
             raise e.CorruptClanker(f"Error loading template for '{cmd.prompt.render.template}': {ex}") from ex
 
-        # a. parse layout into ordered sections
+        resolvers = self._collect_resolvers(cmd)
+        text, lines, chars = self._assemble_render(template, resolvers)
+
+        return d.PromptRenderResult(
+            kb=cmd.kb,
+            cmd=cmd,
+            text=text,
+            lines=lines,
+            chars=chars,
+        )
+
+    def render_from_entities(self, domain: e.Domain, prompt: e.Prompt) -> d.PromptRenderOutput:
+        try:
+            template = self.files.get_file_contents(e.ClankerAssets.layouts.PROMPT)
+        except d.NoSuchFile as ex:
+            raise e.CorruptClanker(f"Error loading template for '{prompt.render.template}': {ex}") from ex
+
+        resolvers = self._collect_resolvers_from(domain, prompt)
+        text, lines, chars = self._assemble_render(template, resolvers)
+        return d.PromptRenderOutput(text=text, lines=lines, chars=chars)
+
+    def _collect_resolvers(self, cmd: d.RenderNormalPromptCmd) -> list[e.Resolver]:
+        resolvers: list[e.Resolver] = []
+        if cmd.prompt.render.inherit_domain:
+            resolvers.extend(cmd.domain.resolvers)
+        resolvers.extend(cmd.prompt.render.resolvers)
+        return resolvers
+
+    def _collect_resolvers_from(self, domain: e.Domain, prompt: e.Prompt) -> list[e.Resolver]:
+        resolvers: list[e.Resolver] = []
+        if prompt.render.inherit_domain:
+            resolvers.extend(domain.resolvers)
+        resolvers.extend(prompt.render.resolvers)
+        return resolvers
+
+    def _assemble_render(self, template: str, resolvers: list[e.Resolver]) -> tuple[str, int, int]:
         section_pattern = re.compile(r"§([^§]+)§")
         section_names = [m.group(1).strip() for m in section_pattern.finditer(template)]
         sections: dict[str, list[e.Resolver]] = {name: [] for name in section_names}
 
-        # b. collect resolvers
-        resolvers = self._collect_resolvers(cmd)
-
-        # c. assign resolvers to sections by anchor
         for res in resolvers:
             if res.anchor not in sections:
                 raise e.CorruptClanker(f"Resolver anchor '{res.anchor}' has no matching section in layout")
             sections[res.anchor].append(res)
 
-        # d. evict empty sections
         sections = {k: v for k, v in sections.items() if v}
 
-        # e. sort each section's list by precedence
         for key in sections:
             sections[key].sort(key=_resolver_rank)
 
-        # f-g. build render
         render_parts: list[str] = []
         for section_name, res_list in sections.items():
             header = f"{e.Delims.PROMPT_OPEN[1]}{section_name}{e.Delims.PROMPT_CLOSE[1]}"
@@ -61,24 +89,7 @@ class PromptServiceImpl(d.PromptService):
             render_parts.append(section_content)
 
         render = "\n\n\n".join(render_parts) + "\n"
-
-        # h. return
-        lines_count = len(render.splitlines())
-        char_count = len(render)
-        return d.PromptRenderResult(
-            kb=cmd.kb,
-            cmd=cmd,
-            text=render,
-            lines=lines_count,
-            chars=char_count,
-        )
-
-    def _collect_resolvers(self, cmd: d.RenderNormalPromptCmd) -> list[e.Resolver]:
-        resolvers: list[e.Resolver] = []
-        if cmd.prompt.render.inherit_domain:
-            resolvers.extend(cmd.domain.resolvers)
-        resolvers.extend(cmd.prompt.render.resolvers)
-        return resolvers
+        return render, len(render.splitlines()), len(render)
 
     def _dispatch(self, res: e.Resolver) -> str:
         match res:

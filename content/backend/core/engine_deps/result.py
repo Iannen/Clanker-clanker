@@ -40,6 +40,14 @@ class MissingEntityFields(Soft):
     missing_fields: list[Field]
     data: dict
 
+
+@dataclass
+class PromptRenderOutput:
+    text: str
+    lines: int
+    chars: int
+
+
 @dataclass
 class BootResult:
     shared_domains: list[e.SharedDomain]
@@ -134,6 +142,8 @@ class IngestionService(ABC):
 class PromptService(ABC):
     @abstractmethod
     def render_prompt(self, cmd: RenderNormalPromptCmd) -> PromptRenderResult: ...
+    @abstractmethod
+    def render_from_entities(self, domain: e.Domain, prompt: e.Prompt) -> PromptRenderOutput: ...
 
 class KBService(ABC):
     @abstractmethod

@@ -147,6 +147,104 @@ class IngestionServiceImpl(d.IngestionService):
             missing_paths=[], unexpected_paths=[], parse_errors=[],
         )
 
+    def deserialize_domain_prompt(self, data: dict) -> tuple[e.Domain, e.Prompt]:
+        if not isinstance(data, dict):
+            raise ValueError("Expected a dict")
+        if "domain" not in data:
+            raise ValueError("Missing 'domain' key")
+        if "prompt" not in data:
+            raise ValueError("Missing 'prompt' key")
+
+        domain = self._build_domain(data["domain"])
+        prompt = self._build_prompt(data["prompt"])
+        return domain, prompt
+
+    def _build_domain(self, data: dict) -> e.Domain:
+        if not isinstance(data, dict):
+            raise ValueError("domain must be a dict")
+        name = data.get("name")
+        if not name:
+            raise ValueError("domain missing 'name'")
+        prompts = [self._build_prompt(p) for p in data.get("prompts", [])]
+        resolvers = [self._build_resolver(r) for r in data.get("resolvers", [])]
+        return e.Domain(name=name, prompts=prompts, resolvers=resolvers)
+
+    def _build_prompt(self, data: dict) -> e.Prompt:
+        if not isinstance(data, dict):
+            raise ValueError("prompt must be a dict")
+        name = data.get("name")
+        if not name:
+            raise ValueError("prompt missing 'name'")
+        render_data = data.get("render")
+        if not isinstance(render_data, dict):
+            raise ValueError("prompt missing 'render' dict")
+        render = self._build_render(render_data)
+        return e.Prompt(name=name, render=render)
+
+    def _build_render(self, data: dict) -> e.Render:
+        resolvers = [self._build_resolver(r) for r in data.get("resolvers", [])]
+        template = data.get("template", "prompt_template")
+        inherit_base = data.get("inherit_base", True)
+        inherit_domain = data.get("inherit_domain", True)
+        return e.Render(resolvers=resolvers, template=template, inherit_base=inherit_base, inherit_domain=inherit_domain)
+
+    def _build_resolver(self, data: dict) -> e.Resolver:
+        if not isinstance(data, dict):
+            raise ValueError("resolver must be a dict")
+        anchor = data.get("anchor")
+        if not anchor:
+            raise ValueError("resolver missing 'anchor'")
+
+        if "files" in data:
+            files = self._build_filelist(data["files"])
+            return e.MultiDocResolver(anchor=anchor, files=files)
+        elif "content_fileset" in data or "meta_fileset" in data:
+            content_fileset = self._build_fileset(data["content_fileset"]) if data.get("content_fileset") else None
+            meta_fileset = self._build_fileset(data["meta_fileset"]) if data.get("meta_fileset") else None
+            return e.RepoContentResolver(anchor=anchor, content_fileset=content_fileset, meta_fileset=meta_fileset)
+        else:
+            raise ValueError(f"Cannot determine resolver type from keys: {list(data.keys())}")
+
+    def _build_filelist(self, data: dict) -> e.Filelist:
+        if not isinstance(data, dict):
+            raise ValueError("filelist must be a dict")
+        name = data.get("name")
+        files = [self._build_file(f) for f in data.get("files", [])]
+        return e.Filelist(name=name, files=files)
+
+    def _build_file(self, data: dict) -> e.File:
+        if not isinstance(data, dict):
+            raise ValueError("file must be a dict")
+        name = data.get("name")
+        if not name:
+            raise ValueError("file missing 'name'")
+        truncation_spec = None
+        if data.get("truncation_spec"):
+            ts_data = data["truncation_spec"]
+            truncation_spec = e.TruncationSpec(
+                tail_lines=ts_data.get("tail_lines"),
+                from_line=ts_data.get("from_line"),
+                up_to=ts_data.get("up_to"),
+            )
+        path = data.get("path", "")
+        return e.File(name=name, truncation_spec=truncation_spec, path=path)
+
+    def _build_fileset(self, data: dict) -> e.Fileset:
+        if not isinstance(data, dict):
+            raise ValueError("fileset must be a dict")
+        name = data.get("name")
+        includes = [self._build_fileset_item(i) for i in data.get("includes", [])]
+        excludes = [self._build_fileset_item(i) for i in data.get("excludes", [])] if data.get("excludes") else None
+        return e.Fileset(name=name, includes=includes, excludes=excludes)
+
+    def _build_fileset_item(self, data: dict) -> e.FilesetItem:
+        if not isinstance(data, dict):
+            raise ValueError("fileset_item must be a dict")
+        value = data.get("value")
+        if value is None:
+            raise ValueError("fileset_item missing 'value'")
+        return e.FilesetItem(value=value)
+
     @staticmethod
     def _prefix_path(path: str) -> str:
         if path.startswith(e.PathTokens.PUD) or path.startswith(e.PathTokens.SHARED):
