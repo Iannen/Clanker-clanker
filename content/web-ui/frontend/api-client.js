@@ -20,12 +20,6 @@ export class ApiClient {
         return response.json();
     }
 
-    async sendChar(char) {
-        const response = await fetch(`/api/char?char=${encodeURIComponent(char)}`);
-        if (!response.ok) throw new Error(response.statusText);
-        return response.json();
-    }
-
     async renderPrompt(domain, prompt) {
         const response = await fetch('/api/render-prompt', {
             method: 'POST',

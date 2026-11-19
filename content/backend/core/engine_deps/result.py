@@ -67,46 +67,8 @@ class Command: pass
 class StartCmd(Command):
     kb: "e.Keyboard"
 
-@dataclass
-class KbCmd(Command): char: str
-
 
 class Result: pass
-
-
-@dataclass
-class KbServiceEmission:
-    kb: e.Keyboard
-    cmd: Command
-
-
-@dataclass
-class BootstrapSuccess(KbServiceEmission, Result): pass
-
-@dataclass
-class UnboundKeyResult(KbServiceEmission, Result): pass
-
-@dataclass
-class DomainSelectedResult(KbServiceEmission, Result): btn: e.DomButton
-
-@dataclass
-class UninhabitedDomainResult(KbServiceEmission, Result): btn: e.DomButton
-
-@dataclass
-class UninhabitedPromptResult(KbServiceEmission, Result): btn: e.PromptButton
-
-
-@dataclass
-class RenderNormalPromptCmd(KbServiceEmission, Command):
-    prompt: e.Prompt
-    domain: e.Domain
-
-
-@dataclass
-class PromptRenderResult(KbServiceEmission, Result):
-    text: str
-    lines: int
-    chars: int
 
 
 @dataclass
@@ -141,12 +103,4 @@ class IngestionService(ABC):
 
 class PromptService(ABC):
     @abstractmethod
-    def render_prompt(self, cmd: RenderNormalPromptCmd) -> PromptRenderResult: ...
-    @abstractmethod
     def render_from_entities(self, domain: e.Domain, prompt: e.Prompt) -> PromptRenderOutput: ...
-
-class KBService(ABC):
-    @abstractmethod
-    def handle_start(self, cmd: StartCmd) -> BootstrapSuccess: ...
-    @abstractmethod
-    def handle_key(self, cmd: KbCmd) -> KbServiceEmission: ...

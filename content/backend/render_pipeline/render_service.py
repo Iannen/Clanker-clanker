@@ -25,23 +25,6 @@ class PromptServiceImpl(d.PromptService):
     def __post_init__(self) -> None:
         self.shaper: PromptContentShaper = PromptContentShaper()
 
-    def render_prompt(self, cmd: d.RenderNormalPromptCmd) -> d.PromptRenderResult:
-        try:
-            template = self.files.get_file_contents(e.ClankerAssets.layouts.PROMPT)
-        except d.NoSuchFile as ex:
-            raise e.CorruptClanker(f"Error loading template for '{cmd.prompt.render.template}': {ex}") from ex
-
-        resolvers = self._collect_resolvers(cmd)
-        text, lines, chars = self._assemble_render(template, resolvers)
-
-        return d.PromptRenderResult(
-            kb=cmd.kb,
-            cmd=cmd,
-            text=text,
-            lines=lines,
-            chars=chars,
-        )
-
     def render_from_entities(self, domain: e.Domain, prompt: e.Prompt) -> d.PromptRenderOutput:
         try:
             template = self.files.get_file_contents(e.ClankerAssets.layouts.PROMPT)
@@ -51,13 +34,6 @@ class PromptServiceImpl(d.PromptService):
         resolvers = self._collect_resolvers_from(domain, prompt)
         text, lines, chars = self._assemble_render(template, resolvers)
         return d.PromptRenderOutput(text=text, lines=lines, chars=chars)
-
-    def _collect_resolvers(self, cmd: d.RenderNormalPromptCmd) -> list[e.Resolver]:
-        resolvers: list[e.Resolver] = []
-        if cmd.prompt.render.inherit_domain:
-            resolvers.extend(cmd.domain.resolvers)
-        resolvers.extend(cmd.prompt.render.resolvers)
-        return resolvers
 
     def _collect_resolvers_from(self, domain: e.Domain, prompt: e.Prompt) -> list[e.Resolver]:
         resolvers: list[e.Resolver] = []
