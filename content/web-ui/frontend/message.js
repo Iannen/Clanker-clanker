@@ -70,19 +70,16 @@ class Message extends BaseComponent {
 
     messageRole = 'assistant';
     counter = 0;
-    collapsed = false;
     sentChars = 0;
 
     #content = '';
     #reasoning = '';
     #timings = null;
-    #complete = false;
     #phase = null; // null | 'prefill' | 'reasoning' | 'content' | 'final'
     #charsPerToken = null;
 
     // Phase timers (ms, relative to performance.now())
     #prefillStart = null;
-    #prefillEnd = null;
     #prefillData = null; // { processed, total, time_ms, cache }
     #reasoningStart = null;
     #reasoningEnd = null;
@@ -154,7 +151,6 @@ class Message extends BaseComponent {
 
         this.#renderSummaries();
         this.#renderContent();
-        if (this.collapsed) this.contentElement?.removeAttribute('open');
         this.updateReasoning(this.#reasoning);
     }
 
@@ -241,7 +237,6 @@ class Message extends BaseComponent {
         if (this.#phase === 'final') return;
 
         if (this.#phase === 'prefill' && this.#reasoning.length > 0) {
-            this.#prefillEnd = performance.now();
             this.#phase = 'reasoning';
             this.#reasoningStart = performance.now();
             this.#renderStats();
@@ -257,7 +252,6 @@ class Message extends BaseComponent {
 
     setPerformanceTimings(timings) {
         this.#timings = timings;
-        this.#complete = true;
         this.#phase = 'final';
 
         if (this.initialized) {

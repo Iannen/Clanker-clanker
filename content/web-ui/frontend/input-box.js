@@ -33,7 +33,16 @@ class InputBox extends BaseComponent {
         this.sendBtn = this.querySelector('button');
 
         this.sendBtn.addEventListener('click', () => this.#dispatchSubmit());
+        this.promptInput.addEventListener('keydown', this.#handleKeydown);
     }
+
+    #handleKeydown = (event) => {
+        if (event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return;
+        if (event.key !== 'Enter') return;
+
+        event.preventDefault();
+        this.#dispatchSubmit();
+    };
 
     getValue() { return this.promptInput.value.trim(); }
 
@@ -56,14 +65,6 @@ class InputBox extends BaseComponent {
             this.promptInput.classList.remove('!border-[#10b981]');
             this.#highlightTimeout = null;
         }, 1000);
-    }
-
-    clearFocus() {
-        this.promptInput.blur();
-        this.promptInput.classList.remove('!border-[#10b981]');
-
-        clearTimeout(this.#highlightTimeout);
-        this.#highlightTimeout = null;
     }
 
     setDisabled(disabled) {

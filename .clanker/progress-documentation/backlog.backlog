@@ -97,7 +97,33 @@ Just some ideas on the board:
         - no KB bar changes needed
 ```
 Backlog tail, Selected item/items:
+
+
 Backlog tail end
 
 
+
 VI. finished stuffs
+
+```
+1. Remove dead code from frontend components
+    [x] 'content/web-ui/frontend/input-box.js': Remove `clearFocus()` method
+        - No caller exists anywhere in the codebase
+    [x] 'content/web-ui/frontend/message.js': Remove `#complete` field and `#prefillEnd` field
+        - `#complete` is set to `true` in `setPerformanceTimings` but never read
+        - `#prefillEnd` is assigned in `#maybeAdvancePhase` but `#buildStatsLine` never references it
+    [x] 'content/web-ui/frontend/message.js': Remove `collapsed` property, its setter guard in `onConnect`, and the `prefill` parameter + `if (prefill)` branch in `clanker-app.js` `#generateResponse`
+        - No caller ever passes `prefill: true`, so the property is permanently `false` and the `onConnect` guard is unreachable
+    [x] 'content/web-ui/frontend/messages-box.js': Remove `getMessagesCount()` and `clearSelection()` methods
+        - Neither has any caller; `addMessages` performs the equivalent inline
+```
+```
+2. Move Enter-key submit ownership from clanker-app to input-box
+    [x] 'content/web-ui/frontend/input-box.js': Add keydown listener on textarea
+        - On bare Enter (no ctrl/alt/meta), preventDefault and call this.#dispatchSubmit()
+        - Ctrl/Alt/Meta+Enter must NOT be intercepted here; let them propagate to the global handler
+    [x] 'content/web-ui/frontend/clanker-app.js': Remove 'Enter' entry from #inputActions
+        - Only 'Ctrl+ArrowUp', 'Ctrl+ArrowDown', 'Ctrl+Enter', 'Alt+Enter', 'Ctrl+1', 'Ctrl+2', 'Escape' remain
+    [x] 'content/web-ui/frontend/clanker-app.js': Remove #submitInput() method entirely
+        - No longer needed; both submit paths (Enter and button) now flow through input-box's 'submit' CustomEvent
+```

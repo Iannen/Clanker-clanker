@@ -28,7 +28,6 @@ class ClankerApp extends BaseComponent {
     #keyboardBar;
 
     #inputActions = {
-        'Enter': () => this.#submitInput(),
         'Ctrl+ArrowUp': () => this.#selectMessages('focusLast'),
         'Ctrl+ArrowDown': () => this.#selectMessages('focusFirst'),
         'Ctrl+Enter': () => this.#copySelected(),
@@ -136,14 +135,6 @@ class ClankerApp extends BaseComponent {
         this.inputBox.focus();
     }
 
-    #submitInput() {
-        const prompt = this.inputBox.getValue();
-        if (!prompt) return;
-
-        this.inputBox.clear();
-        this.#generateResponse(prompt);
-    }
-
     #selectMessages(action) {
         if (!this.messagesBox.setSelected(action)) {
             this.toast.show('No messages yet');
@@ -213,11 +204,10 @@ class ClankerApp extends BaseComponent {
         }
     }
 
-    async #generateResponse(prompt, { prefill = false } = {}) {
+    async #generateResponse(prompt) {
         const userMsg = document.createElement('chat-message');
         userMsg.messageRole = 'user';
         userMsg.content = prompt;
-        if (prefill) userMsg.collapsed = true;
 
         const assistantMsg = document.createElement('chat-message');
         assistantMsg.messageRole = 'assistant';

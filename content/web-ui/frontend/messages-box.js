@@ -21,8 +21,6 @@ class MessagesBox extends BaseComponent {
 
     hasMessages() { return this.#messages.length > 0; }
 
-    getMessagesCount() { return this.#messages.length; }
-
     setRepoContext(text) {
         if (!this.#repoCtxEl) {
             const el = document.createElement('repo-context');
@@ -83,11 +81,6 @@ class MessagesBox extends BaseComponent {
         msg.setSelected(true);
         msg.focus();
         msg.scrollIntoView();
-    }
-
-    clearSelection() {
-        if (this.#selectedMsg) this.#selectedMsg.setSelected(false);
-        this.#selectedMsg = null;
     }
 
     getSelectedContent() {
