@@ -10,8 +10,8 @@ import './sidepanel-right.js';
 const html = `
     <sidepanel-left></sidepanel-left>
     <div class="flex flex-col h-screen overflow-hidden">
+        <keyboard-bar></keyboard-bar>    
         <messages-box></messages-box>
-        <keyboard-bar></keyboard-bar>
         <input-box></input-box>
     </div>
     <sidepanel-right></sidepanel-right>
@@ -51,14 +51,9 @@ class ClankerApp extends BaseComponent {
         if (event.shiftKey) return;
 
         if (event.ctrlKey) {
-            if (event.key === 'Y' || event.key === 'y') {
-                event.preventDefault();
-                this.#showKeyboardBar();
-                return;
-            }
             if (event.key === 'I' || event.key === 'i') {
                 event.preventDefault();
-                this.#showMessagesBox();
+                this.#toggleKeyboardBar();
                 return;
             }
         }
@@ -80,22 +75,25 @@ class ClankerApp extends BaseComponent {
         handler();
     };
 
-    #showKeyboardBar() {
-        this.messagesBox.classList.add('hidden');
-        this.#keyboardBar.classList.remove('hidden');
-        this.#keyboardBar.focus();
-    }
-
-    #showMessagesBox() {
-        this.#keyboardBar.classList.add('hidden');
-        this.messagesBox.classList.remove('hidden');
+    #toggleKeyboardBar() {
+        if (this.#keyboardBar.isExpanded()) {
+            this.#keyboardBar.setExpanded(false);
+            this.messagesBox.classList.remove('hidden');
+            this.inputBox.classList.remove('hidden');
+            this.inputBox.focus();
+        } else {
+            this.#keyboardBar.setExpanded(true);
+            this.messagesBox.classList.add('hidden');
+            this.inputBox.classList.add('hidden');
+            this.#keyboardBar.focus();
+        }
     }
 
     async onConnect() {
         this.inputBox = this.querySelector('input-box');
         this.messagesBox = this.querySelector('messages-box');
         this.#keyboardBar = this.querySelector('keyboard-bar');
-        this.#keyboardBar.classList.add('hidden');
+        this.#keyboardBar.setExpanded(false);
         this.toast = this.querySelector('toast-notification');
 
         this.#selectedElement = this.inputBox;
@@ -105,7 +103,10 @@ class ClankerApp extends BaseComponent {
         });
 
         this.#keyboardBar.addEventListener('prompt-fired', () => {
-            this.#showMessagesBox();
+            this.#keyboardBar.setExpanded(false);
+            this.messagesBox.classList.remove('hidden');
+            this.inputBox.classList.remove('hidden');
+            this.inputBox.focus();
         });
 
         await this.#bootSystem();
@@ -240,7 +241,6 @@ class ClankerApp extends BaseComponent {
         } catch (error) {
             assistantMsg.appendError(error.message);
         } finally {
-            this.#keyboardBar.clearStagedPrompt();
             this.inputBox.setDisabled(false);
             if (this.#selectedElement === this.inputBox) this.inputBox.focus();
         }

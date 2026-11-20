@@ -97,32 +97,35 @@ Just some ideas on the board:
         - no KB bar changes needed
 ```
 Backlog tail, Selected item/items:
+
 ```
-n. Refactor: KB bar becomes source of truth for rendered prompt
-    [x] 'content/web-ui/frontend/keyboard-bar.js': Expose staged prompt via public getter
-        - Add `getStagedPrompt()` method returning `this.#stagedPrompt`
-        - Add `clearStagedPrompt()` or equivalent to reset after send
-        - `#stagedPrompt` already tracked, just needs a public surface
-        - `prompt-fired` event: strip `detail` payload, becomes a bare signal (app pulls from KB directly)
-    [x] 'content/web-ui/frontend/clanker-app.js': Pull rendered prompt from KB at send time
-        - In `#generateResponse`, replace `this.messagesBox.getRepoContext()` with `this.#keyboardBar.getStagedPrompt()`
-        - `prompt-fired` handler: remove `setRepoContext(e.detail)` call, just call `#showMessagesBox()`
-        - Remove `this.messagesBox.setRepoContext(...)` from boot flow if present
-        - After successful send, call `this.#keyboardBar.clearStagedPrompt()`
-    [x] 'content/web-ui/frontend/messages-box.js': Remove repo-context coupling
-        - Delete `#repoCtxEl` field
-        - Delete `setRepoContext()` and `getRepoContext()` methods
-        - `selectPreviousMsg()`: remove the `#repoCtxEl` branch (first msg "up" returns `false` → app falls back to input)
-        - `selectNextMsg()`: remove the `#repoCtxEl` branch
-        - `toggleReasoning()`: remove the `#repoCtxEl` special case
-        - Remove `import './repo-context.js'`
-    [x] 'content/web-ui/frontend/repo-context.js': Delete or repurpose
-        - Option A: delete file entirely
-        - Option B: rewire as a small collapsible display panel rendered inside the KB bar (shows current domain + rendered prompt preview)
-        - If Option B, `keyboard-bar.js` instantiates and manages it
+1. Refactor: messages-box owns "select last on focus-out" invariant
+    [ ] 'content/web-ui/frontend/messages-box.js': Add focusout listener
+        - Listen for focusout on the messages-box element
+        - If e.relatedTarget is outside this box (not contained), call this.selectLast()
+        - Register in onConnect, clean up in disconnectedCallback
+    [ ] 'content/web-ui/frontend/clanker-app.js': Prune redundant selectLast
+        - Remove `this.messagesBox.selectLast();` from #focusInput()
+        - The focusout listener on messages-box now handles this invariant
 ```
 
+Right, makes sense. The app only needs the text string.
 
+```
+2. Keyboard bar: rename staged prompt → rendered prompt, add selected prompt, beef up collapsed status
+    [ ] 'content/web-ui/frontend/keyboard-bar.js': Field and method renames
+        - Rename #stagedPrompt → #renderedPrompt (stores full response object from apiClient.renderPrompt)
+        - Add #selectedPrompt field (the prompt object from domain.prompts)
+        - Rename getStagedPrompt() → getRenderedPromptText(), returns this.#renderedPrompt?.text ?? null
+        - Remove clearStagedPrompt() (dead code — only call site is already commented out in clanker-app.js)
+        - In #onDomainKey: reset #selectedPrompt = null and #renderedPrompt = null (replaces #stagedPrompt = null)
+        - In #onPromptKey: set #selectedPrompt = prompt, set #renderedPrompt = response (full object)
+        - In setExpanded(false): build collapsed status line as
+          'Ctrl+I to expand │ Dom: "<domain name>" [<key>] │ Prompt: "<prompt name>" [<key>] · <lines> lines, <chars> chars'
+          Fall back to 'Ctrl+I to expand' if domain or prompt not yet selected
+    [ ] 'content/web-ui/frontend/clanker-app.js': Update read site
+        - In #generateResponse: change this.#keyboardBar.getStagedPrompt() → this.#keyboardBar.getRenderedPromptText()
+```
 
 Backlog tail end
 
@@ -152,3 +155,46 @@ VI. finished stuffs
     [x] 'content/web-ui/frontend/clanker-app.js': Remove #submitInput() method entirely
         - No longer needed; both submit paths (Enter and button) now flow through input-box's 'submit' CustomEvent
 ```
+
+```
+n. Refactor: KB bar becomes source of truth for rendered prompt
+    [x] 'content/web-ui/frontend/keyboard-bar.js': Expose staged prompt via public getter
+        - Add `getStagedPrompt()` method returning `this.#stagedPrompt`
+        - Add `clearStagedPrompt()` or equivalent to reset after send
+        - `#stagedPrompt` already tracked, just needs a public surface
+        - `prompt-fired` event: strip `detail` payload, becomes a bare signal (app pulls from KB directly)
+    [x] 'content/web-ui/frontend/clanker-app.js': Pull rendered prompt from KB at send time
+        - In `#generateResponse`, replace `this.messagesBox.getRepoContext()` with `this.#keyboardBar.getStagedPrompt()`
+        - `prompt-fired` handler: remove `setRepoContext(e.detail)` call, just call `#showMessagesBox()`
+        - Remove `this.messagesBox.setRepoContext(...)` from boot flow if present
+        - After successful send, call `this.#keyboardBar.clearStagedPrompt()`
+    [x] 'content/web-ui/frontend/messages-box.js': Remove repo-context coupling
+        - Delete `#repoCtxEl` field
+        - Delete `setRepoContext()` and `getRepoContext()` methods
+        - `selectPreviousMsg()`: remove the `#repoCtxEl` branch (first msg "up" returns `false` → app falls back to input)
+        - `selectNextMsg()`: remove the `#repoCtxEl` branch
+        - `toggleReasoning()`: remove the `#repoCtxEl` special case
+        - Remove `import './repo-context.js'`
+    [x] 'content/web-ui/frontend/repo-context.js': Delete or repurpose
+        - Option A: delete file entirely
+        - Option B: rewire as a small collapsible display panel rendered inside the KB bar (shows current domain + rendered prompt preview)
+        - If Option B, `keyboard-bar.js` instantiates and manages it
+```
+
+n. Ctrl+I toggles KB expanded/collapsed (replaces old Ctrl+Y + Ctrl+I)
+    [x] 'clanker-app.js' #handleGlobalKeydown:
+        - Replace Ctrl+Y branch + Ctrl+I branch with single Ctrl+I toggle
+        - Expanded: hide #messages-box, hide #input-box
+        - Collapsed: show #messages-box, show #input-box, focus input
+        - Remove Ctrl+Y entirely
+    [x] 'keyboard-bar.js':
+        - Add _expanded flag + setExpanded(bool) + toggleExpanded()
+        - Expanded: show button grids + status line (current look)
+        - Collapsed: hide button grids, show status line only (thin strip, cursor:pointer, click→expand)
+        - Remove hideSelf/showSelf (replaced by setExpanded)
+        - Status line: remove "Ctrl+Y" hint, show "Ctrl+I to expand" when collapsed
+        - Shortcut grid: remove Ctrl+Y row, relabel Ctrl+I as "toggle KB"
+    [x] 'clanker-app.js' boot:
+        - Start collapsed (kb-bar thin strip, msgs+input visible)
+    [x] 'clanker-app.js':
+        - Remove #showKeyboardBar / #showMessagesBox (no longer needed)

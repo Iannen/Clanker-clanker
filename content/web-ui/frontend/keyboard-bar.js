@@ -16,7 +16,7 @@ function buildRow(label, keys) {
     ).join('\n            ');
 
     return `
-        <div class="mb-3" data-row="${label}">
+        <div class="kb-row mb-3" data-row="${label}">
             <div class="text-xs font-mono text-[#6b7280] mb-1 uppercase tracking-wider">${label}</div>
             <div class="flex gap-1 flex-wrap">
                 ${buttons}
@@ -70,7 +70,7 @@ const html = `
         }
     </style>
 
-    <div class="p-4 flex flex-col h-full">
+    <div class="kb-inner p-4 flex flex-col h-full w-full">
         ${buildRow('Shared-Dom', sharedDomKeys)}
         ${buildRow('Pud-Dom', pudDomKeys)}
         ${buildRow('Prompt', promptKeys)}
@@ -79,7 +79,7 @@ const html = `
     </div>
 `;
 
-const className = 'flex-1 overflow-y-auto p-4 w-full bg-[#111827]';
+const className = 'w-full bg-[#111827]';
 
 class KeyboardBar extends BaseComponent {
     html = html;
@@ -91,10 +91,11 @@ class KeyboardBar extends BaseComponent {
     #sharedDomains = [];
     #pudDomains = [];
     #selectedDomain = null;
+    #expanded = false;
+
+    isExpanded() { return this.#expanded; }
 
     getStagedPrompt() { return this.#stagedPrompt; }
-
-    clearStagedPrompt() { this.#stagedPrompt = null; }
 
     setDomains(shared, pud) {
         this.#sharedDomains = shared || [];
@@ -103,6 +104,25 @@ class KeyboardBar extends BaseComponent {
         this.#stagedPrompt = null;
         this.#refreshAllStates();
     }
+
+    setExpanded(expanded) {
+        this.#expanded = expanded;
+        const rows = this.querySelectorAll('.kb-row');
+
+        if (expanded) {
+            this.classList.add('flex-1', 'overflow-y-auto', 'p-4');
+            this.classList.remove('cursor-pointer');
+            rows.forEach(r => r.classList.remove('hidden'));
+            this.#statusLine.textContent = 'Ready.';
+        } else {
+            this.classList.remove('flex-1', 'overflow-y-auto', 'p-4');
+            this.classList.add('p-1', 'cursor-pointer');
+            rows.forEach(r => r.classList.add('hidden'));
+            this.#statusLine.textContent = 'Ctrl+I to expand';
+        }
+    }
+
+    toggleExpanded() { this.setExpanded(!this.#expanded); }
 
     #handleKeydown = (event) => {
         if (event.ctrlKey && event.key === 'Enter') {
@@ -159,6 +179,9 @@ class KeyboardBar extends BaseComponent {
         });
 
         this.addEventListener('keydown', this.#handleKeydown);
+        this.addEventListener('click', () => {
+            if (!this.#expanded) this.toggleExpanded();
+        });
     }
 
     disconnectedCallback() {
