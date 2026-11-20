@@ -47,7 +47,7 @@ class IngestionServiceImpl(d.IngestionService):
         clank_classifier.complain()
         pud_result = pud_classifier.evaluate()
         if pud_result is ClassificationResult.MIXED: pud_classifier.complain()
-        kb, shared_doms, pud_doms = assembler.assemble(pud_result)
+        shared_doms, pud_doms = assembler.assemble(pud_result)
 
         if ec.has_crits():
             return d.BootResult(type=d.BootResultType.TERMINATE, shared_domains=[], pud_domains=[], report=ec)

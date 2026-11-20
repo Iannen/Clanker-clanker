@@ -77,188 +77,27 @@ Just some ideas on the board:
 Backlog tail, Selected item/items:
 
 ```
-1. Consolidate boot result classes into single typed BootResult, simplify boot endpoint
-    [ ] 'content/backend/core/engine_deps/result.py': Replace Command/Result/IngestionResult/StartCmd/StartResult/ClankerizeResult/TerminateResult and old BootResult with BootResultType enum + new BootResult dataclass
-        - Remove Command, Result, IngestionResult, StartCmd, StartResult, ClankerizeResult, TerminateResult
-        - Remove old BootResult (shared_domains/pud_domains only)
-        - Add BootResultType(StrEnum): START, CLANKERIZE, TERMINATE
-        - Add BootResult dataclass: type (BootResultType), shared_domains (list[SharedDomain]), pud_domains (list[PudDomain]), report (ErrorCollector)
-        - IngestionService ABC: get_runtime_config return type narrows to BootResult (no tuple)
-        - IngestionService ABC: initialize_workspace return type narrows to BootResult (no tuple)
-    [ ] 'content/backend/asset_ingestion/commons/error_collector.py': Convert ErrorCollector to a dataclass so asdict serializes it
-        - Add @dataclass decorator
-        - Rename _soft_complaints → soft_complaints, _critical_complaints → critical_complaints (field(default_factory=list))
-        - Keep methods (get_all_complaints, get_critical_complaints, has_crits, accept) unchanged
-        - Keep d.Report ABC inheritance
-    [ ] 'content/backend/asset_ingestion/ingestion_service.py': get_runtime_config and initialize_workspace return single BootResult
-        - get_runtime_config returns BootResult directly (no tuple)
-        - TERMINATE: return BootResult(type=TERMINATE, shared_domains=[], pud_domains=[], report=ec)
-        - CLANKERIZE: return BootResult(type=CLANKERIZE, shared_domains=[], pud_domains=[], report=ec)
-        - START (all present): return BootResult(type=START, shared_domains, pud_domains, report=ec)
-        - initialize_workspace: after setup, calls get_runtime_config and returns its BootResult directly (no tuple)
-    [ ] 'content/backend/controller.py': Boot endpoint becomes a passthrough; add clankerize endpoint
-        - boot() calls get_runtime_config(), returns (200, "application/json", asdict(result)) unconditionally
-        - Remove isinstance guards for StartCmd/StartResult/TerminateResult
-        - Remove the ClankerizeResult → initialize_workspace() branch
-        - Add POST /api/clankerize: calls ingestion.initialize_workspace(), returns (200, "application/json", asdict(result))
-    [ ] 'content/web-ui/frontend/clanker-app.js': #bootSystem branches on boot.type
-        - If boot.type === 'terminate': show toast with report, do not call setDomains
-        - If boot.type === 'clankerize': show toast "workspace needs clankerization", do not call setDomains
-        - If boot.type === 'start': existing path (setDomains, welcome text, focus input)
-        - report field is present in payload but unused by frontend for now
-        - Do not add functionality to webui to call /api/clankerize. Not used yet.
+1. Implement "read file" expansion via existing ingestion endpoint
+    [ ] 'content/backend/core/core/entities.py': Add `expanded_paths: list[str] | None` to `RepoContentResolver`
+        - flat list of path strings, modulates render treatment of meta_fileset members
+    [ ] 'content/backend/render_pipeline/render_service.py': In `_res_repo_content`, check `expanded_paths` membership when iterating meta_fileset
+        - if path in expanded_paths → read from disk, render as `<file path="...">content</file>`
+        - else → render as `<file_meta path="..." loc=N/>` as today
+    [ ] 'content/backend/asset_ingestion/ingestion_parser.py': Parse `<show path="..."/>` tags from raw text
+        - collect matching paths into a list
+        - include in `IngestionParseResult` as a new field
+    [ ] 'content/backend/core/engine_deps/result.py': Add `expanded: list[str]` to `IngestApplyResult`
+    [ ] 'content/backend/asset_ingestion/ingestion_service.py': Surface `expanded` in `apply_file_changes` return
+        - no disk writes for show paths — read-only requests, no create/update/delete
+    [ ] 'content/web-ui/frontend/messages-box.js': Store domain/prompt refs; expose method to update repo context text
+        - set refs when `prompt-fired` event fires
+        - on ingest response with non-empty `expanded`, append paths to all `RepoContentResolver.expanded_paths` in the stored domain
+    [ ] 'content/web-ui/frontend/clanker-app.js': On Alt+Enter ingest response, if `expanded` present → re-render prompt via `apiClient.renderPrompt` → swap repo context string
+        - accumulated across session: once expanded, stays expanded
+        - no KB bar changes needed
 ```
 
 Backlog tail end
 
 
 VI. finished stuffs
-
-1. Merge `ManifestResolver` into `RepoContentResolver` — two nullable PUD filesets, content-over-metadata overlap
-    [x] `content/backend/core/core/entities.py`: Remove `ManifestResolver` class; rework `RepoContentResolver` to carry `content_fileset: PudFileset | None` and `meta_fileset: PudFileset | None`; add `FILE_META_UL` / `FILE_META_CLOSE` delimiter pair for the single-line metadata tag
-        - `content_fileset` produces full-content blocks (existing `READ_FILESET` delims)
-        - `meta_fileset` produces line-count metadata blocks (new delims, format: `<file_meta path="…" loc=N/>`)
-        - files present in both sets are emitted in content only, removed from metadata
-        - content blocks precede metadata blocks in output
-        - drop `SharedFileset` from the resolver entirely (shared-manifest capability is gone)
-    [x] `content/backend/render_pipeline/render_service.py`: Absorb `_res_manifest` and `_build_manifest` into `_res_repo_content`; add overlap subtraction (`B - A`); emit content blocks then metadata blocks; drop `ManifestResolver` from `TYPE_ORDER` and from `_dispatch` match arms
-        - `_res_repo_content` resolves `content_fileset` → full blocks, `meta_fileset` → metadata blocks, applies `meta_paths -= content_paths`
-        - `_dispatch` match loses the `ManifestResolver` case
-        - `TYPE_ORDER` shrinks to `[RepoContentResolver, MultiDocResolver]`
-    [x] `content/backend/asset_ingestion/extractors/map_extractor2.py`: Simplify `RepoContentResParser.preprocess` to identity `return data` (both filesets are now explicit named keys in the config dict)
-        - no longer needs the `if "fileset" in data` guard or the wrap-and-pop pattern
-    (the user will update yaml of existing RepoContentResolver to declare 'content_fileset' rather than 'fileset')
-
-1. Remove obsolete UIRender entity and all downstream plumbing
-    [x] 'content/backend/core/core/entities.py': Delete UIRender class
-        - UIRender is a Render subclass with inherit_base/inherit_domain set to False
-        - No other entity has a field typed UIRender, so no parse dependency breakage
-    [x] 'content/backend/core/engine_deps/result.py': Remove ui_render field from dataclasses
-        - StartCmd: drop ui_render field
-        - KbServiceEmission: drop ui_render field (all subclasses inherit it away)
-        - StartResult: drop ui_render field
-    [x] 'content/backend/asset_ingestion/validators/overflow_validator2.py': Stop fetching and returning UIRender
-        - do_it: remove ui_render = numap.get_entity(e.UIRender, e.UIRender.key_name)
-        - do_it: early return becomes return None (was return None, None)
-        - do_it: final return becomes just kb (was ui_render, kb)
-        - do_it return type: tuple[e.UIRender | None, e.Keyboard | None] → e.Keyboard | None
-    [x] 'content/backend/asset_ingestion/new/service_workers.py': Assembler.assemble returns keyboard only
-        - assemble return type: tuple[e.UIRender | None, e.Keyboard | None] → e.Keyboard | None
-        - body: return OverflowHandler2(...).do_it(numap) unchanged shape-wise, just single value
-    [x] 'content/backend/asset_ingestion/ingestion_service.py': Stop destructuring and passing ui_render
-        - get_runtime_config: ui_render, kb = assembler.assemble(...) → kb = assembler.assemble(...)
-        - get_runtime_config: d.StartCmd(kb=kb, ui_render=ui_render) → d.StartCmd(kb=kb)
-        - get_runtime_config: d.StartResult(ec, kb, ui_render) → d.StartResult(ec, kb)
-    [x] 'content/backend/keyboard/keyboard_service.py': Stop storing and threading ui_render
-        - handle_start: remove self.ui_render = cmd.ui_render
-        - handle_key: remove ui_render=self.ui_render from all return constructions
-        - _handle_dom_btn: same
-        - _handle_prompt_btn: same
-    [x] 'content/backend/render_pipeline/render_service.py': Stop passing ui_render into result
-        - render_prompt: remove ui_render=cmd.ui_render from PromptRenderResult(...) constructor
-    [x] 'content/backend/controller.py': Stop passing ui_render into StartCmd
-        - boot: d.StartCmd(kb=result.kb, ui_render=result.ui_render) → d.StartCmd(kb=result.kb)
-
-2. Remove obsolete RepoContentResParser subclass
-    [x] 'content/backend/asset_ingestion/extractors/map_extractor2.py': Delete RepoContentResParser class
-        - Its preprocess is a no-op (returns data unchanged, identical to BaseParser2)
-        - RepoContentResolver fields (anchor, content_fileset, meta_fileset) are all handled by the generic BaseParser2 path
-        - build_ordered_parsers will fall back to BaseParser2(ec) for RepoContentResolver, registered under both class and "repo-content" type string
-        - No other code references RepoContentResParser by name
-
-7. Return structured BootResult from boot endpoint instead of plain string
-    [x] 'content/backend/core/engine_deps/result.py': Add BootResult dataclass
-        - fields: shared_domains: list[e.SharedDomain], pud_domains: list[e.PudDomain]
-    [x] 'content/backend/core/engine_deps/result.py': Update IngestionService ABC signatures
-        - get_runtime_config and initialize_workspace return tuple[StartCmd | StartResult | ClankerizeResult | TerminateResult, BootResult | None]
-    [x] 'content/backend/asset_ingestion/new/service_workers.py': Assembler.assemble returns (kb, shared_doms, pud_doms)
-        - gather shared_doms = numap.get_entities(e.SharedDomain), pud_doms = numap.get_entities(e.PudDomain)
-        - return (kb, shared_doms, pud_doms) instead of bare kb
-    [x] 'content/backend/asset_ingestion/ingestion_service.py': get_runtime_config constructs BootResult, returns tuple
-        - unpack (kb, shared_doms, pud_doms) from assembler.assemble
-        - on StartCmd/StartResult path: build BootResult(shared_domains=shared_doms, pud_domains=pud_doms), return (result, boot)
-        - on TerminateResult/ClankerizeResult path: return (result, None)
-    [x] 'content/backend/asset_ingestion/ingestion_service.py': initialize_workspace propagates the tuple
-        - return self.get_runtime_config() already does this, just confirm signature matches
-    [x] 'content/backend/controller.py': boot() unpacks tuple, returns JSON on 200
-        - unpack (result, boot) from ingestion.get_runtime_config() / initialize_workspace()
-        - 200 path: return (200, "application/json", asdict(boot))
-        - 500 / TerminateResult / ClankerizeResult path unchanged (text/plain)
-    [x] 'content/web-ui/frontend/api-client.js': boot() parses JSON response
-        - change from response.text() to response.json()
-    [x] 'content/web-ui/frontend/clanker-app.js': #bootSystem consumes JSON payload
-        - on 200: set welcomeText.textContent = "Bootstrap completed successfully"
-        - ignore structured body for now (future use: domain listing, counts, etc.)
-
-9. Add POST /api/render-prompt endpoint for direct domain+prompt rendering
-    [x] 'content/backend/core/engine_deps/result.py': Add PromptRenderOutput dataclass
-        - fields: text: str, lines: int, chars: int
-        - standalone dataclass, does not inherit KbServiceEmission
-    [x] 'content/backend/core/engine_deps/result.py': Add render_from_entities to PromptService ABC
-        - signature: render_from_entities(self, domain: e.Domain, prompt: e.Prompt) -> PromptRenderOutput
-    [x] 'content/backend/asset_ingestion/ingestion_service.py': Add deserialization method to IngestionServiceImpl
-        - accepts a dict with keys "domain" and "prompt" (each a nested dict matching the boot response shape)
-        - recursively constructs e.Domain and e.Prompt from the dicts (including nested Render, Resolver, Filelist, File, TruncationSpec)
-        - Resolver subclass discrimination by key inspection (files → MultiDocResolver, content_fileset/meta_fileset → RepoContentResolver)
-        - raises ValueError if domain or prompt keys are missing or structurally malformed
-    [x] 'content/backend/render_pipeline/render_service.py': Implement render_from_entities on PromptServiceImpl
-        - accepts (domain, prompt), runs the existing render pipeline (template load, section parse, resolver collection, dispatch, assembly)
-        - returns PromptRenderOutput(text=..., lines=..., chars=...)
-    [x] 'content/backend/controller.py': Add POST /api/render-prompt route
-        - expects body: {"domain": {...}, "prompt": {...}}
-        - calls ingestion deserialization to get (e.Domain, e.Prompt), then prompt_service.render_from_entities
-        - 200: return (200, "application/json", asdict(result))
-        - 400: ValueError → return (400, "text/plain", str(ex))
-        - 500: unexpected exception → return (500, "text/plain", str(ex))
-
-1. Detach keyboard-bar from `/api/char`; handle domain selection locally, use `/api/render-prompt` for prompt resolution
-    [x] 'content/web-ui/frontend/api-client.js': Add `renderPrompt(domain, prompt)` POST method
-        - new async method that POSTs to `/api/render-prompt` with `{ domain, prompt }` body
-        - returns parsed JSON (`{ text, lines, chars }`)
-        - `sendChar` stays in the file (unchanged) but is no longer called by keyboard-bar
-    [x] 'content/web-ui/frontend/keyboard-bar.js': Refactor to track domains locally; split key handling into domain-local vs prompt-remote
-        - add `#sharedDomains`, `#pudDomains`, `#selectedDomain` state
-        - add public `setDomains(shared, pud)` method to receive boot data
-        - add `#onDomainKey(key)`: pure local mutation — set `#selectedDomain`, update all button states (highlighted / active / inactive), set prompt button labels from `domain.prompts`, no API call
-        - add `#onPromptKey(key)`: look up `#selectedDomain.prompts[i]` by position, call `apiClient.renderPrompt(domain, prompt)`, on success set `#stagedPrompt` and highlight the pressed button
-        - `#handleKeydown` and button click handlers route to `#onDomainKey` / `#onPromptKey` instead of the old `#onButtonClick` → `sendChar`
-        - `#formatStatus` simplified: domain status is set inline (no `result_type` from API); prompt status uses the `renderPrompt` response fields (`text`, `lines`, `chars`)
-        - Enter / Ctrl+Enter behaviour unchanged (still dispatch `prompt-fired` / copy `#stagedPrompt`)
-        - button state classes (`kb-active`, `kb-highlighted`, `kb-inactive`) driven entirely by local state, not by a backend response
-    [x] 'content/web-ui/frontend/clanker-app.js': Pass boot domain data into keyboard-bar after successful boot
-        - in `#bootSystem()`, after `apiClient.boot()` succeeds, call `this.#keyboardBar.setDomains(boot.shared_domains, boot.pud_domains)`
-        - no other changes to clanker-app
-
-1. Prune dead keyboard/char endpoint code after keyboard-bar refactor
-    [x] 'content/web-ui/frontend/api-client.js': Remove `sendChar` method
-        - delete the `async sendChar(char) { ... }` block
-        - no other code in the frontend references it
-    [x] 'content/backend/controller.py': Remove `GET("/api/char")` route and its helper
-        - delete the `char` method (entire `@GET("/api/char")` block)
-        - delete `_shape_kb_emission` function (sole caller was `char`)
-        - in `ClankController.__init__`: remove `kb_service` param and `self.kb_service = kb_service`
-        - in `boot()`: remove `start_cmd = d.StartCmd(kb=result.kb)` and `self.kb_service.handle_start(start_cmd)`
-    [x] 'content/backend/keyboard/__init__.py': Delete file
-    [x] 'content/backend/keyboard/keyboard_service.py': Delete file
-        - `KBServiceImpl`, `handle_start`, `handle_key`, `_handle_dom_btn`, `_handle_prompt_btn` all dead
-    [x] 'content/backend/render_pipeline/render_service.py': Remove `render_prompt` and `_collect_resolvers`
-        - `render_prompt` (takes `RenderNormalPromptCmd`) had sole caller in `controller.char`
-        - `_collect_resolvers` only called by `render_prompt`
-        - `render_from_entities`, `_collect_resolvers_from`, `_assemble_render`, `_dispatch`, `_res_multi_doc`, `_res_repo_content` stay
-    [x] 'content/backend/core/engine_deps/result.py': Remove dead types
-        - delete `KbCmd`
-        - delete `KbServiceEmission`
-        - delete `BootstrapSuccess`
-        - delete `UnboundKeyResult`
-        - delete `DomainSelectedResult`
-        - delete `UninhabitedDomainResult`
-        - delete `UninhabitedPromptResult`
-        - delete `RenderNormalPromptCmd`
-        - delete `PromptRenderResult` (sole producer was `render_prompt`)
-        - delete `KBService` ABC (both abstract methods dead)
-        - in `PromptService` ABC: remove `render_prompt` abstract method, keep `render_from_entities`
-        - `StartCmd`, `Command`, `Result`, `PromptRenderOutput`, `BootResult`, all Complaint types, `IngestionService` stay
-    [x] 'content/clank-server.py': Remove kb_service wiring
-        - delete `from backend.keyboard import KBServiceImpl`
-        - delete `kb_service = KBServiceImpl()`
-        - remove `kb_service=kb_service` kwarg from `ClankController(...)` call

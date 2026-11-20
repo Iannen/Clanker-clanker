@@ -21,11 +21,6 @@ class FilenameCollision(Soft):
     chosen_path: str
 
 @dataclass
-class DomainOverflow(Soft):
-    buttons: list["e.NewBtn"]
-    discarded_domains: list["e.Domain"]
-
-@dataclass
 class UnsatisfiedFiles(Soft):
     files: list[e.File]
 

@@ -40,7 +40,7 @@ class Assembler:
     pud_doc_assets: e.AssetPack  | None
     pud_content_assets: e.AssetPack  | None
 
-    def assemble(self, pud_res: ClassificationResult) -> tuple[e.Keyboard | None, list[e.SharedDomain], list[e.PudDomain]]:
+    def assemble(self, pud_res: ClassificationResult) -> tuple[list[e.SharedDomain], list[e.PudDomain]]:
         numap = Numap(self.collector, self.clank_cfg, self.pud_cfg, self.sys_cfg)
         numap.extract_all()
 
@@ -60,7 +60,7 @@ class Assembler:
         )
         fileset_validator.validate()
 
-        kb = OverflowHandler2(self.collector).do_it(numap)
+        OverflowHandler2(self.collector).do_it(numap)
         shared_doms = numap.get_entities(e.SharedDomain)
         pud_doms = numap.get_entities(e.PudDomain)
-        return kb, shared_doms, pud_doms
+        return shared_doms, pud_doms

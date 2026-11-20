@@ -1824,7 +1824,7 @@ CCXIV: EXPLICIT RESOLVER PRECEDENCE IN PROMPT RENDERING
     - `isinstance`-based ranking avoids `KeyError` on subclass types that would miss a direct `type(r)` lookup.
     - Scope is limited to within-section ordering; cross-anchor dispatch and section anchoring are unchanged.
 
-**CCXV: UNIFIED PHASED STATS FOOTER AND STREAMING CLEANUP**
+CCXV: UNIFIED PHASED STATS FOOTER AND STREAMING CLEANUP
 - Purpose: Replace the fragmented prefill-bar and performance-footer in chat messages with a single, always-present stats line that reformats as the response progresses through phases (prefill → reasoning → content → final), and remove a stale `max_tokens` override from the keyboard-originated prompt path.
 - Core requirement: the previous two separate DOM elements appeared at different lifecycle stages, causing layout jumps and redundant bookkeeping. A single footer tracking internal phase state gives consistent UX.
 - Actions:
@@ -1834,7 +1834,7 @@ CCXIV: EXPLICIT RESOLVER PRECEDENCE IN PROMPT RENDERING
   - One DOM element replaces two; no scattered `renderStats` calls needed since phase transition is the sole re-render trigger.
   - Removing `max_tokens` from the keyboard path means keyboard-fired prompts use the model's default generation limit, which was the intended behavior.
 
-**CCXVI: INGESTION PARSER MIGRATION AND WRITE GATING**
+CCXVI: INGESTION PARSER MIGRATION AND WRITE GATING
 - Purpose: Migrate the ingestion parser off deprecated fileset delimiters onto action-specific (CREATE/UPDATE/DELETE) bookends, and gate all disk writes behind pre-flight existence validation so malformed or mismatched payloads are rejected atomically with no partial disk mutation.
 - Core requirement: the old shared `FILESET_*` delimiters allowed crisscrossed bookends; per-action delimiters enforce strict open/close matching. The previous write path had no pre-flight check, so a create-on-existing or update-on-missing could partially succeed.
 - Actions:
@@ -1848,7 +1848,7 @@ CCXIV: EXPLICIT RESOLVER PRECEDENCE IN PROMPT RENDERING
   - The all-or-nothing contract eliminates rollback logic; pre-flight is the only gate, runtime try/except covers genuine I/O failures.
   - Per-action delimiters make the grammar unambiguous — a `<create>` can only close with `</create>`.
 
-**CCXVII: PUD RESOLVER SCOPE EXPANSION**
+CCXVII: PUD RESOLVER SCOPE EXPANSION
 - Purpose: Permit the PUD repo-content resolver to see the full PUD tree rather than a restricted sub-path, by making `rel_roots` optional on the disk port's manifest API.
 - Core requirement: the PUD content asset pack was constrained to a specific sub-directory; the repo-content resolver should enumerate everything under the PUD token.
 - Actions:
@@ -1859,7 +1859,7 @@ CCXIV: EXPLICIT RESOLVER PRECEDENCE IN PROMPT RENDERING
   - Optional `rel_roots` is a minimal, backward-compatible change; existing call sites with explicit roots are unaffected.
   - The PUD manifest now reflects the full project tree, matching the repo-content resolver's include/exclude fileset semantics.
 
-**CCXVIII: KEYBOARD-TO-PROMPT PIPELINE SIMPLIFICATION**
+CCXVIII: KEYBOARD-TO-PROMPT PIPELINE SIMPLIFICATION
 - Purpose: Add a repo-context adornment to the chat canvas (selectable, copyable, navigable alongside messages but not part of the message array) and remove the dead hot-prompt rendering path, so the keyboard-driven prompt flow is lean and the frontend has a stable place to display the rendered prompt.
 - Core requirement: the keyboard bar's "prompt-fired" event previously triggered a full chat turn. The new design stages the prompt as a repo-context element the user can inspect/copy; it's only sent to the LLM when the user hits Enter in the input box. The backend's `RenderHotPromptCmd` branch was a leftover with no callers.
 - Actions:
@@ -1873,3 +1873,59 @@ CCXIV: EXPLICIT RESOLVER PRECEDENCE IN PROMPT RENDERING
 - Reflection:
   - The repo-context element is a view-only adornment: it participates in selection/navigation/copy but never enters the message history sent to the LLM, decoupling prompt staging from conversation turns.
   - Removing `RenderHotPromptCmd` eliminates a three-file dead code path and simplifies the controller's dispatch.
+
+CCXIX: RESOLVER CONSOLIDATION
+- Purpose: Unify the two PUD-side resolver types (ManifestResolver + RepoContentResolver) into a single entity carrying two nullable filesets, and eliminate the parser subclass that became identity after the merge.
+- Core requirement: The old ManifestResolver handled shared-manifest overlap with a separate dispatch path. The new design folds manifest into RepoContentResolver with `content_fileset` and `meta_fileset`, resolving overlap by subtraction (content wins, metadata deduplicated). The parser subclass was a no-op wrapper whose preprocess was just `return data`.
+- Actions:
+  - `entities.py`: Remove `ManifestResolver` class; `RepoContentResolver` now carries `content_fileset: PudFileset | None` and `meta_fileset: PudFileset | None`; add `FILE_META_UL` / `FILE_META_CLOSE` delimiter pair for single-line metadata tags
+  - `render_service.py`: Absorb `_res_manifest` and `_build_manifest` into `_res_repo_content`; apply overlap subtraction (`meta_paths -= content_paths`); content blocks precede metadata blocks in output; `TYPE_ORDER` shrinks to `[RepoContentResolver, MultiDocResolver]`; `_dispatch` loses the `ManifestResolver` case
+  - `map_extractor2.py`: Delete `RepoContentResParser` class; `build_ordered_parsers` falls back to `BaseParser2` for `RepoContentResolver`, registered under both class and `"repo-content"` type string
+- Reflection:
+  - Single resolver type with two nullable filesets eliminates a third dispatch arm and a parser subclass. Overlap semantics (content-over-metadata) are explicit in one method rather than spread across two resolver classes with implicit priority.
+
+CCXX: KEYBOARD AND UI DEAD CODE REMOVAL
+- Purpose: Dismantle the entire backend-driven keyboard/button/char endpoint pipeline that the frontend keyboard-bar made obsolete.
+- Core requirement: The frontend manages its own key/button layout independently; the backend no longer needs to construct `Keyboard`, button entities, `UIRender`, or serve a `/api/char` endpoint. All server-side key dispatch, button slot counting, and UI render plumbing is dead.
+- Actions:
+  - `entities.py`: Remove `UIRender`, `Keyboard`, `NewBtn`, `PromptButton`, `DomButton`, `SharedDomButton`, `PudDomButton`
+  - `result.py`: Remove `UIRender` from dataclasses; delete `KbCmd`, `KbServiceEmission`, `BootstrapSuccess`, `UnboundKeyResult`, `DomainSelectedResult`, `UninhabitedDomainResult`, `UninhabitedPromptResult`, `RenderNormalPromptCmd`, `PromptRenderResult`, `KBService` ABC; `PromptService` keeps only `render_from_entities`; delete `DomainOverflow` complaint
+  - `overflow_validator2.py`: Reduce to baseres-append only (`_get_proper_baseres` → append to each domain's `.resolvers`); return `None`
+  - `service_workers.py`: `Assembler.assemble` returns `(shared_doms, pud_doms)` only; no keyboard
+  - `ingestion_service.py`: Stop destructuring `kb` / `ui_render` from assembler result
+  - `controller.py`: Remove `GET /api/char` route, `_shape_kb_emission` helper, `kb_service` wiring
+  - `map_extractor2.py`: Remove `KeyboardParser2`
+  - `keyboard/` directory: Delete entirely (`keyboard_service.py`, `__init__.py`)
+  - `render_service.py`: Remove `render_prompt` and `_collect_resolvers` (sole callers were `controller.char`)
+  - `clank-server.py`: Remove `kb_service` wiring and import
+  - `api-client.js`: Remove `sendChar` method
+- Reflection:
+  - The entire KB service layer, button entities, and char endpoint were a vestigial architecture from when the backend dictated UI key bindings. The frontend keyboard-bar made all server-side key orchestration unnecessary, freeing the domain model from UI-shape concerns and reducing the entity graph by seven classes.
+
+CCXXI: STRUCTURED BOOT RESULT
+- Purpose: Replace the heterogeneous tuple-of-union-type return from the boot endpoint with a single typed dataclass the frontend can branch on, and eliminate the old multi-type result hierarchy.
+- Core requirement: The frontend needs to distinguish START vs CLANKERIZE vs TERMINATE from one JSON payload; the START case carries domains, the others carry a report. No more isinstance guards, union unpacking, or intermediate result classes.
+- Actions:
+  - `result.py`: Delete `Command`, `Result`, `IngestionResult`, `StartCmd`, `StartResult`, `ClankerizeResult`, `TerminateResult`, old `BootResult`; add `BootResultType(StrEnum)` with `START`, `CLANKERIZE`, `TERMINATE`; add `BootResult` dataclass (`type`, `shared_domains`, `pud_domains`, `report`); `IngestionService` ABC signatures narrow to return `BootResult` directly
+  - `error_collector.py`: Convert `ErrorCollector` to `@dataclass` (rename `_soft_complaints` → `soft_complaints`, `_critical_complaints` → `critical_complaints` with `field(default_factory=list)`) so `asdict` serializes it inline; keep `d.Report` ABC inheritance and all methods unchanged
+  - `service_workers.py`: `Assembler.assemble` returns `(shared_doms, pud_doms)`
+  - `ingestion_service.py`: `get_runtime_config` constructs and returns `BootResult` directly; TERMINATE / CLANKERIZE paths return empty domain lists with the report; `initialize_workspace` returns its `get_runtime_config()` result unmodified
+  - `controller.py`: `boot()` returns `(200, "application/json", asdict(result))` unconditionally; add `POST /api/clankerize` endpoint calling `initialize_workspace()`
+  - `api-client.js`: `boot()` uses `response.json()`
+  - `clanker-app.js`: `#bootSystem` branches on `boot.type` — START sets domains + welcome text; TERMINATE shows toast with complaint count; CLANKERIZE shows toast
+- Reflection:
+  - The boot endpoint is now a flat passthrough with a single JSON shape and a discriminant enum. The old seven-class result hierarchy (Command → Result → IngestionResult → StartCmd/StartResult/ClankerizeResult/TerminateResult) collapses into one dataclass. ErrorSerializer becomes serializable via `asdict` because it's a dataclass with list fields. The clankerize action is exposed as a separate POST but not yet wired into the UI (deferred).
+
+CCXXII: RENDER-PROMPT PIPELINE AND KEYBOARD-BAR DECOUPLING
+- Purpose: Give the frontend a direct path to render a domain+prompt pair server-side, so the keyboard-bar can stage prompts without a per-keystroke backend round-trip.
+- Core requirement: The keyboard-bar holds domain/prompt data locally from boot. Pressing a prompt key calls `/api/render-prompt` with the serialized domain and prompt; the response text is staged for Enter-to-send or Ctrl+Enter-to-copy. Domain selection is pure local state with zero API calls.
+- Actions:
+  - `result.py`: Add `PromptRenderOutput` dataclass (`text`, `lines`, `chars`); `PromptService` ABC gains `render_from_entities`
+  - `ingestion_service.py`: Add `deserialize_domain_prompt` and nested `_build_domain`, `_build_prompt`, `_build_render`, `_build_resolver`, `_build_filelist`, `_build_file`, `_build_fileset`, `_build_fileset_item`; resolver discrimination by key inspection (`files` → MultiDoc, `content_fileset`/`meta_fileset` → RepoContent)
+  - `render_service.py`: Implement `render_from_entities` — template load, section parse, resolver collection (`_collect_resolvers_from`), dispatch, assembly; returns `PromptRenderOutput`
+  - `controller.py`: Add `POST /api/render-prompt` with 200/400/500 handling
+  - `api-client.js`: Add `renderPrompt(domain, prompt)` method
+  - `keyboard-bar.js`: Track `#sharedDomains`, `#pudDomains`, `#selectedDomain` locally; `#onDomainKey` is pure local mutation (no API); `#onPromptKey` calls `apiClient.renderPrompt`, stages result; button states driven entirely by local state; `setDomains(shared, pud)` public setter
+  - `clanker-app.js`: After boot, call `this.#keyboardBar.setDomains(boot.shared_domains, boot.pud_domains)`
+- Reflection:
+  - The keyboard-bar is now a self-contained state machine: domains load once at boot, key presses mutate local state, and only prompt rendering hits the network. This eliminates the round-trip-per-keystroke pattern of the old `/api/char` and decouples domain-selection latency from backend responsiveness. The render endpoint is the single network boundary for the prompt-staging flow.

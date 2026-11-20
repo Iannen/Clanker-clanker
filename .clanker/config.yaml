@@ -24,7 +24,7 @@ pud_filesets:
       content/web-ui
     ]}
 
-  test: {includes: [content/demofile.py]}
+  test: {includes: []}
 
 pud_domains:
   old_tui:
