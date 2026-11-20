@@ -87,7 +87,8 @@ class KeyboardBar extends BaseComponent {
 
     #statusLine;
     #busy = false;
-    #stagedPrompt = null;
+    #renderedPrompt = null;
+    #selectedPrompt = null;
     #sharedDomains = [];
     #pudDomains = [];
     #selectedDomain = null;
@@ -95,13 +96,14 @@ class KeyboardBar extends BaseComponent {
 
     isExpanded() { return this.#expanded; }
 
-    getStagedPrompt() { return this.#stagedPrompt; }
+    getRenderedPromptText() { return this.#renderedPrompt?.text ?? null; }
 
     setDomains(shared, pud) {
         this.#sharedDomains = shared || [];
         this.#pudDomains = pud || [];
         this.#selectedDomain = null;
-        this.#stagedPrompt = null;
+        this.#selectedPrompt = null;
+        this.#renderedPrompt = null;
         this.#refreshAllStates();
     }
 
@@ -118,18 +120,44 @@ class KeyboardBar extends BaseComponent {
             this.classList.remove('flex-1', 'overflow-y-auto', 'p-4');
             this.classList.add('p-1', 'cursor-pointer');
             rows.forEach(r => r.classList.add('hidden'));
-            this.#statusLine.textContent = 'Ctrl+I to expand';
+            this.#statusLine.textContent = this.#buildCollapsedStatus();
         }
     }
 
     toggleExpanded() { this.setExpanded(!this.#expanded); }
 
+    #buildCollapsedStatus() {
+        if (!this.#selectedDomain || !this.#selectedPrompt || !this.#renderedPrompt) {
+            return 'Ctrl+I to expand';
+        }
+
+        const domKey = this.#findDomainKey(this.#selectedDomain);
+        const promptKey = this.#findPromptKey(this.#selectedPrompt);
+        const lines = this.#renderedPrompt.lines ?? 0;
+        const chars = this.#renderedPrompt.chars ?? 0;
+
+        return `Ctrl+I to expand │ Dom: "${this.#selectedDomain.name}" [${domKey}] │ Prompt: "${this.#selectedPrompt.name}" [${promptKey}] · ${lines} lines, ${chars} chars`;
+    }
+
+    #findDomainKey(domain) {
+        const si = this.#sharedDomains.indexOf(domain);
+        if (si >= 0) return sharedDomKeys[si];
+        const pi = this.#pudDomains.indexOf(domain);
+        if (pi >= 0) return pudDomKeys[pi];
+        return '?';
+    }
+
+    #findPromptKey(prompt) {
+        const idx = this.#selectedDomain?.prompts?.indexOf(prompt) ?? -1;
+        return idx >= 0 ? promptKeys[idx] : '?';
+    }
+
     #handleKeydown = (event) => {
         if (event.ctrlKey && event.key === 'Enter') {
-            if (!this.#stagedPrompt) return;
+            if (!this.#renderedPrompt) return;
             event.stopPropagation();
             event.preventDefault();
-            navigator.clipboard.writeText(this.#stagedPrompt)
+            navigator.clipboard.writeText(this.#renderedPrompt.text)
                 .then(() => {
                     this.#statusLine.textContent = '📋 Prompt copied to clipboard';
                 })
@@ -144,7 +172,7 @@ class KeyboardBar extends BaseComponent {
         if (!boundKeys.has(event.key)) return;
 
         if (event.key === 'Enter') {
-            if (!this.#stagedPrompt) return;
+            if (!this.#renderedPrompt) return;
             event.stopPropagation();
             event.preventDefault();
             this.dispatchEvent(new CustomEvent('prompt-fired'));
@@ -258,7 +286,8 @@ class KeyboardBar extends BaseComponent {
         }
 
         this.#selectedDomain = domain;
-        this.#stagedPrompt = null;
+        this.#selectedPrompt = null;
+        this.#renderedPrompt = null;
         this.#refreshAllStates();
         this.#statusLine.textContent = `Selected domain "${domain.name}" [${key}]`;
     }
@@ -283,7 +312,8 @@ class KeyboardBar extends BaseComponent {
         try {
             const response = await apiClient.renderPrompt(this.#selectedDomain, prompt);
 
-            this.#stagedPrompt = response.text;
+            this.#selectedPrompt = prompt;
+            this.#renderedPrompt = response;
 
             const pressedBtn = this.querySelector(`.kb-btn[data-key="${key}"]`);
             if (pressedBtn) this.#setStateClass(pressedBtn, 'highlighted');

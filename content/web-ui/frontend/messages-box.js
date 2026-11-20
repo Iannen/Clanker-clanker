@@ -124,10 +124,12 @@ class MessagesBox extends BaseComponent {
     onConnect() {
         this.welcomeText = this.querySelector('.welcome-text');
         this.addEventListener('keydown', this.#handleKeydown);
+        this.addEventListener('focusout', this.#handleFocusout);
     }
 
     disconnectedCallback() {
         this.removeEventListener('keydown', this.#handleKeydown);
+        this.removeEventListener('focusout', this.#handleFocusout);
     }
 
     #handleKeydown = (event) => {
@@ -149,7 +151,18 @@ class MessagesBox extends BaseComponent {
             top: scrollAmount,
             behavior: event.repeat ? 'auto' : 'smooth'
         });
-    }
+    };
+
+    #handleFocusout = (event) => {
+        if (!this.contains(event.relatedTarget)) {
+            if (this.#selectedMsg) this.#selectedMsg.setSelected(false);
+            const last = this.#messages.at(-1);
+            if (last) {
+                this.#selectedMsg = last;
+                last.setSelected(true);
+            }
+        }
+    };
 
     #addMessage(message) {
         this.appendChild(message);

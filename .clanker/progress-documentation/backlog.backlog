@@ -98,35 +98,6 @@ Just some ideas on the board:
 ```
 Backlog tail, Selected item/items:
 
-```
-1. Refactor: messages-box owns "select last on focus-out" invariant
-    [ ] 'content/web-ui/frontend/messages-box.js': Add focusout listener
-        - Listen for focusout on the messages-box element
-        - If e.relatedTarget is outside this box (not contained), call this.selectLast()
-        - Register in onConnect, clean up in disconnectedCallback
-    [ ] 'content/web-ui/frontend/clanker-app.js': Prune redundant selectLast
-        - Remove `this.messagesBox.selectLast();` from #focusInput()
-        - The focusout listener on messages-box now handles this invariant
-```
-
-Right, makes sense. The app only needs the text string.
-
-```
-2. Keyboard bar: rename staged prompt → rendered prompt, add selected prompt, beef up collapsed status
-    [ ] 'content/web-ui/frontend/keyboard-bar.js': Field and method renames
-        - Rename #stagedPrompt → #renderedPrompt (stores full response object from apiClient.renderPrompt)
-        - Add #selectedPrompt field (the prompt object from domain.prompts)
-        - Rename getStagedPrompt() → getRenderedPromptText(), returns this.#renderedPrompt?.text ?? null
-        - Remove clearStagedPrompt() (dead code — only call site is already commented out in clanker-app.js)
-        - In #onDomainKey: reset #selectedPrompt = null and #renderedPrompt = null (replaces #stagedPrompt = null)
-        - In #onPromptKey: set #selectedPrompt = prompt, set #renderedPrompt = response (full object)
-        - In setExpanded(false): build collapsed status line as
-          'Ctrl+I to expand │ Dom: "<domain name>" [<key>] │ Prompt: "<prompt name>" [<key>] · <lines> lines, <chars> chars'
-          Fall back to 'Ctrl+I to expand' if domain or prompt not yet selected
-    [ ] 'content/web-ui/frontend/clanker-app.js': Update read site
-        - In #generateResponse: change this.#keyboardBar.getStagedPrompt() → this.#keyboardBar.getRenderedPromptText()
-```
-
 Backlog tail end
 
 
@@ -198,3 +169,27 @@ n. Ctrl+I toggles KB expanded/collapsed (replaces old Ctrl+Y + Ctrl+I)
         - Start collapsed (kb-bar thin strip, msgs+input visible)
     [x] 'clanker-app.js':
         - Remove #showKeyboardBar / #showMessagesBox (no longer needed)
+
+```
+1. Refactor: messages-box owns "select last on focus-out" invariant
+    [x] 'content/web-ui/frontend/messages-box.js': Add focusout listener
+        - Listen for focusout on the messages-box element
+        - If e.relatedTarget is outside this box (not contained), call this.selectLast()
+        - Register in onConnect, clean up in disconnectedCallback
+    [x] 'content/web-ui/frontend/clanker-app.js': Prune redundant selectLast
+        - Remove `this.messagesBox.selectLast();` from #focusInput()
+        - The focusout listener on messages-box now handles this invariant
+2. Keyboard bar: rename staged prompt → rendered prompt, add selected prompt, beef up collapsed status
+    [x] 'content/web-ui/frontend/keyboard-bar.js': Field and method renames
+        - Rename #stagedPrompt → #renderedPrompt (stores full response object from apiClient.renderPrompt)
+        - Add #selectedPrompt field (the prompt object from domain.prompts)
+        - Rename getStagedPrompt() → getRenderedPromptText(), returns this.#renderedPrompt?.text ?? null
+        - Remove clearStagedPrompt() (dead code — only call site is already commented out in clanker-app.js)
+        - In #onDomainKey: reset #selectedPrompt = null and #renderedPrompt = null (replaces #stagedPrompt = null)
+        - In #onPromptKey: set #selectedPrompt = prompt, set #renderedPrompt = response (full object)
+        - In setExpanded(false): build collapsed status line as
+          'Ctrl+I to expand │ Dom: "<domain name>" [<key>] │ Prompt: "<prompt name>" [<key>] · <lines> lines, <chars> chars'
+          Fall back to 'Ctrl+I to expand' if domain or prompt not yet selected
+    [x] 'content/web-ui/frontend/clanker-app.js': Update read site
+        - In #generateResponse: change this.#keyboardBar.getStagedPrompt() → this.#keyboardBar.getRenderedPromptText()
+```

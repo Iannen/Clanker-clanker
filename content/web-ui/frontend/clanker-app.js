@@ -153,7 +153,6 @@ class ClankerApp extends BaseComponent {
     }
 
     #focusInput() {
-        this.messagesBox.selectLast();
         this.#selectedElement = this.inputBox;
         this.inputBox.focus();
     }
@@ -216,9 +215,9 @@ class ClankerApp extends BaseComponent {
         this.inputBox.setDisabled(true);
 
         const history = this.messagesBox.getHistory();
-        const stagedPrompt = this.#keyboardBar.getStagedPrompt();
-        if (stagedPrompt && history.length > 0) {
-            history[0].content = stagedPrompt + '\n\n' + history[0].content;
+        const renderedPrompt = this.#keyboardBar.getRenderedPromptText();
+        if (renderedPrompt && history.length > 0) {
+            history[0].content = renderedPrompt + '\n\n' + history[0].content;
         }
 
         const totalChars = history.reduce((sum, m) => sum + (m.content?.length ?? 0), 0);
