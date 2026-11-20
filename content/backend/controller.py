@@ -32,18 +32,13 @@ class ClankController:
 
     @GET("/api/boot")
     def boot(self, params: dict) -> tuple[int, str, str | dict]:
-        result, boot = self.ingestion.get_runtime_config()
+        result = self.ingestion.get_runtime_config()
+        return (200, "application/json", asdict(result))
 
-        if isinstance(result, d.ClankerizeResult):
-            result, boot = self.ingestion.initialize_workspace()
-
-        if isinstance(result, d.TerminateResult):
-            return (500, "text/plain", f"Boot failed: {result.report.get_critical_complaints()}")
-
-        if not isinstance(result, (d.StartCmd, d.StartResult)):
-            return (500, "text/plain", f"Unexpected boot result: {type(result).__name__}")
-
-        return (200, "application/json", asdict(boot))
+    @POST("/api/clankerize")
+    def clankerize(self, body: dict, path: str) -> tuple[int, str, dict]:
+        result = self.ingestion.initialize_workspace()
+        return (200, "application/json", asdict(result))
 
     @POST("/api/render-prompt")
     def render_prompt(self, body: dict, path: str) -> tuple[int, str, dict | str]:

@@ -1,4 +1,4 @@
-from backend.stdlib import dataclass, ABC, abstractmethod, Any, Field
+from backend.stdlib import dataclass, ABC, abstractmethod, Any, Field, StrEnum
 from backend.core import entities as e
 
 class Complaint(): pass
@@ -48,12 +48,6 @@ class PromptRenderOutput:
     chars: int
 
 
-@dataclass
-class BootResult:
-    shared_domains: list[e.SharedDomain]
-    pud_domains: list[e.PudDomain]
-
-
 class Report(ABC):
     @abstractmethod
     def get_all_complaints(self) -> list[Soft]: ...
@@ -61,18 +55,22 @@ class Report(ABC):
     def get_critical_complaints(self) -> list[str]: ...
 
 
-class Command: pass
-
-@dataclass
-class StartCmd(Command):
-    kb: "e.Keyboard"
-
-
-class Result: pass
+class BootResultType(StrEnum):
+    START = "start"
+    CLANKERIZE = "clankerize"
+    TERMINATE = "terminate"
 
 
 @dataclass
-class IngestApplyResult(Result):
+class BootResult:
+    type: BootResultType
+    shared_domains: list[e.SharedDomain]
+    pud_domains: list[e.PudDomain]
+    report: "Report"
+
+
+@dataclass
+class IngestApplyResult:
     created: list[str]
     updated: list[str]
     deleted: list[str]
@@ -81,25 +79,12 @@ class IngestApplyResult(Result):
     parse_errors: list[str]
 
 
-@dataclass
-class IngestionResult(Result): report: Report
-
-@dataclass
-class StartResult(IngestionResult):
-    kb: e.Keyboard
-
-@dataclass
-class ClankerizeResult(IngestionResult): pass
-
-@dataclass
-class TerminateResult(IngestionResult): pass
-
-
 class IngestionService(ABC):
     @abstractmethod
-    def get_runtime_config(self) -> tuple[StartCmd | StartResult | ClankerizeResult | TerminateResult, BootResult | None]: ...
+    def get_runtime_config(self) -> BootResult: ...
     @abstractmethod
-    def initialize_workspace(self) -> tuple[StartCmd | StartResult | ClankerizeResult | TerminateResult, BootResult | None]: ...
+    def initialize_workspace(self) -> BootResult: ...
+
 
 class PromptService(ABC):
     @abstractmethod

@@ -27,7 +27,7 @@ class IngestionServiceImpl(d.IngestionService):
         except IsADirectoryError: return e.Filereq(filereq.name, filereq.value, "")
         except d.NoSuchFile: return d.Missing(filereq.name, filereq.value)
 
-    def get_runtime_config(self) -> tuple[d.StartCmd | d.StartResult | d.ClankerizeResult | d.TerminateResult, d.BootResult | None]:
+    def get_runtime_config(self) -> d.BootResult:
         ec = ErrorCollector()
         clank_classifier = ItemClassifier(ec)
         pud_classifier = ItemClassifier(ec)
@@ -48,16 +48,15 @@ class IngestionServiceImpl(d.IngestionService):
         pud_result = pud_classifier.evaluate()
         if pud_result is ClassificationResult.MIXED: pud_classifier.complain()
         kb, shared_doms, pud_doms = assembler.assemble(pud_result)
-        boot = d.BootResult(shared_domains=shared_doms, pud_domains=pud_doms)
 
-        if ec.has_crits(): return d.TerminateResult(ec), None
+        if ec.has_crits():
+            return d.BootResult(type=d.BootResultType.TERMINATE, shared_domains=[], pud_domains=[], report=ec)
         if pud_result is ClassificationResult.ALL_PRESENT:
-            if not ec.get_all_complaints():
-                return d.StartCmd(kb=kb), boot
-            return d.StartResult(ec, kb), boot
-        if pud_result is ClassificationResult.NONE_PRESENT: return d.ClankerizeResult(ec), None
+            return d.BootResult(type=d.BootResultType.START, shared_domains=shared_doms, pud_domains=pud_doms, report=ec)
+        if pud_result is ClassificationResult.NONE_PRESENT:
+            return d.BootResult(type=d.BootResultType.CLANKERIZE, shared_domains=[], pud_domains=[], report=ec)
 
-    def initialize_workspace(self) -> tuple[d.StartCmd | d.StartResult | d.ClankerizeResult | d.TerminateResult, d.BootResult | None]:
+    def initialize_workspace(self) -> d.BootResult:
         if self.files.is_cwd_script_dir():
             raise e.CorruptClanker("Clanker repository initialized is beyond scope of app.")
         for dir_path in e.RepoContract.DIRS_TO_CREATE:
