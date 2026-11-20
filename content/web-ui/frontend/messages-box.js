@@ -1,5 +1,4 @@
 import './message.js';
-import './repo-context.js';
 import { BaseComponent, register } from './base-component.js';
 
 const html = `
@@ -17,26 +16,8 @@ class MessagesBox extends BaseComponent {
     #messages = [];
     #selectedMsg = null;
     #scrollLocked = true;
-    #repoCtxEl = null;
 
     hasMessages() { return this.#messages.length > 0; }
-
-    setRepoContext(text) {
-        if (!this.#repoCtxEl) {
-            const el = document.createElement('repo-context');
-            this.#repoCtxEl = el;
-            if (this.welcomeText) {
-                this.insertBefore(el, this.welcomeText);
-            } else {
-                this.prepend(el);
-            }
-        }
-        this.#repoCtxEl.text = text;
-    }
-
-    getRepoContext() {
-        return this.#repoCtxEl?.text || null;
-    }
 
     setSelected(action) {
         if (!this.hasMessages()) return false;
@@ -50,25 +31,13 @@ class MessagesBox extends BaseComponent {
     selectLast() { this.selectMessage(this.#messages.at(-1)); }
 
     selectPreviousMsg() {
-        if (this.#selectedMsg === this.#repoCtxEl) {
-            this.selectMessage(this.#messages[0]);
-            return true;
-        }
         const pos = this.#messages.indexOf(this.#selectedMsg);
-        if (pos === 0 && this.#repoCtxEl) {
-            this.selectMessage(this.#repoCtxEl);
-            return true;
-        }
         if (pos <= 0) return false;
         this.selectMessage(this.#messages[pos - 1]);
         return true;
     }
 
     selectNextMsg() {
-        if (this.#selectedMsg === this.#repoCtxEl) {
-            this.selectMessage(this.#messages[0]);
-            return true;
-        }
         const pos = this.#messages.indexOf(this.#selectedMsg);
         if (pos >= this.#messages.length - 1) return false;
         this.selectMessage(this.#messages[pos + 1]);
@@ -103,9 +72,7 @@ class MessagesBox extends BaseComponent {
     }
 
     toggleReasoning() {
-        if (this.#selectedMsg === this.#repoCtxEl) {
-            this.#repoCtxEl.toggle();
-        } else if (this.#selectedMsg) {
+        if (this.#selectedMsg) {
             this.#selectedMsg.toggleReasoning();
         }
     }

@@ -92,6 +92,10 @@ class KeyboardBar extends BaseComponent {
     #pudDomains = [];
     #selectedDomain = null;
 
+    getStagedPrompt() { return this.#stagedPrompt; }
+
+    clearStagedPrompt() { this.#stagedPrompt = null; }
+
     setDomains(shared, pud) {
         this.#sharedDomains = shared || [];
         this.#pudDomains = pud || [];
@@ -123,8 +127,7 @@ class KeyboardBar extends BaseComponent {
             if (!this.#stagedPrompt) return;
             event.stopPropagation();
             event.preventDefault();
-            this.dispatchEvent(new CustomEvent('prompt-fired', { detail: this.#stagedPrompt }));
-            this.#stagedPrompt = null;
+            this.dispatchEvent(new CustomEvent('prompt-fired'));
             return;
         }
 

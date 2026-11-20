@@ -97,6 +97,31 @@ Just some ideas on the board:
         - no KB bar changes needed
 ```
 Backlog tail, Selected item/items:
+```
+n. Refactor: KB bar becomes source of truth for rendered prompt
+    [x] 'content/web-ui/frontend/keyboard-bar.js': Expose staged prompt via public getter
+        - Add `getStagedPrompt()` method returning `this.#stagedPrompt`
+        - Add `clearStagedPrompt()` or equivalent to reset after send
+        - `#stagedPrompt` already tracked, just needs a public surface
+        - `prompt-fired` event: strip `detail` payload, becomes a bare signal (app pulls from KB directly)
+    [x] 'content/web-ui/frontend/clanker-app.js': Pull rendered prompt from KB at send time
+        - In `#generateResponse`, replace `this.messagesBox.getRepoContext()` with `this.#keyboardBar.getStagedPrompt()`
+        - `prompt-fired` handler: remove `setRepoContext(e.detail)` call, just call `#showMessagesBox()`
+        - Remove `this.messagesBox.setRepoContext(...)` from boot flow if present
+        - After successful send, call `this.#keyboardBar.clearStagedPrompt()`
+    [x] 'content/web-ui/frontend/messages-box.js': Remove repo-context coupling
+        - Delete `#repoCtxEl` field
+        - Delete `setRepoContext()` and `getRepoContext()` methods
+        - `selectPreviousMsg()`: remove the `#repoCtxEl` branch (first msg "up" returns `false` → app falls back to input)
+        - `selectNextMsg()`: remove the `#repoCtxEl` branch
+        - `toggleReasoning()`: remove the `#repoCtxEl` special case
+        - Remove `import './repo-context.js'`
+    [x] 'content/web-ui/frontend/repo-context.js': Delete or repurpose
+        - Option A: delete file entirely
+        - Option B: rewire as a small collapsible display panel rendered inside the KB bar (shows current domain + rendered prompt preview)
+        - If Option B, `keyboard-bar.js` instantiates and manages it
+```
+
 
 
 Backlog tail end
