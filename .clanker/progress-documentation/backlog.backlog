@@ -76,6 +76,39 @@ Just some ideas on the board:
 
 Backlog tail, Selected item/items:
 
+```
+1. Consolidate boot result classes into single typed BootResult, simplify boot endpoint
+    [ ] 'content/backend/core/engine_deps/result.py': Replace Command/Result/IngestionResult/StartCmd/StartResult/ClankerizeResult/TerminateResult and old BootResult with BootResultType enum + new BootResult dataclass
+        - Remove Command, Result, IngestionResult, StartCmd, StartResult, ClankerizeResult, TerminateResult
+        - Remove old BootResult (shared_domains/pud_domains only)
+        - Add BootResultType(StrEnum): START, CLANKERIZE, TERMINATE
+        - Add BootResult dataclass: type (BootResultType), shared_domains (list[SharedDomain]), pud_domains (list[PudDomain]), report (ErrorCollector)
+        - IngestionService ABC: get_runtime_config return type narrows to BootResult (no tuple)
+        - IngestionService ABC: initialize_workspace return type narrows to BootResult (no tuple)
+    [ ] 'content/backend/asset_ingestion/commons/error_collector.py': Convert ErrorCollector to a dataclass so asdict serializes it
+        - Add @dataclass decorator
+        - Rename _soft_complaints → soft_complaints, _critical_complaints → critical_complaints (field(default_factory=list))
+        - Keep methods (get_all_complaints, get_critical_complaints, has_crits, accept) unchanged
+        - Keep d.Report ABC inheritance
+    [ ] 'content/backend/asset_ingestion/ingestion_service.py': get_runtime_config and initialize_workspace return single BootResult
+        - get_runtime_config returns BootResult directly (no tuple)
+        - TERMINATE: return BootResult(type=TERMINATE, shared_domains=[], pud_domains=[], report=ec)
+        - CLANKERIZE: return BootResult(type=CLANKERIZE, shared_domains=[], pud_domains=[], report=ec)
+        - START (all present): return BootResult(type=START, shared_domains, pud_domains, report=ec)
+        - initialize_workspace: after setup, calls get_runtime_config and returns its BootResult directly (no tuple)
+    [ ] 'content/backend/controller.py': Boot endpoint becomes a passthrough; add clankerize endpoint
+        - boot() calls get_runtime_config(), returns (200, "application/json", asdict(result)) unconditionally
+        - Remove isinstance guards for StartCmd/StartResult/TerminateResult
+        - Remove the ClankerizeResult → initialize_workspace() branch
+        - Add POST /api/clankerize: calls ingestion.initialize_workspace(), returns (200, "application/json", asdict(result))
+    [ ] 'content/web-ui/frontend/clanker-app.js': #bootSystem branches on boot.type
+        - If boot.type === 'terminate': show toast with report, do not call setDomains
+        - If boot.type === 'clankerize': show toast "workspace needs clankerization", do not call setDomains
+        - If boot.type === 'start': existing path (setDomains, welcome text, focus input)
+        - report field is present in payload but unused by frontend for now
+        - Do not add functionality to webui to call /api/clankerize. Not used yet.
+```
+
 Backlog tail end
 
 

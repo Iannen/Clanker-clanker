@@ -3,7 +3,7 @@
 §ufsbl§path1§fsoet§
 
 §ufsul§path2§fsoet§
-{{COMPLETE_FILE_CONTENTS}}
+{{ALWAYS COMPLETE_FILE_CONTENTS}}
 §ufsbl§path2§fsoet§
 
 §cfsul§path3§fsoet§
@@ -11,7 +11,7 @@
 §cfsbl§path3§fsoet§
 
 §cfsul§path4§fsoet§
-{{COMPLETE_FILE_CONTENTS}}
+{{ALWAYS PROVIDE PATH IN BOTH STARTING **AND** CLOSING BOOKEND}}
 §cfsbl§path4§fsoet§
 
 §dfsul§path5§fscet§
