@@ -246,14 +246,3 @@ class ResolverParser2(BaseParser2):
     entity_cls = e.Resolver
     def parse(self, name, data, numap: Numap) -> e.Resolver | None:
         return numap.get_parser(data.get("type")).parse(name, data, numap)
-
-class KeyboardParser2(BaseParser2):
-    entity_cls = e.Keyboard
-    def parse(self, name: str, data: dict, numap: Numap) -> e.Keyboard:        
-        shared_btns = [e.SharedDomButton(key, None) for key in data.get("shared_domains_row", [])]
-        pud_btns = [e.PudDomButton(key, None) for key in data.get("pud_domains_row", [])]
-        prompt_btns = [e.PromptButton(key, None) for key in data.get("prompts_row", [])]
-
-        keyboard = e.Keyboard({btn.key: btn for btn in shared_btns + pud_btns + prompt_btns}, None)
-        for item in shared_btns + pud_btns + prompt_btns + [keyboard]: numap.register(item)
-        return keyboard

@@ -16,16 +16,17 @@ pud_filesets:
 #      content/backend/adapters,
       content/backend/asset_ingestion,
       content/backend/core,
-      content/backend/keyboard,
       content/backend/render_pipeline,
       content/backend/controller.py,
       content/backend/stdlib.py,
   #    content/test,
-      content/clank-server.py,
+      #content/clank-server.py,
       content/web-ui
     ]}
 
-  test: {includes: [content/demofile.py]}
+  frontend: {includes: ['content/web-ui/frontend']}
+
+  test: {includes: []}
 
 pud_domains:
   old_tui:
@@ -39,7 +40,7 @@ pud_domains:
 
   web-clank:
     resolvers:
-      - { anchor: repository, type: repo-content, content_fileset: ¤ server }
+      - { anchor: repository, type: repo-content, content_fileset: ¤ frontend }
       - { anchor: project documentation, type: multi-document-retrieval, files: ¤ backlog_excerpt}
     prompts:
       - ¤ plan

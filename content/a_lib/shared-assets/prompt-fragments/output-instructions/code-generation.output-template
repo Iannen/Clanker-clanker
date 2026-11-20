@@ -1,18 +1,18 @@
-§cfsul§path1§fsoet§
-{{COMPLETE_FILE_CONTENTS}}
-§cfsbl§path1§fsoet§
-
-§cfsul§path2§fsoet§
-{{ONLY USE 'create' TAG FOR NEW FILES}}
-§cfsbl§path2§fsoet§
-
-§ufsul§path3§fsoet§
-{{COMPLETE_FILE_CONTENTS}}
-§ufsbl§path3§fsoet§
-
-§ufsul§path4§fsoet§
+§ufsul§path1§fsoet§
 {{ALWAYS USE 'update' TAG FOR EXISTING FILES}}
-§ufsbl§path4§fsoet§
+§ufsbl§path1§fsoet§
+
+§ufsul§path2§fsoet§
+{{ALWAYS COMPLETE_FILE_CONTENTS}}
+§ufsbl§path2§fsoet§
+
+§cfsul§path3§fsoet§
+{{ONLY USE 'create' TAG FOR NEW FILES}}
+§cfsbl§path3§fsoet§
+
+§cfsul§path4§fsoet§
+{{ALWAYS PROVIDE PATH IN BOTH STARTING **AND** CLOSING BOOKEND}}
+§cfsbl§path4§fsoet§
 
 §dfsul§path5§fscet§
 §dfsul§path6§fscet§

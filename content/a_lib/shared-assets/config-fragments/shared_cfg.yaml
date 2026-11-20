@@ -34,6 +34,7 @@ prompts:
     render:
       resolvers:
         - { anchor: project documentation, type: multi-document-retrieval, files: [backlog.output-template]}
+        - { anchor: repository, type: multi-document-retrieval, files: [repo_content_request.output-template]} 
         - { anchor: session instructions, type: multi-document-retrieval, files: [plan-mode.mode_instruction]}
   implement:
     render:

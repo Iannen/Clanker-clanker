@@ -17,12 +17,24 @@ export class ApiClient {
     async boot() {
         const response = await fetch('/api/boot');
         if (!response.ok) throw new Error(response.statusText);
-        return response.text();
+        return response.json();
     }
 
-    async sendChar(char) {
-        const response = await fetch(`/api/char?char=${encodeURIComponent(char)}`);
-        if (!response.ok) throw new Error(response.statusText);
+    async renderPrompt(domain, prompt) {
+        const response = await fetch('/api/render-prompt', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ domain, prompt })
+        });
+
+        if (!response.ok) {
+            const body = await response.json().catch(() => null);
+            const msg = body?.error?.message ?? body?.error ?? response.statusText;
+            throw new Error(msg);
+        }
+
         return response.json();
     }
 

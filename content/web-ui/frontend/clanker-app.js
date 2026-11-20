@@ -118,13 +118,21 @@ class ClankerApp extends BaseComponent {
     async #bootSystem() {
         this.inputBox.setDisabled(true);
         try {
-            const msg = await apiClient.boot();
-            this.inputBox.setDisabled(false);
-            this.messagesBox.welcomeText.textContent = msg;
+            const boot = await apiClient.boot();
+
+            if (boot.type === 'terminate') {
+                const crits = boot.report?.critical_complaints?.length || 0;
+                this.toast.show('❌ Boot failed: ' + crits + ' critical complaint(s)');
+            } else if (boot.type === 'clankerize') {
+                this.toast.show('⚠️ Workspace needs clankerization');
+            } else {
+                this.#keyboardBar.setDomains(boot.shared_domains, boot.pud_domains);
+                this.messagesBox.welcomeText.textContent = "Bootstrap completed successfully";
+            }
         } catch (error) {
-            this.inputBox.setDisabled(false);
             this.toast.show('❌ ' + (error.message || 'Boot failed'));
         }
+        this.inputBox.setDisabled(false);
         this.inputBox.focus();
     }
 

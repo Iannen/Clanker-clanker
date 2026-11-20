@@ -1,4 +1,4 @@
-from backend.stdlib import dataclass, ABC, abstractmethod, Any, Field
+from backend.stdlib import dataclass, ABC, abstractmethod, Any, Field, StrEnum
 from backend.core import entities as e
 
 class Complaint(): pass
@@ -21,11 +21,6 @@ class FilenameCollision(Soft):
     chosen_path: str
 
 @dataclass
-class DomainOverflow(Soft):
-    buttons: list["e.NewBtn"]
-    discarded_domains: list["e.Domain"]
-
-@dataclass
 class UnsatisfiedFiles(Soft):
     files: list[e.File]
 
@@ -41,6 +36,13 @@ class MissingEntityFields(Soft):
     data: dict
 
 
+@dataclass
+class PromptRenderOutput:
+    text: str
+    lines: int
+    chars: int
+
+
 class Report(ABC):
     @abstractmethod
     def get_all_complaints(self) -> list[Soft]: ...
@@ -48,56 +50,22 @@ class Report(ABC):
     def get_critical_complaints(self) -> list[str]: ...
 
 
-class Command: pass
-
-@dataclass
-class StartCmd(Command):
-    kb: "e.Keyboard"
-
-@dataclass
-class KbCmd(Command): char: str
-
-
-class Result: pass
+class BootResultType(StrEnum):
+    START = "start"
+    CLANKERIZE = "clankerize"
+    TERMINATE = "terminate"
 
 
 @dataclass
-class KbServiceEmission:
-    kb: e.Keyboard
-    cmd: Command
+class BootResult:
+    type: BootResultType
+    shared_domains: list[e.SharedDomain]
+    pud_domains: list[e.PudDomain]
+    report: "Report"
 
 
 @dataclass
-class BootstrapSuccess(KbServiceEmission, Result): pass
-
-@dataclass
-class UnboundKeyResult(KbServiceEmission, Result): pass
-
-@dataclass
-class DomainSelectedResult(KbServiceEmission, Result): btn: e.DomButton
-
-@dataclass
-class UninhabitedDomainResult(KbServiceEmission, Result): btn: e.DomButton
-
-@dataclass
-class UninhabitedPromptResult(KbServiceEmission, Result): btn: e.PromptButton
-
-
-@dataclass
-class RenderNormalPromptCmd(KbServiceEmission, Command):
-    prompt: e.Prompt
-    domain: e.Domain
-
-
-@dataclass
-class PromptRenderResult(KbServiceEmission, Result):
-    text: str
-    lines: int
-    chars: int
-
-
-@dataclass
-class IngestApplyResult(Result):
+class IngestApplyResult:
     created: list[str]
     updated: list[str]
     deleted: list[str]
@@ -106,32 +74,13 @@ class IngestApplyResult(Result):
     parse_errors: list[str]
 
 
-@dataclass
-class IngestionResult(Result): report: Report
-
-@dataclass
-class StartResult(IngestionResult):
-    kb: e.Keyboard
-
-@dataclass
-class ClankerizeResult(IngestionResult): pass
-
-@dataclass
-class TerminateResult(IngestionResult): pass
-
-
 class IngestionService(ABC):
     @abstractmethod
-    def get_runtime_config(self) -> StartCmd | StartResult | ClankerizeResult | TerminateResult: ...
+    def get_runtime_config(self) -> BootResult: ...
     @abstractmethod
-    def initialize_workspace(self) -> StartCmd | StartResult | ClankerizeResult | TerminateResult: ...
+    def initialize_workspace(self) -> BootResult: ...
+
 
 class PromptService(ABC):
     @abstractmethod
-    def render_prompt(self, cmd: RenderNormalPromptCmd) -> PromptRenderResult: ...
-
-class KBService(ABC):
-    @abstractmethod
-    def handle_start(self, cmd: StartCmd) -> BootstrapSuccess: ...
-    @abstractmethod
-    def handle_key(self, cmd: KbCmd) -> KbServiceEmission: ...
+    def render_from_entities(self, domain: e.Domain, prompt: e.Prompt) -> PromptRenderOutput: ...

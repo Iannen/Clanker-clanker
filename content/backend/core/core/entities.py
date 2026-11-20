@@ -100,33 +100,6 @@ class SharedDomain(Domain): pass
 @dataclass
 class PudDomain(Domain): pass
 
-@dataclass
-class NewBtn(Entity): key: str
-@dataclass
-class PromptButton(NewBtn): inhabitant: Prompt | None
-@dataclass
-class DomButton(NewBtn): inhabitant: Domain | None
-@dataclass
-class SharedDomButton(DomButton): pass
-@dataclass
-class PudDomButton(DomButton): pass
-
-@dataclass
-class Keyboard(Entity):
-    buttons: dict[str, NewBtn]
-    selected_dom_btn: DomButton | None
-
-    def get_btns(self, cls: Type[NewBtn] | None = None) -> list[NewBtn]:
-        if cls is None:
-            return list(self.buttons.values())
-        return [btn for btn in self.buttons.values() if isinstance(btn, cls)]
-
-    def get(self, key: str) -> NewBtn | None:
-        return self.buttons.get(key)
-
-    def set_selected_dom_btn(self, btn: DomButton):
-        self.selected_dom_btn = btn
-
 class RepoItem: pass
 
 @dataclass

@@ -11,7 +11,6 @@ from urllib.parse import urlsplit, parse_qs
 from backend.adapters import LinuxDiskAdapter, RuamelYamlParserAdapter
 from backend.asset_ingestion import IngestionServiceImpl
 from backend.render_pipeline import PromptServiceImpl
-from backend.keyboard import KBServiceImpl
 from backend.controller import ROUTES, ClankController
 
 _FRONTEND_DIR = Path(__file__).parent / "web-ui" / "frontend"
@@ -99,11 +98,9 @@ def main() -> None:
     cfg_ingestor = RuamelYamlParserAdapter()
 
     ingestion = IngestionServiceImpl(files=files_adapter, cfg_ingestor=cfg_ingestor)
-    kb_service = KBServiceImpl()
     prompt_service = PromptServiceImpl(files=files_adapter)
 
     controller = ClankController(
-        kb_service=kb_service,
         prompt_service=prompt_service,
         ingestion=ingestion,
         gpu_box_url=GPU_BOX_URL,

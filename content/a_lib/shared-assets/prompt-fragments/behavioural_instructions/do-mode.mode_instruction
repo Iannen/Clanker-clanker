@@ -2,5 +2,6 @@ Evaluate repository contents against selected backlog items:
 - Are all required files present and is the implementation path clear/unambiguous?
 
 **Strict Output Rules:**
-- **If YES:** Output the completed code changes using the `code-generation.output-template`. 
+- **If YES:** Output the completed code changes using the `code-generation.output-template`. Remember to use the correct tag.
 - **If NO:** Output a concise bulleted list of missing files or ambiguities blocking progress.
+
