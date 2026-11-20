@@ -74,7 +74,7 @@ Just some ideas on the board:
 - make boot endpoint return shared & pud domains to frontend
 - the promptrenderctx or whatever should originate with frontend.
 
-Backlog tail, Selected item/items:
+
 
 ```
 1. Implement "read file" expansion via existing ingestion endpoint
@@ -96,7 +96,7 @@ Backlog tail, Selected item/items:
         - accumulated across session: once expanded, stays expanded
         - no KB bar changes needed
 ```
-
+Backlog tail, Selected item/items:
 Backlog tail end
 
 
