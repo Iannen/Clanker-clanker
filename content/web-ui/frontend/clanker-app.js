@@ -151,12 +151,8 @@ class ClankerApp extends BaseComponent {
         }
     }
 
-    async #ingestSelected() {
-        const content = this.messagesBox.getSelectedContent();
-        if (!content) {
-            this.toast.show('No message selected to ingest');
-            return;
-        }
+    async #ingestContent(content, { silentEmpty = false } = {}) {
+        if (!content) return;
 
         try {
             const { status, data } = await apiClient.ingestFileChanges(content);
@@ -179,7 +175,12 @@ class ClankerApp extends BaseComponent {
             if (data.created?.length) parts.push(`${data.created.length} created`);
             if (data.updated?.length) parts.push(`${data.updated.length} updated`);
             if (data.deleted?.length) parts.push(`${data.deleted.length} deleted`);
-            this.toast.show('✅ ' + (parts.join(', ') || 'No changes applied'));
+
+            if (parts.length === 0 && silentEmpty) {
+                // suppress empty toast to avoid noise on auto-ingest
+            } else {
+                this.toast.show('✅ ' + (parts.join(', ') || 'No changes applied'));
+            }
 
             if (data.expanded?.length) {
                 if (!this.#keyboardBar.getRenderedPromptText()) {
@@ -191,6 +192,15 @@ class ClankerApp extends BaseComponent {
         } catch (error) {
             this.toast.show('❌ ' + (error.message || 'Ingest failed'));
         }
+    }
+
+    async #ingestSelected() {
+        const content = this.messagesBox.getSelectedContent();
+        if (!content) {
+            this.toast.show('No message selected to ingest');
+            return;
+        }
+        await this.#ingestContent(content);
     }
 
     async #generateResponse(prompt) {
@@ -227,6 +237,8 @@ class ClankerApp extends BaseComponent {
                 onPrefill: (pp) => assistantMsg.onPrefill(pp),
             });
             assistantMsg.setPerformanceTimings(result.timings);
+
+            await this.#ingestContent(assistantMsg.content, { silentEmpty: true });
         } catch (error) {
             assistantMsg.appendError(error.message);
         } finally {

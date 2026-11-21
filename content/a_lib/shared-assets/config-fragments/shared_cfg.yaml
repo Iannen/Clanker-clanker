@@ -40,6 +40,7 @@ prompts:
     render:
       resolvers:
         - { anchor: repository, type: multi-document-retrieval, files: [code-generation.output-template]} 
+        - { anchor: repository, type: multi-document-retrieval, files: [repo_content_request.output-template]} 
         - { anchor: session instructions, type: multi-document-retrieval, files: [do-mode.mode_instruction]} 
   document:
     render:

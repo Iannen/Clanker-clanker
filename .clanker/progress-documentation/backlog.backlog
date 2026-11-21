@@ -79,14 +79,17 @@ Just some ideas on the board:
 Backlog tail, Selected item/items:
 
 ```
-1. Auto-ingest LLM replies on stream completion
-    [ ] 'content/web-ui/frontend/clanker-app.js': Add auto-ingest hook in #generateResponse
-        - After successful stream (post setPerformanceTimings), call ingest with assistantMsg.content
-        - Reuse #ingestSelected logic or extract a shared helper that takes raw content
-        - Suppress toast when result is empty ("No changes applied") to avoid noise
-        - Keep Alt+Enter as manual fallback for re-ingesting older/selected messages
+2. Auto-continue LLM loop on expanded paths
+    [ ] 'content/web-ui/frontend/clanker-app.js': Add auto-continue loop in #generateResponse
+        - After auto-ingest, if data.expanded?.length, re-invoke #generateResponse with same prompt
+        - Reuse the single assistantMsg (grow it, do not create new bubbles)
+        - On subsequent iterations, append streamed tokens to assistantMsg (not replace)
+        - Keep inputBox disabled throughout the entire chain
+        - Suppress toasts on intermediate turns (silentEmpty: true); only final turn shows toast
+        - Stop condition: response has no <show path> tags → no expansion → loop ends
+        - No max-fetches cap for now
+        - History rebuilt from messagesBox each iteration (includes grown assistant turn)
 ```
-
 
 Backlog tail end
 
@@ -245,3 +248,10 @@ n. Ctrl+I toggles KB expanded/collapsed (replaces old Ctrl+Y + Ctrl+I)
     [x] 'content/web-ui/frontend/clanker-app.js': On Alt+Enter ingest response, if `expanded` non-empty:
         - if no selected prompt/domain → toast complaint, skip
         - else call `keyboardBar.expandPaths(expanded)`
+
+1. Auto-ingest LLM replies on stream completion
+    [x] 'content/web-ui/frontend/clanker-app.js': Add auto-ingest hook in #generateResponse
+        - After successful stream (post setPerformanceTimings), call ingest with assistantMsg.content
+        - Reuse #ingestSelected logic or extract a shared helper that takes raw content
+        - Suppress toast when result is empty ("No changes applied") to avoid noise
+        - Keep Alt+Enter as manual fallback for re-ingesting older/selected messages
