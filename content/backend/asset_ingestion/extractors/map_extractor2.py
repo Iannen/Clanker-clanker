@@ -36,6 +36,7 @@ class EntityField:
         inner_type = inner_args[0] if origin is list else inner_args[1] if origin is dict else outer_type_hint
 
         if raw_field.default is not MISSING: default_value = raw_field.default
+        elif raw_field.default_factory is not MISSING: default_value = raw_field.default_factory()
         elif is_nullable: default_value = None
         else: default_value = Absent
 
@@ -210,7 +211,10 @@ class BaseParser2:
 
     def _parse_value(self, field: EntityField, numap: Numap, ctx: ParserCtx) -> None:
         if field.outer_type == list:
-            field.value = [inst for d in field.raw_data if (inst := self._get_entity("", d, field, numap, ctx)) is not None]
+            if issubclass(field.inner_type, e.Entity):
+                field.value = [inst for d in field.raw_data if (inst := self._get_entity("", d, field, numap, ctx)) is not None]
+            else:
+                field.value = field.raw_data
         elif field.outer_type == dict:
             raise Exception("We found a dict omg!")         
         elif field.outer_type == atomic:

@@ -1,3 +1,4 @@
+
 from backend.stdlib import dataclass, StrEnum
 from backend.core import entities as e
 from backend.core import engine_deps as d
@@ -75,6 +76,7 @@ class IngestionServiceImpl(d.IngestionService):
                 created=[], updated=[], deleted=[],
                 missing_paths=[], unexpected_paths=[],
                 parse_errors=list(parsed.errors),
+                expanded=list(parsed.expanded),
             )
 
         # Pre-flight: create paths must NOT exist
@@ -110,6 +112,7 @@ class IngestionServiceImpl(d.IngestionService):
                 missing_paths=missing_paths,
                 unexpected_paths=unexpected_paths,
                 parse_errors=[],
+                expanded=list(parsed.expanded),
             )
 
         # All checks passed – perform disk operations
@@ -144,6 +147,7 @@ class IngestionServiceImpl(d.IngestionService):
         return d.IngestApplyResult(
             created=created, updated=updated, deleted=deleted,
             missing_paths=[], unexpected_paths=[], parse_errors=[],
+            expanded=list(parsed.expanded),
         )
 
     def deserialize_domain_prompt(self, data: dict) -> tuple[e.Domain, e.Prompt]:
@@ -178,7 +182,18 @@ class IngestionServiceImpl(d.IngestionService):
         if not isinstance(render_data, dict):
             raise ValueError("prompt missing 'render' dict")
         render = self._build_render(render_data)
-        return e.Prompt(name=name, render=render)
+
+        expanded_paths = data.get("expanded_paths", [])
+        if not isinstance(expanded_paths, list) or not all(
+            isinstance(path, str) for path in expanded_paths
+        ):
+            raise ValueError("prompt 'expanded_paths' must be a list of strings")
+
+        return e.Prompt(
+            name=name,
+            render=render,
+            expanded_paths=expanded_paths,
+        )
 
     def _build_render(self, data: dict) -> e.Render:
         resolvers = [self._build_resolver(r) for r in data.get("resolvers", [])]

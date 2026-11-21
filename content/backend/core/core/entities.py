@@ -1,4 +1,6 @@
+
 from backend.stdlib import dataclass, Type, re, Any, StrEnum
+from dataclasses import field
 
 class CorruptClanker(Exception): pass
 
@@ -88,6 +90,7 @@ class Render(Entity):
 class Prompt(Entity):
     name: str
     render: Render
+    expanded_paths: list[str] = field(default_factory=list)
 
 @dataclass
 class Domain(Entity):

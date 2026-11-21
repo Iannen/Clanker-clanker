@@ -180,6 +180,14 @@ class ClankerApp extends BaseComponent {
             if (data.updated?.length) parts.push(`${data.updated.length} updated`);
             if (data.deleted?.length) parts.push(`${data.deleted.length} deleted`);
             this.toast.show('✅ ' + (parts.join(', ') || 'No changes applied'));
+
+            if (data.expanded?.length) {
+                if (!this.#keyboardBar.getRenderedPromptText()) {
+                    this.toast.show('❌ No prompt selected — cannot expand paths');
+                } else {
+                    await this.#keyboardBar.expandPaths(data.expanded);
+                }
+            }
         } catch (error) {
             this.toast.show('❌ ' + (error.message || 'Ingest failed'));
         }

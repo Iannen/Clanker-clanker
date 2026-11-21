@@ -76,29 +76,17 @@ Just some ideas on the board:
 
 
 
-
 Backlog tail, Selected item/items:
 
 ```
-1. Implement "read file" expansion via existing ingestion endpoint
-    [ ] 'content/backend/core/core/entities.py': Add `expanded_paths: list[str] | None` to `RepoContentResolver`
-        - flat list of path strings, modulates render treatment of meta_fileset members
-    [ ] 'content/backend/render_pipeline/render_service.py': In `_res_repo_content`, check `expanded_paths` membership when iterating meta_fileset
-        - if path in expanded_paths → read from disk, render as `<file path="...">content</file>`
-        - else → render as `<file_meta path="..." loc=N/>` as today
-    [ ] 'content/backend/asset_ingestion/ingestion_parser.py': Parse `<show path="..."/>` tags from raw text
-        - collect matching paths into a list
-        - include in `IngestionParseResult` as a new field
-    [ ] 'content/backend/core/engine_deps/result.py': Add `expanded: list[str]` to `IngestApplyResult`
-    [ ] 'content/backend/asset_ingestion/ingestion_service.py': Surface `expanded` in `apply_file_changes` return
-        - no disk writes for show paths — read-only requests, no create/update/delete
-    [ ] 'content/web-ui/frontend/messages-box.js': Store domain/prompt refs; expose method to update repo context text
-        - set refs when `prompt-fired` event fires
-        - on ingest response with non-empty `expanded`, append paths to all `RepoContentResolver.expanded_paths` in the stored domain
-    [ ] 'content/web-ui/frontend/clanker-app.js': On Alt+Enter ingest response, if `expanded` present → re-render prompt via `apiClient.renderPrompt` → swap repo context string
-        - accumulated across session: once expanded, stays expanded
-        - no KB bar changes needed
+1. Auto-ingest LLM replies on stream completion
+    [ ] 'content/web-ui/frontend/clanker-app.js': Add auto-ingest hook in #generateResponse
+        - After successful stream (post setPerformanceTimings), call ingest with assistantMsg.content
+        - Reuse #ingestSelected logic or extract a shared helper that takes raw content
+        - Suppress toast when result is empty ("No changes applied") to avoid noise
+        - Keep Alt+Enter as manual fallback for re-ingesting older/selected messages
 ```
+
 
 Backlog tail end
 
@@ -228,3 +216,32 @@ n. Ctrl+I toggles KB expanded/collapsed (replaces old Ctrl+Y + Ctrl+I)
     [x] 'content/web-ui/frontend/api-client.js': No change
         - Streaming callbacks (onToken, onReasoning, onPrefill) remain callbacks
 ```
+
+1. Implement "read file" expansion — backend
+    [x] 'content/backend/core/core/entities.py': Add `expanded_paths: list[str]` to `Prompt`
+        - default empty list; flat list of path strings, applies to all RCs of the prompt (and domain)
+    [x] 'content/backend/render_pipeline/render_service.py': Thread `expanded_paths` through render dispatch
+        - `_assemble_render(template, resolvers, expanded_paths)`
+        - `_dispatch(res, expanded_paths)`
+        - `_res_repo_content(res, expanded_paths)`: for meta_fileset paths, if path in `expanded_paths` → read from disk, render as `<file path="...">content</file>`; else → `<file_meta path="..." loc=N/>` as today
+    [x] 'content/backend/asset_ingestion/ingestion_parser.py': Parse `<show path="..."/>` self-closing tags
+        - single-line regex, no forward-scan needed
+        - collect matching paths, add `expanded: list[str]` to `IngestionParseResult`
+    [x] 'content/backend/core/engine_deps/result.py': Add `expanded: list[str]` to `IngestApplyResult`
+    [x] 'content/backend/asset_ingestion/ingestion_service.py': Surface `expanded` in `apply_file_changes`
+        - no disk writes for show paths — read-only, no create/update/delete
+        - `_build_prompt`: read `expanded_paths` from dict, set on `Prompt` instance
+    [x] 'content/backend/asset_ingestion/extractors/map_extractor2.py': Support primitive list fields and dataclass default factories
+        - import `field` support via `dataclasses.MISSING` / `default_factory`
+        - correctly resolve `list[str]` as a primitive list rather than attempting entity parsing
+        - preserve empty-list defaults for `Prompt.expanded_paths` when the field is absent from configuration data
+
+
+2. Implement "read file" expansion — frontend
+    [x] 'content/web-ui/frontend/keyboard-bar.js': Add `expandPaths(paths)` method
+        - appends to `#selectedPrompt.expanded_paths` 
+        - calls `apiClient.renderPrompt(#selectedDomain, #selectedPrompt)`
+        - updates `#renderedPrompt` with new result
+    [x] 'content/web-ui/frontend/clanker-app.js': On Alt+Enter ingest response, if `expanded` non-empty:
+        - if no selected prompt/domain → toast complaint, skip
+        - else call `keyboardBar.expandPaths(expanded)`

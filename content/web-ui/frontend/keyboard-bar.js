@@ -126,6 +126,23 @@ class KeyboardBar extends BaseComponent {
 
     toggleExpanded() { this.setExpanded(!this.#expanded); }
 
+    async expandPaths(paths) {
+        if (!this.#selectedDomain || !this.#selectedPrompt) return;
+
+        if (!this.#selectedPrompt.expanded_paths) {
+            this.#selectedPrompt.expanded_paths = [];
+        }
+        this.#selectedPrompt.expanded_paths.push(...paths);
+
+        const response = await apiClient.renderPrompt(this.#selectedDomain, this.#selectedPrompt);
+        this.#renderedPrompt = response;
+
+        const lines = response.lines ?? 0;
+        const chars = response.chars ?? 0;
+        this.#statusLine.textContent =
+            `Prompt "${this.#selectedPrompt.name}" of "${this.#selectedDomain.name}" — ${lines} lines, ${chars} chars — press Enter`;
+    }
+
     #buildCollapsedStatus() {
         if (!this.#selectedDomain || !this.#selectedPrompt || !this.#renderedPrompt) {
             return 'Ctrl+I to expand';
