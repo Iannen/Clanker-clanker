@@ -152,14 +152,14 @@ class ClankerApp extends BaseComponent {
     }
 
     async #ingestContent(content, { silentEmpty = false } = {}) {
-        if (!content) return;
+        if (!content) return null;
 
         try {
             const { status, data } = await apiClient.ingestFileChanges(content);
 
             if (status === 500) {
                 this.toast.show('❌ Server error: ' + (data?.error || 'Ingest failed'));
-                return;
+                return null;
             }
 
             if (status === 400) {
@@ -168,7 +168,7 @@ class ClankerApp extends BaseComponent {
                 if (data.missing_paths?.length) parts.push(`missing: ${data.missing_paths.join(', ')}`);
                 if (data.unexpected_paths?.length) parts.push(`unexpected: ${data.unexpected_paths.join(', ')}`);
                 this.toast.show('❌ ' + parts.join(' · '));
-                return;
+                return null;
             }
 
             const parts = [];
@@ -182,15 +182,10 @@ class ClankerApp extends BaseComponent {
                 this.toast.show('✅ ' + (parts.join(', ') || 'No changes applied'));
             }
 
-            if (data.expanded?.length) {
-                if (!this.#keyboardBar.getRenderedPromptText()) {
-                    this.toast.show('❌ No prompt selected — cannot expand paths');
-                } else {
-                    await this.#keyboardBar.expandPaths(data.expanded);
-                }
-            }
+            return data;
         } catch (error) {
             this.toast.show('❌ ' + (error.message || 'Ingest failed'));
+            return null;
         }
     }
 
@@ -200,7 +195,15 @@ class ClankerApp extends BaseComponent {
             this.toast.show('No message selected to ingest');
             return;
         }
-        await this.#ingestContent(content);
+
+        const data = await this.#ingestContent(content);
+        if (data?.expanded?.length) {
+            if (!this.#keyboardBar.getRenderedPromptText()) {
+                this.toast.show('❌ No prompt selected — cannot expand paths');
+            } else {
+                await this.#keyboardBar.expandPaths(data.expanded);
+            }
+        }
     }
 
     async #generateResponse(prompt) {
@@ -214,31 +217,49 @@ class ClankerApp extends BaseComponent {
         this.messagesBox.addMessages(userMsg, assistantMsg);
         this.inputBox.setDisabled(true);
 
-        const history = this.messagesBox.getHistory();
-        const renderedPrompt = this.#keyboardBar.getRenderedPromptText();
-        if (renderedPrompt && history.length > 0) {
-            history[0].content = renderedPrompt + '\n\n' + history[0].content;
-        }
-
-        const totalChars = history.reduce((sum, m) => sum + (m.content?.length ?? 0), 0);
-        assistantMsg.sentChars = totalChars;
+        const originalUserPrompt = prompt;
+        let prevContent = '';
+        let prevReasoning = '';
 
         try {
-            const result = await apiClient.streamChatCompletion({
-                messages: history,
-                onToken: (token, fullText) => {
-                    assistantMsg.updateContent(fullText);
-                    this.messagesBox.scrollIfLocked();
-                },
-                onReasoning: (reasoningToken, reasoningText) => {
-                    assistantMsg.updateReasoning(reasoningText);
-                    this.messagesBox.scrollIfLocked();
-                },
-                onPrefill: (pp) => assistantMsg.onPrefill(pp),
-            });
-            assistantMsg.setPerformanceTimings(result.timings);
+            while (true) {
+                const history = this.messagesBox.getHistory();
+                const renderedPrompt = this.#keyboardBar.getRenderedPromptText();
+                if (renderedPrompt && history.length > 0) {
+                    history[0].content = renderedPrompt + '\n\n' + originalUserPrompt;
+                }
 
-            await this.#ingestContent(assistantMsg.content, { silentEmpty: true });
+                const totalChars = history.reduce((sum, m) => sum + (m.content?.length ?? 0), 0);
+                if (!prevContent) {
+                    assistantMsg.sentChars = totalChars;
+                }
+
+                let reasoningSnapshot = '';
+
+                const result = await apiClient.streamChatCompletion({
+                    messages: history,
+                    onToken: (token, fullText) => {
+                        assistantMsg.updateContent(prevContent + fullText);
+                        this.messagesBox.scrollIfLocked();
+                    },
+                    onReasoning: (reasoningToken, reasoningText) => {
+                        reasoningSnapshot = reasoningText;
+                        assistantMsg.updateReasoning(prevReasoning + reasoningText);
+                        this.messagesBox.scrollIfLocked();
+                    },
+                    onPrefill: (pp) => assistantMsg.onPrefill(pp),
+                });
+                assistantMsg.setPerformanceTimings(result.timings);
+
+                prevContent = assistantMsg.content;
+                prevReasoning += reasoningSnapshot;
+
+                const data = await this.#ingestContent(prevContent, { silentEmpty: true });
+
+                if (!data?.expanded?.length) break;
+                const grew = await this.#keyboardBar.expandPaths(data.expanded);
+                if (!grew) break;
+            }
         } catch (error) {
             assistantMsg.appendError(error.message);
         } finally {

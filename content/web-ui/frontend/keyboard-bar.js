@@ -127,12 +127,19 @@ class KeyboardBar extends BaseComponent {
     toggleExpanded() { this.setExpanded(!this.#expanded); }
 
     async expandPaths(paths) {
-        if (!this.#selectedDomain || !this.#selectedPrompt) return;
+        if (!this.#selectedDomain || !this.#selectedPrompt) return false;
+        if (!paths || paths.length === 0) return false;
 
         if (!this.#selectedPrompt.expanded_paths) {
             this.#selectedPrompt.expanded_paths = [];
         }
-        this.#selectedPrompt.expanded_paths.push(...paths);
+
+        const existing = new Set(this.#selectedPrompt.expanded_paths);
+        const newPaths = paths.filter(p => !existing.has(p));
+
+        if (newPaths.length === 0) return false;
+
+        this.#selectedPrompt.expanded_paths.push(...newPaths);
 
         const response = await apiClient.renderPrompt(this.#selectedDomain, this.#selectedPrompt);
         this.#renderedPrompt = response;
@@ -141,6 +148,8 @@ class KeyboardBar extends BaseComponent {
         const chars = response.chars ?? 0;
         this.#statusLine.textContent =
             `Prompt "${this.#selectedPrompt.name}" of "${this.#selectedDomain.name}" — ${lines} lines, ${chars} chars — press Enter`;
+
+        return true;
     }
 
     #buildCollapsedStatus() {
