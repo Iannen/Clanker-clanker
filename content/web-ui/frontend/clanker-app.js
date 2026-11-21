@@ -24,55 +24,40 @@ class ClankerApp extends BaseComponent {
     html = html;
     className = className;
 
-    #selectedElement;
     #keyboardBar;
-
-    #inputActions = {
-        'Ctrl+ArrowUp': () => this.#selectMessages('focusLast'),
-        'Ctrl+ArrowDown': () => this.#selectMessages('focusFirst'),
-        'Ctrl+Enter': () => this.#copySelected(),
-        'Alt+Enter': () => this.#ingestSelected(),
-        'Ctrl+1': () => this.messagesBox.toggleReasoning(),
-        'Ctrl+2': () => this.messagesBox.toggleContent(),
-        'Escape': () => this.messagesBox.toggleScrollLock(),
-    };
-
-    #messageActions = {
-        'Ctrl+ArrowUp': () => this.#navMessages('up'),
-        'Ctrl+ArrowDown': () => this.#navMessages('down'),
-        'Ctrl+Enter': () => this.#copySelected(),
-        'Alt+Enter': () => this.#ingestSelected(),
-        'Ctrl+1': () => this.messagesBox.toggleReasoning(),
-        'Ctrl+2': () => this.messagesBox.toggleContent(),
-        'Escape': () => this.#focusInput(),
-    };
 
     #handleGlobalKeydown = (event) => {
         if (event.shiftKey) return;
 
-        if (event.ctrlKey) {
-            if (event.key === 'I' || event.key === 'i') {
-                event.preventDefault();
-                this.#toggleKeyboardBar();
-                return;
-            }
+        if (event.ctrlKey && (event.key === 'I' || event.key === 'i')) {
+            event.preventDefault();
+            this.#toggleKeyboardBar();
+            return;
         }
 
-        const actions = this.#selectedElement === this.inputBox
-            ? this.#inputActions
-            : this.#messageActions;
+        if (event.ctrlKey && event.key === 'Enter') {
+            event.preventDefault();
+            this.#copySelected();
+            return;
+        }
 
-        const combo = event.altKey
-            ? 'Alt+' + event.key
-            : event.ctrlKey
-                ? 'Ctrl+' + event.key
-                : event.key;
-        const handler = actions[combo];
+        if (event.altKey && event.key === 'Enter') {
+            event.preventDefault();
+            this.#ingestSelected();
+            return;
+        }
 
-        if (!handler) return;
+        if (event.ctrlKey && event.key === '1') {
+            event.preventDefault();
+            this.messagesBox.toggleReasoning();
+            return;
+        }
 
-        event.preventDefault();
-        handler();
+        if (event.ctrlKey && event.key === '2') {
+            event.preventDefault();
+            this.messagesBox.toggleContent();
+            return;
+        }
     };
 
     #toggleKeyboardBar() {
@@ -96,17 +81,36 @@ class ClankerApp extends BaseComponent {
         this.#keyboardBar.setExpanded(false);
         this.toast = this.querySelector('toast-notification');
 
-        this.#selectedElement = this.inputBox;
-
         this.inputBox.addEventListener('submit', (e) => {
             this.#generateResponse(e.detail);
         });
 
-        this.#keyboardBar.addEventListener('prompt-fired', () => {
+        this.#keyboardBar.addEventListener('prompt-selected', () => {
             this.#keyboardBar.setExpanded(false);
             this.messagesBox.classList.remove('hidden');
             this.inputBox.classList.remove('hidden');
             this.inputBox.focus();
+        });
+
+        this.messagesBox.addEventListener('toggle-scroll-lock', () => {
+            this.messagesBox.toggleScrollLock();
+        });
+
+        this.messagesBox.addEventListener('focus-input', () => {
+            this.inputBox.focus();
+        });
+
+        this.inputBox.addEventListener('focus-message', (e) => {
+            if (!this.messagesBox.hasMessages()) {
+                this.toast.show('No messages yet');
+                return;
+            }
+            const detail = e.detail;
+            if (detail === 'first') {
+                this.messagesBox.selectFirst();
+            } else if (detail === 'last') {
+                this.messagesBox.selectLast();
+            }
         });
 
         await this.#bootSystem();
@@ -132,28 +136,6 @@ class ClankerApp extends BaseComponent {
             this.toast.show('❌ ' + (error.message || 'Boot failed'));
         }
         this.inputBox.setDisabled(false);
-        this.inputBox.focus();
-    }
-
-    #selectMessages(action) {
-        if (!this.messagesBox.setSelected(action)) {
-            this.toast.show('No messages yet');
-            return;
-        }
-        this.#selectedElement = this.messagesBox;
-        this.messagesBox.setScrollLocked(false);
-    }
-
-    #navMessages(dir) {
-        const moved = dir === 'up'
-            ? this.messagesBox.selectPreviousMsg()
-            : this.messagesBox.selectNextMsg();
-
-        if (!moved) this.#focusInput();
-    }
-
-    #focusInput() {
-        this.#selectedElement = this.inputBox;
         this.inputBox.focus();
     }
 
@@ -241,7 +223,6 @@ class ClankerApp extends BaseComponent {
             assistantMsg.appendError(error.message);
         } finally {
             this.inputBox.setDisabled(false);
-            if (this.#selectedElement === this.inputBox) this.inputBox.focus();
         }
     }
 }

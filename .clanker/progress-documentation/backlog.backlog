@@ -76,6 +76,9 @@ Just some ideas on the board:
 
 
 
+
+Backlog tail, Selected item/items:
+
 ```
 1. Implement "read file" expansion via existing ingestion endpoint
     [ ] 'content/backend/core/core/entities.py': Add `expanded_paths: list[str] | None` to `RepoContentResolver`
@@ -96,7 +99,6 @@ Just some ideas on the board:
         - accumulated across session: once expanded, stays expanded
         - no KB bar changes needed
 ```
-Backlog tail, Selected item/items:
 
 Backlog tail end
 
@@ -192,4 +194,37 @@ n. Ctrl+I toggles KB expanded/collapsed (replaces old Ctrl+Y + Ctrl+I)
           Fall back to 'Ctrl+I to expand' if domain or prompt not yet selected
     [x] 'content/web-ui/frontend/clanker-app.js': Update read site
         - In #generateResponse: change this.#keyboardBar.getStagedPrompt() → this.#keyboardBar.getRenderedPromptText()
+```
+
+```
+1. Delegate focus-routing keydown handling to child components; commit event contract
+    [x] 'content/web-ui/frontend/clanker-app.js': Remove key-routing; retain only zone-agnostic keys + Ctrl+I
+        - Removed `#selectedElement`, `#inputActions`, `#messageActions`, and the combo-lookup routing in `#handleGlobalKeydown`
+        - `#handleGlobalKeydown` handles only: Ctrl+I (toggle keyboard-bar), Ctrl+Enter (copySelected), Alt+Enter (ingestSelected), Ctrl+1 (toggleReasoning), Ctrl+2 (toggleContent)
+        - Added listeners for child-dispatched events:
+            - `toggle-scroll-lock` → `messagesBox.toggleScrollLock()`
+            - `focus-message` → switch(detail): `'first'` → selectFirst, `'last'` → selectLast
+            - `focus-input` → `inputBox.focus()`
+        - Renamed `prompt-fired` listener to `prompt-selected`
+        - In `#generateResponse` finally block: removed `#selectedElement` read; kept only `this.inputBox.setDisabled(false)`
+    [x] 'content/web-ui/frontend/input-box.js': Add keydown handling for zone-specific keys
+        - Ctrl+ArrowUp → dispatch `focus-message` detail `'last'`, stopPropagation + preventDefault
+        - Ctrl+ArrowDown → dispatch `focus-message` detail `'first'`, stopPropagation + preventDefault
+        - Escape → dispatch `toggle-scroll-lock`, stopPropagation + preventDefault
+        - Kept existing Enter (no-modifier) → `#dispatchSubmit()` as-is
+        - No knowledge of messages-box; only dispatches upward
+        - Replaced `disabled` textarea approach with `#halted` bool: textarea stays enabled (focus retained), `#dispatchSubmit` returns early when halted, send button greyed via its own `disabled` attribute
+    [x] 'content/web-ui/frontend/messages-box.js': Extend keydown handler to own zone-specific navigation + Escape
+        - Ctrl+ArrowUp → `selectPreviousMsg()`, stopPropagation + preventDefault
+        - Ctrl+ArrowDown → `selectNextMsg()`, stopPropagation + preventDefault
+        - If navigation fails (at boundary) → dispatch `focus-input`, stopPropagation + preventDefault
+        - Escape → dispatch `focus-input`, stopPropagation + preventDefault
+        - Restructured guard order: handle Ctrl+Arrow combos first, then Escape, then block remaining ctrl/alt (let zone-agnostic keys bubble to document), then handle plain arrow/page scrolling
+        - Plain ArrowUp/ArrowDown/PageUp/PageDown scrolling: unchanged
+        - `#selectedMsg` tracking stays unchanged
+    [x] 'content/web-ui/frontend/keyboard-bar.js': Rename event
+        - Dispatch `prompt-selected` instead of `prompt-fired`
+        - No other structural change; stopPropagation retained
+    [x] 'content/web-ui/frontend/api-client.js': No change
+        - Streaming callbacks (onToken, onReasoning, onPrefill) remain callbacks
 ```

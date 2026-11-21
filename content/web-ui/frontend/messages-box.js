@@ -133,8 +133,27 @@ class MessagesBox extends BaseComponent {
     }
 
     #handleKeydown = (event) => {
-        if (this.#messages.length === 0) return;
+        if (event.ctrlKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
+            if (this.#messages.length === 0) return;
+            event.stopPropagation();
+            event.preventDefault();
+            const moved = event.key === 'ArrowUp'
+                ? this.selectPreviousMsg()
+                : this.selectNextMsg();
+            if (!moved) this.dispatchEvent(new CustomEvent('focus-input'));
+            return;
+        }
+
+        if (event.key === 'Escape' && !event.ctrlKey && !event.altKey && !event.metaKey) {
+            event.stopPropagation();
+            event.preventDefault();
+            this.dispatchEvent(new CustomEvent('focus-input'));
+            return;
+        }
+
         if (event.ctrlKey || event.altKey || event.metaKey) return;
+
+        if (this.#messages.length === 0) return;
 
         const scrollMap = {
             ArrowUp: -40,

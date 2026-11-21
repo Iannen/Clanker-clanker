@@ -27,6 +27,7 @@ class InputBox extends BaseComponent {
     className = className;
 
     #highlightTimeout = null;
+    #halted = false;
 
     onConnect() {
         this.promptInput = this.querySelector('textarea');
@@ -37,6 +38,21 @@ class InputBox extends BaseComponent {
     }
 
     #handleKeydown = (event) => {
+        if (event.ctrlKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
+            event.stopPropagation();
+            event.preventDefault();
+            const detail = event.key === 'ArrowUp' ? 'last' : 'first';
+            this.dispatchEvent(new CustomEvent('focus-message', { detail }));
+            return;
+        }
+
+        if (event.key === 'Escape' && !event.ctrlKey && !event.altKey && !event.metaKey) {
+            event.stopPropagation();
+            event.preventDefault();
+            this.dispatchEvent(new CustomEvent('toggle-scroll-lock'));
+            return;
+        }
+
         if (event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return;
         if (event.key !== 'Enter') return;
 
@@ -49,6 +65,8 @@ class InputBox extends BaseComponent {
     clear() { this.promptInput.value = ''; }
 
     #dispatchSubmit() {
+        if (this.#halted) return;
+
         const prompt = this.getValue();
         if (!prompt) return;
 
@@ -68,7 +86,7 @@ class InputBox extends BaseComponent {
     }
 
     setDisabled(disabled) {
-        this.promptInput.disabled = disabled;
+        this.#halted = disabled;
         this.sendBtn.disabled = disabled;
     }
 }

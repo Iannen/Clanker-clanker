@@ -175,7 +175,7 @@ class KeyboardBar extends BaseComponent {
             if (!this.#renderedPrompt) return;
             event.stopPropagation();
             event.preventDefault();
-            this.dispatchEvent(new CustomEvent('prompt-fired'));
+            this.dispatchEvent(new CustomEvent('prompt-selected'));
             return;
         }
 
