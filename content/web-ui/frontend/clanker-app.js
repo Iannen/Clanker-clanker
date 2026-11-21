@@ -207,22 +207,21 @@ class ClankerApp extends BaseComponent {
     }
 
     async #generateResponse(prompt) {
-        const userMsg = document.createElement('chat-message');
+        let userMsg = document.createElement('chat-message');
         userMsg.messageRole = 'user';
         userMsg.content = prompt;
-
-        const assistantMsg = document.createElement('chat-message');
-        assistantMsg.messageRole = 'assistant';
-
-        this.messagesBox.addMessages(userMsg, assistantMsg);
-        this.inputBox.setDisabled(true);
-
-        const originalUserPrompt = prompt;
-        let prevContent = '';
-        let prevReasoning = '';
-
+        let assistantMsg;
         try {
             while (true) {
+                assistantMsg = document.createElement('chat-message');
+                assistantMsg.messageRole = 'assistant';
+
+                this.messagesBox.addMessages(userMsg, assistantMsg);
+                this.inputBox.setDisabled(true);
+
+                const originalUserPrompt = prompt;
+                let prevContent = '';
+                let prevReasoning = '';
                 const history = this.messagesBox.getHistory();
                 const renderedPrompt = this.#keyboardBar.getRenderedPromptText();
                 if (renderedPrompt && history.length > 0) {
@@ -259,6 +258,10 @@ class ClankerApp extends BaseComponent {
                 if (!data?.expanded?.length) break;
                 const grew = await this.#keyboardBar.expandPaths(data.expanded);
                 if (!grew) break;
+
+                userMsg = document.createElement('chat-message');
+                userMsg.messageRole = 'user';
+                userMsg.content = '[The actions have been carried out]';
             }
         } catch (error) {
             assistantMsg.appendError(error.message);
