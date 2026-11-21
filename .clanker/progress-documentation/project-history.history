@@ -1929,3 +1929,76 @@ CCXXII: RENDER-PROMPT PIPELINE AND KEYBOARD-BAR DECOUPLING
   - `clanker-app.js`: After boot, call `this.#keyboardBar.setDomains(boot.shared_domains, boot.pud_domains)`
 - Reflection:
   - The keyboard-bar is now a self-contained state machine: domains load once at boot, key presses mutate local state, and only prompt rendering hits the network. This eliminates the round-trip-per-keystroke pattern of the old `/api/char` and decouples domain-selection latency from backend responsiveness. The render endpoint is the single network boundary for the prompt-staging flow.
+
+CCXXIII: FRONTEND DEAD CODE REMOVAL
+- Purpose: Eliminate unreachable or never-read members from frontend components to reduce cognitive surface and prevent future confusion.
+    - No functional behavior change; purely subtractive.
+- Actions:
+    - `input-box.js`: Removed `clearFocus()` method (no caller existed)
+    - `message.js`: Removed `#complete` field (written in `setPerformanceTimings` but never read) and `#prefillEnd` field (assigned in `#maybeAdvancePhase` but never referenced in `#buildStatsLine`)
+    - `message.js`: Removed `collapsed` property and its `onConnect` setter guard; removed `prefill` parameter and `if (prefill)` branch from `clanker-app.js` `#generateResponse` (no caller ever passed `prefill: true`)
+    - `messages-box.js`: Removed `getMessagesCount()` and `clearSelection()` methods (no callers; `addMessages` performs equivalent inline)
+- Reflection:
+    - The codebase's frontend components had accumulated vestigial API surface from earlier iterations. Removal is safe because the properties were write-only or had zero read sites. No behavioral change.
+
+CCXXIV: EVENT CONTRACT AND FOCUS DELEGATION
+- Purpose: Establish a clear event-contract between `clanker-app` and its child components, so that zone-specific key handling lives in the component that owns that zone, and the app shell only handles zone-agnostic shortcuts.
+    - Prior architecture routed all keydowns through a single `#handleGlobalKeydown` in `clanker-app` with a lookup table mapping combos to handlers. This coupled the app shell to every child's interaction model.
+- Actions:
+    - `input-box.js`: Added keydown listener on textarea — Ctrl+ArrowUp dispatches `focus-message` detail `'last'`; Ctrl+ArrowDown dispatches `focus-message` detail `'first'`; Escape dispatches `toggle-scroll-lock`; bare Enter calls `#dispatchSubmit()`. Replaced `disabled` textarea approach with `#halted` bool so focus is retained and `#dispatchSubmit` returns early when halted.
+    - `messages-box.js`: Extended keydown handler — Ctrl+ArrowUp → `selectPreviousMsg()`, Ctrl+ArrowDown → `selectNextMsg()`; if navigation fails (at boundary) dispatches `focus-input`; Escape dispatches `focus-input`. Plain ArrowUp/ArrowDown/PageUp/PageDown scrolling unchanged.
+    - `clanker-app.js`: `#handleGlobalKeydown` reduced to Ctrl+I (toggle KB), Ctrl+Enter (copySelected), Alt+Enter (ingestSelected), Ctrl+1 (toggleReasoning), Ctrl+2 (toggleContent). Added listeners for child-dispatched events: `toggle-scroll-lock`, `focus-message`, `focus-input`, `prompt-selected`. Removed `#selectedElement`, `#inputActions`, `#messageActions`, and the combo-lookup routing.
+    - `keyboard-bar.js`: Renamed dispatched event from `prompt-fired` to `prompt-selected`.
+- Reflection:
+    - The app shell is now a thin event bus for zone-agnostic shortcuts. Each child owns its own keydown logic and communicates upward via named CustomEvents. This makes it possible to add new zones without touching the app shell's key-routing.
+
+CCXXV: KEYBOARD-BAR AS RENDERED PROMPT SOURCE
+- Purpose: Make the keyboard-bar the single source of truth for the rendered prompt, eliminating the `repo-context` coupling that previously lived in `messages-box`.
+    - The keyboard-bar already held domain and prompt data from boot; the old design had a separate `repo-context.js` component that stored the rendered prompt and was read by `clanker-app` at send time. This created a redundant state holder and an extra DOM node.
+- Actions:
+    - `keyboard-bar.js`: Renamed `#stagedPrompt` → `#renderedPrompt` (stores full `PromptRenderOutput` object). Added `#selectedPrompt` field (the prompt object from `domain.prompts`). Added `getRenderedPromptText()` returning `this.#renderedPrompt?.text ?? null`. `#onDomainKey` resets both `#selectedPrompt` and `#renderedPrompt` to null. `#onPromptKey` sets `#selectedPrompt = prompt` and `#renderedPrompt = response`. Built `#buildCollapsedStatus()` producing `Ctrl+I to expand │ Dom: "<name>" [<key>] │ Prompt: "<name>" [<key>] · <lines> lines, <chars> chars`.
+    - `clanker-app.js`: `#generateResponse` reads `this.#keyboardBar.getRenderedPromptText()`. Boot flow calls `setDomains(shared, pud)` but no longer sets repo context.
+    - `messages-box.js`: Removed `#repoCtxEl`, `setRepoContext()`, `getRepoContext()`, and the `repo-context.js` import. `selectPreviousMsg` / `selectNextMsg` no longer have a repo-context branch.
+    - `repo-context.js`: Deleted entirely.
+- Reflection:
+    - The keyboard-bar is now the single state holder for domain, prompt selection, and rendered output. The app shell reads from it at send time; no other component needs to know about prompt state. This eliminates a whole DOM node and a cross-component getter/setter pair.
+
+CCXXVI: CTRL+I TOGGLE AND UI STATE MANAGEMENT
+- Purpose: Replace the old Ctrl+Y (show/hide KB) + Ctrl+I (expand) two-key scheme with a single Ctrl+I toggle that collapses the keyboard-bar to a thin status strip or expands it to the full button grid.
+    - The old design had two separate booleans (`#showKeyboardBar` / `#showMessagesBox`) in `clanker-app` with imperative show/hide calls. A single `#expanded` flag on the keyboard-bar itself is simpler and co-locates the state with the component.
+- Actions:
+    - `keyboard-bar.js`: Added `#expanded` flag, `setExpanded(bool)`, `toggleExpanded()`. Expanded: show button grids + status line, add `flex-1 overflow-y-auto p-4`. Collapsed: hide button grids, show status line only, add `p-1 cursor-pointer`, status text is `#buildCollapsedStatus()`. Click on collapsed bar expands it.
+    - `clanker-app.js`: Ctrl+I in `#handleGlobalKeydown` calls `#toggleKeyboardBar()` — expanded hides `messagesBox` + `inputBox`; collapsed shows them + focuses input. Ctrl+Y removed entirely. `#showKeyboardBar` / `#showMessagesBox` methods removed. Boot starts collapsed (`setExpanded(false)` in `onConnect`).
+- Reflection:
+    - The two-key scheme (Ctrl+Y to show KB, Ctrl+I to expand within KB) was confusing and introduced an extra DOM visibility toggle in the app shell. Collapsing to a single toggle on the KB component itself means the app shell only manages the visible/hidden state of messages-box and input-box, which is a simpler two-state concern.
+
+CCXXVII: FOCUS-OUT INVARIANT
+- Purpose: Ensure that when focus leaves the messages-box, the last message is always selected, without requiring `clanker-app` to track this.
+    - Previously `clanker-app` called `this.messagesBox.selectLast()` in its `#focusInput` handler. This coupled the app shell to a messages-box invariant.
+- Actions:
+    - `messages-box.js`: Added `#handleFocusout` listener — if `event.relatedTarget` is not contained within the box, deselect current selection and select the last message. Registered in `onConnect`, cleaned in `disconnectedCallback`.
+    - `clanker-app.js`: Removed the `this.messagesBox.selectLast()` call; the `focus-input` event handler now only calls `this.inputBox.focus()`.
+- Reflection:
+    - The "select last on focus-out" invariant now lives in the component that owns the selection state. The app shell no longer needs to know which message is selected or to enforce this transition.
+
+CCXXVIII: READ-FILE EXPANSION — BACKEND
+- Purpose: Allow `<show path="..."/>` tags in LLM output to request full content reads of meta-fileset files, threading those paths through the render pipeline so that expanded files appear as full `<file path="...">` blocks instead of `<file_meta path="..." loc=N/>` stubs.
+    - The render pipeline previously rendered all meta_fileset entries as location stubs. The expansion mechanism lets the LLM request specific files to be read in full, giving it more context on the next turn.
+- Actions:
+    - `entities.py`: Added `expanded_paths: list[str] = field(default_factory=list)` to `Prompt`.
+    - `render_service.py`: Threaded `expanded_paths` through `_assemble_render` → `_dispatch` → `_res_repo_content`. For meta_fileset paths: if path is in `expanded_path_set`, read from disk and render as `<file path="...">content</file>`; otherwise render as `<file_meta path="..." loc=N/>` (existing behavior).
+    - `ingestion_parser.py`: Added `_show_re` regex for `<show path="..."/>` self-closing tags. Parsed paths collected into `expanded: list[str]` on `IngestionParseResult`.
+    - `result.py`: Added `expanded: list[str]` to `IngestApplyResult`.
+    - `ingestion_service.py`: `apply_file_changes` surfaces `parsed.expanded` in the result. `_build_prompt` reads `expanded_paths` from the incoming dict. No disk writes for show paths (read-only).
+    - `map_extractor2.py`: `EntityField.from_field` correctly resolves `list[str]` as primitive (not entity) list — `field.value = field.raw_data` when inner type is not an Entity subclass. Default factories handled via `default_factory`, so `expanded_paths` gets `[]` when absent from config data.
+- Reflection:
+    - The expansion is purely additive to the render pipeline: it doesn't change how non-expanded files are rendered. The `expanded_paths` list is flat and prompt-scoped, applying to all RepoContentResolvers within that prompt. The parser treats `<show>` as a no-op for disk (no create/update/delete), purely a signal for the next render pass.
+
+CCXXIX: READ-FILE EXPANSION — FRONTEND AND AUTO-CONTINUE LOOP
+- Purpose: Wire the backend expansion signal into the frontend so that after each LLM turn, the app auto-ingests the response, expands any `<show>` paths, re-renders the prompt, and feeds the enlarged prompt back into the LLM in a continuous loop until no new paths are discovered.
+    - This creates a self-expanding context window: the LLM can request more files as it works, and the app transparently feeds them back without user intervention.
+- Actions:
+    - `keyboard-bar.js`: Added `expandPaths(paths)` — dedups against existing `#selectedPrompt.expanded_paths`, pushes new paths, calls `apiClient.renderPrompt(#selectedDomain, #selectedPrompt)`, updates `#renderedPrompt`, returns `true` if the set grew, `false` otherwise.
+    - `clanker-app.js`: `#ingestContent(content, { silentEmpty })` helper — calls `apiClient.ingestFileChanges`, suppresses toast when result is empty and `silentEmpty` is true. `#ingestSelected` (Alt+Enter) calls `#ingestContent` and, if `data.expanded` is non-empty, calls `keyboardBar.expandPaths`. `#generateResponse` implements the auto-continue loop: after each stream completes, calls `#ingestContent(prevContent, { silentEmpty: true })`; if `data.expanded` non-empty, calls `keyboardBar.expandPaths`; if it returns false, breaks. Reuses the single `assistantMsg` across iterations (appends, does not create new bubbles). History rebuilt from `messagesBox` each iteration. `inputBox` stays disabled throughout the chain.
+- Reflection:
+    - The loop has no max-iteration cap, which is acceptable for the current use case (file expansion is bounded by the fileset size). The `silentEmpty` suppression prevents toast noise during intermediate turns. The single-assistantMsg pattern means the user sees one growing bubble rather than a series of separate turns, which is the intended UX for a continuous reasoning session.

@@ -27,19 +27,46 @@ class InputBox extends BaseComponent {
     className = className;
 
     #highlightTimeout = null;
+    #halted = false;
 
     onConnect() {
         this.promptInput = this.querySelector('textarea');
         this.sendBtn = this.querySelector('button');
 
         this.sendBtn.addEventListener('click', () => this.#dispatchSubmit());
+        this.promptInput.addEventListener('keydown', this.#handleKeydown);
     }
+
+    #handleKeydown = (event) => {
+        if (event.ctrlKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
+            event.stopPropagation();
+            event.preventDefault();
+            const detail = event.key === 'ArrowUp' ? 'last' : 'first';
+            this.dispatchEvent(new CustomEvent('focus-message', { detail }));
+            return;
+        }
+
+        if (event.key === 'Escape' && !event.ctrlKey && !event.altKey && !event.metaKey) {
+            event.stopPropagation();
+            event.preventDefault();
+            this.dispatchEvent(new CustomEvent('toggle-scroll-lock'));
+            return;
+        }
+
+        if (event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return;
+        if (event.key !== 'Enter') return;
+
+        event.preventDefault();
+        this.#dispatchSubmit();
+    };
 
     getValue() { return this.promptInput.value.trim(); }
 
     clear() { this.promptInput.value = ''; }
 
     #dispatchSubmit() {
+        if (this.#halted) return;
+
         const prompt = this.getValue();
         if (!prompt) return;
 
@@ -58,16 +85,8 @@ class InputBox extends BaseComponent {
         }, 1000);
     }
 
-    clearFocus() {
-        this.promptInput.blur();
-        this.promptInput.classList.remove('!border-[#10b981]');
-
-        clearTimeout(this.#highlightTimeout);
-        this.#highlightTimeout = null;
-    }
-
     setDisabled(disabled) {
-        this.promptInput.disabled = disabled;
+        this.#halted = disabled;
         this.sendBtn.disabled = disabled;
     }
 }

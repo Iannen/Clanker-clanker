@@ -1,4 +1,6 @@
+
 from backend.stdlib import dataclass, ABC, abstractmethod, Any, Field, StrEnum
+from dataclasses import field
 from backend.core import entities as e
 
 class Complaint(): pass
@@ -72,6 +74,7 @@ class IngestApplyResult:
     missing_paths: list[str]
     unexpected_paths: list[str]
     parse_errors: list[str]
+    expanded: list[str] = field(default_factory=list)
 
 
 class IngestionService(ABC):

@@ -76,28 +76,10 @@ Just some ideas on the board:
 
 
 
-```
-1. Implement "read file" expansion via existing ingestion endpoint
-    [ ] 'content/backend/core/core/entities.py': Add `expanded_paths: list[str] | None` to `RepoContentResolver`
-        - flat list of path strings, modulates render treatment of meta_fileset members
-    [ ] 'content/backend/render_pipeline/render_service.py': In `_res_repo_content`, check `expanded_paths` membership when iterating meta_fileset
-        - if path in expanded_paths → read from disk, render as `<file path="...">content</file>`
-        - else → render as `<file_meta path="..." loc=N/>` as today
-    [ ] 'content/backend/asset_ingestion/ingestion_parser.py': Parse `<show path="..."/>` tags from raw text
-        - collect matching paths into a list
-        - include in `IngestionParseResult` as a new field
-    [ ] 'content/backend/core/engine_deps/result.py': Add `expanded: list[str]` to `IngestApplyResult`
-    [ ] 'content/backend/asset_ingestion/ingestion_service.py': Surface `expanded` in `apply_file_changes` return
-        - no disk writes for show paths — read-only requests, no create/update/delete
-    [ ] 'content/web-ui/frontend/messages-box.js': Store domain/prompt refs; expose method to update repo context text
-        - set refs when `prompt-fired` event fires
-        - on ingest response with non-empty `expanded`, append paths to all `RepoContentResolver.expanded_paths` in the stored domain
-    [ ] 'content/web-ui/frontend/clanker-app.js': On Alt+Enter ingest response, if `expanded` present → re-render prompt via `apiClient.renderPrompt` → swap repo context string
-        - accumulated across session: once expanded, stays expanded
-        - no KB bar changes needed
-```
 Backlog tail, Selected item/items:
+
 Backlog tail end
 
-
 VI. finished stuffs
+
+```

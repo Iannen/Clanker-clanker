@@ -1,5 +1,4 @@
 import './message.js';
-import './repo-context.js';
 import { BaseComponent, register } from './base-component.js';
 
 const html = `
@@ -17,28 +16,8 @@ class MessagesBox extends BaseComponent {
     #messages = [];
     #selectedMsg = null;
     #scrollLocked = true;
-    #repoCtxEl = null;
 
     hasMessages() { return this.#messages.length > 0; }
-
-    getMessagesCount() { return this.#messages.length; }
-
-    setRepoContext(text) {
-        if (!this.#repoCtxEl) {
-            const el = document.createElement('repo-context');
-            this.#repoCtxEl = el;
-            if (this.welcomeText) {
-                this.insertBefore(el, this.welcomeText);
-            } else {
-                this.prepend(el);
-            }
-        }
-        this.#repoCtxEl.text = text;
-    }
-
-    getRepoContext() {
-        return this.#repoCtxEl?.text || null;
-    }
 
     setSelected(action) {
         if (!this.hasMessages()) return false;
@@ -52,25 +31,13 @@ class MessagesBox extends BaseComponent {
     selectLast() { this.selectMessage(this.#messages.at(-1)); }
 
     selectPreviousMsg() {
-        if (this.#selectedMsg === this.#repoCtxEl) {
-            this.selectMessage(this.#messages[0]);
-            return true;
-        }
         const pos = this.#messages.indexOf(this.#selectedMsg);
-        if (pos === 0 && this.#repoCtxEl) {
-            this.selectMessage(this.#repoCtxEl);
-            return true;
-        }
         if (pos <= 0) return false;
         this.selectMessage(this.#messages[pos - 1]);
         return true;
     }
 
     selectNextMsg() {
-        if (this.#selectedMsg === this.#repoCtxEl) {
-            this.selectMessage(this.#messages[0]);
-            return true;
-        }
         const pos = this.#messages.indexOf(this.#selectedMsg);
         if (pos >= this.#messages.length - 1) return false;
         this.selectMessage(this.#messages[pos + 1]);
@@ -83,11 +50,6 @@ class MessagesBox extends BaseComponent {
         msg.setSelected(true);
         msg.focus();
         msg.scrollIntoView();
-    }
-
-    clearSelection() {
-        if (this.#selectedMsg) this.#selectedMsg.setSelected(false);
-        this.#selectedMsg = null;
     }
 
     getSelectedContent() {
@@ -110,9 +72,7 @@ class MessagesBox extends BaseComponent {
     }
 
     toggleReasoning() {
-        if (this.#selectedMsg === this.#repoCtxEl) {
-            this.#repoCtxEl.toggle();
-        } else if (this.#selectedMsg) {
+        if (this.#selectedMsg) {
             this.#selectedMsg.toggleReasoning();
         }
     }
@@ -164,15 +124,36 @@ class MessagesBox extends BaseComponent {
     onConnect() {
         this.welcomeText = this.querySelector('.welcome-text');
         this.addEventListener('keydown', this.#handleKeydown);
+        this.addEventListener('focusout', this.#handleFocusout);
     }
 
     disconnectedCallback() {
         this.removeEventListener('keydown', this.#handleKeydown);
+        this.removeEventListener('focusout', this.#handleFocusout);
     }
 
     #handleKeydown = (event) => {
-        if (this.#messages.length === 0) return;
+        if (event.ctrlKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
+            if (this.#messages.length === 0) return;
+            event.stopPropagation();
+            event.preventDefault();
+            const moved = event.key === 'ArrowUp'
+                ? this.selectPreviousMsg()
+                : this.selectNextMsg();
+            if (!moved) this.dispatchEvent(new CustomEvent('focus-input'));
+            return;
+        }
+
+        if (event.key === 'Escape' && !event.ctrlKey && !event.altKey && !event.metaKey) {
+            event.stopPropagation();
+            event.preventDefault();
+            this.dispatchEvent(new CustomEvent('focus-input'));
+            return;
+        }
+
         if (event.ctrlKey || event.altKey || event.metaKey) return;
+
+        if (this.#messages.length === 0) return;
 
         const scrollMap = {
             ArrowUp: -40,
@@ -189,7 +170,18 @@ class MessagesBox extends BaseComponent {
             top: scrollAmount,
             behavior: event.repeat ? 'auto' : 'smooth'
         });
-    }
+    };
+
+    #handleFocusout = (event) => {
+        if (!this.contains(event.relatedTarget)) {
+            if (this.#selectedMsg) this.#selectedMsg.setSelected(false);
+            const last = this.#messages.at(-1);
+            if (last) {
+                this.#selectedMsg = last;
+                last.setSelected(true);
+            }
+        }
+    };
 
     #addMessage(message) {
         this.appendChild(message);

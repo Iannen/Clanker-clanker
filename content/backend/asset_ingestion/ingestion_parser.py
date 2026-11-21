@@ -1,5 +1,6 @@
+
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from backend.core import entities as e
 
@@ -10,9 +11,14 @@ class IngestionParseResult:
     updates: list[tuple[str, str]]
     deletes: list[str]
     errors: list[str]
+    expanded: list[str] = field(default_factory=list)
 
 
 class IngestionParser:
+    _show_re = re.compile(
+        r'^<show\s+path="(?P<path>[^"]+)"\s*/>\s*$'
+    )
+
     _open_re = re.compile(
         r"^(?:"
         + r"(?P<create_open>" + re.escape(e.Delims.CREATE_FILESET_UL[1]) + r")(?P<create_path>.+?)" + re.escape(e.Delims.FILESET_OPEN_END_TAG[1])
@@ -36,13 +42,22 @@ class IngestionParser:
         creates: list[tuple[str, str]] = []
         updates: list[tuple[str, str]] = []
         deletes: list[str] = []
+        expanded: list[str] = []
         errors: list[str] = []
 
         i = 0
         n = len(lines)
 
         while i < n:
-            m = self._open_re.match(lines[i].strip())
+            line = lines[i].strip()
+
+            show_match = self._show_re.match(line)
+            if show_match:
+                expanded.append(show_match.group("path").strip())
+                i += 1
+                continue
+
+            m = self._open_re.match(line)
 
             if m is None:
                 i += 1
@@ -64,7 +79,7 @@ class IngestionParser:
                 close_group = "update_close"
                 close_path_group = "update_path"
 
-            # scan forward for the matching closing bookend (same action and path)
+            # Scan forward for the matching closing bookend.
             j = i + 1
             content_lines: list[str] = []
             found = False
@@ -100,6 +115,7 @@ class IngestionParser:
             updates=updates,
             deletes=deletes,
             errors=errors,
+            expanded=expanded,
         )
 
     @staticmethod

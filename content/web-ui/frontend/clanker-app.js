@@ -10,8 +10,8 @@ import './sidepanel-right.js';
 const html = `
     <sidepanel-left></sidepanel-left>
     <div class="flex flex-col h-screen overflow-hidden">
+        <keyboard-bar></keyboard-bar>    
         <messages-box></messages-box>
-        <keyboard-bar></keyboard-bar>
         <input-box></input-box>
     </div>
     <sidepanel-right></sidepanel-right>
@@ -24,90 +24,93 @@ class ClankerApp extends BaseComponent {
     html = html;
     className = className;
 
-    #selectedElement;
     #keyboardBar;
-
-    #inputActions = {
-        'Enter': () => this.#submitInput(),
-        'Ctrl+ArrowUp': () => this.#selectMessages('focusLast'),
-        'Ctrl+ArrowDown': () => this.#selectMessages('focusFirst'),
-        'Ctrl+Enter': () => this.#copySelected(),
-        'Alt+Enter': () => this.#ingestSelected(),
-        'Ctrl+1': () => this.messagesBox.toggleReasoning(),
-        'Ctrl+2': () => this.messagesBox.toggleContent(),
-        'Escape': () => this.messagesBox.toggleScrollLock(),
-    };
-
-    #messageActions = {
-        'Ctrl+ArrowUp': () => this.#navMessages('up'),
-        'Ctrl+ArrowDown': () => this.#navMessages('down'),
-        'Ctrl+Enter': () => this.#copySelected(),
-        'Alt+Enter': () => this.#ingestSelected(),
-        'Ctrl+1': () => this.messagesBox.toggleReasoning(),
-        'Ctrl+2': () => this.messagesBox.toggleContent(),
-        'Escape': () => this.#focusInput(),
-    };
 
     #handleGlobalKeydown = (event) => {
         if (event.shiftKey) return;
 
-        if (event.ctrlKey) {
-            if (event.key === 'Y' || event.key === 'y') {
-                event.preventDefault();
-                this.#showKeyboardBar();
-                return;
-            }
-            if (event.key === 'I' || event.key === 'i') {
-                event.preventDefault();
-                this.#showMessagesBox();
-                return;
-            }
+        if (event.ctrlKey && (event.key === 'I' || event.key === 'i')) {
+            event.preventDefault();
+            this.#toggleKeyboardBar();
+            return;
         }
 
-        const actions = this.#selectedElement === this.inputBox
-            ? this.#inputActions
-            : this.#messageActions;
+        if (event.ctrlKey && event.key === 'Enter') {
+            event.preventDefault();
+            this.#copySelected();
+            return;
+        }
 
-        const combo = event.altKey
-            ? 'Alt+' + event.key
-            : event.ctrlKey
-                ? 'Ctrl+' + event.key
-                : event.key;
-        const handler = actions[combo];
+        if (event.altKey && event.key === 'Enter') {
+            event.preventDefault();
+            this.#ingestSelected();
+            return;
+        }
 
-        if (!handler) return;
+        if (event.ctrlKey && event.key === '1') {
+            event.preventDefault();
+            this.messagesBox.toggleReasoning();
+            return;
+        }
 
-        event.preventDefault();
-        handler();
+        if (event.ctrlKey && event.key === '2') {
+            event.preventDefault();
+            this.messagesBox.toggleContent();
+            return;
+        }
     };
 
-    #showKeyboardBar() {
-        this.messagesBox.classList.add('hidden');
-        this.#keyboardBar.classList.remove('hidden');
-        this.#keyboardBar.focus();
-    }
-
-    #showMessagesBox() {
-        this.#keyboardBar.classList.add('hidden');
-        this.messagesBox.classList.remove('hidden');
+    #toggleKeyboardBar() {
+        if (this.#keyboardBar.isExpanded()) {
+            this.#keyboardBar.setExpanded(false);
+            this.messagesBox.classList.remove('hidden');
+            this.inputBox.classList.remove('hidden');
+            this.inputBox.focus();
+        } else {
+            this.#keyboardBar.setExpanded(true);
+            this.messagesBox.classList.add('hidden');
+            this.inputBox.classList.add('hidden');
+            this.#keyboardBar.focus();
+        }
     }
 
     async onConnect() {
         this.inputBox = this.querySelector('input-box');
         this.messagesBox = this.querySelector('messages-box');
         this.#keyboardBar = this.querySelector('keyboard-bar');
-        this.#keyboardBar.classList.add('hidden');
+        this.#keyboardBar.setExpanded(false);
         this.toast = this.querySelector('toast-notification');
-
-        this.#selectedElement = this.inputBox;
 
         this.inputBox.addEventListener('submit', (e) => {
             this.#generateResponse(e.detail);
         });
 
-        this.#keyboardBar.addEventListener('prompt-fired', (e) => {
-            this.messagesBox.setRepoContext(e.detail);
-            this.#showMessagesBox();
+        this.#keyboardBar.addEventListener('prompt-selected', () => {
+            this.#keyboardBar.setExpanded(false);
+            this.messagesBox.classList.remove('hidden');
+            this.inputBox.classList.remove('hidden');
+            this.inputBox.focus();
+        });
+
+        this.messagesBox.addEventListener('toggle-scroll-lock', () => {
+            this.messagesBox.toggleScrollLock();
+        });
+
+        this.messagesBox.addEventListener('focus-input', () => {
+            this.inputBox.focus();
+        });
+
+        this.inputBox.addEventListener('focus-message', (e) => {
+            if (!this.messagesBox.hasMessages()) {
+                this.toast.show('No messages yet');
+                return;
+            }
+            const detail = e.detail;
+            if (detail === 'first') {
+                this.messagesBox.selectFirst();
+            } else if (detail === 'last') {
+                this.messagesBox.selectLast();
+            }
         });
 
         await this.#bootSystem();
@@ -136,37 +139,6 @@ class ClankerApp extends BaseComponent {
         this.inputBox.focus();
     }
 
-    #submitInput() {
-        const prompt = this.inputBox.getValue();
-        if (!prompt) return;
-
-        this.inputBox.clear();
-        this.#generateResponse(prompt);
-    }
-
-    #selectMessages(action) {
-        if (!this.messagesBox.setSelected(action)) {
-            this.toast.show('No messages yet');
-            return;
-        }
-        this.#selectedElement = this.messagesBox;
-        this.messagesBox.setScrollLocked(false);
-    }
-
-    #navMessages(dir) {
-        const moved = dir === 'up'
-            ? this.messagesBox.selectPreviousMsg()
-            : this.messagesBox.selectNextMsg();
-
-        if (!moved) this.#focusInput();
-    }
-
-    #focusInput() {
-        this.messagesBox.selectLast();
-        this.#selectedElement = this.inputBox;
-        this.inputBox.focus();
-    }
-
     async #copySelected() {
         const result = await this.messagesBox.copySelected();
 
@@ -179,19 +151,15 @@ class ClankerApp extends BaseComponent {
         }
     }
 
-    async #ingestSelected() {
-        const content = this.messagesBox.getSelectedContent();
-        if (!content) {
-            this.toast.show('No message selected to ingest');
-            return;
-        }
+    async #ingestContent(content, { silentEmpty = false } = {}) {
+        if (!content) return null;
 
         try {
             const { status, data } = await apiClient.ingestFileChanges(content);
 
             if (status === 500) {
                 this.toast.show('❌ Server error: ' + (data?.error || 'Ingest failed'));
-                return;
+                return null;
             }
 
             if (status === 400) {
@@ -200,24 +168,48 @@ class ClankerApp extends BaseComponent {
                 if (data.missing_paths?.length) parts.push(`missing: ${data.missing_paths.join(', ')}`);
                 if (data.unexpected_paths?.length) parts.push(`unexpected: ${data.unexpected_paths.join(', ')}`);
                 this.toast.show('❌ ' + parts.join(' · '));
-                return;
+                return null;
             }
 
             const parts = [];
             if (data.created?.length) parts.push(`${data.created.length} created`);
             if (data.updated?.length) parts.push(`${data.updated.length} updated`);
             if (data.deleted?.length) parts.push(`${data.deleted.length} deleted`);
-            this.toast.show('✅ ' + (parts.join(', ') || 'No changes applied'));
+
+            if (parts.length === 0 && silentEmpty) {
+                // suppress empty toast to avoid noise on auto-ingest
+            } else {
+                this.toast.show('✅ ' + (parts.join(', ') || 'No changes applied'));
+            }
+
+            return data;
         } catch (error) {
             this.toast.show('❌ ' + (error.message || 'Ingest failed'));
+            return null;
         }
     }
 
-    async #generateResponse(prompt, { prefill = false } = {}) {
+    async #ingestSelected() {
+        const content = this.messagesBox.getSelectedContent();
+        if (!content) {
+            this.toast.show('No message selected to ingest');
+            return;
+        }
+
+        const data = await this.#ingestContent(content);
+        if (data?.expanded?.length) {
+            if (!this.#keyboardBar.getRenderedPromptText()) {
+                this.toast.show('❌ No prompt selected — cannot expand paths');
+            } else {
+                await this.#keyboardBar.expandPaths(data.expanded);
+            }
+        }
+    }
+
+    async #generateResponse(prompt) {
         const userMsg = document.createElement('chat-message');
         userMsg.messageRole = 'user';
         userMsg.content = prompt;
-        if (prefill) userMsg.collapsed = true;
 
         const assistantMsg = document.createElement('chat-message');
         assistantMsg.messageRole = 'assistant';
@@ -225,34 +217,53 @@ class ClankerApp extends BaseComponent {
         this.messagesBox.addMessages(userMsg, assistantMsg);
         this.inputBox.setDisabled(true);
 
-        const history = this.messagesBox.getHistory();
-        const repoCtx = this.messagesBox.getRepoContext();
-        if (repoCtx && history.length > 0) {
-            history[0].content = repoCtx + '\n\n' + history[0].content;
-        }
-
-        const totalChars = history.reduce((sum, m) => sum + (m.content?.length ?? 0), 0);
-        assistantMsg.sentChars = totalChars;
+        const originalUserPrompt = prompt;
+        let prevContent = '';
+        let prevReasoning = '';
 
         try {
-            const result = await apiClient.streamChatCompletion({
-                messages: history,
-                onToken: (token, fullText) => {
-                    assistantMsg.updateContent(fullText);
-                    this.messagesBox.scrollIfLocked();
-                },
-                onReasoning: (reasoningToken, reasoningText) => {
-                    assistantMsg.updateReasoning(reasoningText);
-                    this.messagesBox.scrollIfLocked();
-                },
-                onPrefill: (pp) => assistantMsg.onPrefill(pp),
-            });
-            assistantMsg.setPerformanceTimings(result.timings);
+            while (true) {
+                const history = this.messagesBox.getHistory();
+                const renderedPrompt = this.#keyboardBar.getRenderedPromptText();
+                if (renderedPrompt && history.length > 0) {
+                    history[0].content = renderedPrompt + '\n\n' + originalUserPrompt;
+                }
+
+                const totalChars = history.reduce((sum, m) => sum + (m.content?.length ?? 0), 0);
+                if (!prevContent) {
+                    assistantMsg.sentChars = totalChars;
+                }
+
+                let reasoningSnapshot = '';
+
+                const result = await apiClient.streamChatCompletion({
+                    messages: history,
+                    onToken: (token, fullText) => {
+                        assistantMsg.updateContent(prevContent + fullText);
+                        this.messagesBox.scrollIfLocked();
+                    },
+                    onReasoning: (reasoningToken, reasoningText) => {
+                        reasoningSnapshot = reasoningText;
+                        assistantMsg.updateReasoning(prevReasoning + reasoningText);
+                        this.messagesBox.scrollIfLocked();
+                    },
+                    onPrefill: (pp) => assistantMsg.onPrefill(pp),
+                });
+                assistantMsg.setPerformanceTimings(result.timings);
+
+                prevContent = assistantMsg.content;
+                prevReasoning += reasoningSnapshot;
+
+                const data = await this.#ingestContent(prevContent, { silentEmpty: true });
+
+                if (!data?.expanded?.length) break;
+                const grew = await this.#keyboardBar.expandPaths(data.expanded);
+                if (!grew) break;
+            }
         } catch (error) {
             assistantMsg.appendError(error.message);
         } finally {
             this.inputBox.setDisabled(false);
-            if (this.#selectedElement === this.inputBox) this.inputBox.focus();
         }
     }
 }

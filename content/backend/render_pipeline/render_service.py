@@ -1,3 +1,4 @@
+
 import re
 
 from backend.core import entities as e
@@ -32,7 +33,11 @@ class PromptServiceImpl(d.PromptService):
             raise e.CorruptClanker(f"Error loading template for '{prompt.render.template}': {ex}") from ex
 
         resolvers = self._collect_resolvers_from(domain, prompt)
-        text, lines, chars = self._assemble_render(template, resolvers)
+        text, lines, chars = self._assemble_render(
+            template,
+            resolvers,
+            prompt.expanded_paths,
+        )
         return d.PromptRenderOutput(text=text, lines=lines, chars=chars)
 
     def _collect_resolvers_from(self, domain: e.Domain, prompt: e.Prompt) -> list[e.Resolver]:
@@ -42,7 +47,12 @@ class PromptServiceImpl(d.PromptService):
         resolvers.extend(prompt.render.resolvers)
         return resolvers
 
-    def _assemble_render(self, template: str, resolvers: list[e.Resolver]) -> tuple[str, int, int]:
+    def _assemble_render(
+        self,
+        template: str,
+        resolvers: list[e.Resolver],
+        expanded_paths: list[str],
+    ) -> tuple[str, int, int]:
         section_pattern = re.compile(r"§([^§]+)§")
         section_names = [m.group(1).strip() for m in section_pattern.finditer(template)]
         sections: dict[str, list[e.Resolver]] = {name: [] for name in section_names}
@@ -60,19 +70,22 @@ class PromptServiceImpl(d.PromptService):
         render_parts: list[str] = []
         for section_name, res_list in sections.items():
             header = f"{e.Delims.PROMPT_OPEN[1]}{section_name}{e.Delims.PROMPT_CLOSE[1]}"
-            fragments = [self._dispatch(res) for res in res_list]
+            fragments = [
+                self._dispatch(res, expanded_paths)
+                for res in res_list
+            ]
             section_content = header + "\n\n" + "\n\n".join(fragments)
             render_parts.append(section_content)
 
         render = "\n\n\n".join(render_parts) + "\n"
         return render, len(render.splitlines()), len(render)
 
-    def _dispatch(self, res: e.Resolver) -> str:
+    def _dispatch(self, res: e.Resolver, expanded_paths: list[str]) -> str:
         match res:
             case e.MultiDocResolver():
                 return self._res_multi_doc(res)[res.anchor]
             case e.RepoContentResolver():
-                return self._res_repo_content(res)[res.anchor]
+                return self._res_repo_content(res, expanded_paths)[res.anchor]
 
     def _res_multi_doc(self, resolver: e.MultiDocResolver) -> dict[str, str]:
         fragments = []
@@ -87,9 +100,14 @@ class PromptServiceImpl(d.PromptService):
 
         return {resolver.anchor: "\n\n".join(fragments)}
 
-    def _res_repo_content(self, resolver: e.RepoContentResolver) -> dict[str, str]:
+    def _res_repo_content(
+        self,
+        resolver: e.RepoContentResolver,
+        expanded_paths: list[str],
+    ) -> dict[str, str]:
         content_blocks: list[str] = []
         content_paths: set[str] = set()
+        expanded_path_set = set(expanded_paths)
 
         if resolver.content_fileset:
             includes = self.files.get_file_paths(
@@ -137,11 +155,21 @@ class PromptServiceImpl(d.PromptService):
             meta_paths = sorted(meta_includes - meta_excludes - content_paths)
             for p in meta_paths:
                 try:
-                    content = self.files.get_file_contents(f"{e.PathTokens.PUD}/{p}")
-                    line_count = len(content.splitlines())
-                    meta_blocks.append(
-                        f"{e.Delims.FILE_META_UL[1]}{p} loc={line_count}{e.Delims.FILE_META_CLOSE[1]}"
-                    )
+                    if p in expanded_path_set:
+                        content = self.files.get_file_contents(
+                            f"{e.PathTokens.PUD}/{p}"
+                        ).rstrip()
+                        meta_blocks.append(
+                            f"{e.Delims.READ_FILESET_UL[1]}{p}{e.Delims.FILESET_OPEN_END_TAG[1]}\n"
+                            f"{content}\n"
+                            f"{e.Delims.READ_FILESET_BL[1]}{p}{e.Delims.FILESET_OPEN_END_TAG[1]}"
+                        )
+                    else:
+                        content = self.files.get_file_contents(f"{e.PathTokens.PUD}/{p}")
+                        line_count = len(content.splitlines())
+                        meta_blocks.append(
+                            f"{e.Delims.FILE_META_UL[1]}{p} loc={line_count}{e.Delims.FILE_META_CLOSE[1]}"
+                        )
                 except UnicodeDecodeError:
                     pass
 

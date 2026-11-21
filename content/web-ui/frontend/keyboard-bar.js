@@ -16,7 +16,7 @@ function buildRow(label, keys) {
     ).join('\n            ');
 
     return `
-        <div class="mb-3" data-row="${label}">
+        <div class="kb-row mb-3" data-row="${label}">
             <div class="text-xs font-mono text-[#6b7280] mb-1 uppercase tracking-wider">${label}</div>
             <div class="flex gap-1 flex-wrap">
                 ${buttons}
@@ -70,7 +70,7 @@ const html = `
         }
     </style>
 
-    <div class="p-4 flex flex-col h-full">
+    <div class="kb-inner p-4 flex flex-col h-full w-full">
         ${buildRow('Shared-Dom', sharedDomKeys)}
         ${buildRow('Pud-Dom', pudDomKeys)}
         ${buildRow('Prompt', promptKeys)}
@@ -79,7 +79,7 @@ const html = `
     </div>
 `;
 
-const className = 'flex-1 overflow-y-auto p-4 w-full bg-[#111827]';
+const className = 'w-full bg-[#111827]';
 
 class KeyboardBar extends BaseComponent {
     html = html;
@@ -87,25 +87,103 @@ class KeyboardBar extends BaseComponent {
 
     #statusLine;
     #busy = false;
-    #stagedPrompt = null;
+    #renderedPrompt = null;
+    #selectedPrompt = null;
     #sharedDomains = [];
     #pudDomains = [];
     #selectedDomain = null;
+    #expanded = false;
+
+    isExpanded() { return this.#expanded; }
+
+    getRenderedPromptText() { return this.#renderedPrompt?.text ?? null; }
 
     setDomains(shared, pud) {
         this.#sharedDomains = shared || [];
         this.#pudDomains = pud || [];
         this.#selectedDomain = null;
-        this.#stagedPrompt = null;
+        this.#selectedPrompt = null;
+        this.#renderedPrompt = null;
         this.#refreshAllStates();
+    }
+
+    setExpanded(expanded) {
+        this.#expanded = expanded;
+        const rows = this.querySelectorAll('.kb-row');
+
+        if (expanded) {
+            this.classList.add('flex-1', 'overflow-y-auto', 'p-4');
+            this.classList.remove('cursor-pointer');
+            rows.forEach(r => r.classList.remove('hidden'));
+            this.#statusLine.textContent = 'Ready.';
+        } else {
+            this.classList.remove('flex-1', 'overflow-y-auto', 'p-4');
+            this.classList.add('p-1', 'cursor-pointer');
+            rows.forEach(r => r.classList.add('hidden'));
+            this.#statusLine.textContent = this.#buildCollapsedStatus();
+        }
+    }
+
+    toggleExpanded() { this.setExpanded(!this.#expanded); }
+
+    async expandPaths(paths) {
+        if (!this.#selectedDomain || !this.#selectedPrompt) return false;
+        if (!paths || paths.length === 0) return false;
+
+        if (!this.#selectedPrompt.expanded_paths) {
+            this.#selectedPrompt.expanded_paths = [];
+        }
+
+        const existing = new Set(this.#selectedPrompt.expanded_paths);
+        const newPaths = paths.filter(p => !existing.has(p));
+
+        if (newPaths.length === 0) return false;
+
+        this.#selectedPrompt.expanded_paths.push(...newPaths);
+
+        const response = await apiClient.renderPrompt(this.#selectedDomain, this.#selectedPrompt);
+        this.#renderedPrompt = response;
+
+        const lines = response.lines ?? 0;
+        const chars = response.chars ?? 0;
+        this.#statusLine.textContent =
+            `Prompt "${this.#selectedPrompt.name}" of "${this.#selectedDomain.name}" — ${lines} lines, ${chars} chars — press Enter`;
+
+        return true;
+    }
+
+    #buildCollapsedStatus() {
+        if (!this.#selectedDomain || !this.#selectedPrompt || !this.#renderedPrompt) {
+            return 'Ctrl+I to expand';
+        }
+
+        const domKey = this.#findDomainKey(this.#selectedDomain);
+        const promptKey = this.#findPromptKey(this.#selectedPrompt);
+        const lines = this.#renderedPrompt.lines ?? 0;
+        const chars = this.#renderedPrompt.chars ?? 0;
+
+        return `Ctrl+I to expand │ Dom: "${this.#selectedDomain.name}" [${domKey}] │ Prompt: "${this.#selectedPrompt.name}" [${promptKey}] · ${lines} lines, ${chars} chars`;
+    }
+
+    #findDomainKey(domain) {
+        const si = this.#sharedDomains.indexOf(domain);
+        if (si >= 0) return sharedDomKeys[si];
+        const pi = this.#pudDomains.indexOf(domain);
+        if (pi >= 0) return pudDomKeys[pi];
+        return '?';
+    }
+
+    #findPromptKey(prompt) {
+        const idx = this.#selectedDomain?.prompts?.indexOf(prompt) ?? -1;
+        return idx >= 0 ? promptKeys[idx] : '?';
     }
 
     #handleKeydown = (event) => {
         if (event.ctrlKey && event.key === 'Enter') {
-            if (!this.#stagedPrompt) return;
+            if (!this.#renderedPrompt) return;
             event.stopPropagation();
             event.preventDefault();
-            navigator.clipboard.writeText(this.#stagedPrompt)
+            navigator.clipboard.writeText(this.#renderedPrompt.text)
                 .then(() => {
                     this.#statusLine.textContent = '📋 Prompt copied to clipboard';
                 })
@@ -120,11 +198,10 @@ class KeyboardBar extends BaseComponent {
         if (!boundKeys.has(event.key)) return;
 
         if (event.key === 'Enter') {
-            if (!this.#stagedPrompt) return;
+            if (!this.#renderedPrompt) return;
             event.stopPropagation();
             event.preventDefault();
-            this.dispatchEvent(new CustomEvent('prompt-fired', { detail: this.#stagedPrompt }));
-            this.#stagedPrompt = null;
+            this.dispatchEvent(new CustomEvent('prompt-selected'));
             return;
         }
 
@@ -156,6 +233,9 @@ class KeyboardBar extends BaseComponent {
         });
 
         this.addEventListener('keydown', this.#handleKeydown);
+        this.addEventListener('click', () => {
+            if (!this.#expanded) this.toggleExpanded();
+        });
     }
 
     disconnectedCallback() {
@@ -232,7 +312,8 @@ class KeyboardBar extends BaseComponent {
         }
 
         this.#selectedDomain = domain;
-        this.#stagedPrompt = null;
+        this.#selectedPrompt = null;
+        this.#renderedPrompt = null;
         this.#refreshAllStates();
         this.#statusLine.textContent = `Selected domain "${domain.name}" [${key}]`;
     }
@@ -257,7 +338,8 @@ class KeyboardBar extends BaseComponent {
         try {
             const response = await apiClient.renderPrompt(this.#selectedDomain, prompt);
 
-            this.#stagedPrompt = response.text;
+            this.#selectedPrompt = prompt;
+            this.#renderedPrompt = response;
 
             const pressedBtn = this.querySelector(`.kb-btn[data-key="${key}"]`);
             if (pressedBtn) this.#setStateClass(pressedBtn, 'highlighted');
