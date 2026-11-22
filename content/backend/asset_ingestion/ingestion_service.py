@@ -1,4 +1,3 @@
-
 from backend.stdlib import dataclass, StrEnum
 from backend.core import entities as e
 from backend.core import engine_deps as d
@@ -215,7 +214,17 @@ class IngestionServiceImpl(d.IngestionService):
         elif "content_fileset" in data or "meta_fileset" in data:
             content_fileset = self._build_fileset(data["content_fileset"]) if data.get("content_fileset") else None
             meta_fileset = self._build_fileset(data["meta_fileset"]) if data.get("meta_fileset") else None
-            return e.RepoContentResolver(anchor=anchor, content_fileset=content_fileset, meta_fileset=meta_fileset)
+            user_selected_files = data.get("user_selected_files") or []
+            assistant_selected_files = data.get("assistant_selected_files") or []
+            meta_files = data.get("meta_files") or []
+            return e.RepoContentResolver(
+                anchor=anchor,
+                content_fileset=content_fileset,
+                meta_fileset=meta_fileset,
+                user_selected_files=user_selected_files,
+                assistant_selected_files=assistant_selected_files,
+                meta_files=meta_files,
+            )
         else:
             raise ValueError(f"Cannot determine resolver type from keys: {list(data.keys())}")
 

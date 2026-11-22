@@ -35,3 +35,27 @@ class FilesetValidator2:
         if shared_unsatisfied:
             self.ec.accept(UnsatisfiedFilesetSubjects(self.clank_doc_assets, shared_unsatisfied))
             self.numap.prune(shared_unsatisfied)
+
+        if self.pud_content_assets:
+            for resolver in self.numap.get_entities(e.RepoContentResolver):
+                if resolver.content_fileset:
+                    resolver.user_selected_files = self._resolve_fileset_paths(
+                        resolver.content_fileset, self.pud_content_assets.paths
+                    )
+                if resolver.meta_fileset:
+                    resolver.meta_files = self._resolve_fileset_paths(
+                        resolver.meta_fileset, self.pud_content_assets.paths
+                    )
+
+    def _resolve_fileset_paths(self, fileset: e.Fileset, available_paths: list[str]) -> list[str]:
+        resolved: set[str] = set()
+        for inc in fileset.includes:
+            for p in available_paths:
+                if p.startswith(inc.value):
+                    resolved.add(p)
+        if fileset.excludes:
+            for exc in fileset.excludes:
+                for p in available_paths:
+                    if p.startswith(exc.value):
+                        resolved.discard(p)
+        return sorted(resolved)

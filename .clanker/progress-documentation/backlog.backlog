@@ -92,6 +92,10 @@ Backlog tail, Selected item/items:
         - drop the per-fileset disk globbing in _res_repo_content
     [ ] 'content/backend/asset_ingestion/ingestion_service.py': _build_resolver reads user_selected_files, assistant_selected_files, meta_files from the input dict
         - parse only when present; keep expanded_paths as-is
+    [ ] 'content/backend/adapters/disk_adapter.py': get_dir_manifest should return only actual file paths, not empty directory entries
+        - in the `rel_roots is None` branch: drop the `or (sub_path.is_dir() and not any(sub_path.iterdir()))` clause, keep only `sub_path.is_file()`
+        - in the `rel_roots` (else) branch: same — the `sub_path.is_dir()` check for empty dirs should be dropped from the rglob sub-iteration; a fileset include pointing at a directory that exists with content is already covered by its descendant files
+        - rationale: `get_dir_manifest` is the sole source for `pud_content_assets.paths`, which the validator uses for prefix-matching to populate `user_selected_files`/`meta_files`; empty dirs in the manifest cause `IsADirectoryError` at render time when the service calls `get_file_contents` on a directory path
 ```
 Backlog tail end
 

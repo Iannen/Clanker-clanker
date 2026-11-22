@@ -1,4 +1,3 @@
-
 import re
 
 from backend.core import entities as e
@@ -105,73 +104,51 @@ class PromptServiceImpl(d.PromptService):
         resolver: e.RepoContentResolver,
         expanded_paths: list[str],
     ) -> dict[str, str]:
-        content_blocks: list[str] = []
-        content_paths: set[str] = set()
-        expanded_path_set = set(expanded_paths)
+        user_files = list(resolver.user_selected_files)
+        assistant_files = list(resolver.assistant_selected_files)
+        meta_files = list(resolver.meta_files)
 
-        if resolver.content_fileset:
-            includes = self.files.get_file_paths(
-                e.PathTokens.PUD,
-                [include.value for include in resolver.content_fileset.includes],
-                missing_ok=False,
-            )
-            excludes = (
-                self.files.get_file_paths(
-                    e.PathTokens.PUD,
-                    [exclude.value for exclude in resolver.content_fileset.excludes],
-                    missing_ok=True,
+        expanded_set = set(expanded_paths)
+        remaining_meta: list[str] = []
+        for p in meta_files:
+            if p in expanded_set:
+                assistant_files.append(p)
+            else:
+                remaining_meta.append(p)
+        meta_files = remaining_meta
+
+        blocks: list[str] = []
+
+        for p in sorted(user_files):
+            try:
+                content = self.files.get_file_contents(f"{e.PathTokens.PUD}/{p}").rstrip()
+                blocks.append(self._format_full_file(p, content))
+            except UnicodeDecodeError:
+                pass
+
+        for p in sorted(assistant_files):
+            try:
+                content = self.files.get_file_contents(f"{e.PathTokens.PUD}/{p}").rstrip()
+                blocks.append(self._format_full_file(p, content))
+            except UnicodeDecodeError:
+                pass
+
+        for p in sorted(meta_files):
+            try:
+                content = self.files.get_file_contents(f"{e.PathTokens.PUD}/{p}")
+                line_count = len(content.splitlines())
+                blocks.append(
+                    f"{e.Delims.FILE_META_UL[1]}{p} loc={line_count}{e.Delims.FILE_META_CLOSE[1]}"
                 )
-                if resolver.content_fileset.excludes
-                else set()
-            )
-            content_paths = set(includes - excludes)
-            for p in sorted(content_paths):
-                try:
-                    content = self.files.get_file_contents(f"{e.PathTokens.PUD}/{p}").rstrip()
-                    content_blocks.append(
-                        f"{e.Delims.READ_FILESET_UL[1]}{p}{e.Delims.FILESET_OPEN_END_TAG[1]}\n"
-                        f"{content}\n"
-                        f"{e.Delims.READ_FILESET_BL[1]}{p}{e.Delims.FILESET_OPEN_END_TAG[1]}"
-                    )
-                except UnicodeDecodeError:
-                    pass
+            except UnicodeDecodeError:
+                pass
 
-        meta_blocks: list[str] = []
-        if resolver.meta_fileset:
-            meta_includes = self.files.get_file_paths(
-                e.PathTokens.PUD,
-                [include.value for include in resolver.meta_fileset.includes],
-                missing_ok=False,
-            )
-            meta_excludes = (
-                self.files.get_file_paths(
-                    e.PathTokens.PUD,
-                    [exclude.value for exclude in resolver.meta_fileset.excludes],
-                    missing_ok=True,
-                )
-                if resolver.meta_fileset.excludes
-                else set()
-            )
-            meta_paths = sorted(meta_includes - meta_excludes - content_paths)
-            for p in meta_paths:
-                try:
-                    if p in expanded_path_set:
-                        content = self.files.get_file_contents(
-                            f"{e.PathTokens.PUD}/{p}"
-                        ).rstrip()
-                        meta_blocks.append(
-                            f"{e.Delims.READ_FILESET_UL[1]}{p}{e.Delims.FILESET_OPEN_END_TAG[1]}\n"
-                            f"{content}\n"
-                            f"{e.Delims.READ_FILESET_BL[1]}{p}{e.Delims.FILESET_OPEN_END_TAG[1]}"
-                        )
-                    else:
-                        content = self.files.get_file_contents(f"{e.PathTokens.PUD}/{p}")
-                        line_count = len(content.splitlines())
-                        meta_blocks.append(
-                            f"{e.Delims.FILE_META_UL[1]}{p} loc={line_count}{e.Delims.FILE_META_CLOSE[1]}"
-                        )
-                except UnicodeDecodeError:
-                    pass
+        return {resolver.anchor: "\n\n".join(blocks)}
 
-        all_blocks = content_blocks + meta_blocks
-        return {resolver.anchor: "\n\n".join(all_blocks)}
+    @staticmethod
+    def _format_full_file(path: str, content: str) -> str:
+        return (
+            f"{e.Delims.READ_FILESET_UL[1]}{path}{e.Delims.FILESET_OPEN_END_TAG[1]}\n"
+            f"{content}\n"
+            f"{e.Delims.READ_FILESET_BL[1]}{path}{e.Delims.FILESET_OPEN_END_TAG[1]}"
+        )

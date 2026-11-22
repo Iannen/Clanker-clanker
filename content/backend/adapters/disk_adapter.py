@@ -132,7 +132,7 @@ class LinuxDiskAdapter(DiskPort):
                 if not base_dir.exists():
                     raise NoSuchFile from FileNotFoundError(f"Path does not exist: {base_dir}")
                 for sub_path in base_dir.rglob("*"):
-                    if sub_path.is_file() or (sub_path.is_dir() and not any(sub_path.iterdir())):
+                    if sub_path.is_file():
                         resolved_files.add(str(sub_path.relative_to(base_dir)))
             else:
                 for root_str in rel_roots:
@@ -144,12 +144,9 @@ class LinuxDiskAdapter(DiskPort):
                     if full_path.is_file():
                         resolved_files.add(str(rel_path))
                     elif full_path.is_dir():
-                        if not any(full_path.iterdir()):
-                            resolved_files.add(str(rel_path))
-                        else:
-                            for sub_path in full_path.rglob("*"):
-                                if sub_path.is_file() or (sub_path.is_dir() and not any(sub_path.iterdir())):
-                                    resolved_files.add(str(sub_path.relative_to(base_dir)))
+                        for sub_path in full_path.rglob("*"):
+                            if sub_path.is_file():
+                                resolved_files.add(str(sub_path.relative_to(base_dir)))
         except (PermissionError, UnicodeDecodeError) as ex:
             raise FileAccessError from ex
         return resolved_files
