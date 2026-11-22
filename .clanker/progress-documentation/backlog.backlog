@@ -78,8 +78,28 @@ Just some ideas on the board:
 
 Backlog tail, Selected item/items:
 
+```
+1. Align repo-content resolver with 3 new file lists
+    [ ] 'content/backend/core/core/entities.py': Add user_selected_files, assistant_selected_files, meta_files (default empty) to RepoContentResolver; keep expanded_paths intact
+        - fields are list[str] with default_factory=list
+        - assistant_selected_files stays empty (populated later)
+    [ ] 'content/backend/asset_ingestion/validators/fileset_validator.py': Populate user_selected_files and meta_files for each RepoContentResolver using pud_content_assets.paths (no new DiskPort)
+        - resolve content_fileset includes/excludes → user_selected_files
+        - resolve meta_fileset includes/excludes → meta_files
+        - leave assistant_selected_files empty
+    [ ] 'content/backend/render_pipeline/render_service.py': Process repo content in order — user_selected_files (full), assistant_selected_files (full), meta_files (metadata); keep expanded_paths
+        - in _res_repo_content, for each path in prompt.expanded_paths: if present in meta_files, remove it and append to assistant_selected_files; otherwise ignore
+        - drop the per-fileset disk globbing in _res_repo_content
+    [ ] 'content/backend/asset_ingestion/ingestion_service.py': _build_resolver reads user_selected_files, assistant_selected_files, meta_files from the input dict
+        - parse only when present; keep expanded_paths as-is
+```
 Backlog tail end
 
 VI. finished stuffs
-
-```
+Esc in input-box should reach the scroll-lock handler
+[x] 'content/web-ui/frontend/input-box.js': bubble toggle-scroll-lock from the Escape handler
+    - task: add { bubbles: true } so the custom event leaves input-box
+    - prohibition: don't rely on messages-box listener; it's a sibling, not an ancestor
+[x] 'content/web-ui/frontend/clanker-app.js': move the toggle-scroll-lock listener to the clanker-app root
+    - task: change this.messagesBox.addEventListener to this.addEventListener
+    - prohibition: don't leave the handler on messages-box expecting the event to reach it from input-box

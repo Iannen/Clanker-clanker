@@ -49,7 +49,7 @@ class InputBox extends BaseComponent {
         if (event.key === 'Escape' && !event.ctrlKey && !event.altKey && !event.metaKey) {
             event.stopPropagation();
             event.preventDefault();
-            this.dispatchEvent(new CustomEvent('toggle-scroll-lock'));
+            this.dispatchEvent(new CustomEvent('toggle-scroll-lock', { bubbles: true }));
             return;
         }
 
