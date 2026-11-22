@@ -33,6 +33,16 @@ pud_filesets:
 
   nothing: {includes: []}
 
+  config_dev: {
+    includes: [
+      content
+    ], excludes: [
+        content/a__old_tui,
+        .clanker/config.yaml,
+
+    ]
+  }
+
 pud_domains:
   old_tui:
     resolvers:
@@ -45,7 +55,7 @@ pud_domains:
 
   web-clank:
     resolvers:
-      - { anchor: repository, type: repo-content, content_fileset: ¤ nothing, meta_fileset: ¤ front_and_back }
+      - { anchor: repository, type: repo-content, content_fileset: ¤ nothing, meta_fileset: ¤ config_dev }
       - { anchor: project documentation, type: multi-document-retrieval, files: ¤ backlog_excerpt}
     prompts:
       - ¤ plan

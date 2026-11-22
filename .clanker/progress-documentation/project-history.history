@@ -2002,3 +2002,35 @@ CCXXIX: READ-FILE EXPANSION — FRONTEND AND AUTO-CONTINUE LOOP
     - `clanker-app.js`: `#ingestContent(content, { silentEmpty })` helper — calls `apiClient.ingestFileChanges`, suppresses toast when result is empty and `silentEmpty` is true. `#ingestSelected` (Alt+Enter) calls `#ingestContent` and, if `data.expanded` is non-empty, calls `keyboardBar.expandPaths`. `#generateResponse` implements the auto-continue loop: after each stream completes, calls `#ingestContent(prevContent, { silentEmpty: true })`; if `data.expanded` non-empty, calls `keyboardBar.expandPaths`; if it returns false, breaks. Reuses the single `assistantMsg` across iterations (appends, does not create new bubbles). History rebuilt from `messagesBox` each iteration. `inputBox` stays disabled throughout the chain.
 - Reflection:
     - The loop has no max-iteration cap, which is acceptable for the current use case (file expansion is bounded by the fileset size). The `silentEmpty` suppression prevents toast noise during intermediate turns. The single-assistantMsg pattern means the user sees one growing bubble rather than a series of separate turns, which is the intended UX for a continuous reasoning session.
+
+CCXXX: SCROLL-LOCK INPUT HANDLING
+    Purpose: Make the messages-box scroll lock responsive to all user interactions that imply intent to scroll or read — Escape, focus, and wheel.
+    - The lock toggles on Esc but previously had no release path other than manual toggle; focus entering the container (e.g. clicking a message) or wheel scrolling over it should unlock without requiring another Esc.
+    Actions:
+    - `input-box.js`: Escape handler now dispatches `toggle-scroll-lock` with `{ bubbles: true }` so the event escapes the input-box and reaches an ancestor.
+    - `clanker-app.js`: Moved the `toggle-scroll-lock` listener from `this.messagesBox` to `this` (the app root), since input-box and messages-box are siblings — the event can't reach messages-box from input-box.
+    - `messages-box.js`: Added `focusin` and `wheel` listeners on the container, each calling `this.setScrollLocked(false)`. One-way (unlock only), no-op if already unlocked. Registered in `onConnect`, cleaned in `disconnectedCallback`.
+    Reflection:
+    - Container-level listeners are sufficient via bubbling; no per-message listeners needed. The lock is purely a UX gate, not state the backend cares about.
+
+CCXXXI: EXPLICIT CONTEXT ORDERING FOR PREFILL LATENCY
+    Purpose: Structure the rendered prompt so the LLM's KV cache (prefill) covers the stable context, reducing per-turn latency.
+    - The old resolver rendered fileset paths in glob order; the new model separates "what the user chose" from "what the assistant will request next" from "metadata stubs," letting the render pipeline place them in a deterministic order that maximizes cache reuse across turns.
+    Actions:
+    - `entities.py`: Added `user_selected_files`, `assistant_selected_files`, `meta_files` (all `list[str]`, default `[]`) to `RepoContentResolver`. Promoted `type` class vars to annotated dataclass fields (`type: str = "..."`) so the discriminator round-trips through frontend JSON.
+    - `fileset_validator.py`: Populates `user_selected_files` and `meta_files` per resolver from `pud_content_assets.paths` (prefix-matched against fileset includes/excludes). `assistant_selected_files` stays empty (filled at render time).
+    - `render_service.py`: `_res_repo_content` iterates `expanded_paths`; if a path is in `meta_files`, it is moved to `assistant_selected_files`. Render order: user_selected (full content) → assistant_selected (full) → meta (metadata-only stubs). Dropped per-fileset disk globbing.
+    - `ingestion_service.py`: `_build_resolver` reads the three new fields from the input dict; only parses when present.
+    - `disk_adapter.py`: `get_dir_manifest` no longer includes empty-directory entries in either branch (`rel_roots is None` and `rel_roots` else). Empty dirs were the sole cause of `IsADirectoryError` at render time and polluted the prefix-match set.
+    Reflection:
+    - The ordering is the whole point — without it, the render order is arbitrary and prefill can't be exploited. The disk_adapter fix is a prerequisite, not a feature: without it the path lists contain directory stubs that crash `get_file_contents`.
+
+CCXXXII: PARSER-DRIVEN DESERIALIZATION (YAGNI)
+    Purpose: Eliminate hand-rolled `_build_*` construction helpers in favour of the existing Numap/parser framework, since the frontend already sends entity-shaped JSON.
+    - The parser machinery (MapExtractor2 / FilelistParser2) already knows how to build domain, prompt, resolver, fileset, and file entities from a flat dict. Reimplementing that logic as imperative helpers in ingestion_service was redundant.
+    Actions:
+    - `ingestion_service.py`: Replaced the entire `_build_domain` / `_build_prompt` / `_build_render` / `_build_resolver` / `_build_filelist` / `_build_file` / `_build_fileset` / `_build_fileset_item` chain with: fresh `ErrorCollector` + `Numap`, then `numap.get_parser(e.Domain).parse(None, data["domain"], numap)` and `numap.get_parser(e.Prompt).parse(None, data["prompt"], numap)`. On failure, raises `ValueError` from `ec.complaints`.
+    - `map_extractor2.py`: Added early-return passthrough clauses — `FileParser.preprocess` and `FilelistParser2.preprocess` each check for the already-shaped marker (`"truncation_spec" in data` / `isinstance(data, dict) and "files" in data`) and return the dict as-is, skipping the reshape path.
+    Reflection:
+    - The passthrough clauses are the actual YAGNI cut: the parser's reshape logic exists for legacy config-format input; when the frontend sends entity-shaped JSON, there's nothing to reshape. The deletion of seven `_build_*` helpers removes a second code path that had to stay in sync with the parser schema.
+
