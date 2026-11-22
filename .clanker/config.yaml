@@ -31,8 +31,6 @@ pud_filesets:
     ]
   }
 
-  frontend: {includes: ['content/web-ui/frontend']}
-
   nothing: {includes: []}
 
 pud_domains:

@@ -1,7 +1,8 @@
-Evaluate repository contents against selected backlog items:
-- Are all required files present and is the implementation path clear/unambiguous?
+Evaluate repository contents against the selected backlog items:
+1. Are all required files present?
+2. Is the implementation path clear and unambiguous?
 
 **Strict Output Rules:**
-- **If YES:** Output the completed code changes using the `code-generation.output-template`. Remember to use the correct tag.
-- **If NO:** Output a concise bulleted list of missing files or ambiguities blocking progress.
-
+- **If all required files are present AND the implementation path is unambiguous:** Output the completed code changes using the `code-generation.output-template`. Remember to use the correct tag.
+- **If one or more required files are missing:** Request missing files per `code-generation.output-template`
+- **If all required files are present, but the implementation path is unclear or ambiguous:** Do not generate code. You may request to see more files, or output a conversational response to user explaining the blocker.

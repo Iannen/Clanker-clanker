@@ -1,4 +1,3 @@
-
 from backend.stdlib import dataclass, Type, re, Any, StrEnum
 from dataclasses import field
 
@@ -65,8 +64,8 @@ class Resolver(Entity):
 
 @dataclass
 class MultiDocResolver(Resolver):
-    type = "multi-document-retrieval"
     files: Filelist
+    type: str = "multi-document-retrieval"
 
 @dataclass
 class SharedBaseResolver(MultiDocResolver): pass
@@ -75,9 +74,12 @@ class PudBaseResolver(MultiDocResolver): pass
 
 @dataclass
 class RepoContentResolver(Resolver):
-    type = "repo-content"
     content_fileset: PudFileset | None
     meta_fileset: PudFileset | None
+    user_selected_files: list[str] = field(default_factory=list)
+    assistant_selected_files: list[str] = field(default_factory=list)
+    meta_files: list[str] = field(default_factory=list)
+    type: str = "repo-content"
 
 @dataclass
 class Render(Entity):
@@ -151,7 +153,6 @@ SHR_TEMPL = PathTokens.SHARED + "/content/a_lib/templates/"
 SHR_DOC_TEMPL = SHR_TEMPL + "documentation/"
 SHR_LAYOUTS = PathTokens.SHARED + "/content/a_lib/shared-assets/layouts/"
 PROG_DOCS = PathTokens.PUD + "/.clanker/progress-documentation/"
-
 
 class ClankerAssets:
     class Configs(StrEnum):
