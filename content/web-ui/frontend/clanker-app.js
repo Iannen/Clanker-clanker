@@ -92,7 +92,7 @@ class ClankerApp extends BaseComponent {
             this.inputBox.focus();
         });
 
-        this.messagesBox.addEventListener('toggle-scroll-lock', () => {
+        this.addEventListener('toggle-scroll-lock', () => {
             this.messagesBox.toggleScrollLock();
         });
 
@@ -218,16 +218,13 @@ class ClankerApp extends BaseComponent {
 
                 this.messagesBox.addMessages(userMsg, assistantMsg);
                 this.inputBox.setDisabled(true);
-
-                const originalUserPrompt = prompt;
                 let prevContent = '';
                 let prevReasoning = '';
                 const history = this.messagesBox.getHistory();
                 const renderedPrompt = this.#keyboardBar.getRenderedPromptText();
                 if (renderedPrompt && history.length > 0) {
-                    history[0].content = renderedPrompt + '\n\n' + originalUserPrompt;
+                    history[0].content = renderedPrompt + '\n\n' + history[0].content;
                 }
-
                 const totalChars = history.reduce((sum, m) => sum + (m.content?.length ?? 0), 0);
                 if (!prevContent) {
                     assistantMsg.sentChars = totalChars;
