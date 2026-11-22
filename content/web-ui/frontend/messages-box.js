@@ -125,11 +125,15 @@ class MessagesBox extends BaseComponent {
         this.welcomeText = this.querySelector('.welcome-text');
         this.addEventListener('keydown', this.#handleKeydown);
         this.addEventListener('focusout', this.#handleFocusout);
+        this.addEventListener('focusin', this.#handleFocusIn);
+        this.addEventListener('wheel', this.#handleWheel);
     }
 
     disconnectedCallback() {
         this.removeEventListener('keydown', this.#handleKeydown);
         this.removeEventListener('focusout', this.#handleFocusout);
+        this.removeEventListener('focusin', this.#handleFocusIn);
+        this.removeEventListener('wheel', this.#handleWheel);
     }
 
     #handleKeydown = (event) => {
@@ -181,6 +185,14 @@ class MessagesBox extends BaseComponent {
                 last.setSelected(true);
             }
         }
+    };
+
+    #handleFocusIn = () => {
+        this.setScrollLocked(false);
+    };
+
+    #handleWheel = () => {
+        this.setScrollLocked(false);
     };
 
     #addMessage(message) {
