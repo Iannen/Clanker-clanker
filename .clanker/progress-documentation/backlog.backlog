@@ -78,28 +78,10 @@ Just some ideas on the board:
 
 Backlog tail, Selected item/items:
 
-```
-1. Align repo-content resolver with 3 new file lists
-    [ ] 'content/backend/core/core/entities.py': Add user_selected_files, assistant_selected_files, meta_files (default empty) to RepoContentResolver; keep expanded_paths intact
-        - fields are list[str] with default_factory=list
-        - assistant_selected_files stays empty (populated later)
-    [ ] 'content/backend/asset_ingestion/validators/fileset_validator.py': Populate user_selected_files and meta_files for each RepoContentResolver using pud_content_assets.paths (no new DiskPort)
-        - resolve content_fileset includes/excludes → user_selected_files
-        - resolve meta_fileset includes/excludes → meta_files
-        - leave assistant_selected_files empty
-    [ ] 'content/backend/render_pipeline/render_service.py': Process repo content in order — user_selected_files (full), assistant_selected_files (full), meta_files (metadata); keep expanded_paths
-        - in _res_repo_content, for each path in prompt.expanded_paths: if present in meta_files, remove it and append to assistant_selected_files; otherwise ignore
-        - drop the per-fileset disk globbing in _res_repo_content
-    [ ] 'content/backend/asset_ingestion/ingestion_service.py': _build_resolver reads user_selected_files, assistant_selected_files, meta_files from the input dict
-        - parse only when present; keep expanded_paths as-is
-    [ ] 'content/backend/adapters/disk_adapter.py': get_dir_manifest should return only actual file paths, not empty directory entries
-        - in the `rel_roots is None` branch: drop the `or (sub_path.is_dir() and not any(sub_path.iterdir()))` clause, keep only `sub_path.is_file()`
-        - in the `rel_roots` (else) branch: same — the `sub_path.is_dir()` check for empty dirs should be dropped from the rglob sub-iteration; a fileset include pointing at a directory that exists with content is already covered by its descendant files
-        - rationale: `get_dir_manifest` is the sole source for `pud_content_assets.paths`, which the validator uses for prefix-matching to populate `user_selected_files`/`meta_files`; empty dirs in the manifest cause `IsADirectoryError` at render time when the service calls `get_file_contents` on a directory path
-```
 Backlog tail end
 
 VI. finished stuffs
+
 Esc in input-box should reach the scroll-lock handler
 [x] 'content/web-ui/frontend/input-box.js': bubble toggle-scroll-lock from the Escape handler
     - task: add { bubbles: true } so the custom event leaves input-box
@@ -107,3 +89,43 @@ Esc in input-box should reach the scroll-lock handler
 [x] 'content/web-ui/frontend/clanker-app.js': move the toggle-scroll-lock listener to the clanker-app root
     - task: change this.messagesBox.addEventListener to this.addEventListener
     - prohibition: don't leave the handler on messages-box expecting the event to reach it from input-box
+
+1. Align repo-content resolver with 3 new file lists
+    [x] 'content/backend/core/core/entities.py': Add user_selected_files, assistant_selected_files, meta_files (default empty) to RepoContentResolver; keep expanded_paths intact
+        - fields are list[str] with default_factory=list
+        - assistant_selected_files stays empty (populated later)
+    [x] 'content/backend/asset_ingestion/validators/fileset_validator.py': Populate user_selected_files and meta_files for each RepoContentResolver using pud_content_assets.paths (no new DiskPort)
+        - resolve content_fileset includes/excludes → user_selected_files
+        - resolve meta_fileset includes/excludes → meta_files
+        - leave assistant_selected_files empty
+    [x] 'content/backend/render_pipeline/render_service.py': Process repo content in order — user_selected_files (full), assistant_selected_files (full), meta_files (metadata); keep expanded_paths
+        - in _res_repo_content, for each path in prompt.expanded_paths: if present in meta_files, remove it and append to assistant_selected_files; otherwise ignore
+        - drop the per-fileset disk globbing in _res_repo_content
+    [x] 'content/backend/asset_ingestion/ingestion_service.py': _build_resolver reads user_selected_files, assistant_selected_files, meta_files from the input dict
+        - parse only when present; keep expanded_paths as-is
+    [x] 'content/backend/adapters/disk_adapter.py': get_dir_manifest should return only actual file paths, not empty directory entries
+        - in the `rel_roots is None` branch: drop the `or (sub_path.is_dir() and not any(sub_path.iterdir()))` clause, keep only `sub_path.is_file()`
+        - in the `rel_roots` (else) branch: same — the `sub_path.is_dir()` check for empty dirs should be dropped from the rglob sub-iteration; a fileset include pointing at a directory that exists with content is already covered by its descendant files
+        - rationale: `get_dir_manifest` is the sole source for `pud_content_assets.paths`, which the validator uses for prefix-matching to populate `user_selected_files`/`meta_files`; empty dirs in the manifest cause `IsADirectoryError` at render time when the service calls `get_file_contents` on a directory path
+
+1. Resolver type discriminator round-trips through frontend
+    [x] 'content/backend/core/core/entities.py': Annotate resolver type class vars as dataclass fields
+        - change `type = "multi-document-retrieval"` → `type: str = "multi-document-retrieval"` on MultiDocResolver
+        - change `type = "repo-content"` → `type: str = "repo-content"` on RepoContentResolver
+        - prohibition: do not change the string values, they are registry keys in build_ordered_parsers
+2. FileParser.preprocess passes through already-shaped dicts
+    [x] 'content/backend/asset_ingestion/extractors/map_extractor2.py': Add early-return clause to FileParser.preprocess
+        - if `"truncation_spec" in data`: return `data` as-is (frontend/frontend JSON is already entity-shaped)
+        - prohibition: do not change the existing reshape path for config-format flattened dicts
+3. deserialize_domain_prompt uses parser machinery instead of _build_* helpers
+    [x] 'content/backend/asset_ingestion/ingestion_service.py': Replace _build_* helper chain with Numap + parser.parse
+        - create fresh ErrorCollector + Numap (no configs)
+        - call numap.get_parser(e.Domain).parse(None, data["domain"], numap)
+        - call numap.get_parser(e.Prompt).parse(None, data["prompt"], numap)
+        - on failure: raise ValueError from ec complaints
+        - prohibition: do not call extract_all, only the two targeted parse calls
+        - delete _build_domain, _build_prompt, _build_render, _build_resolver, _build_filelist, _build_file, _build_fileset, _build_fileset_item
+4. FilelistParser2.preprocess passes through already-shaped dicts
+    [x] 'content/backend/asset_ingestion/extractors/map_extractor2.py': Add early-return clause to FilelistParser2.preprocess
+        - if `isinstance(data, dict) and "files" in data`: return `data` as-is (frontend JSON is already entity-shaped)
+        - prohibition: do not change the existing reshape path for config-format bare lists

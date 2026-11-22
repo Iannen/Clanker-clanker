@@ -96,7 +96,7 @@ def build_ordered_parsers(ec: Any) -> dict[type | str, Any]:
         unsatisfied = next_unsatisfied
 
     parse_base_cls = BaseParser2
-    parse_classes = {obj.entity_cls: obj(ec) for obj in globals().values()if inspect.isclass(obj) and issubclass(obj, BaseParser2) and obj is not BaseParser2 and getattr(obj, "entity_cls", None)}
+    parse_classes = {obj.entity_cls: obj(ec) for obj in globals().values() if inspect.isclass(obj) and issubclass(obj, BaseParser2) and obj is not BaseParser2 and getattr(obj, "entity_cls", None)}
     
     parser_map: dict[type | str, Any] = {}
 
@@ -234,12 +234,16 @@ class BaseParser2:
 
 class FilelistParser2(BaseParser2): 
     entity_cls = e.Filelist
-    def preprocess(self, data: dict) -> dict: return {"files": data}
+    def preprocess(self, data: dict) -> dict:
+        if isinstance(data, dict) and "files" in data:
+            return data
+        return {"files": data}
 
 class FileParser(BaseParser2):
     entity_cls = e.File
     def preprocess(self, data: dict) -> dict:
         if isinstance(data, str): return {"name": data}
+        if "truncation_spec" in data: return data
         return {"name": data.pop("name"), "truncation_spec": data if data else None}
 
 class FilesetItemparser(BaseParser2):

@@ -64,8 +64,8 @@ class Resolver(Entity):
 
 @dataclass
 class MultiDocResolver(Resolver):
-    type = "multi-document-retrieval"
     files: Filelist
+    type: str = "multi-document-retrieval"
 
 @dataclass
 class SharedBaseResolver(MultiDocResolver): pass
@@ -74,12 +74,12 @@ class PudBaseResolver(MultiDocResolver): pass
 
 @dataclass
 class RepoContentResolver(Resolver):
-    type = "repo-content"
     content_fileset: PudFileset | None
     meta_fileset: PudFileset | None
     user_selected_files: list[str] = field(default_factory=list)
     assistant_selected_files: list[str] = field(default_factory=list)
     meta_files: list[str] = field(default_factory=list)
+    type: str = "repo-content"
 
 @dataclass
 class Render(Entity):
