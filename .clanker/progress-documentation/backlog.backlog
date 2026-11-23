@@ -72,17 +72,40 @@ Just some ideas on the board:
 
 Backlog tail, Selected item/items:
 ```
-n. KB Bar: single-line collapsed header with status-as-label + toast for clipboard
-    [ ] 'web-ui/frontend/keyboard-bar.js': Merge status into header, drop label element
-        - Remove standalone #kb-label span; header is glyph + "Ctrl+I" hint + one status text element
-        - Status text element carries the accent treatment (semibold, thin left border, brighter text) that the old label used to have
-        - #statusLine (the separate .status-line div) is removed; all status updates write directly into the header's status span
-        - Collapsed header reads: ▸  Ctrl+I  │ <status text> — one line, no second row
-    [ ] 'web-ui/frontend/keyboard-bar.js': Emit prompt-copied event on successful clipboard write
-        - In #handleKeydown Ctrl+Enter path: on navigator.clipboard.writeText().then, dispatch CustomEvent('prompt-copied') instead of writing to status line
-        - On .catch: still write error text to header status span locally (no event)
-    [ ] 'web-ui/frontend/clanker-app.js': Listen for prompt-copied and show toast
-        - In onConnect: this.#keyboardBar.addEventListener('prompt-copied', () => this.toast.show('📋 Prompt copied to clipboard'))
+
+```
+```
+n. KB Bar: preview/selected split, Enter commit, preview header, pane layout
+    [ ] 'content/web-ui/frontend/keyboard-bar.js': Split attr state into preview and selected
+        - New private fields: `#previewDomain`, `#previewPrompt`, `#previewRendered`
+        - Existing fields `#selectedDomain`, `#selectedPrompt`, `#renderedPrompt` remain as the committed set
+        - `#onDomainKey`: writes to `#previewDomain`; prompt button states refresh from `#previewDomain?.prompts`
+        - `#onPromptKey`: still calls `apiClient.renderPrompt(...)`; stores response in `#previewRendered`; sets `#previewPrompt`
+        - `#refreshAllStates`: domain/prompt button highlighting reads from `#previewDomain` / `#previewDomain?.prompts`
+        - `#refreshRendered`: pane text reads from `#previewRendered`
+        - Unchanged (confirm no preview reference): `#updateHeaderLabel` reads selected, `getRenderedPromptText()` reads `#renderedPrompt`, `expandPaths` reads/writes `#selectedPrompt.expanded_paths` and sets `#renderedPrompt`
+    [ ] 'content/web-ui/frontend/keyboard-bar.js': Enter commits preview → selected
+        - In `#handleKeydown` Enter path, before dispatching `prompt-selected`:
+            - `#selectedDomain = #previewDomain`
+            - `#selectedPrompt = #previewPrompt`
+            - `#renderedPrompt = #previewRendered`
+        - Then existing behaviour: dispatch `prompt-selected`, collapse bar, focus input
+    [ ] 'content/web-ui/frontend/keyboard-bar.js': Add preview header, fix pane height
+        - New element inside `#kb-zone2`, directly above `#rendered`:
+            - Displays `#previewDomain?.name → #previewPrompt?.name` (or "— → —" if unset)
+            - Subtle label row (small, dim, monospace) to distinguish from top header
+            - Updated in `#onDomainKey`, `#onPromptKey`, and on Enter commit
+        - `#rendered` div: drop `max-h-64`, add `flex-1` (keep `overflow-y-auto`)
+
+n. KB Bar: keyboard scrolling for rendered prompt pane
+    [ ] 'content/web-ui/frontend/keyboard-bar.js': Add scroll key handling in #handleKeydown
+        - Insert an early branch in `#handleKeydown` before the `boundKeys` check
+        - Guard: only when no ctrl/alt/meta held
+        - Map: ArrowUp -40, ArrowDown 40, PageUp -pane.clientHeight * 0.75, PageDown pane.clientHeight * 0.75
+        - pane is `this.querySelector('#rendered')`
+        - On match: `preventDefault`, `pane.scrollBy({ top: amount, behavior: event.repeat ? 'auto' : 'smooth' })`, return
+        - Numbers mirror messages-box
+```
 ```
 Backlog tail end
 
@@ -98,3 +121,15 @@ n. KB Bar: always-visible header strip + rendered-prompt pane in expanded body
         - #rendered populates with #renderedPrompt.text whenever Zone 2 is visible; shows placeholder when no prompt rendered yet
         - header label textContent updates in-place on domain/prompt selection; #rendered refreshes after renderPrompt() while already expanded
 ```
+
+n. KB Bar: single-line collapsed header with status-as-label + toast for clipboard
+    [x] 'web-ui/frontend/keyboard-bar.js': Merge status into header, drop label element
+        - Remove standalone #kb-label span; header is glyph + "Ctrl+I" hint + one status text element
+        - Status text element carries the accent treatment (semibold, thin left border, brighter text) that the old label used to have
+        - #statusLine (the separate .status-line div) is removed; all status updates write directly into the header's status span
+        - Collapsed header reads: ▸  Ctrl+I  │ <status text> — one line, no second row
+    [x] 'web-ui/frontend/keyboard-bar.js': Emit prompt-copied event on successful clipboard write
+        - In #handleKeydown Ctrl+Enter path: on navigator.clipboard.writeText().then, dispatch CustomEvent('prompt-copied') instead of writing to status line
+        - On .catch: still write error text to header status span locally (no event)
+    [x] 'web-ui/frontend/clanker-app.js': Listen for prompt-copied and show toast
+        - In onConnect: this.#keyboardBar.addEventListener('prompt-copied', () => this.toast.show('📋 Prompt copied to clipboard'))

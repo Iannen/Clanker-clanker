@@ -92,6 +92,10 @@ class ClankerApp extends BaseComponent {
             this.inputBox.focus();
         });
 
+        this.#keyboardBar.addEventListener('prompt-copied', () => {
+            this.toast.show('📋 Prompt copied to clipboard');
+        });
+
         this.addEventListener('toggle-scroll-lock', () => {
             this.messagesBox.toggleScrollLock();
         });

@@ -71,13 +71,11 @@ const html = `
     </style>
 
     <div class="kb-inner p-4 flex flex-col h-full w-full">
-        <div id="kb-header" class="flex items-center gap-2 mb-2 border-l-2 border-[#10b981] pl-2 text-sm text-[#e5e7eb] font-semibold">
+        <div id="kb-header" class="flex items-center gap-2 mb-2 border-l-2 border-[#10b981] pl-2 text-sm font-semibold">
             <span id="kb-glyph" class="text-xs select-none">▸</span>
             <span class="text-xs font-mono text-[#9ca3af] select-none">Ctrl+I</span>
-            <span id="kb-label" class="text-sm">Domain → Prompt</span>
+            <span id="kb-status" class="text-sm text-[#e5e7eb] border-l border-[#374151] pl-2 ml-1">Domain → Prompt</span>
         </div>
-
-        <div class="status-line text-xs font-mono text-[#9ca3af] mb-2"></div>
 
         <div id="kb-zone2" class="hidden">
             ${buildRow('Shared-Dom', sharedDomKeys)}
@@ -95,7 +93,7 @@ class KeyboardBar extends BaseComponent {
     html = html;
     className = className;
 
-    #statusLine;
+    #statusEl;
     #busy = false;
     #renderedPrompt = null;
     #selectedPrompt = null;
@@ -159,22 +157,21 @@ class KeyboardBar extends BaseComponent {
 
         const lines = response.lines ?? 0;
         const chars = response.chars ?? 0;
-        this.#statusLine.textContent =
+        this.#statusEl.textContent =
             `Prompt "${this.#selectedPrompt.name}" of "${this.#selectedDomain.name}" — ${lines} lines, ${chars} chars — press Enter`;
 
         return true;
     }
 
     #updateHeaderLabel() {
-        const label = this.querySelector('#kb-label');
-        if (!label) return;
+        if (!this.#statusEl) return;
 
         if (!this.#selectedDomain) {
-            label.textContent = 'Domain → Prompt';
+            this.#statusEl.textContent = 'Domain → Prompt';
         } else if (!this.#selectedPrompt) {
-            label.textContent = `${this.#selectedDomain.name} → ?`;
+            this.#statusEl.textContent = `${this.#selectedDomain.name} → ?`;
         } else {
-            label.textContent = `${this.#selectedDomain.name} → ${this.#selectedPrompt.name}`;
+            this.#statusEl.textContent = `${this.#selectedDomain.name} → ${this.#selectedPrompt.name}`;
         }
     }
 
@@ -198,10 +195,10 @@ class KeyboardBar extends BaseComponent {
             event.preventDefault();
             navigator.clipboard.writeText(this.#renderedPrompt.text)
                 .then(() => {
-                    this.#statusLine.textContent = '📋 Prompt copied to clipboard';
+                    this.dispatchEvent(new CustomEvent('prompt-copied'));
                 })
                 .catch(() => {
-                    this.#statusLine.textContent = '❌ Failed to copy to clipboard';
+                    this.#statusEl.textContent = '❌ Failed to copy to clipboard';
                 });
             return;
         }
@@ -231,8 +228,8 @@ class KeyboardBar extends BaseComponent {
     onConnect() {
         this.tabIndex = 0;
 
-        this.#statusLine = this.querySelector('.status-line');
-        this.#statusLine.textContent = 'Ready.';
+        this.#statusEl = this.querySelector('#kb-status');
+        this.#statusEl.textContent = 'Ready.';
 
         this.querySelectorAll('.kb-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -320,7 +317,7 @@ class KeyboardBar extends BaseComponent {
         const domain = domains[idx];
 
         if (!domain) {
-            this.#statusLine.textContent = `Domain [${key}] has no content`;
+            this.#statusEl.textContent = `Domain [${key}] has no content`;
             return;
         }
 
@@ -330,14 +327,14 @@ class KeyboardBar extends BaseComponent {
         this.#refreshAllStates();
         this.#updateHeaderLabel();
         this.#refreshRendered();
-        this.#statusLine.textContent = `Selected domain "${domain.name}" [${key}]`;
+        this.#statusEl.textContent = `Selected domain "${domain.name}" [${key}]`;
     }
 
     async #onPromptKey(key) {
         if (this.#busy) return;
 
         if (!this.#selectedDomain) {
-            this.#statusLine.textContent = `Select a domain first`;
+            this.#statusEl.textContent = `Select a domain first`;
             return;
         }
 
@@ -345,7 +342,7 @@ class KeyboardBar extends BaseComponent {
         const prompt = this.#selectedDomain.prompts?.[idx];
 
         if (!prompt) {
-            this.#statusLine.textContent = `Prompt [${key}] has no content`;
+            this.#statusEl.textContent = `Prompt [${key}] has no content`;
             return;
         }
 
@@ -361,13 +358,13 @@ class KeyboardBar extends BaseComponent {
 
             const lines = response.lines ?? 0;
             const chars = response.chars ?? 0;
-            this.#statusLine.textContent =
+            this.#statusEl.textContent =
                 `Prompt "${prompt.name}" of "${this.#selectedDomain.name}" — ${lines} lines, ${chars} chars — press Enter`;
 
             this.#refreshRendered();
             this.#updateHeaderLabel();
         } catch (error) {
-            this.#statusLine.textContent = '❌ ' + (error.message || 'Prompt render failed');
+            this.#statusEl.textContent = '❌ ' + (error.message || 'Prompt render failed');
         } finally {
             this.#busy = false;
         }
