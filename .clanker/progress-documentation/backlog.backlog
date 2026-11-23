@@ -64,9 +64,22 @@ III. Items under development
 
 Backlog tail, Selected item/items:
 
-- kb bar. this should carry a msgs array on itself, similar to how msgs box does. when the user hits enter to select a prompt, then the selected prompt becomes the sole msg of this arr.
-
-- clanker app. rather than combine the prompt held in kb bar with the first user msg, it should just combine kb bar and msgs box msg arrs.
+```
+1. Kbar msgs array + unconditional merge in clanker app
+    [ ] 'content/web-ui/frontend/keyboard-bar.js': Replace #renderedPrompt string with a #msgs array
+        - invariant: #msgs contains 0 or 1 entry, shaped { role: 'user', content: renderedText }
+        - only Enter-select writes a new entry: this.#msgs = [{ role: 'user', content: renderedText }]
+        - expandPaths mutates #msgs[0].content in place (same selection, updated render)
+        - preview browsing (#previewDomain, #previewPrompt, #previewRendered) has no effect on #msgs
+        - expose via getter: getMsgs() returning the array
+        - remove getRenderedPromptText() or repurpose to return #msgs[0]?.content ?? null
+    [ ] 'content/web-ui/frontend/clanker-app.js': Merge kb bar msgs into history unconditionally
+        - in #generateResponse, replace the "prepend renderedPrompt onto history[0].content" block with:
+          const fullHistory = [...this.#keyboardBar.getMsgs(), ...this.messagesBox.getHistory()];
+        - no null/empty guard on kb bar msgs — just spread whatever's there
+        - remove the renderedPrompt variable and its conditional block entirely
+        - expandPaths loop still works: next iteration re-merges, picks up mutated #msgs[0].content
+```
 
 Backlog tail end
 

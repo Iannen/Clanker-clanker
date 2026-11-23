@@ -103,7 +103,7 @@ class KeyboardBar extends BaseComponent {
 
     #statusEl;
     #busy = false;
-    #renderedPrompt = null;
+    #msgs = [];
     #selectedPrompt = null;
     #sharedDomains = [];
     #pudDomains = [];
@@ -115,14 +115,16 @@ class KeyboardBar extends BaseComponent {
 
     isExpanded() { return this.#expanded; }
 
-    getRenderedPromptText() { return this.#renderedPrompt?.text ?? null; }
+    getMsgs() { return this.#msgs; }
+
+    getRenderedPromptText() { return this.#msgs[0]?.content ?? null; }
 
     setDomains(shared, pud) {
         this.#sharedDomains = shared || [];
         this.#pudDomains = pud || [];
         this.#selectedDomain = null;
         this.#selectedPrompt = null;
-        this.#renderedPrompt = null;
+        this.#msgs = [];
         this.#previewDomain = null;
         this.#previewPrompt = null;
         this.#previewRendered = null;
@@ -168,7 +170,7 @@ class KeyboardBar extends BaseComponent {
         this.#selectedPrompt.expanded_paths.push(...newPaths);
 
         const response = await apiClient.renderPrompt(this.#selectedDomain, this.#selectedPrompt);
-        this.#renderedPrompt = response;
+        this.#msgs[0].content = response.text;
         this.#refreshRendered();
         this.#updateHeaderLabel();
 
@@ -220,10 +222,10 @@ class KeyboardBar extends BaseComponent {
 
     #handleKeydown = (event) => {
         if (event.ctrlKey && event.key === 'Enter') {
-            if (!this.#renderedPrompt) return;
+            if (!this.#msgs.length) return;
             event.stopPropagation();
             event.preventDefault();
-            navigator.clipboard.writeText(this.#renderedPrompt.text)
+            navigator.clipboard.writeText(this.#msgs[0].content)
                 .then(() => {
                     this.dispatchEvent(new CustomEvent('prompt-copied'));
                 })
@@ -258,7 +260,7 @@ class KeyboardBar extends BaseComponent {
             event.preventDefault();
             this.#selectedDomain = this.#previewDomain;
             this.#selectedPrompt = this.#previewPrompt;
-            this.#renderedPrompt = this.#previewRendered;
+            this.#msgs = [{ role: 'user', content: this.#previewRendered.text }];
             this.#updateHeaderLabel();
             this.#refreshRendered();
             this.dispatchEvent(new CustomEvent('prompt-selected'));
