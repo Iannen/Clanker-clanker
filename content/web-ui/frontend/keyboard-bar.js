@@ -71,11 +71,21 @@ const html = `
     </style>
 
     <div class="kb-inner p-4 flex flex-col h-full w-full">
-        ${buildRow('Shared-Dom', sharedDomKeys)}
-        ${buildRow('Pud-Dom', pudDomKeys)}
-        ${buildRow('Prompt', promptKeys)}
+        <div id="kb-header" class="flex items-center gap-2 mb-2 border-l-2 border-[#10b981] pl-2 text-sm text-[#e5e7eb] font-semibold">
+            <span id="kb-glyph" class="text-xs select-none">▸</span>
+            <span class="text-xs font-mono text-[#9ca3af] select-none">Ctrl+I</span>
+            <span id="kb-label" class="text-sm">Domain → Prompt</span>
+        </div>
 
-        <div class="status-line mt-4 text-xs font-mono text-[#9ca3af]"></div>
+        <div class="status-line text-xs font-mono text-[#9ca3af] mb-2"></div>
+
+        <div id="kb-zone2" class="hidden">
+            ${buildRow('Shared-Dom', sharedDomKeys)}
+            ${buildRow('Pud-Dom', pudDomKeys)}
+            ${buildRow('Prompt', promptKeys)}
+
+            <div id="rendered" class="mt-3 font-mono text-sm max-h-64 overflow-y-auto bg-[#030712] border border-[#1f2937] rounded p-2 whitespace-pre-wrap text-[#9ca3af]">No prompt rendered yet — select a domain and prompt key</div>
+        </div>
     </div>
 `;
 
@@ -105,23 +115,24 @@ class KeyboardBar extends BaseComponent {
         this.#selectedPrompt = null;
         this.#renderedPrompt = null;
         this.#refreshAllStates();
+        this.#updateHeaderLabel();
+        this.#refreshRendered();
     }
 
     setExpanded(expanded) {
         this.#expanded = expanded;
-        const rows = this.querySelectorAll('.kb-row');
+        const zone2 = this.querySelector('#kb-zone2');
+        const glyph = this.querySelector('#kb-glyph');
 
         if (expanded) {
-            this.classList.add('flex-1', 'overflow-y-auto', 'p-4');
-            this.classList.remove('cursor-pointer');
-            rows.forEach(r => r.classList.remove('hidden'));
-            this.#statusLine.textContent = 'Ready.';
+            zone2.classList.remove('hidden');
+            glyph.textContent = '▾';
         } else {
-            this.classList.remove('flex-1', 'overflow-y-auto', 'p-4');
-            this.classList.add('p-1', 'cursor-pointer');
-            rows.forEach(r => r.classList.add('hidden'));
-            this.#statusLine.textContent = this.#buildCollapsedStatus();
+            zone2.classList.add('hidden');
+            glyph.textContent = '▸';
         }
+
+        this.#refreshRendered();
     }
 
     toggleExpanded() { this.setExpanded(!this.#expanded); }
@@ -143,6 +154,8 @@ class KeyboardBar extends BaseComponent {
 
         const response = await apiClient.renderPrompt(this.#selectedDomain, this.#selectedPrompt);
         this.#renderedPrompt = response;
+        this.#refreshRendered();
+        this.#updateHeaderLabel();
 
         const lines = response.lines ?? 0;
         const chars = response.chars ?? 0;
@@ -152,30 +165,30 @@ class KeyboardBar extends BaseComponent {
         return true;
     }
 
-    #buildCollapsedStatus() {
-        if (!this.#selectedDomain || !this.#selectedPrompt || !this.#renderedPrompt) {
-            return 'Ctrl+I to expand';
+    #updateHeaderLabel() {
+        const label = this.querySelector('#kb-label');
+        if (!label) return;
+
+        if (!this.#selectedDomain) {
+            label.textContent = 'Domain → Prompt';
+        } else if (!this.#selectedPrompt) {
+            label.textContent = `${this.#selectedDomain.name} → ?`;
+        } else {
+            label.textContent = `${this.#selectedDomain.name} → ${this.#selectedPrompt.name}`;
         }
-
-        const domKey = this.#findDomainKey(this.#selectedDomain);
-        const promptKey = this.#findPromptKey(this.#selectedPrompt);
-        const lines = this.#renderedPrompt.lines ?? 0;
-        const chars = this.#renderedPrompt.chars ?? 0;
-
-        return `Ctrl+I to expand │ Dom: "${this.#selectedDomain.name}" [${domKey}] │ Prompt: "${this.#selectedPrompt.name}" [${promptKey}] · ${lines} lines, ${chars} chars`;
     }
 
-    #findDomainKey(domain) {
-        const si = this.#sharedDomains.indexOf(domain);
-        if (si >= 0) return sharedDomKeys[si];
-        const pi = this.#pudDomains.indexOf(domain);
-        if (pi >= 0) return pudDomKeys[pi];
-        return '?';
-    }
+    #refreshRendered() {
+        const pane = this.querySelector('#rendered');
+        if (!pane) return;
 
-    #findPromptKey(prompt) {
-        const idx = this.#selectedDomain?.prompts?.indexOf(prompt) ?? -1;
-        return idx >= 0 ? promptKeys[idx] : '?';
+        if (!this.#expanded) return;
+
+        if (!this.#renderedPrompt) {
+            pane.textContent = 'No prompt rendered yet — select a domain and prompt key';
+        } else {
+            pane.textContent = this.#renderedPrompt.text;
+        }
     }
 
     #handleKeydown = (event) => {
@@ -315,6 +328,8 @@ class KeyboardBar extends BaseComponent {
         this.#selectedPrompt = null;
         this.#renderedPrompt = null;
         this.#refreshAllStates();
+        this.#updateHeaderLabel();
+        this.#refreshRendered();
         this.#statusLine.textContent = `Selected domain "${domain.name}" [${key}]`;
     }
 
@@ -348,6 +363,9 @@ class KeyboardBar extends BaseComponent {
             const chars = response.chars ?? 0;
             this.#statusLine.textContent =
                 `Prompt "${prompt.name}" of "${this.#selectedDomain.name}" — ${lines} lines, ${chars} chars — press Enter`;
+
+            this.#refreshRendered();
+            this.#updateHeaderLabel();
         } catch (error) {
             this.#statusLine.textContent = '❌ ' + (error.message || 'Prompt render failed');
         } finally {

@@ -71,9 +71,30 @@ Just some ideas on the board:
 - the promptrenderctx or whatever should originate with frontend.
 
 Backlog tail, Selected item/items:
-
+```
+n. KB Bar: single-line collapsed header with status-as-label + toast for clipboard
+    [ ] 'web-ui/frontend/keyboard-bar.js': Merge status into header, drop label element
+        - Remove standalone #kb-label span; header is glyph + "Ctrl+I" hint + one status text element
+        - Status text element carries the accent treatment (semibold, thin left border, brighter text) that the old label used to have
+        - #statusLine (the separate .status-line div) is removed; all status updates write directly into the header's status span
+        - Collapsed header reads: ▸  Ctrl+I  │ <status text> — one line, no second row
+    [ ] 'web-ui/frontend/keyboard-bar.js': Emit prompt-copied event on successful clipboard write
+        - In #handleKeydown Ctrl+Enter path: on navigator.clipboard.writeText().then, dispatch CustomEvent('prompt-copied') instead of writing to status line
+        - On .catch: still write error text to header status span locally (no event)
+    [ ] 'web-ui/frontend/clanker-app.js': Listen for prompt-copied and show toast
+        - In onConnect: this.#keyboardBar.addEventListener('prompt-copied', () => this.toast.show('📋 Prompt copied to clipboard'))
+```
 Backlog tail end
 
 VI. finished stuffs
 
 
+```
+n. KB Bar: always-visible header strip + rendered-prompt pane in expanded body
+    [x] 'web-ui/frontend/keyboard-bar.js': Restructure template into two zones
+        - Zone 1 (always visible): single-line header strip — expand/collapse glyph, shortcut hint, "Domain → Prompt" label with accent treatment (brighter text, semibold, thin left border)
+        - Zone 2 (toggled by setExpanded): existing kb rows unchanged, plus a #rendered pane appended below them (font-mono text-sm, max-h-64, overflow-y-auto)
+        - setExpanded(true/false) only toggles Zone 2 visibility and the glyph; #renderedPrompt data is never cleared on collapse — pane simply hides
+        - #rendered populates with #renderedPrompt.text whenever Zone 2 is visible; shows placeholder when no prompt rendered yet
+        - header label textContent updates in-place on domain/prompt selection; #rendered refreshes after renderPrompt() while already expanded
+```
