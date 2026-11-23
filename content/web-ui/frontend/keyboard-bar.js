@@ -7,6 +7,13 @@ const promptKeys = ['a', 's', 'd', 'f'];
 
 const boundKeys = new Set([...sharedDomKeys, ...pudDomKeys, ...promptKeys, 'Enter']);
 
+const scrollKeyMap = {
+    ArrowUp: -40,
+    ArrowDown: 40,
+    PageUp: 'pageUp',
+    PageDown: 'pageDown',
+};
+
 function buildRow(label, keys) {
     const buttons = keys.map(key =>
         `<button type="button" class="kb-btn kb-inactive" data-key="${key}">
@@ -77,17 +84,18 @@ const html = `
             <span id="kb-status" class="text-sm text-[#e5e7eb] border-l border-[#374151] pl-2 ml-1">Domain → Prompt</span>
         </div>
 
-        <div id="kb-zone2" class="hidden">
+        <div id="kb-zone2" class="hidden flex flex-col flex-1 min-h-0">
             ${buildRow('Shared-Dom', sharedDomKeys)}
             ${buildRow('Pud-Dom', pudDomKeys)}
             ${buildRow('Prompt', promptKeys)}
 
-            <div id="rendered" class="mt-3 font-mono text-sm max-h-64 overflow-y-auto bg-[#030712] border border-[#1f2937] rounded p-2 whitespace-pre-wrap text-[#9ca3af]">No prompt rendered yet — select a domain and prompt key</div>
+            <div id="kb-preview-label" class="text-sm font-mono text-[#d1d5db] mb-2 border-l-2 border-[#6ee7b7] pl-2 select-none">— → —</div>
+            <div id="rendered" class="mt-1 font-mono text-sm flex-1 overflow-y-auto bg-[#030712] border border-[#1f2937] rounded p-2 whitespace-pre-wrap text-[#9ca3af]">No prompt rendered yet — select a domain and prompt key</div>
         </div>
     </div>
 `;
 
-const className = 'w-full bg-[#111827]';
+const className = 'w-full bg-[#111827] overflow-hidden';
 
 class KeyboardBar extends BaseComponent {
     html = html;
@@ -101,6 +109,9 @@ class KeyboardBar extends BaseComponent {
     #pudDomains = [];
     #selectedDomain = null;
     #expanded = false;
+    #previewDomain = null;
+    #previewPrompt = null;
+    #previewRendered = null;
 
     isExpanded() { return this.#expanded; }
 
@@ -112,8 +123,12 @@ class KeyboardBar extends BaseComponent {
         this.#selectedDomain = null;
         this.#selectedPrompt = null;
         this.#renderedPrompt = null;
+        this.#previewDomain = null;
+        this.#previewPrompt = null;
+        this.#previewRendered = null;
         this.#refreshAllStates();
         this.#updateHeaderLabel();
+        this.#updatePreviewLabel();
         this.#refreshRendered();
     }
 
@@ -125,9 +140,11 @@ class KeyboardBar extends BaseComponent {
         if (expanded) {
             zone2.classList.remove('hidden');
             glyph.textContent = '▾';
+            this.classList.add('flex-1', 'min-h-0');
         } else {
             zone2.classList.add('hidden');
             glyph.textContent = '▸';
+            this.classList.remove('flex-1', 'min-h-0');
         }
 
         this.#refreshRendered();
@@ -158,7 +175,7 @@ class KeyboardBar extends BaseComponent {
         const lines = response.lines ?? 0;
         const chars = response.chars ?? 0;
         this.#statusEl.textContent =
-            `Prompt "${this.#selectedPrompt.name}" of "${this.#selectedDomain.name}" — ${lines} lines, ${chars} chars — press Enter`;
+            `Prompt "${this.#selectedPrompt.name}" of "${this.#selectedDomain.name}" — ${lines} lines, ${chars} chars`;
 
         return true;
     }
@@ -175,16 +192,29 @@ class KeyboardBar extends BaseComponent {
         }
     }
 
+    #updatePreviewLabel(msg) {
+        const el = this.querySelector('#kb-preview-label');
+        if (!el) return;
+
+        if (msg) {
+            el.textContent = msg;
+        } else {
+            const d = this.#previewDomain?.name ?? '—';
+            const p = this.#previewPrompt?.name ?? '—';
+            el.textContent = `${d} → ${p}`;
+        }
+    }
+
     #refreshRendered() {
         const pane = this.querySelector('#rendered');
         if (!pane) return;
 
         if (!this.#expanded) return;
 
-        if (!this.#renderedPrompt) {
+        if (!this.#previewRendered) {
             pane.textContent = 'No prompt rendered yet — select a domain and prompt key';
         } else {
-            pane.textContent = this.#renderedPrompt.text;
+            pane.textContent = this.#previewRendered.text;
         }
     }
 
@@ -198,19 +228,39 @@ class KeyboardBar extends BaseComponent {
                     this.dispatchEvent(new CustomEvent('prompt-copied'));
                 })
                 .catch(() => {
-                    this.#statusEl.textContent = '❌ Failed to copy to clipboard';
+                    this.#updatePreviewLabel('❌ Failed to copy to clipboard');
                 });
             return;
         }
 
         if (event.ctrlKey || event.altKey || event.metaKey) return;
 
+        if (scrollKeyMap[event.key] !== undefined) {
+            const pane = this.querySelector('#rendered');
+            if (pane) {
+                event.stopPropagation();
+                event.preventDefault();
+                let amount;
+                if (event.key === 'ArrowUp') amount = -40;
+                else if (event.key === 'ArrowDown') amount = 40;
+                else if (event.key === 'PageUp') amount = -pane.clientHeight * 0.75;
+                else amount = pane.clientHeight * 0.75;
+                pane.scrollBy({ top: amount, behavior: event.repeat ? 'auto' : 'smooth' });
+                return;
+            }
+        }
+
         if (!boundKeys.has(event.key)) return;
 
         if (event.key === 'Enter') {
-            if (!this.#renderedPrompt) return;
+            if (!this.#previewRendered) return;
             event.stopPropagation();
             event.preventDefault();
+            this.#selectedDomain = this.#previewDomain;
+            this.#selectedPrompt = this.#previewPrompt;
+            this.#renderedPrompt = this.#previewRendered;
+            this.#updateHeaderLabel();
+            this.#refreshRendered();
             this.dispatchEvent(new CustomEvent('prompt-selected'));
             return;
         }
@@ -229,7 +279,7 @@ class KeyboardBar extends BaseComponent {
         this.tabIndex = 0;
 
         this.#statusEl = this.querySelector('#kb-status');
-        this.#statusEl.textContent = 'Ready.';
+        this.#statusEl.textContent = 'Domain → Prompt';
 
         this.querySelectorAll('.kb-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -263,12 +313,14 @@ class KeyboardBar extends BaseComponent {
     }
 
     #refreshAllStates() {
+        const previewDomain = this.#previewDomain;
+
         for (const key of sharedDomKeys) {
             const btn = this.querySelector(`.kb-btn[data-key="${key}"]`);
             if (!btn) continue;
             const idx = sharedDomKeys.indexOf(key);
             const dom = this.#sharedDomains[idx];
-            if (this.#selectedDomain && dom === this.#selectedDomain) {
+            if (previewDomain && dom === previewDomain) {
                 this.#setStateClass(btn, 'highlighted');
             } else if (dom) {
                 this.#setStateClass(btn, 'active');
@@ -284,7 +336,7 @@ class KeyboardBar extends BaseComponent {
             if (!btn) continue;
             const idx = pudDomKeys.indexOf(key);
             const dom = this.#pudDomains[idx];
-            if (this.#selectedDomain && dom === this.#selectedDomain) {
+            if (previewDomain && dom === previewDomain) {
                 this.#setStateClass(btn, 'highlighted');
             } else if (dom) {
                 this.#setStateClass(btn, 'active');
@@ -299,9 +351,13 @@ class KeyboardBar extends BaseComponent {
             const btn = this.querySelector(`.kb-btn[data-key="${key}"]`);
             if (!btn) continue;
             const idx = promptKeys.indexOf(key);
-            const prompt = this.#selectedDomain?.prompts?.[idx];
+            const prompt = previewDomain?.prompts?.[idx];
             if (prompt) {
-                this.#setStateClass(btn, 'active');
+                if (this.#previewPrompt && prompt === this.#previewPrompt) {
+                    this.#setStateClass(btn, 'highlighted');
+                } else {
+                    this.#setStateClass(btn, 'active');
+                }
                 this.#setBtnLabel(btn, prompt.name);
             } else {
                 this.#setStateClass(btn, 'inactive');
@@ -317,54 +373,52 @@ class KeyboardBar extends BaseComponent {
         const domain = domains[idx];
 
         if (!domain) {
-            this.#statusEl.textContent = `Domain [${key}] has no content`;
+            this.#updatePreviewLabel(`Domain [${key}] has no content`);
             return;
         }
 
-        this.#selectedDomain = domain;
-        this.#selectedPrompt = null;
-        this.#renderedPrompt = null;
+        this.#previewDomain = domain;
+        this.#previewPrompt = null;
+        this.#previewRendered = null;
         this.#refreshAllStates();
-        this.#updateHeaderLabel();
+        this.#updatePreviewLabel();
         this.#refreshRendered();
-        this.#statusEl.textContent = `Selected domain "${domain.name}" [${key}]`;
     }
 
     async #onPromptKey(key) {
         if (this.#busy) return;
 
-        if (!this.#selectedDomain) {
-            this.#statusEl.textContent = `Select a domain first`;
+        if (!this.#previewDomain) {
+            this.#updatePreviewLabel('Select a domain first');
             return;
         }
 
         const idx = promptKeys.indexOf(key);
-        const prompt = this.#selectedDomain.prompts?.[idx];
+        const prompt = this.#previewDomain.prompts?.[idx];
 
         if (!prompt) {
-            this.#statusEl.textContent = `Prompt [${key}] has no content`;
+            this.#updatePreviewLabel(`Prompt [${key}] has no content`);
             return;
         }
 
         this.#busy = true;
         try {
-            const response = await apiClient.renderPrompt(this.#selectedDomain, prompt);
+            const response = await apiClient.renderPrompt(this.#previewDomain, prompt);
 
-            this.#selectedPrompt = prompt;
-            this.#renderedPrompt = response;
+            this.#previewPrompt = prompt;
+            this.#previewRendered = response;
 
             const pressedBtn = this.querySelector(`.kb-btn[data-key="${key}"]`);
             if (pressedBtn) this.#setStateClass(pressedBtn, 'highlighted');
 
             const lines = response.lines ?? 0;
             const chars = response.chars ?? 0;
-            this.#statusEl.textContent =
-                `Prompt "${prompt.name}" of "${this.#selectedDomain.name}" — ${lines} lines, ${chars} chars — press Enter`;
-
+            this.#updatePreviewLabel(
+                `${this.#previewDomain.name} → ${prompt.name} — ${lines} lines, ${chars} chars — press Enter`
+            );
             this.#refreshRendered();
-            this.#updateHeaderLabel();
         } catch (error) {
-            this.#statusEl.textContent = '❌ ' + (error.message || 'Prompt render failed');
+            this.#updatePreviewLabel('❌ ' + (error.message || 'Prompt render failed'));
         } finally {
             this.#busy = false;
         }

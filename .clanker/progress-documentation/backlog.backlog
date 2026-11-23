@@ -66,51 +66,19 @@ III. Items under development
 Just some ideas on the board:
 
 - receive non-repo content (new backlog items, history items) via endpoints in similar fashion to repo content
-- make the frontend responsible for tracking seleced domain
-- make boot endpoint return shared & pud domains to frontend
-- the promptrenderctx or whatever should originate with frontend.
 
 Backlog tail, Selected item/items:
 ```
-
-```
-```
-n. KB Bar: preview/selected split, Enter commit, preview header, pane layout
-    [ ] 'content/web-ui/frontend/keyboard-bar.js': Split attr state into preview and selected
-        - New private fields: `#previewDomain`, `#previewPrompt`, `#previewRendered`
-        - Existing fields `#selectedDomain`, `#selectedPrompt`, `#renderedPrompt` remain as the committed set
-        - `#onDomainKey`: writes to `#previewDomain`; prompt button states refresh from `#previewDomain?.prompts`
-        - `#onPromptKey`: still calls `apiClient.renderPrompt(...)`; stores response in `#previewRendered`; sets `#previewPrompt`
-        - `#refreshAllStates`: domain/prompt button highlighting reads from `#previewDomain` / `#previewDomain?.prompts`
-        - `#refreshRendered`: pane text reads from `#previewRendered`
-        - Unchanged (confirm no preview reference): `#updateHeaderLabel` reads selected, `getRenderedPromptText()` reads `#renderedPrompt`, `expandPaths` reads/writes `#selectedPrompt.expanded_paths` and sets `#renderedPrompt`
-    [ ] 'content/web-ui/frontend/keyboard-bar.js': Enter commits preview → selected
-        - In `#handleKeydown` Enter path, before dispatching `prompt-selected`:
-            - `#selectedDomain = #previewDomain`
-            - `#selectedPrompt = #previewPrompt`
-            - `#renderedPrompt = #previewRendered`
-        - Then existing behaviour: dispatch `prompt-selected`, collapse bar, focus input
-    [ ] 'content/web-ui/frontend/keyboard-bar.js': Add preview header, fix pane height
-        - New element inside `#kb-zone2`, directly above `#rendered`:
-            - Displays `#previewDomain?.name → #previewPrompt?.name` (or "— → —" if unset)
-            - Subtle label row (small, dim, monospace) to distinguish from top header
-            - Updated in `#onDomainKey`, `#onPromptKey`, and on Enter commit
-        - `#rendered` div: drop `max-h-64`, add `flex-1` (keep `overflow-y-auto`)
-
-n. KB Bar: keyboard scrolling for rendered prompt pane
-    [ ] 'content/web-ui/frontend/keyboard-bar.js': Add scroll key handling in #handleKeydown
-        - Insert an early branch in `#handleKeydown` before the `boundKeys` check
-        - Guard: only when no ctrl/alt/meta held
-        - Map: ArrowUp -40, ArrowDown 40, PageUp -pane.clientHeight * 0.75, PageDown pane.clientHeight * 0.75
-        - pane is `this.querySelector('#rendered')`
-        - On match: `preventDefault`, `pane.scrollBy({ top: amount, behavior: event.repeat ? 'auto' : 'smooth' })`, return
-        - Numbers mirror messages-box
-```
+1. Promoted meta files in assistant_files should follow expanded_paths order
+    [ ] 'content/backend/render_pipeline/render_service.py': In _res_repo_content, replace meta-files-iteration promotion with expanded_paths-driven promotion
+        - Build remaining_meta by excluding all expanded_paths members from meta_files
+        - Iterate expanded_paths; for each path present in the original meta_files set, append to assistant_files
+        - Result: promoted files land in assistant_files in expanded_paths relative order
+        - Prohibition: do not reorder existing assistant_files or user_files; only the promoted subset reflects expanded_paths order
 ```
 Backlog tail end
 
 VI. finished stuffs
-
 
 ```
 n. KB Bar: always-visible header strip + rendered-prompt pane in expanded body
@@ -133,3 +101,39 @@ n. KB Bar: single-line collapsed header with status-as-label + toast for clipboa
         - On .catch: still write error text to header status span locally (no event)
     [x] 'web-ui/frontend/clanker-app.js': Listen for prompt-copied and show toast
         - In onConnect: this.#keyboardBar.addEventListener('prompt-copied', () => this.toast.show('📋 Prompt copied to clipboard'))
+
+```
+n. KB Bar: preview/selected split, Enter commit, preview header, pane layout
+    [x] 'content/web-ui/frontend/keyboard-bar.js': Split attr state into preview and selected
+        - New private fields: `#previewDomain`, `#previewPrompt`, `#previewRendered`
+        - Existing fields `#selectedDomain`, `#selectedPrompt`, `#renderedPrompt` remain as the committed set
+        - `#onDomainKey`: writes to `#previewDomain`; prompt button states refresh from `#previewDomain?.prompts`
+        - `#onPromptKey`: still calls `apiClient.renderPrompt(...)`; stores response in `#previewRendered`; sets `#previewPrompt`
+        - `#refreshAllStates`: domain/prompt button highlighting reads from `#previewDomain` / `#previewDomain?.prompts`
+        - `#refreshRendered`: pane text reads from `#previewRendered`
+        - `#updateHeaderLabel` reads selected only; `getRenderedPromptText()` reads `#renderedPrompt`; `expandPaths` reads/writes `#selectedPrompt.expanded_paths` and sets `#renderedPrompt`
+    [x] 'content/web-ui/frontend/keyboard-bar.js': Enter commits preview → selected
+        - In `#handleKeydown` Enter path, before dispatching `prompt-selected`:
+            - `#selectedDomain = #previewDomain`
+            - `#selectedPrompt = #previewPrompt`
+            - `#renderedPrompt = #previewRendered`
+        - Then existing behaviour: dispatch `prompt-selected`, collapse bar, focus input
+    [x] 'content/web-ui/frontend/keyboard-bar.js': Add preview header, fix pane layout
+        - New element `#kb-preview-label` inside `#kb-zone2`, directly above `#rendered`:
+            - Displays `#previewDomain?.name → #previewPrompt?.name` (or "— → —" if unset)
+            - Prominent: `text-sm font-mono text-[#d1d5db]` with `border-l-2 border-[#6ee7b7] pl-2`
+            - `#updatePreviewLabel(msg)` accepts either a free-form status message or falls back to the `domain → prompt` pair
+            - Updated in `#onDomainKey`, `#onPromptKey`, and on Enter commit
+        - `#kb-header` / `#kb-status` now reflects **selected** only (committed state); transient preview feedback redirected to `#kb-preview-label`
+        - `#rendered` div: dropped `max-h-64`, added `flex-1 overflow-y-auto`
+        - `keyboard-bar` host: added `overflow-hidden`; on expand adds `flex-1 min-h-0` so the element participates in the `h-screen` flex column and fills remaining vertical space; on collapse removes those classes
+        - `#kb-zone2`: `flex flex-col flex-1 min-h-0` — definite-height chain resolved, scrollbar functional
+
+n. KB Bar: keyboard scrolling for rendered prompt pane
+    [x] 'content/web-ui/frontend/keyboard-bar.js': Add scroll key handling in #handleKeydown
+        - Early branch in `#handleKeydown` before the `boundKeys` check
+        - Guard: only when no ctrl/alt/meta held
+        - Map: ArrowUp -40, ArrowDown 40, PageUp -pane.clientHeight * 0.75, PageDown pane.clientHeight * 0.75
+        - pane is `this.querySelector('#rendered')`
+        - On match: `preventDefault`, `pane.scrollBy({ top: amount, behavior: event.repeat ? 'auto' : 'smooth' })`, return
+```

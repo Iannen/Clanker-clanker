@@ -119,21 +119,21 @@ class PromptServiceImpl(d.PromptService):
 
         blocks: list[str] = []
 
-        for p in sorted(user_files):
+        for p in user_files:
             try:
                 content = self.files.get_file_contents(f"{e.PathTokens.PUD}/{p}").rstrip()
                 blocks.append(self._format_full_file(p, content))
             except UnicodeDecodeError:
                 pass
 
-        for p in sorted(assistant_files):
+        for p in assistant_files:
             try:
                 content = self.files.get_file_contents(f"{e.PathTokens.PUD}/{p}").rstrip()
                 blocks.append(self._format_full_file(p, content))
             except UnicodeDecodeError:
                 pass
 
-        for p in sorted(meta_files):
+        for p in meta_files:
             try:
                 content = self.files.get_file_contents(f"{e.PathTokens.PUD}/{p}")
                 line_count = len(content.splitlines())
