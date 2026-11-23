@@ -108,13 +108,12 @@ class PromptServiceImpl(d.PromptService):
         assistant_files = list(resolver.assistant_selected_files)
         meta_files = list(resolver.meta_files)
 
+        meta_set = set(meta_files)
         expanded_set = set(expanded_paths)
-        remaining_meta: list[str] = []
-        for p in meta_files:
-            if p in expanded_set:
+        for p in expanded_paths:
+            if p in meta_set:
                 assistant_files.append(p)
-            else:
-                remaining_meta.append(p)
+        remaining_meta = [p for p in meta_files if p not in expanded_set]
         meta_files = remaining_meta
 
         blocks: list[str] = []

@@ -62,78 +62,12 @@ III. Items under development
         - Mark raised exceptions if applicable
 ```
 
-
-Just some ideas on the board:
-
-- receive non-repo content (new backlog items, history items) via endpoints in similar fashion to repo content
-
 Backlog tail, Selected item/items:
-```
-1. Promoted meta files in assistant_files should follow expanded_paths order
-    [ ] 'content/backend/render_pipeline/render_service.py': In _res_repo_content, replace meta-files-iteration promotion with expanded_paths-driven promotion
-        - Build remaining_meta by excluding all expanded_paths members from meta_files
-        - Iterate expanded_paths; for each path present in the original meta_files set, append to assistant_files
-        - Result: promoted files land in assistant_files in expanded_paths relative order
-        - Prohibition: do not reorder existing assistant_files or user_files; only the promoted subset reflects expanded_paths order
-```
+
+- kb bar. this should carry a msgs array on itself, similar to how msgs box does. when the user hits enter to select a prompt, then the selected prompt becomes the sole msg of this arr.
+
+- clanker app. rather than combine the prompt held in kb bar with the first user msg, it should just combine kb bar and msgs box msg arrs.
+
 Backlog tail end
 
 VI. finished stuffs
-
-```
-n. KB Bar: always-visible header strip + rendered-prompt pane in expanded body
-    [x] 'web-ui/frontend/keyboard-bar.js': Restructure template into two zones
-        - Zone 1 (always visible): single-line header strip — expand/collapse glyph, shortcut hint, "Domain → Prompt" label with accent treatment (brighter text, semibold, thin left border)
-        - Zone 2 (toggled by setExpanded): existing kb rows unchanged, plus a #rendered pane appended below them (font-mono text-sm, max-h-64, overflow-y-auto)
-        - setExpanded(true/false) only toggles Zone 2 visibility and the glyph; #renderedPrompt data is never cleared on collapse — pane simply hides
-        - #rendered populates with #renderedPrompt.text whenever Zone 2 is visible; shows placeholder when no prompt rendered yet
-        - header label textContent updates in-place on domain/prompt selection; #rendered refreshes after renderPrompt() while already expanded
-```
-
-n. KB Bar: single-line collapsed header with status-as-label + toast for clipboard
-    [x] 'web-ui/frontend/keyboard-bar.js': Merge status into header, drop label element
-        - Remove standalone #kb-label span; header is glyph + "Ctrl+I" hint + one status text element
-        - Status text element carries the accent treatment (semibold, thin left border, brighter text) that the old label used to have
-        - #statusLine (the separate .status-line div) is removed; all status updates write directly into the header's status span
-        - Collapsed header reads: ▸  Ctrl+I  │ <status text> — one line, no second row
-    [x] 'web-ui/frontend/keyboard-bar.js': Emit prompt-copied event on successful clipboard write
-        - In #handleKeydown Ctrl+Enter path: on navigator.clipboard.writeText().then, dispatch CustomEvent('prompt-copied') instead of writing to status line
-        - On .catch: still write error text to header status span locally (no event)
-    [x] 'web-ui/frontend/clanker-app.js': Listen for prompt-copied and show toast
-        - In onConnect: this.#keyboardBar.addEventListener('prompt-copied', () => this.toast.show('📋 Prompt copied to clipboard'))
-
-```
-n. KB Bar: preview/selected split, Enter commit, preview header, pane layout
-    [x] 'content/web-ui/frontend/keyboard-bar.js': Split attr state into preview and selected
-        - New private fields: `#previewDomain`, `#previewPrompt`, `#previewRendered`
-        - Existing fields `#selectedDomain`, `#selectedPrompt`, `#renderedPrompt` remain as the committed set
-        - `#onDomainKey`: writes to `#previewDomain`; prompt button states refresh from `#previewDomain?.prompts`
-        - `#onPromptKey`: still calls `apiClient.renderPrompt(...)`; stores response in `#previewRendered`; sets `#previewPrompt`
-        - `#refreshAllStates`: domain/prompt button highlighting reads from `#previewDomain` / `#previewDomain?.prompts`
-        - `#refreshRendered`: pane text reads from `#previewRendered`
-        - `#updateHeaderLabel` reads selected only; `getRenderedPromptText()` reads `#renderedPrompt`; `expandPaths` reads/writes `#selectedPrompt.expanded_paths` and sets `#renderedPrompt`
-    [x] 'content/web-ui/frontend/keyboard-bar.js': Enter commits preview → selected
-        - In `#handleKeydown` Enter path, before dispatching `prompt-selected`:
-            - `#selectedDomain = #previewDomain`
-            - `#selectedPrompt = #previewPrompt`
-            - `#renderedPrompt = #previewRendered`
-        - Then existing behaviour: dispatch `prompt-selected`, collapse bar, focus input
-    [x] 'content/web-ui/frontend/keyboard-bar.js': Add preview header, fix pane layout
-        - New element `#kb-preview-label` inside `#kb-zone2`, directly above `#rendered`:
-            - Displays `#previewDomain?.name → #previewPrompt?.name` (or "— → —" if unset)
-            - Prominent: `text-sm font-mono text-[#d1d5db]` with `border-l-2 border-[#6ee7b7] pl-2`
-            - `#updatePreviewLabel(msg)` accepts either a free-form status message or falls back to the `domain → prompt` pair
-            - Updated in `#onDomainKey`, `#onPromptKey`, and on Enter commit
-        - `#kb-header` / `#kb-status` now reflects **selected** only (committed state); transient preview feedback redirected to `#kb-preview-label`
-        - `#rendered` div: dropped `max-h-64`, added `flex-1 overflow-y-auto`
-        - `keyboard-bar` host: added `overflow-hidden`; on expand adds `flex-1 min-h-0` so the element participates in the `h-screen` flex column and fills remaining vertical space; on collapse removes those classes
-        - `#kb-zone2`: `flex flex-col flex-1 min-h-0` — definite-height chain resolved, scrollbar functional
-
-n. KB Bar: keyboard scrolling for rendered prompt pane
-    [x] 'content/web-ui/frontend/keyboard-bar.js': Add scroll key handling in #handleKeydown
-        - Early branch in `#handleKeydown` before the `boundKeys` check
-        - Guard: only when no ctrl/alt/meta held
-        - Map: ArrowUp -40, ArrowDown 40, PageUp -pane.clientHeight * 0.75, PageDown pane.clientHeight * 0.75
-        - pane is `this.querySelector('#rendered')`
-        - On match: `preventDefault`, `pane.scrollBy({ top: amount, behavior: event.repeat ? 'auto' : 'smooth' })`, return
-```
