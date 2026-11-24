@@ -2034,3 +2034,22 @@ CCXXXII: PARSER-DRIVEN DESERIALIZATION (YAGNI)
     Reflection:
     - The passthrough clauses are the actual YAGNI cut: the parser's reshape logic exists for legacy config-format input; when the frontend sends entity-shaped JSON, there's nothing to reshape. The deletion of seven `_build_*` helpers removes a second code path that had to stay in sync with the parser schema.
 
+CCXXXIII: KB BAR — TWO-ZONE LAYOUT, PREVIEW/SELECTED STATE, AND KEYBOARD SCROLLING
+    Purpose: UX and visibility for the frontend keyboard-bar component — make domain/prompt state legible at a glance and the rendered prompt inspectable inline without leaving the bar.
+    Actions:
+    - `keyboard-bar.js`: Split the template into Zone 1 (always-visible single-line header: glyph, Ctrl+I hint, accent-bordered status span) and Zone 2 (toggled kb rows + `#rendered` pane). Removed the old `.status-line` div; all status writes target the header span.
+    - `keyboard-bar.js`: Introduced `#previewDomain` / `#previewPrompt` / `#previewRendered` alongside the existing committed `#selectedDomain` / `#selectedPrompt` / `#renderedPrompt`. Enter commits preview → selected before dispatching `prompt-selected`. Header/status reflect committed state only; transient feedback writes to a new `#kb-preview-label` above the pane.
+    - `keyboard-bar.js`: Dropped `max-h-64` from `#rendered`; added `flex-1 overflow-y-auto`. Host element gains `flex-1 min-h-0` on expand / `overflow-hidden` always, resolving the definite-height chain so the pane scrollbar actually works within the `h-screen` flex column.
+    - `keyboard-bar.js`: Early branch in `#handleKeydown` for ArrowUp/Down/PageUp/PageDown → `pane.scrollBy(...)`, guarded by no-modifier check.
+    - `clanker-app.js`: Listens for `prompt-copied` CustomEvent on the keyboard bar; shows a toast on successful clipboard write.
+    Reflection:
+    - Preview/selected split keeps the header stable (always shows committed state) while giving live per-key feedback in the preview label. The flex-chain fix was load-bearing — without a definite height on the pane, `overflow-y-auto` is a no-op and the rendered prompt was unscrollable.
+
+CCXXXIV: EXPANDED-PATHS-DRIVEN PROMOTION OF META FILES
+    Purpose: Iteration on the prefill/compaction architecture — guarantee that promoted meta files land in `assistant_files` in the exact order dictated by `expanded_paths`, so render order is deterministic and the prefill window can be exploited.
+    Actions:
+    - `render_service.py` (`_res_repo_content`): Replaced the old meta-files iteration (which promoted in arbitrary set order) with an explicit loop over `expanded_paths`; for each path present in the original `meta_files` set, append to `assistant_files`. Remaining meta files are excluded from that loop and stay in their original position as metadata-only stubs.
+    - `disk_adapter.py` (`get_dir_manifest`): Dropped empty-directory entries in both branches (`rel_roots is None` and `rel_roots` else). Empty dirs were the sole source of `IsADirectoryError` at render time and polluted the prefix-match set used by `fileset_validator`.
+    Reflection:
+    - The ordering guarantee is the whole point: without it, prefill alignment is arbitrary. The `disk_adapter` fix is a prerequisite, not a feature.
+    - This is a stepping stone. The next architectural pass will stop appending to existing messages (which always re-triggers a prefill) and instead create and inject a new message — an overhaul of the render pipeline's message assembly.

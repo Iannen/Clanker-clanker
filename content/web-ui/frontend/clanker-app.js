@@ -92,6 +92,10 @@ class ClankerApp extends BaseComponent {
             this.inputBox.focus();
         });
 
+        this.#keyboardBar.addEventListener('prompt-copied', () => {
+            this.toast.show('📋 Prompt copied to clipboard');
+        });
+
         this.addEventListener('toggle-scroll-lock', () => {
             this.messagesBox.toggleScrollLock();
         });
@@ -220,12 +224,8 @@ class ClankerApp extends BaseComponent {
                 this.inputBox.setDisabled(true);
                 let prevContent = '';
                 let prevReasoning = '';
-                const history = this.messagesBox.getHistory();
-                const renderedPrompt = this.#keyboardBar.getRenderedPromptText();
-                if (renderedPrompt && history.length > 0) {
-                    history[0].content = renderedPrompt + '\n\n' + history[0].content;
-                }
-                const totalChars = history.reduce((sum, m) => sum + (m.content?.length ?? 0), 0);
+                const fullHistory = [...this.#keyboardBar.getMsgs(), ...this.messagesBox.getHistory()];
+                const totalChars = fullHistory.reduce((sum, m) => sum + (m.content?.length ?? 0), 0);
                 if (!prevContent) {
                     assistantMsg.sentChars = totalChars;
                 }
@@ -233,7 +233,7 @@ class ClankerApp extends BaseComponent {
                 let reasoningSnapshot = '';
 
                 const result = await apiClient.streamChatCompletion({
-                    messages: history,
+                    messages: fullHistory,
                     onToken: (token, fullText) => {
                         assistantMsg.updateContent(prevContent + fullText);
                         this.messagesBox.scrollIfLocked();

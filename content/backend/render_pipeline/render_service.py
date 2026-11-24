@@ -108,32 +108,31 @@ class PromptServiceImpl(d.PromptService):
         assistant_files = list(resolver.assistant_selected_files)
         meta_files = list(resolver.meta_files)
 
+        meta_set = set(meta_files)
         expanded_set = set(expanded_paths)
-        remaining_meta: list[str] = []
-        for p in meta_files:
-            if p in expanded_set:
+        for p in expanded_paths:
+            if p in meta_set:
                 assistant_files.append(p)
-            else:
-                remaining_meta.append(p)
+        remaining_meta = [p for p in meta_files if p not in expanded_set]
         meta_files = remaining_meta
 
         blocks: list[str] = []
 
-        for p in sorted(user_files):
+        for p in user_files:
             try:
                 content = self.files.get_file_contents(f"{e.PathTokens.PUD}/{p}").rstrip()
                 blocks.append(self._format_full_file(p, content))
             except UnicodeDecodeError:
                 pass
 
-        for p in sorted(assistant_files):
+        for p in assistant_files:
             try:
                 content = self.files.get_file_contents(f"{e.PathTokens.PUD}/{p}").rstrip()
                 blocks.append(self._format_full_file(p, content))
             except UnicodeDecodeError:
                 pass
 
-        for p in sorted(meta_files):
+        for p in meta_files:
             try:
                 content = self.files.get_file_contents(f"{e.PathTokens.PUD}/{p}")
                 line_count = len(content.splitlines())

@@ -3,50 +3,29 @@ system:
   apply_command: "echo 'No apply command configured' && true"
   
 pud_filesets:
-  old_tui: {includes: [content/a__old_tui], 
-    excludes: [
-      content/a_lib,
-      content/backend,
-      content/test,
-      content/web-ui,
-      content/clank-server.py]}
-
-  server: { 
-    includes: [
-#      content/backend/adapters,
-      content/backend/asset_ingestion,
-      content/backend/core,
-      content/backend/render_pipeline,
-      content/backend/controller.py,
-      content/backend/stdlib.py,
-  #    content/test,
-      #content/clank-server.py,
-      #content/web-ui
-    ]}
-
-  front_and_back: {includes: [content], 
-    excludes: [
-      content/a__old_tui,
-      content/a_lib
-    ]
-  }
-
+  old_tui: {includes: [content/a__old_tui]}
   nothing: {includes: []}
 
-  config_dev: {
-    includes: [
-      content
-    ], excludes: [
-        content/a__old_tui,
-        .clanker/config.yaml,
+  web_clank: 
+    includes:
+      - content
+    excludes:
+      - content/a__old_tui
 
-    ]
-  }
+  web_clank_essentials:
+    includes:
+      - content/clank-server.py
+      - content/backend/core
+      - content/backend/controller.py
+      - content/web-ui/frontend/clanker-app.js
+      - content/web-ui/frontend/api-client.js
+
+
 
 pud_domains:
   old_tui:
     resolvers:
-      - { anchor: repository, type: repo-content, content_fileset: ¤ old_tui }
+      - { anchor: repository, type: repo-content, content_fileset: ¤ nothing, meta_fileset: ¤ old_tui }
       - { anchor: project documentation, type: multi-document-retrieval, files: ¤ backlog_excerpt}
     prompts:
       - ¤ plan
@@ -55,16 +34,7 @@ pud_domains:
 
   web-clank:
     resolvers:
-      - { anchor: repository, type: repo-content, content_fileset: ¤ nothing, meta_fileset: ¤ config_dev }
-      - { anchor: project documentation, type: multi-document-retrieval, files: ¤ backlog_excerpt}
-    prompts:
-      - ¤ plan
-      - ¤ implement
-      - ¤ document
-
-  test:
-    resolvers:
-      - { anchor: repository, type: repo-content, content_fileset: ¤ nothing , meta_fileset: ¤ server}
+      - { anchor: repository, type: repo-content, content_fileset: ¤ nothing, meta_fileset: ¤ web_clank }
       - { anchor: project documentation, type: multi-document-retrieval, files: ¤ backlog_excerpt}
     prompts:
       - ¤ plan

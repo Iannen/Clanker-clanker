@@ -63,8 +63,8 @@ export class ApiClient {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: 'qwen-47k',
-                //model: 'cybertiel-max',
+                //model: 'qwen-47k',
+                model: 'inkling-q2-25k',
                 messages,
                 stream: true,
                 return_progress: true,
