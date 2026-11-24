@@ -65,161 +65,8 @@ III. Items under development
 Backlog tail, Selected item/items:
 
 
-Gpubox apispec:
-```
-_OPENAPI_SPEC = {
-    "openapi": "3.1.0",
-    "info": {
-        "title": "GPU Box Control Plane",
-        "version": "1.0.0",
-        "description": (
-            "TLS HTTP server on the Tailscale IP. "
-            "Control-plane endpoints for desktop/llama/strata mode switching, "
-            "plus a pass-through proxy to the upstream llama-server for chat completions."
-        ),
-    },
-    "servers": [
-        {
-            "url": "https://{fqdn}:8787",
-            "variables": {"fqdn": {"default": "gpu-box", "description": "Tailscale machine FQDN"}},
-        }
-    ],
-    "paths": {
-        "/healthz": {
-            "get": {
-                "summary": "Health check",
-                "responses": {
-                    "200": {
-                        "description": "Service is up.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {"status": {"type": "string"}},
-                                }
-                            }
-                        },
-                    }
-                },
-            }
-        },
-        "/api/mode/desktop": {
-            "post": {
-                "summary": "Switch to desktop mode",
-                "description": (
-                    "Stops llama-cpp.service and strata.service, then restores the "
-                    "Plasma desktop session and Sunshine streaming. "
-                    "No API key required (Tailscale network boundary is the auth)."
-                ),
-                "responses": {
-                    "200": {
-                        "description": "Desktop mode activated.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "status": {"type": "string"},
-                                        "mode": {"type": "string", "enum": ["desktop"]},
-                                    },
-                                }
-                            }
-                        },
-                    }
-                },
-            }
-        },
-        "/api/mode/llama_cpp": {
-            "post": {
-                "summary": "Switch to llama.cpp inference mode",
-                "description": (
-                    "Stops the desktop session and strata.service, then starts "
-                    "llama-cpp.service. No API key required (Tailscale network "
-                    "boundary is the auth)."
-                ),
-                "responses": {
-                    "200": {
-                        "description": "Llama mode activated.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "status": {"type": "string"},
-                                        "mode": {"type": "string", "enum": ["llama"]},
-                                    },
-                                }
-                            }
-                        },
-                    }
-                },
-            }
-        },
-        "/api/mode/strata": {
-            "post": {
-                "summary": "Switch to strata inference mode",
-                "description": (
-                    "Stops the desktop session and llama-cpp.service, then starts "
-                    "strata.service. No API key required (Tailscale network "
-                    "boundary is the auth)."
-                ),
-                "responses": {
-                    "200": {
-                        "description": "Strata mode activated.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "status": {"type": "string"},
-                                        "mode": {"type": "string", "enum": ["strata"]},
-                                    },
-                                }
-                            }
-                        },
-                    }
-                },
-            }
-        },
-        "/v1/chat/completions": {
-            "post": {
-                "summary": "Chat completion (OpenAI-compatible, SSE stream)",
-                "description": (
-                    "Pass-through proxy to the upstream llama-server. "
-                    "Accepts an OpenAI-compatible chat completions request body "
-                    "and returns a text/event-stream (SSE) of streaming deltas. "
-                    "The response shape follows the OpenAI chat completions schema "
-                    "(choices[0].delta.content / reasoning_content per SSE event). "
-                    "The Tailscale network boundary serves as the auth layer."
-                ),
-                "responses": {
-                    "200": {
-                        "description": (
-                            "SSE stream of chat completion deltas. "
-                            "Each data: line is a JSON object matching the "
-                            "OpenAI-compatible streaming response schema."
-                        ),
-                        "content": {"text/event-stream": {}},
-                    },
-                    "502": {
-                        "description": "Upstream proxy error.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {"error": {"type": "string"}},
-                                }
-                            }
-                        },
-                    }
-                },
-            }
-        },
-    },
-}
-```
-
 Backlog tail end
+
 
 VI. finished stuffs
 
@@ -238,4 +85,46 @@ VI. finished stuffs
         - no null/empty guard on kb bar msgs — just spread whatever's there
         - remove the renderedPrompt variable and its conditional block entirely
         - expandPaths loop still works: next iteration re-merges, picks up mutated #msgs[0].content
+```
+
+```text
+1. Align the Clanker frontend and backend proxy with the GPU Box desktop/llama_cpp/strata mode contract
+    [x] 'content/web-ui/frontend/sidepanel-left.js': Replace the legacy two-mode sidebar with the GPU Box three-mode sidebar
+        - Replace the two existing buttons with three buttons in this order: Desktop, Llama, Strata
+        - Use `data-mode="desktop"` for the Desktop button
+        - Use `data-mode="llama_cpp"` for the Llama button
+        - Use `data-mode="strata"` for the Strata button
+        - Use button labels exactly: `🖥️ Desktop`, `🤖 Llama`, `🤖 Strata`
+        - Use Desktop button colors: `bg-[#dc2626] hover:bg-[#ef4444]`
+        - Use Llama button colors: `bg-[#059669] hover:bg-[#10b981]`
+        - Use Strata button colors: `bg-[#2563eb] hover:bg-[#3b82f6]`
+        - Replace `#modeActions` with:
+            - `'desktop': () => apiClient.switchDesktopMode()`
+            - `'llama_cpp': () => apiClient.switchLlamaMode()`
+            - `'strata': () => apiClient.switchStrataMode()`
+        - Add `#statusLabels` mapping response modes to display labels:
+            - `desktop: 'Desktop'`
+            - `llama: 'Llama'`
+            - `strata: 'Strata'`
+        - Update `#switchMode` to set status using `this.#statusLabels[response.mode] ?? response.mode`
+        - Remove the legacy `keydown` Enter handler from the button wiring
+        - Keep the existing `BaseComponent` import, `register('sidepanel-left', SidepanelLeft)`, `className`, `#status` element, `role="status"`, and `aria-live="polite"` unchanged
+        - Remove all remaining references to `desktop-mode`, `inference-mode`, and `switchInferenceMode`
+    [x] 'content/web-ui/frontend/api-client.js': Update the frontend API client to call the new GPU Box mode endpoints
+        - Change `switchDesktopMode()` to call `this.#post('/api/mode/desktop')`
+        - Add `switchLlamaMode()` calling `this.#post('/api/mode/llama_cpp')`
+        - Add `switchStrataMode()` calling `this.#post('/api/mode/strata')`
+        - Remove `switchInferenceMode()` and any reference to `/api/inference-mode`
+        - Do not retain legacy aliases for `/api/desktop-mode` or `/api/inference-mode`
+        - Keep `#post`, `boot`, `renderPrompt`, `ingestFileChanges`, and `streamChatCompletion` unchanged
+        - Do not change the `/v1/chat/completions` streaming behavior
+    [x] 'content/backend/controller.py': Update the backend proxy routes to match the new GPU Box mode endpoints
+        - Replace the legacy `@POST("/api/desktop-mode")` decorator with `@POST("/api/mode/desktop")`
+        - Replace the legacy `@POST("/api/inference-mode")` decorator with `@POST("/api/mode/llama_cpp")`
+        - Add `@POST("/api/mode/strata")`
+        - Keep `@POST("/v1/chat/completions")`
+        - Do not retain legacy `/api/desktop-mode` or `/api/inference-mode` routes
+        - Keep the `proxy_gpu` implementation unchanged except for the route decorators
+        - Do not change `boot`, `clankerize`, `render_prompt`, or `ingest` behavior
+        - Do not add `/healthz` in this backlog item unless a separate contract item requires it
 ```

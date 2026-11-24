@@ -52,9 +52,11 @@ export class ApiClient {
         return { status: response.status, data };
     }
 
-    async switchDesktopMode() { return this.#post('/api/desktop-mode'); }
+    async switchDesktopMode() { return this.#post('/api/mode/desktop'); }
 
-    async switchInferenceMode() { return this.#post('/api/inference-mode'); }
+    async switchLlamaMode() { return this.#post('/api/mode/llama_cpp'); }
+
+    async switchStrataMode() { return this.#post('/api/mode/strata'); }
 
     async streamChatCompletion({ messages, max_tokens, onToken, onReasoning, onPrefill } = {}) {
         const response = await fetch('/v1/chat/completions', {
