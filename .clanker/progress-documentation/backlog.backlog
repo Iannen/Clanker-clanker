@@ -64,23 +64,178 @@ III. Items under development
 
 Backlog tail, Selected item/items:
 
+
+Gpubox apispec:
+```
+_OPENAPI_SPEC = {
+    "openapi": "3.1.0",
+    "info": {
+        "title": "GPU Box Control Plane",
+        "version": "1.0.0",
+        "description": (
+            "TLS HTTP server on the Tailscale IP. "
+            "Control-plane endpoints for desktop/llama/strata mode switching, "
+            "plus a pass-through proxy to the upstream llama-server for chat completions."
+        ),
+    },
+    "servers": [
+        {
+            "url": "https://{fqdn}:8787",
+            "variables": {"fqdn": {"default": "gpu-box", "description": "Tailscale machine FQDN"}},
+        }
+    ],
+    "paths": {
+        "/healthz": {
+            "get": {
+                "summary": "Health check",
+                "responses": {
+                    "200": {
+                        "description": "Service is up.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {"status": {"type": "string"}},
+                                }
+                            }
+                        },
+                    }
+                },
+            }
+        },
+        "/api/mode/desktop": {
+            "post": {
+                "summary": "Switch to desktop mode",
+                "description": (
+                    "Stops llama-cpp.service and strata.service, then restores the "
+                    "Plasma desktop session and Sunshine streaming. "
+                    "No API key required (Tailscale network boundary is the auth)."
+                ),
+                "responses": {
+                    "200": {
+                        "description": "Desktop mode activated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {"type": "string"},
+                                        "mode": {"type": "string", "enum": ["desktop"]},
+                                    },
+                                }
+                            }
+                        },
+                    }
+                },
+            }
+        },
+        "/api/mode/llama_cpp": {
+            "post": {
+                "summary": "Switch to llama.cpp inference mode",
+                "description": (
+                    "Stops the desktop session and strata.service, then starts "
+                    "llama-cpp.service. No API key required (Tailscale network "
+                    "boundary is the auth)."
+                ),
+                "responses": {
+                    "200": {
+                        "description": "Llama mode activated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {"type": "string"},
+                                        "mode": {"type": "string", "enum": ["llama"]},
+                                    },
+                                }
+                            }
+                        },
+                    }
+                },
+            }
+        },
+        "/api/mode/strata": {
+            "post": {
+                "summary": "Switch to strata inference mode",
+                "description": (
+                    "Stops the desktop session and llama-cpp.service, then starts "
+                    "strata.service. No API key required (Tailscale network "
+                    "boundary is the auth)."
+                ),
+                "responses": {
+                    "200": {
+                        "description": "Strata mode activated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {"type": "string"},
+                                        "mode": {"type": "string", "enum": ["strata"]},
+                                    },
+                                }
+                            }
+                        },
+                    }
+                },
+            }
+        },
+        "/v1/chat/completions": {
+            "post": {
+                "summary": "Chat completion (OpenAI-compatible, SSE stream)",
+                "description": (
+                    "Pass-through proxy to the upstream llama-server. "
+                    "Accepts an OpenAI-compatible chat completions request body "
+                    "and returns a text/event-stream (SSE) of streaming deltas. "
+                    "The response shape follows the OpenAI chat completions schema "
+                    "(choices[0].delta.content / reasoning_content per SSE event). "
+                    "The Tailscale network boundary serves as the auth layer."
+                ),
+                "responses": {
+                    "200": {
+                        "description": (
+                            "SSE stream of chat completion deltas. "
+                            "Each data: line is a JSON object matching the "
+                            "OpenAI-compatible streaming response schema."
+                        ),
+                        "content": {"text/event-stream": {}},
+                    },
+                    "502": {
+                        "description": "Upstream proxy error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {"error": {"type": "string"}},
+                                }
+                            }
+                        },
+                    }
+                },
+            }
+        },
+    },
+}
+```
+
+Backlog tail end
+
+VI. finished stuffs
+
 ```
 1. Kbar msgs array + unconditional merge in clanker app
-    [ ] 'content/web-ui/frontend/keyboard-bar.js': Replace #renderedPrompt string with a #msgs array
+    [x] 'content/web-ui/frontend/keyboard-bar.js': Replace #renderedPrompt string with a #msgs array
         - invariant: #msgs contains 0 or 1 entry, shaped { role: 'user', content: renderedText }
         - only Enter-select writes a new entry: this.#msgs = [{ role: 'user', content: renderedText }]
         - expandPaths mutates #msgs[0].content in place (same selection, updated render)
         - preview browsing (#previewDomain, #previewPrompt, #previewRendered) has no effect on #msgs
         - expose via getter: getMsgs() returning the array
         - remove getRenderedPromptText() or repurpose to return #msgs[0]?.content ?? null
-    [ ] 'content/web-ui/frontend/clanker-app.js': Merge kb bar msgs into history unconditionally
+    [x] 'content/web-ui/frontend/clanker-app.js': Merge kb bar msgs into history unconditionally
         - in #generateResponse, replace the "prepend renderedPrompt onto history[0].content" block with:
           const fullHistory = [...this.#keyboardBar.getMsgs(), ...this.messagesBox.getHistory()];
         - no null/empty guard on kb bar msgs — just spread whatever's there
         - remove the renderedPrompt variable and its conditional block entirely
         - expandPaths loop still works: next iteration re-merges, picks up mutated #msgs[0].content
 ```
-
-Backlog tail end
-
-VI. finished stuffs
