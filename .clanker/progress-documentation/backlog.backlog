@@ -64,162 +64,56 @@ III. Items under development
 
 Backlog tail, Selected item/items:
 
+1. Frontend cleanup — six targeted reductions across the web-ui frontend
+    [ ] 'content/web-ui/frontend/keyboard-bar.js': Replace scrollKeyMap with a module-scope SCROLL_KEYS Set
+        - Replace the object with Set(['ArrowUp','ArrowDown','PageUp','PageDown']); change scrollKeyMap[event.key] !== undefined to SCROLL_KEYS.has(event.key)
+        - The -40/40 arrow values are re-hardcoded downstream and 'pageUp'/'pageDown' are never referenced, so nothing is lost
+    [ ] 'content/web-ui/frontend/api-client.js': Collapse renderPrompt onto #post
+        - Body becomes this.#post('/api/render-prompt', { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain, prompt }) })
+        - renderPrompt duplicates #post's fetch + response.ok + error-message logic; leave boot (GET) alone
+    [ ] 'content/web-ui/frontend/message.js': Inline updateContent
+        - At the single call site in clanker-app, replace assistantMsg.updateContent(...) with assistantMsg.content = prevContent + fullText
+        - Remove the one-line updateContent method
+    [ ] 'content/web-ui/frontend/clanker-app.js': Drop the always-true guard ⚠️ revision
+        - Remove only the if (!prevContent) conditional; keep assistantMsg.sentChars = totalChars;
+        - Add a one-line comment that it seeds the chars-per-prefill-token ratio (consumed by message.js onPrefill for the live token estimates)
+        - Dropping the assignment would silently degrade running stats from token-based to char-based
+    [ ] 'content/web-ui/frontend/messages-box.js': Dedupe setScrollLocked(false)
+        - Bind one handler to both focusin and wheel instead of two identical one-liners (#handleFocusIn/#handleWheel)
+    [ ] 'content/web-ui/frontend/base-component.js' (+ 'content/web-ui/frontend/message.js'): Drop cosmetic comments
+        - Remove //All components inherit BaseComponent...
+        - Remove the // --- Prefill/Reasoning/Content segment --- markers in message.js #buildStatsLine
+        - Keep the // null | 'prefill' | ... phase spec and // Surface a single prompt_progress tick.
+2. Backend tidiness — seven refactorings across backend
+    [ ] 'content/backend/adapters/disk_adapter.py': Extract _base_dir
+        - Add a _base_dir(basepath_token) helper; call it from get_file_paths and get_dir_manifest
+        - The ~5× FileAccessError wrapper is out of scope unless a decorator is accepted
+        - Leave _resolve_tokenized_path alone: same PUD/SHARED resolution but a different shape
+    [ ] 'content/backend/asset_ingestion/ingestion_service.py': Consolidate the three _get_* fetchers ⚠️ revision
+        - Collapse _get_asset_pack / _get_config / _get_file_req into one _fetch(fetch_fn, factory, ...)
+        - Preserve both special branches: _get_config's ConfigParseError → Malformed and _get_file_req's IsADirectoryError → Filereq(..., "") (a directory path maps to empty content)
+        - A plain _fetch(fetch_fn, factory) handling only NoSuchFile → Missing would drop the directory case and let an accidental directory path raise uncaught
+    [ ] 'content/backend/asset_ingestion/ingestion_service.py': Merge the update/delete pre-flight checks
+        - Fold the two identical existence loops (both append to missing_paths) into one loop over parsed.updates + parsed.deletes
+    [ ] 'content/backend/render_pipeline/content_shaper.py': Use an explicit placeholder map ⚠️ revision
+        - Build an explicit {sentinel: replacement} map instead of introspecting e.Delims.__dict__
+        - Include all delims (not just PROMPT_*); a partial map would silently change what .output-template files substitute
+        - The isinstance(pair, tuple) and len(pair)==2 filter is dead (every member is a 2-tuple) and can go
+        - "order-fragile" isn't a real risk — sentinels are unique, replacements don't nest; the issue is just indirectness
+    [ ] 'content/backend/asset_ingestion/extractors/map_extractor2.py': Dedupe Numap type guards
+        - Route register / set_entity / register_cleanup through a single _assert_entity(entity)
+        - Leave prune alone — it takes a list and recurses, so it only partially fits
+    [ ] 'content/backend/controller.py': Simplify the POST decorator (medium)
+        - Evaluate whether POST can store fn directly with the server passing path, or keep the pass-through wrapper
+        - POST handlers take (controller, body, path) vs GET's (controller, params), so a true merge may require GET handlers to also accept path
+    [ ] 'content/backend/core/core/entities.py': classproperty → staticmethod (low)
+        - Consider making key_name/plural_key staticmethods
+        - Requires updating every value-position call site to key_name() (e.g., cfg.data.get(entity_cls.key_name)); plural_key's body changes too
+        - Worth it only if already in these files
 
-Gpubox apispec:
-```
-_OPENAPI_SPEC = {
-    "openapi": "3.1.0",
-    "info": {
-        "title": "GPU Box Control Plane",
-        "version": "1.0.0",
-        "description": (
-            "TLS HTTP server on the Tailscale IP. "
-            "Control-plane endpoints for desktop/llama/strata mode switching, "
-            "plus a pass-through proxy to the upstream llama-server for chat completions."
-        ),
-    },
-    "servers": [
-        {
-            "url": "https://{fqdn}:8787",
-            "variables": {"fqdn": {"default": "gpu-box", "description": "Tailscale machine FQDN"}},
-        }
-    ],
-    "paths": {
-        "/healthz": {
-            "get": {
-                "summary": "Health check",
-                "responses": {
-                    "200": {
-                        "description": "Service is up.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {"status": {"type": "string"}},
-                                }
-                            }
-                        },
-                    }
-                },
-            }
-        },
-        "/api/mode/desktop": {
-            "post": {
-                "summary": "Switch to desktop mode",
-                "description": (
-                    "Stops llama-cpp.service and strata.service, then restores the "
-                    "Plasma desktop session and Sunshine streaming. "
-                    "No API key required (Tailscale network boundary is the auth)."
-                ),
-                "responses": {
-                    "200": {
-                        "description": "Desktop mode activated.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "status": {"type": "string"},
-                                        "mode": {"type": "string", "enum": ["desktop"]},
-                                    },
-                                }
-                            }
-                        },
-                    }
-                },
-            }
-        },
-        "/api/mode/llama_cpp": {
-            "post": {
-                "summary": "Switch to llama.cpp inference mode",
-                "description": (
-                    "Stops the desktop session and strata.service, then starts "
-                    "llama-cpp.service. No API key required (Tailscale network "
-                    "boundary is the auth)."
-                ),
-                "responses": {
-                    "200": {
-                        "description": "Llama mode activated.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "status": {"type": "string"},
-                                        "mode": {"type": "string", "enum": ["llama"]},
-                                    },
-                                }
-                            }
-                        },
-                    }
-                },
-            }
-        },
-        "/api/mode/strata": {
-            "post": {
-                "summary": "Switch to strata inference mode",
-                "description": (
-                    "Stops the desktop session and llama-cpp.service, then starts "
-                    "strata.service. No API key required (Tailscale network "
-                    "boundary is the auth)."
-                ),
-                "responses": {
-                    "200": {
-                        "description": "Strata mode activated.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "status": {"type": "string"},
-                                        "mode": {"type": "string", "enum": ["strata"]},
-                                    },
-                                }
-                            }
-                        },
-                    }
-                },
-            }
-        },
-        "/v1/chat/completions": {
-            "post": {
-                "summary": "Chat completion (OpenAI-compatible, SSE stream)",
-                "description": (
-                    "Pass-through proxy to the upstream llama-server. "
-                    "Accepts an OpenAI-compatible chat completions request body "
-                    "and returns a text/event-stream (SSE) of streaming deltas. "
-                    "The response shape follows the OpenAI chat completions schema "
-                    "(choices[0].delta.content / reasoning_content per SSE event). "
-                    "The Tailscale network boundary serves as the auth layer."
-                ),
-                "responses": {
-                    "200": {
-                        "description": (
-                            "SSE stream of chat completion deltas. "
-                            "Each data: line is a JSON object matching the "
-                            "OpenAI-compatible streaming response schema."
-                        ),
-                        "content": {"text/event-stream": {}},
-                    },
-                    "502": {
-                        "description": "Upstream proxy error.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {"error": {"type": "string"}},
-                                }
-                            }
-                        },
-                    }
-                },
-            }
-        },
-    },
-}
-```
 
 Backlog tail end
+
 
 VI. finished stuffs
 
@@ -238,4 +132,46 @@ VI. finished stuffs
         - no null/empty guard on kb bar msgs — just spread whatever's there
         - remove the renderedPrompt variable and its conditional block entirely
         - expandPaths loop still works: next iteration re-merges, picks up mutated #msgs[0].content
+```
+
+```text
+1. Align the Clanker frontend and backend proxy with the GPU Box desktop/llama_cpp/strata mode contract
+    [x] 'content/web-ui/frontend/sidepanel-left.js': Replace the legacy two-mode sidebar with the GPU Box three-mode sidebar
+        - Replace the two existing buttons with three buttons in this order: Desktop, Llama, Strata
+        - Use `data-mode="desktop"` for the Desktop button
+        - Use `data-mode="llama_cpp"` for the Llama button
+        - Use `data-mode="strata"` for the Strata button
+        - Use button labels exactly: `🖥️ Desktop`, `🤖 Llama`, `🤖 Strata`
+        - Use Desktop button colors: `bg-[#dc2626] hover:bg-[#ef4444]`
+        - Use Llama button colors: `bg-[#059669] hover:bg-[#10b981]`
+        - Use Strata button colors: `bg-[#2563eb] hover:bg-[#3b82f6]`
+        - Replace `#modeActions` with:
+            - `'desktop': () => apiClient.switchDesktopMode()`
+            - `'llama_cpp': () => apiClient.switchLlamaMode()`
+            - `'strata': () => apiClient.switchStrataMode()`
+        - Add `#statusLabels` mapping response modes to display labels:
+            - `desktop: 'Desktop'`
+            - `llama: 'Llama'`
+            - `strata: 'Strata'`
+        - Update `#switchMode` to set status using `this.#statusLabels[response.mode] ?? response.mode`
+        - Remove the legacy `keydown` Enter handler from the button wiring
+        - Keep the existing `BaseComponent` import, `register('sidepanel-left', SidepanelLeft)`, `className`, `#status` element, `role="status"`, and `aria-live="polite"` unchanged
+        - Remove all remaining references to `desktop-mode`, `inference-mode`, and `switchInferenceMode`
+    [x] 'content/web-ui/frontend/api-client.js': Update the frontend API client to call the new GPU Box mode endpoints
+        - Change `switchDesktopMode()` to call `this.#post('/api/mode/desktop')`
+        - Add `switchLlamaMode()` calling `this.#post('/api/mode/llama_cpp')`
+        - Add `switchStrataMode()` calling `this.#post('/api/mode/strata')`
+        - Remove `switchInferenceMode()` and any reference to `/api/inference-mode`
+        - Do not retain legacy aliases for `/api/desktop-mode` or `/api/inference-mode`
+        - Keep `#post`, `boot`, `renderPrompt`, `ingestFileChanges`, and `streamChatCompletion` unchanged
+        - Do not change the `/v1/chat/completions` streaming behavior
+    [x] 'content/backend/controller.py': Update the backend proxy routes to match the new GPU Box mode endpoints
+        - Replace the legacy `@POST("/api/desktop-mode")` decorator with `@POST("/api/mode/desktop")`
+        - Replace the legacy `@POST("/api/inference-mode")` decorator with `@POST("/api/mode/llama_cpp")`
+        - Add `@POST("/api/mode/strata")`
+        - Keep `@POST("/v1/chat/completions")`
+        - Do not retain legacy `/api/desktop-mode` or `/api/inference-mode` routes
+        - Keep the `proxy_gpu` implementation unchanged except for the route decorators
+        - Do not change `boot`, `clankerize`, `render_prompt`, or `ingest` behavior
+        - Do not add `/healthz` in this backlog item unless a separate contract item requires it
 ```

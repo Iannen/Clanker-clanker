@@ -67,8 +67,9 @@ class ClankController:
         return (status, "application/json", asdict(result))
 
     @POST("/v1/chat/completions")
-    @POST("/api/desktop-mode")
-    @POST("/api/inference-mode")
+    @POST("/api/mode/desktop")
+    @POST("/api/mode/llama_cpp")
+    @POST("/api/mode/strata")
     def proxy_gpu(self, body: dict | None, path: str) -> tuple[int, str, Any]:
         req_headers: dict[str, str] = {}
         data = None

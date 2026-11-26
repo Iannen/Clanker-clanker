@@ -12,18 +12,26 @@ const html = `
 
             <button
                 type="button"
-                data-mode="desktop-mode"
+                data-mode="desktop"
                 class="w-full p-3 font-bold text-sm border-none rounded-lg cursor-pointer transition-colors text-white bg-[#dc2626] hover:bg-[#ef4444]"
             >
-                🎮 Desktop / Gaming
+                🖥️ Desktop
             </button>
 
             <button
                 type="button"
-                data-mode="inference-mode"
+                data-mode="llama_cpp"
                 class="w-full p-3 font-bold text-sm border-none rounded-lg cursor-pointer transition-colors text-white bg-[#059669] hover:bg-[#10b981]"
             >
-                🤖 AI Inference
+                🤖 Llama
+            </button>
+
+            <button
+                type="button"
+                data-mode="strata"
+                class="w-full p-3 font-bold text-sm border-none rounded-lg cursor-pointer transition-colors text-white bg-[#2563eb] hover:bg-[#3b82f6]"
+            >
+                🤖 Strata
             </button>
 
             <div
@@ -46,8 +54,15 @@ class SidepanelLeft extends BaseComponent {
     className = className;
 
     #modeActions = {
-        'desktop-mode': () => apiClient.switchDesktopMode(),
-        'inference-mode': () => apiClient.switchInferenceMode()
+        'desktop': () => apiClient.switchDesktopMode(),
+        'llama_cpp': () => apiClient.switchLlamaMode(),
+        'strata': () => apiClient.switchStrataMode()
+    };
+
+    #statusLabels = {
+        desktop: 'Desktop',
+        llama: 'Llama',
+        strata: 'Strata'
     };
 
     onConnect() {
@@ -56,13 +71,6 @@ class SidepanelLeft extends BaseComponent {
         this.querySelectorAll('[data-mode]').forEach(button => {
             button.addEventListener('click', () => {
                 this.#switchMode(button.dataset.mode);
-            });
-            button.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter') {
-                    event.stopPropagation();
-                    event.preventDefault();
-                    this.#switchMode(button.dataset.mode);
-                }
             });
         });
     }
@@ -78,7 +86,7 @@ class SidepanelLeft extends BaseComponent {
 
         try {
             const response = await action();
-            this.#setStatus(response.mode);
+            this.#setStatus(this.#statusLabels[response.mode] ?? response.mode);
         } catch (error) {
             this.#setStatus(error.message || 'Error communicating with server.');
         }
