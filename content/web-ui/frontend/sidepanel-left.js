@@ -57,20 +57,15 @@ class SidepanelLeft extends BaseComponent {
         statusElement: '#status',
     };
 
+    listeners = [
+        { target: 'self', event: 'click', handler: (e) => { const btn = e.target.closest('[data-mode]'); if (btn) this.#switchMode(btn.dataset.mode); } },
+    ];
+
     #statusLabels = {
         desktop: 'Desktop',
         llama: 'Llama',
         strata: 'Strata'
     };
-
-    setup() {
-        //are we unable to handle these registrations via the baseclass? lets see about that.
-        this.querySelectorAll('[data-mode]').forEach(button => {
-            this.addListener(button, 'click', () => {
-                this.#switchMode(button.dataset.mode);
-            });
-        });
-    }
 
     async #switchMode(mode) {
         this.statusElement.textContent = 'Switching...';

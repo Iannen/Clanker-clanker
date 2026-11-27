@@ -110,10 +110,6 @@ class ClankerApp extends BaseComponent {
             this.keyboardBar.focus();
         }
     }
-    // can the keyboardbar not initialize with this value to false? why must we set it?
-    setup() {
-        this.keyboardBar.setExpanded(false);
-    }
 
     async onConnect() {
         await this.#bootSystem();

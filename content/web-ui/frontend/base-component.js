@@ -4,8 +4,6 @@ export class BaseComponent extends HTMLElement {
     refs = {};
     listeners = [];
 
-    #_trackedListeners = [];
-
     connectedCallback() {
         if (this.className) this.setAttribute('class', this.className);
         if (this.html) {
@@ -33,20 +31,10 @@ export class BaseComponent extends HTMLElement {
             const t = this.#resolveTarget(target);
             t.removeEventListener(event, handler);
         }
-        for (const { target, event, handler } of this.#_trackedListeners) {
-            const t = this.#resolveTarget(target);
-            t.removeEventListener(event, handler);
-        }
     }
 
     setup() {}
     onConnect() {}
-
-    addListener(target, event, handler) {
-        const t = this.#resolveTarget(target);
-        t.addEventListener(event, handler);
-        this.#_trackedListeners.push({ target, event, handler });
-    }
 
     #resolveTarget(target) {
         if (typeof target !== 'string') return target;

@@ -95,10 +95,7 @@ const className = 'w-full bg-[#111827] overflow-hidden';
 class KeyboardBar extends BaseComponent {
     html = html;
     className = className;
-    //single line syntax?
-    refs = {
-        statusEl: '#kb-status',
-    };
+    refs = { statusEl: '#kb-status' };
 
     #busy = false;
     #msgs = [];
@@ -168,9 +165,21 @@ class KeyboardBar extends BaseComponent {
         }
     };
 
+    #handleClick = (e) => {
+        const btn = e.target.closest('.kb-btn');
+        if (!btn) return;
+        const key = btn.dataset.key;
+        if (sharedDomKeys.includes(key) || pudDomKeys.includes(key)) {
+            this.#onDomainKey(key);
+        } else if (promptKeys.includes(key)) {
+            this.#onPromptKey(key);
+        }
+    };
+
     listeners = [
         { target: 'self', event: 'keydown', handler: this.#handleKeydown },
-        { target: 'self', event: 'click', handler: () => { if (!this.#expanded) this.toggleExpanded(); } },
+        { target: 'self', event: 'click', handler: (e) => { if (!this.#expanded) this.toggleExpanded(); } },
+        { target: 'self', event: 'click', handler: this.#handleClick },
     ];
 
     isExpanded() { return this.#expanded; }
@@ -279,19 +288,10 @@ class KeyboardBar extends BaseComponent {
     }
 
     setup() {
+        // can this not be classvar?
         this.tabIndex = 0;
+        //can this not be default set in html?
         this.statusEl.textContent = 'Domain → Prompt';
-
-        this.querySelectorAll('.kb-btn').forEach(btn => {
-            this.addListener(btn, 'click', () => {
-                const key = btn.dataset.key;
-                if (sharedDomKeys.includes(key) || pudDomKeys.includes(key)) {
-                    this.#onDomainKey(key);
-                } else if (promptKeys.includes(key)) {
-                    this.#onPromptKey(key);
-                }
-            });
-        });
     }
 
     #setStateClass(btn, state) {
