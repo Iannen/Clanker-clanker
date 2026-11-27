@@ -53,12 +53,6 @@ class SidepanelLeft extends BaseComponent {
     html = html;
     className = className;
 
-    #modeActions = {
-        'desktop': () => apiClient.switchDesktopMode(),
-        'llama_cpp': () => apiClient.switchLlamaMode(),
-        'strata': () => apiClient.switchStrataMode()
-    };
-
     #statusLabels = {
         desktop: 'Desktop',
         llama: 'Llama',
@@ -75,23 +69,16 @@ class SidepanelLeft extends BaseComponent {
         });
     }
 
-    #setStatus(message) {
-        this.statusElement.textContent = message;
-    }
-
     async #switchMode(mode) {
-        const action = this.#modeActions[mode];
-
-        this.#setStatus('Switching...');
+        this.statusElement.textContent = 'Switching...';
 
         try {
-            const response = await action();
-            this.#setStatus(this.#statusLabels[response.mode] ?? response.mode);
+            const response = await apiClient.switchMode(mode);
+            this.statusElement.textContent = this.#statusLabels[response.mode] ?? response.mode;
         } catch (error) {
-            this.#setStatus(error.message || 'Error communicating with server.');
+            this.statusElement.textContent = error.message || 'Error communicating with server.';
         }
     }
-
 }
 
 register('sidepanel-left', SidepanelLeft);

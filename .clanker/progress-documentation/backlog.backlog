@@ -63,34 +63,11 @@ III. Items under development
 ```
 
 Backlog tail, Selected item/items:
-```
-3. Collapse single-caller forwarding methods
-    [ ] 'content/web-ui/frontend/message.js': Rationalize `reasoning` setter
-        - `set reasoning(value)` body becomes a single delegation: `this.updateReasoning(value)`
-        - removes the latent DOM-gap where the setter mutated `#reasoning` but never touched `reasoningBody`
-    [ ] 'content/web-ui/frontend/messages-box.js': Remove `selectFirst()` and `selectLast()`
-        - `setSelected(action)`: replace `this.selectFirst()` → `this.selectMessage(this.#messages[0])`, `this.selectLast()` → `this.selectMessage(this.#messages.at(-1))`
-    [ ] 'content/web-ui/frontend/input-box.js': Remove `getValue()` and `clear()`
-        - `#dispatchSubmit()`: replace `this.getValue()` → `this.promptInput.value.trim()`, `this.clear()` → `this.promptInput.value = ''`
-    [ ] 'content/web-ui/frontend/sidepanel-left.js': Remove `#setStatus()`
-        - inline `this.statusElement.textContent = message` at the two call sites in `#switchMode`
-```
-```
-4. Consolidate mode-switching to single parameterized call
-    [ ] 'content/web-ui/frontend/api-client.js': Collapse three mode methods into one
-        - delete `switchDesktopMode()`, `switchLlamaMode()`, `switchStrataMode()`
-        - add `switchMode(mode)` that maps mode → endpoint path (e.g. `const paths = { desktop: '/api/mode/desktop', llama_cpp: '/api/mode/llama_cpp', strata: '/api/mode/strata' }`) and calls `this.#post(paths[mode])`
-    [ ] 'content/web-ui/frontend/sidepanel-left.js': Remove `#modeActions` map
-        - `#switchMode(mode)`: replace `action()` call with `apiClient.switchMode(mode)`
-```
-```
-5. Remove `getRenderedPromptText` and its redundant guard
-    [ ] 'content/web-ui/frontend/keyboard-bar.js': Delete `getRenderedPromptText()`
-    [ ] 'content/web-ui/frontend/clanker-app.js': Drop toast guard in `#ingestSelected`
-        - remove the `if (!this.#keyboardBar.getRenderedPromptText())` branch and its toast
-        - the outer `if (data?.expanded?.length)` becomes just `await this.#keyboardBar.expandPaths(data.expanded)`
-        - `expandPaths` already self-guards on missing selection
-```
+I am interested in making the frontent baseclass responsible for all activities that belong in onconnect / disconnectedCallback methods.
+the subclasses would declare things, and then the baseclass' onconnect / ondisconnect would work on the declarations by iteration
+
+lets look at what the methods do today, to see how feasible it is. pull up all fronend files - and see what their onconnect and disconnectedCallback methods actually do. can we generalize and tuck away in baseclass, leaving subclasses nice and declarative? 
+
 
 Backlog tail end
 
@@ -264,4 +241,33 @@ n. Delims: replace path-bearing tag constants with verb-injected f-string method
         - add `scroll` listener in `onConnect()` that calls `this.setScrollLocked(true)` when `scrollTop + clientHeight >= scrollHeight`
         - remove `scroll` listener in `disconnectedCallback()`
     [x] 'content/web-ui/frontend/clanker-app.js': change ESC handler from `this.messagesBox.toggleScrollLock()` to `this.messagesBox.setScrollLocked()`
+```
+
+```
+3. Collapse single-caller forwarding methods
+    [x] 'content/web-ui/frontend/message.js': Rationalize `reasoning` setter
+        - `set reasoning(value)` body becomes a single delegation: `this.updateReasoning(value)`
+        - removes the latent DOM-gap where the setter mutated `#reasoning` but never touched `reasoningBody`
+    [x] 'content/web-ui/frontend/messages-box.js': Remove `selectFirst()` and `selectLast()`
+        - `setSelected(action)`: replace `this.selectFirst()` → `this.selectMessage(this.#messages[0])`, `this.selectLast()` → `this.selectMessage(this.#messages.at(-1))`
+    [x] 'content/web-ui/frontend/input-box.js': Remove `getValue()` and `clear()`
+        - `#dispatchSubmit()`: replace `this.getValue()` → `this.promptInput.value.trim()`, `this.clear()` → `this.promptInput.value = ''`
+    [x] 'content/web-ui/frontend/sidepanel-left.js': Remove `#setStatus()`
+        - inline `this.statusElement.textContent = message` at the two call sites in `#switchMode`
+```
+```
+4. Consolidate mode-switching to single parameterized call
+    [x] 'content/web-ui/frontend/api-client.js': Collapse three mode methods into one
+        - delete `switchDesktopMode()`, `switchLlamaMode()`, `switchStrataMode()`
+        - add `switchMode(mode)` that maps mode → endpoint path (e.g. `const paths = { desktop: '/api/mode/desktop', llama_cpp: '/api/mode/llama_cpp', strata: '/api/mode/strata' }`) and calls `this.#post(paths[mode])`
+    [x] 'content/web-ui/frontend/sidepanel-left.js': Remove `#modeActions` map
+        - `#switchMode(mode)`: replace `action()` call with `apiClient.switchMode(mode)`
+```
+```
+5. Remove `getRenderedPromptText` and its redundant guard
+    [x] 'content/web-ui/frontend/keyboard-bar.js': Delete `getRenderedPromptText()`
+    [x] 'content/web-ui/frontend/clanker-app.js': Drop toast guard in `#ingestSelected`
+        - remove the `if (!this.#keyboardBar.getRenderedPromptText())` branch and its toast
+        - the outer `if (data?.expanded?.length)` becomes just `await this.#keyboardBar.expandPaths(data.expanded)`
+        - `expandPaths` already self-guards on missing selection
 ```

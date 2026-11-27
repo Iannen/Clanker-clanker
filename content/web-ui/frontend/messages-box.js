@@ -21,14 +21,10 @@ class MessagesBox extends BaseComponent {
 
     setSelected(action) {
         if (!this.hasMessages()) return false;
-        if (action === 'focusFirst') this.selectFirst();
-        else if (action === 'focusLast') this.selectLast();
+        if (action === 'focusFirst') this.selectMessage(this.#messages[0]);
+        else if (action === 'focusLast') this.selectMessage(this.#messages.at(-1));
         return true;
     }
-
-    selectFirst() { this.selectMessage(this.#messages[0]); }
-
-    selectLast() { this.selectMessage(this.#messages.at(-1)); }
 
     selectPreviousMsg() {
         const pos = this.#messages.indexOf(this.#selectedMsg);

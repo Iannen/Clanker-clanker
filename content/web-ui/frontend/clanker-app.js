@@ -111,9 +111,9 @@ class ClankerApp extends BaseComponent {
             }
             const detail = e.detail;
             if (detail === 'first') {
-                this.messagesBox.selectFirst();
+                this.messagesBox.setSelected('focusFirst');
             } else if (detail === 'last') {
-                this.messagesBox.selectLast();
+                this.messagesBox.setSelected('focusLast');
             }
         });
 
@@ -202,11 +202,7 @@ class ClankerApp extends BaseComponent {
 
         const data = await this.#ingestContent(content);
         if (data?.expanded?.length) {
-            if (!this.#keyboardBar.getRenderedPromptText()) {
-                this.toast.show('❌ No prompt selected — cannot expand paths');
-            } else {
-                await this.#keyboardBar.expandPaths(data.expanded);
-            }
+            await this.#keyboardBar.expandPaths(data.expanded);
         }
     }
 

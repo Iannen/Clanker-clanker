@@ -60,20 +60,6 @@ class InputBox extends BaseComponent {
         this.#dispatchSubmit();
     };
 
-    getValue() { return this.promptInput.value.trim(); }
-
-    clear() { this.promptInput.value = ''; }
-
-    #dispatchSubmit() {
-        if (this.#halted) return;
-
-        const prompt = this.getValue();
-        if (!prompt) return;
-
-        this.clear();
-        this.dispatchEvent(new CustomEvent('submit', { detail: prompt }));
-    }
-
     focus() {
         this.promptInput.focus();
         this.promptInput.classList.add('!border-[#10b981]');
@@ -88,6 +74,16 @@ class InputBox extends BaseComponent {
     setDisabled(disabled) {
         this.#halted = disabled;
         this.sendBtn.disabled = disabled;
+    }
+
+    #dispatchSubmit() {
+        if (this.#halted) return;
+
+        const prompt = this.promptInput.value.trim();
+        if (!prompt) return;
+
+        this.promptInput.value = '';
+        this.dispatchEvent(new CustomEvent('submit', { detail: prompt }));
     }
 }
 

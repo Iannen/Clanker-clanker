@@ -43,11 +43,14 @@ export class ApiClient {
         return { status: response.status, data };
     }
 
-    async switchDesktopMode() { return this.#post('/api/mode/desktop'); }
-
-    async switchLlamaMode() { return this.#post('/api/mode/llama_cpp'); }
-
-    async switchStrataMode() { return this.#post('/api/mode/strata'); }
+    async switchMode(mode) {
+        const paths = {
+            desktop: '/api/mode/desktop',
+            llama_cpp: '/api/mode/llama_cpp',
+            strata: '/api/mode/strata'
+        };
+        return this.#post(paths[mode]);
+    }
 
     async streamChatCompletion({ messages, max_tokens, onToken, onReasoning, onPrefill } = {}) {
         const response = await fetch('/v1/chat/completions', {

@@ -112,8 +112,6 @@ class KeyboardBar extends BaseComponent {
 
     getMsgs() { return this.#msgs; }
 
-    getRenderedPromptText() { return this.#msgs[0]?.content ?? null; }
-
     setDomains(shared, pud) {
         this.#sharedDomains = shared || [];
         this.#pudDomains = pud || [];

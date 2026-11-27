@@ -98,18 +98,13 @@ class Message extends BaseComponent {
             this.#maybeAdvancePhase();
         }
     }
-
+    //is this used?
     get reasoning() {
         return this.#reasoning;
     }
-
+    // do we need this setter? who uses this that cannot use the method?
     set reasoning(value) {
-        this.#reasoning = String(value ?? '');
-
-        if (this.initialized) {
-            this.#renderSummaries();
-            this.#maybeAdvancePhase();
-        }
+        this.updateReasoning(value);
     }
 
     onConnect() {
