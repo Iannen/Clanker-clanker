@@ -26,16 +26,10 @@ class InputBox extends BaseComponent {
     html = html;
     className = className;
 
-    #highlightTimeout = null;
-    #halted = false;
-
-    onConnect() {
-        this.promptInput = this.querySelector('textarea');
-        this.sendBtn = this.querySelector('button');
-
-        this.sendBtn.addEventListener('click', () => this.#dispatchSubmit());
-        this.promptInput.addEventListener('keydown', this.#handleKeydown);
-    }
+    refs = {
+        promptInput: 'textarea',
+        sendBtn: 'button',
+    };
 
     #handleKeydown = (event) => {
         if (event.ctrlKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
@@ -59,6 +53,14 @@ class InputBox extends BaseComponent {
         event.preventDefault();
         this.#dispatchSubmit();
     };
+
+    listeners = [
+        { target: 'sendBtn', event: 'click', handler: () => this.#dispatchSubmit() },
+        { target: 'promptInput', event: 'keydown', handler: this.#handleKeydown },
+    ];
+
+    #highlightTimeout = null;
+    #halted = false;
 
     focus() {
         this.promptInput.focus();

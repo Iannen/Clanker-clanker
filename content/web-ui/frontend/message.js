@@ -72,15 +72,25 @@ class Message extends BaseComponent {
     counter = 0;
     sentChars = 0;
 
+    refs = {
+        wrapper: ':scope > div',
+        reasoningElement: '.reasoning-section',
+        contentElement: '.content-section',
+        statsElement: '.stats-footer',
+        reasoningSummary: '.reasoning-section > summary',
+        reasoningBody: '.reasoning-section .reasoning-body',
+        contentSummary: '.content-section > summary',
+        contentBody: '.content-section .content-body',
+    };
+
     #content = '';
     #reasoning = '';
     #timings = null;
-    #phase = null; // null | 'prefill' | 'reasoning' | 'content' | 'final'
+    #phase = null;
     #charsPerToken = null;
 
-    // Phase timers (ms, relative to performance.now())
     #prefillStart = null;
-    #prefillData = null; // { processed, total, time_ms, cache }
+    #prefillData = null;
     #reasoningStart = null;
     #reasoningEnd = null;
     #contentStart = null;
@@ -98,28 +108,16 @@ class Message extends BaseComponent {
             this.#maybeAdvancePhase();
         }
     }
-    //is this used?
+
     get reasoning() {
         return this.#reasoning;
     }
-    // do we need this setter? who uses this that cannot use the method?
+
     set reasoning(value) {
         this.updateReasoning(value);
     }
 
-    onConnect() {
-        this.wrapper = this.firstElementChild;
-        if (!this.wrapper) return;
-
-        this.reasoningElement = this.wrapper.querySelector('.reasoning-section');
-        this.contentElement = this.wrapper.querySelector('.content-section');
-        this.statsElement = this.wrapper.querySelector('.stats-footer');
-
-        this.reasoningSummary = this.reasoningElement?.querySelector('summary');
-        this.reasoningBody = this.reasoningElement?.querySelector('.reasoning-body');
-        this.contentSummary = this.contentElement?.querySelector('summary');
-        this.contentBody = this.contentElement?.querySelector('.content-body');
-
+    setup() {
         this.setAttribute('data-index', String(this.counter));
 
         if (this.messageRole === 'user') {
@@ -206,7 +204,6 @@ class Message extends BaseComponent {
         this.#maybeAdvancePhase();
     }
 
-    // Surface a single prompt_progress tick.
     onPrefill(pp) {
         if (this.messageRole !== 'assistant') return;
 
@@ -329,7 +326,7 @@ class Message extends BaseComponent {
         if (this.#phase === 'content') {
             const elapsed = ((performance.now() - this.#contentStart) / 1000).toFixed(1);
             const estTok = this.#charsPerToken
-                ? `~${Math.round(this.#content.length / this.#charsPerToken)} tok`
+                ? `~${Math.round(this.#content.length / this.#charsPerToken)}`
                 : `~${this.#content.length} chars`;
             parts.push(`Content: ${estTok} (${this.#content.length} chars) · ${elapsed}s`);
         }

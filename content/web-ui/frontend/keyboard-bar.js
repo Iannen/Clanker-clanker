@@ -96,7 +96,10 @@ class KeyboardBar extends BaseComponent {
     html = html;
     className = className;
 
-    #statusEl;
+    refs = {
+        statusEl: '#kb-status',
+    };
+
     #busy = false;
     #msgs = [];
     #selectedPrompt = null;
@@ -107,6 +110,68 @@ class KeyboardBar extends BaseComponent {
     #previewDomain = null;
     #previewPrompt = null;
     #previewRendered = null;
+
+    #handleKeydown = (event) => {
+        if (event.ctrlKey && event.key === 'Enter') {
+            if (!this.#msgs.length) return;
+            event.stopPropagation();
+            event.preventDefault();
+            navigator.clipboard.writeText(this.#msgs[0].content)
+                .then(() => {
+                    this.dispatchEvent(new CustomEvent('prompt-copied'));
+                })
+                .catch(() => {
+                    this.#updatePreviewLabel('❌ Failed to copy to clipboard');
+                });
+            return;
+        }
+
+        if (event.ctrlKey || event.altKey || event.metaKey) return;
+
+        if (SCROLL_KEYS.has(event.key)) {
+            const pane = this.querySelector('#rendered');
+            if (pane) {
+                event.stopPropagation();
+                event.preventDefault();
+                let amount;
+                if (event.key === 'ArrowUp') amount = -40;
+                else if (event.key === 'ArrowDown') amount = 40;
+                else if (event.key === 'PageUp') amount = -pane.clientHeight * 0.75;
+                else amount = pane.clientHeight * 0.75;
+                pane.scrollBy({ top: amount, behavior: event.repeat ? 'auto' : 'smooth' });
+                return;
+            }
+        }
+
+        if (!boundKeys.has(event.key)) return;
+
+        if (event.key === 'Enter') {
+            if (!this.#previewRendered) return;
+            event.stopPropagation();
+            event.preventDefault();
+            this.#selectedDomain = this.#previewDomain;
+            this.#selectedPrompt = this.#previewPrompt;
+            this.#msgs = [{ role: 'user', content: this.#previewRendered.text }];
+            this.#updateHeaderLabel();
+            this.#refreshRendered();
+            this.dispatchEvent(new CustomEvent('prompt-selected'));
+            return;
+        }
+
+        event.stopPropagation();
+        event.preventDefault();
+
+        if (sharedDomKeys.includes(event.key) || pudDomKeys.includes(event.key)) {
+            this.#onDomainKey(event.key);
+        } else if (promptKeys.includes(event.key)) {
+            this.#onPromptKey(event.key);
+        }
+    };
+
+    listeners = [
+        { target: 'self', event: 'keydown', handler: this.#handleKeydown },
+        { target: 'self', event: 'click', handler: () => { if (!this.#expanded) this.toggleExpanded(); } },
+    ];
 
     isExpanded() { return this.#expanded; }
 
@@ -169,21 +234,21 @@ class KeyboardBar extends BaseComponent {
 
         const lines = response.lines ?? 0;
         const chars = response.chars ?? 0;
-        this.#statusEl.textContent =
+        this.statusEl.textContent =
             `Prompt "${this.#selectedPrompt.name}" of "${this.#selectedDomain.name}" — ${lines} lines, ${chars} chars`;
 
         return true;
     }
 
     #updateHeaderLabel() {
-        if (!this.#statusEl) return;
+        if (!this.statusEl) return;
 
         if (!this.#selectedDomain) {
-            this.#statusEl.textContent = 'Domain → Prompt';
+            this.statusEl.textContent = 'Domain → Prompt';
         } else if (!this.#selectedPrompt) {
-            this.#statusEl.textContent = `${this.#selectedDomain.name} → ?`;
+            this.statusEl.textContent = `${this.#selectedDomain.name} → ?`;
         } else {
-            this.#statusEl.textContent = `${this.#selectedDomain.name} → ${this.#selectedPrompt.name}`;
+            this.statusEl.textContent = `${this.#selectedDomain.name} → ${this.#selectedPrompt.name}`;
         }
     }
 
@@ -213,71 +278,12 @@ class KeyboardBar extends BaseComponent {
         }
     }
 
-    #handleKeydown = (event) => {
-        if (event.ctrlKey && event.key === 'Enter') {
-            if (!this.#msgs.length) return;
-            event.stopPropagation();
-            event.preventDefault();
-            navigator.clipboard.writeText(this.#msgs[0].content)
-                .then(() => {
-                    this.dispatchEvent(new CustomEvent('prompt-copied'));
-                })
-                .catch(() => {
-                    this.#updatePreviewLabel('❌ Failed to copy to clipboard');
-                });
-            return;
-        }
-
-        if (event.ctrlKey || event.altKey || event.metaKey) return;
-
-        if (SCROLL_KEYS.has(event.key)) {
-            const pane = this.querySelector('#rendered');
-            if (pane) {
-                event.stopPropagation();
-                event.preventDefault();
-                let amount;
-                if (event.key === 'ArrowUp') amount = -40;
-                else if (event.key === 'ArrowDown') amount = 40;
-                else if (event.key === 'PageUp') amount = -pane.clientHeight * 0.75;
-                else amount = pane.clientHeight * 0.75;
-                pane.scrollBy({ top: amount, behavior: event.repeat ? 'auto' : 'smooth' });
-                return;
-            }
-        }
-
-        if (!boundKeys.has(event.key)) return;
-
-        if (event.key === 'Enter') {
-            if (!this.#previewRendered) return;
-            event.stopPropagation();
-            event.preventDefault();
-            this.#selectedDomain = this.#previewDomain;
-            this.#selectedPrompt = this.#previewPrompt;
-            this.#msgs = [{ role: 'user', content: this.#previewRendered.text }];
-            this.#updateHeaderLabel();
-            this.#refreshRendered();
-            this.dispatchEvent(new CustomEvent('prompt-selected'));
-            return;
-        }
-
-        event.stopPropagation();
-        event.preventDefault();
-
-        if (sharedDomKeys.includes(event.key) || pudDomKeys.includes(event.key)) {
-            this.#onDomainKey(event.key);
-        } else if (promptKeys.includes(event.key)) {
-            this.#onPromptKey(event.key);
-        }
-    };
-
-    onConnect() {
+    setup() {
         this.tabIndex = 0;
-
-        this.#statusEl = this.querySelector('#kb-status');
-        this.#statusEl.textContent = 'Domain → Prompt';
+        this.statusEl.textContent = 'Domain → Prompt';
 
         this.querySelectorAll('.kb-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
+            this.addListener(btn, 'click', () => {
                 const key = btn.dataset.key;
                 if (sharedDomKeys.includes(key) || pudDomKeys.includes(key)) {
                     this.#onDomainKey(key);
@@ -286,15 +292,6 @@ class KeyboardBar extends BaseComponent {
                 }
             });
         });
-
-        this.addEventListener('keydown', this.#handleKeydown);
-        this.addEventListener('click', () => {
-            if (!this.#expanded) this.toggleExpanded();
-        });
-    }
-
-    disconnectedCallback() {
-        this.removeEventListener('keydown', this.#handleKeydown);
     }
 
     #setStateClass(btn, state) {

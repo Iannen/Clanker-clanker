@@ -13,6 +13,79 @@ class MessagesBox extends BaseComponent {
     html = html;
     className = className;
 
+    refs = {
+        welcomeText: '.welcome-text',
+    };
+
+    #handleKeydown = (event) => {
+        if (event.ctrlKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
+            if (this.#messages.length === 0) return;
+            event.stopPropagation();
+            event.preventDefault();
+            const moved = event.key === 'ArrowUp'
+                ? this.selectPreviousMsg()
+                : this.selectNextMsg();
+            if (!moved) this.dispatchEvent(new CustomEvent('focus-input'));
+            return;
+        }
+
+        if (event.key === 'Escape' && !event.ctrlKey && !event.altKey && !event.metaKey) {
+            event.stopPropagation();
+            event.preventDefault();
+            this.dispatchEvent(new CustomEvent('focus-input'));
+            return;
+        }
+
+        if (event.ctrlKey || event.altKey || event.metaKey) return;
+
+        if (this.#messages.length === 0) return;
+
+        const scrollMap = {
+            ArrowUp: -40,
+            ArrowDown: 40,
+            PageUp: -this.clientHeight * 0.75,
+            PageDown: this.clientHeight * 0.75
+        };
+
+        const scrollAmount = scrollMap[event.key];
+        if (scrollAmount === undefined) return;
+
+        event.preventDefault();
+        this.scrollBy({
+            top: scrollAmount,
+            behavior: event.repeat ? 'auto' : 'smooth'
+        });
+    };
+
+    #handleFocusout = (event) => {
+        if (!this.contains(event.relatedTarget)) {
+            if (this.#selectedMsg) this.#selectedMsg.setSelected(false);
+            const last = this.#messages.at(-1);
+            if (last) {
+                this.#selectedMsg = last;
+                last.setSelected(true);
+            }
+        }
+    };
+
+    #handleUnlockScroll = () => {
+        this.setScrollLocked(false);
+    };
+
+    #handleScroll = () => {
+        if (this.scrollTop + this.clientHeight >= this.scrollHeight) {
+            this.setScrollLocked(true);
+        }
+    };
+
+    listeners = [
+        { target: 'self', event: 'keydown', handler: this.#handleKeydown },
+        { target: 'self', event: 'focusout', handler: this.#handleFocusout },
+        { target: 'self', event: 'focusin', handler: this.#handleUnlockScroll },
+        { target: 'self', event: 'wheel', handler: this.#handleUnlockScroll },
+        { target: 'self', event: 'scroll', handler: this.#handleScroll },
+    ];
+
     #messages = [];
     #selectedMsg = null;
     #scrollLocked = true;
@@ -112,84 +185,6 @@ class MessagesBox extends BaseComponent {
             .filter(message => !(message.messageRole === 'assistant' && message.content === ''))
             .map(message => ({ role: message.messageRole, content: message.content }));
     }
-
-    onConnect() {
-        this.welcomeText = this.querySelector('.welcome-text');
-        this.addEventListener('keydown', this.#handleKeydown);
-        this.addEventListener('focusout', this.#handleFocusout);
-        this.addEventListener('focusin', this.#handleUnlockScroll);
-        this.addEventListener('wheel', this.#handleUnlockScroll);
-        this.addEventListener('scroll', this.#handleScroll);
-    }
-
-    disconnectedCallback() {
-        this.removeEventListener('keydown', this.#handleKeydown);
-        this.removeEventListener('focusout', this.#handleFocusout);
-        this.removeEventListener('focusin', this.#handleUnlockScroll);
-        this.removeEventListener('wheel', this.#handleUnlockScroll);
-        this.removeEventListener('scroll', this.#handleScroll);
-    }
-
-    #handleKeydown = (event) => {
-        if (event.ctrlKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
-            if (this.#messages.length === 0) return;
-            event.stopPropagation();
-            event.preventDefault();
-            const moved = event.key === 'ArrowUp'
-                ? this.selectPreviousMsg()
-                : this.selectNextMsg();
-            if (!moved) this.dispatchEvent(new CustomEvent('focus-input'));
-            return;
-        }
-
-        if (event.key === 'Escape' && !event.ctrlKey && !event.altKey && !event.metaKey) {
-            event.stopPropagation();
-            event.preventDefault();
-            this.dispatchEvent(new CustomEvent('focus-input'));
-            return;
-        }
-
-        if (event.ctrlKey || event.altKey || event.metaKey) return;
-
-        if (this.#messages.length === 0) return;
-
-        const scrollMap = {
-            ArrowUp: -40,
-            ArrowDown: 40,
-            PageUp: -this.clientHeight * 0.75,
-            PageDown: this.clientHeight * 0.75
-        };
-
-        const scrollAmount = scrollMap[event.key];
-        if (scrollAmount === undefined) return;
-
-        event.preventDefault();
-        this.scrollBy({
-            top: scrollAmount,
-            behavior: event.repeat ? 'auto' : 'smooth'
-        });
-    };
-
-    #handleFocusout = (event) => {
-        if (!this.contains(event.relatedTarget)) {
-            if (this.#selectedMsg) this.#selectedMsg.setSelected(false);
-            const last = this.#messages.at(-1);
-            if (last) {
-                this.#selectedMsg = last;
-                last.setSelected(true);
-            }
-        }
-    };
-
-    #handleUnlockScroll = () => {
-        this.setScrollLocked(false);
-    };
-
-    #handleScroll = () => {
-        if (this.scrollTop + this.clientHeight >= this.scrollHeight) {
-            this.setScrollLocked(true);
-        }
-    };
 
     #addMessage(message) {
         this.appendChild(message);

@@ -63,10 +63,56 @@ III. Items under development
 ```
 
 Backlog tail, Selected item/items:
-I am interested in making the frontent baseclass responsible for all activities that belong in onconnect / disconnectedCallback methods.
-the subclasses would declare things, and then the baseclass' onconnect / ondisconnect would work on the declarations by iteration
+```
+1. BaseComponent lifecycle machinery: declarative refs, listeners, and symmetric teardown
+    [ ] 'content/web-ui/frontend/base-component.js': Add ref-resolution, listener-wiring, and teardown loops to BaseComponent
+        - Add support for a `refs` declaration: an object of `{ propName: 'cssSelector' }`. In `connectedCallback`, after template inflation, iterate and assign `this[propName] = this.querySelector(selector)`.
+        - Add support for a `listeners` declaration: an array of `{ target, event, handler }` where `target` is either a string (ref prop name or `'self'`) or `'document'`. In `connectedCallback`, resolve target (from refs or `this`/`document`), call `target.addEventListener(event, handler)`.
+        - Add `disconnectedCallback()`: iterate the same `listeners` array and call `target.removeEventListener(event, handler)`. This is the symmetric teardown that eliminates the current per-subclass leak risk.
+        - Add an optional `#setup()` hook (default no-op) called after refs are resolved and listeners are wired, but before `initialized = true`. Subclasses override this for imperative one-liners (set text, set tabIndex, role-conditional classes).
+        - Keep existing `connectedCallback` behavior (className attr, template inflation, `onConnect()` call) intact; the new machinery slots in before the `onConnect()` call.
+        - Handlers in the `listeners` array must be the actual function references (arrow functions / private method refs) so `removeEventListener` can match them. Subclass field initializers can reference their own `#` arrow-function fields.
 
-lets look at what the methods do today, to see how feasible it is. pull up all fronend files - and see what their onconnect and disconnectedCallback methods actually do. can we generalize and tuck away in baseclass, leaving subclasses nice and declarative? 
+2. Refactor subclasses to declarative lifecycle
+    [ ] 'content/web-ui/frontend/input-box.js': Replace onConnect body with refs + listeners declarations
+        - Declare `refs = { promptInput: 'textarea', sendBtn: 'button' }`.
+        - Declare `listeners = [{ target: 'sendBtn', event: 'click', handler: ...#dispatchSubmit }, { target: 'promptInput', event: 'keydown', handler: ...#handleKeydown }]`.
+        - Remove the entire `onConnect()` body (refs and wiring now handled by base).
+        - No `#setup()` needed.
+
+    [ ] 'content/web-ui/frontend/keyboard-bar.js': Replace onConnect + fix disconnectedCallback leak
+        - Declare `refs = { statusEl: '#kb-status' }`.
+        - Declare `listeners` for: `self→keydown`, `self→click`, and per-`.kb-btn` click listeners (these need a `querySelectorAll` + loop in `#setup()` since they're dynamic, not a single selector).
+        - Move `tabIndex = 0`, `#statusEl.textContent = 'Domain → Prompt'` into `#setup()`.
+        - Remove the current `onConnect()` and `disconnectedCallback()` entirely — base handles teardown symmetrically, fixing the current leak of `click` listeners.
+        - The per-button `.kb-btn` click listeners: handle in `#setup()` by `querySelectorAll` + loop, registering each in a base-managed listener registry (base needs to support registering listeners outside the static `listeners` array, or `#setup()` calls a base helper `this.#addListener(target, event, handler)` that also tracks it for teardown).
+
+    [ ] 'content/web-ui/frontend/messages-box.js': Replace onConnect body with refs + listeners declarations
+        - Declare `refs = { welcomeText: '.welcome-text' }`.
+        - Declare `listeners = [{ target: 'self', event: 'keydown', ... }, { target: 'self', event: 'focusout', ... }, { target: 'self', event: 'focusin', ... }, { target: 'self', event: 'wheel', ... }, { target: 'self', event: 'scroll', ... }]`.
+        - Remove `onConnect()` body and `disconnectedCallback()` (base handles both).
+
+    [ ] 'content/web-ui/frontend/clanker-app.js': Refactor listener wiring to declarative; keep #bootSystem
+        - Declare `refs = { inputBox: 'input-box', messagesBox: 'messages-box', toast: 'toast-notification' }`. (`keyboardBar` is resolved separately since `#keyboardBar` is a private field — either keep it as a ref with a public name, or handle in `#setup()`.)
+        - Declare `listeners` for: `inputBox→submit`, `keyboardBar→prompt-selected`, `keyboardBar→prompt-copied`, `self→toggle-scroll-lock`, `messagesBox→focus-input`, `inputBox→focus-message`, `document→keydown`.
+        - Move `keyboardBar.setExpanded(false)` into `#setup()`.
+        - Keep `#bootSystem()` and `#handleGlobalKeydown` as-is (semantic, async, cross-component orchestration).
+        - Remove the manual listener-wiring lines from `onConnect`; remove the manual `document.addEventListener` (base handles it via the `document` target).
+
+    [ ] 'content/web-ui/frontend/sidepanel-left.js': Replace onConnect body with refs + listeners
+        - Declare `refs = { statusElement: '#status' }`.
+        - Per-`[data-mode]` button click listeners: handle in `#setup()` via `querySelectorAll` + loop (same pattern as keyboard-bar per-button listeners).
+        - Remove `onConnect()` body.
+
+    [ ] 'content/web-ui/frontend/toast.js': Replace onConnect body with refs declaration
+        - Declare `refs = { toastElement: 'div' }`.
+        - Remove `onConnect()` body (no listeners to wire).
+
+    [ ] 'content/web-ui/frontend/message.js': Refactor ref resolution; keep role-conditional styling
+        - Declare `refs = { wrapper: ':scope > div', reasoningElement: '.reasoning-section', contentElement: '.content-section', statsElement: '.stats-footer', reasoningSummary: ... , reasoningBody: ..., contentSummary: ..., contentBody: ... }`.
+        - Move `setAttribute('data-index')`, role-conditional class additions, `#renderSummaries()`, `#renderContent()`, `updateReasoning()` into `#setup()`.
+        - No listeners to wire, no `disconnectedCallback` needed.
+```
 
 
 Backlog tail end

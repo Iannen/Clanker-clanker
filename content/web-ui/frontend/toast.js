@@ -5,9 +5,11 @@ const html = `<div class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 pointer
 class ToastNotification extends BaseComponent {
     html = html;
 
-    #timeout = null;
+    refs = {
+        toastElement: 'div',
+    };
 
-    onConnect() { this.toastElement = this.querySelector('div'); }
+    #timeout = null;
 
     show(message) {
         this.toastElement.textContent = message;

@@ -24,7 +24,12 @@ class ClankerApp extends BaseComponent {
     html = html;
     className = className;
 
-    #keyboardBar;
+    refs = {
+        inputBox: 'input-box',
+        messagesBox: 'messages-box',
+        keyboardBar: 'keyboard-bar',
+        toast: 'toast-notification',
+    };
 
     #handleGlobalKeydown = (event) => {
         if (event.shiftKey) return;
@@ -60,51 +65,24 @@ class ClankerApp extends BaseComponent {
         }
     };
 
-    #toggleKeyboardBar() {
-        if (this.#keyboardBar.isExpanded()) {
-            this.#keyboardBar.setExpanded(false);
+    listeners = [
+        { target: 'inputBox', event: 'submit', handler: (e) => { this.#generateResponse(e.detail); } },
+        { target: 'keyboardBar', event: 'prompt-selected', handler: () => {
+            this.keyboardBar.setExpanded(false);
             this.messagesBox.classList.remove('hidden');
             this.inputBox.classList.remove('hidden');
             this.inputBox.focus();
-        } else {
-            this.#keyboardBar.setExpanded(true);
-            this.messagesBox.classList.add('hidden');
-            this.inputBox.classList.add('hidden');
-            this.#keyboardBar.focus();
-        }
-    }
-
-    async onConnect() {
-        this.inputBox = this.querySelector('input-box');
-        this.messagesBox = this.querySelector('messages-box');
-        this.#keyboardBar = this.querySelector('keyboard-bar');
-        this.#keyboardBar.setExpanded(false);
-        this.toast = this.querySelector('toast-notification');
-
-        this.inputBox.addEventListener('submit', (e) => {
-            this.#generateResponse(e.detail);
-        });
-
-        this.#keyboardBar.addEventListener('prompt-selected', () => {
-            this.#keyboardBar.setExpanded(false);
-            this.messagesBox.classList.remove('hidden');
-            this.inputBox.classList.remove('hidden');
-            this.inputBox.focus();
-        });
-
-        this.#keyboardBar.addEventListener('prompt-copied', () => {
+        } },
+        { target: 'keyboardBar', event: 'prompt-copied', handler: () => {
             this.toast.show('📋 Prompt copied to clipboard');
-        });
-
-        this.addEventListener('toggle-scroll-lock', () => {
+        } },
+        { target: 'self', event: 'toggle-scroll-lock', handler: () => {
             this.messagesBox.setScrollLocked();
-        });
-
-        this.messagesBox.addEventListener('focus-input', () => {
+        } },
+        { target: 'messagesBox', event: 'focus-input', handler: () => {
             this.inputBox.focus();
-        });
-
-        this.inputBox.addEventListener('focus-message', (e) => {
+        } },
+        { target: 'inputBox', event: 'focus-message', handler: (e) => {
             if (!this.messagesBox.hasMessages()) {
                 this.toast.show('No messages yet');
                 return;
@@ -115,11 +93,30 @@ class ClankerApp extends BaseComponent {
             } else if (detail === 'last') {
                 this.messagesBox.setSelected('focusLast');
             }
-        });
+        } },
+        { target: 'document', event: 'keydown', handler: this.#handleGlobalKeydown },
+    ];
 
+    #toggleKeyboardBar() {
+        if (this.keyboardBar.isExpanded()) {
+            this.keyboardBar.setExpanded(false);
+            this.messagesBox.classList.remove('hidden');
+            this.inputBox.classList.remove('hidden');
+            this.inputBox.focus();
+        } else {
+            this.keyboardBar.setExpanded(true);
+            this.messagesBox.classList.add('hidden');
+            this.inputBox.classList.add('hidden');
+            this.keyboardBar.focus();
+        }
+    }
+
+    setup() {
+        this.keyboardBar.setExpanded(false);
+    }
+
+    async onConnect() {
         await this.#bootSystem();
-
-        document.addEventListener('keydown', this.#handleGlobalKeydown);
     }
 
     async #bootSystem() {
@@ -133,7 +130,7 @@ class ClankerApp extends BaseComponent {
             } else if (boot.type === 'clankerize') {
                 this.toast.show('⚠️ Workspace needs clankerization');
             } else {
-                this.#keyboardBar.setDomains(boot.shared_domains, boot.pud_domains);
+                this.keyboardBar.setDomains(boot.shared_domains, boot.pud_domains);
                 this.messagesBox.welcomeText.textContent = "Bootstrap completed successfully";
             }
         } catch (error) {
@@ -202,7 +199,7 @@ class ClankerApp extends BaseComponent {
 
         const data = await this.#ingestContent(content);
         if (data?.expanded?.length) {
-            await this.#keyboardBar.expandPaths(data.expanded);
+            await this.keyboardBar.expandPaths(data.expanded);
         }
     }
 
@@ -220,9 +217,8 @@ class ClankerApp extends BaseComponent {
                 this.inputBox.setDisabled(true);
                 let prevContent = '';
                 let prevReasoning = '';
-                const fullHistory = [...this.#keyboardBar.getMsgs(), ...this.messagesBox.getHistory()];
+                const fullHistory = [...this.keyboardBar.getMsgs(), ...this.messagesBox.getHistory()];
                 const totalChars = fullHistory.reduce((sum, m) => sum + (m.content?.length ?? 0), 0);
-                // Seeds chars-per-prefill-token ratio used by message.js onPrefill for live token estimates.
                 assistantMsg.sentChars = totalChars;
 
                 let reasoningSnapshot = '';
@@ -248,7 +244,7 @@ class ClankerApp extends BaseComponent {
                 const data = await this.#ingestContent(prevContent, { silentEmpty: true });
 
                 if (!data?.expanded?.length) break;
-                const grew = await this.#keyboardBar.expandPaths(data.expanded);
+                const grew = await this.keyboardBar.expandPaths(data.expanded);
                 if (!grew) break;
 
                 userMsg = document.createElement('chat-message');

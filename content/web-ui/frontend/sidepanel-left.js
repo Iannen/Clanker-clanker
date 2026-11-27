@@ -53,17 +53,19 @@ class SidepanelLeft extends BaseComponent {
     html = html;
     className = className;
 
+    refs = {
+        statusElement: '#status',
+    };
+
     #statusLabels = {
         desktop: 'Desktop',
         llama: 'Llama',
         strata: 'Strata'
     };
 
-    onConnect() {
-        this.statusElement = this.querySelector('#status');
-
+    setup() {
         this.querySelectorAll('[data-mode]').forEach(button => {
-            button.addEventListener('click', () => {
+            this.addListener(button, 'click', () => {
                 this.#switchMode(button.dataset.mode);
             });
         });
