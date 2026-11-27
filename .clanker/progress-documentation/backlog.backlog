@@ -63,6 +63,34 @@ III. Items under development
 ```
 
 Backlog tail, Selected item/items:
+```
+3. Collapse single-caller forwarding methods
+    [ ] 'content/web-ui/frontend/message.js': Rationalize `reasoning` setter
+        - `set reasoning(value)` body becomes a single delegation: `this.updateReasoning(value)`
+        - removes the latent DOM-gap where the setter mutated `#reasoning` but never touched `reasoningBody`
+    [ ] 'content/web-ui/frontend/messages-box.js': Remove `selectFirst()` and `selectLast()`
+        - `setSelected(action)`: replace `this.selectFirst()` → `this.selectMessage(this.#messages[0])`, `this.selectLast()` → `this.selectMessage(this.#messages.at(-1))`
+    [ ] 'content/web-ui/frontend/input-box.js': Remove `getValue()` and `clear()`
+        - `#dispatchSubmit()`: replace `this.getValue()` → `this.promptInput.value.trim()`, `this.clear()` → `this.promptInput.value = ''`
+    [ ] 'content/web-ui/frontend/sidepanel-left.js': Remove `#setStatus()`
+        - inline `this.statusElement.textContent = message` at the two call sites in `#switchMode`
+```
+```
+4. Consolidate mode-switching to single parameterized call
+    [ ] 'content/web-ui/frontend/api-client.js': Collapse three mode methods into one
+        - delete `switchDesktopMode()`, `switchLlamaMode()`, `switchStrataMode()`
+        - add `switchMode(mode)` that maps mode → endpoint path (e.g. `const paths = { desktop: '/api/mode/desktop', llama_cpp: '/api/mode/llama_cpp', strata: '/api/mode/strata' }`) and calls `this.#post(paths[mode])`
+    [ ] 'content/web-ui/frontend/sidepanel-left.js': Remove `#modeActions` map
+        - `#switchMode(mode)`: replace `action()` call with `apiClient.switchMode(mode)`
+```
+```
+5. Remove `getRenderedPromptText` and its redundant guard
+    [ ] 'content/web-ui/frontend/keyboard-bar.js': Delete `getRenderedPromptText()`
+    [ ] 'content/web-ui/frontend/clanker-app.js': Drop toast guard in `#ingestSelected`
+        - remove the `if (!this.#keyboardBar.getRenderedPromptText())` branch and its toast
+        - the outer `if (data?.expanded?.length)` becomes just `await this.#keyboardBar.expandPaths(data.expanded)`
+        - `expandPaths` already self-guards on missing selection
+```
 
 Backlog tail end
 
@@ -221,3 +249,19 @@ n. Delims: replace path-bearing tag constants with verb-injected f-string method
         - test_truncation_applies_after_substitution, test_from_line_on_template, test_up_to_on_template: if they use old § tokens in input, update to new format
         - Prohibition: no test may hardcode an old-style token (§cfsul§ etc.) as input
 
+```
+1. Preserve newlines in chat message rendering
+    [x] 'content/web-ui/frontend/message.js': Fix `#renderContent()` newline handling for both roles
+        - user role: remove the `this.contentBody.className = ''` line so `onConnect()`'s `whitespace-pre-wrap` is not wiped; only set `textContent`
+        - assistant role: add `{ breaks: true }` to the `marked.parse()` call so single `\n` renders as `<br>` instead of collapsing to a space
+```
+```
+2. Consolidate scroll-lock state into single method
+    [x] 'content/web-ui/frontend/messages-box.js': Replace `toggleScrollLock()` with `setScrollLocked(locked = undefined)` that flips when `locked` is omitted
+        - delete `toggleScrollLock()` method
+        - `setScrollLocked(locked = undefined)` sets the field (flipping if undefined), scrolls to bottom if locking
+        - `addMessages()`: change `if (this.#scrollLocked) this.scrollToBottom()` to `this.setScrollLocked(true)`
+        - add `scroll` listener in `onConnect()` that calls `this.setScrollLocked(true)` when `scrollTop + clientHeight >= scrollHeight`
+        - remove `scroll` listener in `disconnectedCallback()`
+    [x] 'content/web-ui/frontend/clanker-app.js': change ESC handler from `this.messagesBox.toggleScrollLock()` to `this.messagesBox.setScrollLocked()`
+```

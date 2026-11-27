@@ -189,9 +189,8 @@ class Message extends BaseComponent {
 
         if (this.messageRole === 'assistant') {
             this.contentBody.className = 'markdown-body text-sm text-[#f3f4f6]';
-            this.contentBody.innerHTML = this.content ? marked.parse(escapeHtml(this.content)) : '';
+            this.contentBody.innerHTML = this.content ? marked.parse(escapeHtml(this.content), { breaks: true }) : '';
         } else {
-            this.contentBody.className = '';
             this.contentBody.textContent = this.content;
         }
     }

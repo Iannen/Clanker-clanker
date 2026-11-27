@@ -97,7 +97,7 @@ class ClankerApp extends BaseComponent {
         });
 
         this.addEventListener('toggle-scroll-lock', () => {
-            this.messagesBox.toggleScrollLock();
+            this.messagesBox.setScrollLocked();
         });
 
         this.messagesBox.addEventListener('focus-input', () => {

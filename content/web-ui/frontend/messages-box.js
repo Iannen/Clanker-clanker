@@ -79,12 +79,8 @@ class MessagesBox extends BaseComponent {
 
     toggleContent() { if (this.#selectedMsg) this.#selectedMsg.toggleContent(); }
 
-    toggleScrollLock() {
-        this.#scrollLocked = !this.#scrollLocked;
-        if (this.#scrollLocked) this.scrollToBottom();
-    }
-
-    setScrollLocked(locked) {
+    setScrollLocked(locked = undefined) {
+        if (locked === undefined) locked = !this.#scrollLocked;
         this.#scrollLocked = locked;
         if (locked) this.scrollToBottom();
     }
@@ -110,7 +106,7 @@ class MessagesBox extends BaseComponent {
         this.#selectedMsg = assistantMsg;
         assistantMsg.setSelected(true);
 
-        if (this.#scrollLocked) this.scrollToBottom();
+        this.setScrollLocked(true);
     }
 
     scrollToBottom() { this.scrollTop = this.scrollHeight; }
@@ -127,6 +123,7 @@ class MessagesBox extends BaseComponent {
         this.addEventListener('focusout', this.#handleFocusout);
         this.addEventListener('focusin', this.#handleUnlockScroll);
         this.addEventListener('wheel', this.#handleUnlockScroll);
+        this.addEventListener('scroll', this.#handleScroll);
     }
 
     disconnectedCallback() {
@@ -134,6 +131,7 @@ class MessagesBox extends BaseComponent {
         this.removeEventListener('focusout', this.#handleFocusout);
         this.removeEventListener('focusin', this.#handleUnlockScroll);
         this.removeEventListener('wheel', this.#handleUnlockScroll);
+        this.removeEventListener('scroll', this.#handleScroll);
     }
 
     #handleKeydown = (event) => {
@@ -189,6 +187,12 @@ class MessagesBox extends BaseComponent {
 
     #handleUnlockScroll = () => {
         this.setScrollLocked(false);
+    };
+
+    #handleScroll = () => {
+        if (this.scrollTop + this.clientHeight >= this.scrollHeight) {
+            this.setScrollLocked(true);
+        }
     };
 
     #addMessage(message) {
