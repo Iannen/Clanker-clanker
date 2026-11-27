@@ -134,12 +134,13 @@ class Delims:
     UPDATE_FILESET_UL = ("§ufsul§", "<update path=\"")
     DELETE_FILESET_UL = ("§dfsul§", "<delete path=\"")
 
-    CREATE_FILESET_BL = ("§cfsbl§", "</create path=\"")
-    READ_FILESET_BL = ("§rfsbl§", "</file path=\"")
-    UPDATE_FILESET_BL = ("§ufsbl§", "</update path=\"")
+    CREATE_FILESET_BL = ("§cfsbl§", "</create")
+    READ_FILESET_BL = ("§rfsbl§", "</file")
+    UPDATE_FILESET_BL = ("§ufsbl§", "</update")
 
     FILESET_OPEN_END_TAG = ("§fsoet§", "\">")
     FILESET_CLOSED_END_TAG = ("§fscet§", "\"/>")
+    FILESET_OPEN_END_TAG_BR = ("§fsoetbr§", ">")
 
     FILE_META_UL = ("§fmul§", "<file_meta path=\"")
     FILE_META_CLOSE = ("§fmc§", "\"/>")

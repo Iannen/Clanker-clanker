@@ -47,16 +47,16 @@ def _create_open(path: str) -> str:
     return f"{e.Delims.CREATE_FILESET_UL[1]}{path}{e.Delims.FILESET_OPEN_END_TAG[1]}"
 
 
-def _create_close(path: str) -> str:
-    return f"{e.Delims.CREATE_FILESET_BL[1]}{path}{e.Delims.FILESET_OPEN_END_TAG[1]}"
+def _create_close() -> str:
+    return f"{e.Delims.CREATE_FILESET_BL[1]}{e.Delims.FILESET_OPEN_END_TAG_BR[1]}"
 
 
 def _update_open(path: str) -> str:
     return f"{e.Delims.UPDATE_FILESET_UL[1]}{path}{e.Delims.FILESET_OPEN_END_TAG[1]}"
 
 
-def _update_close(path: str) -> str:
-    return f"{e.Delims.UPDATE_FILESET_BL[1]}{path}{e.Delims.FILESET_OPEN_END_TAG[1]}"
+def _update_close() -> str:
+    return f"{e.Delims.UPDATE_FILESET_BL[1]}{e.Delims.FILESET_OPEN_END_TAG_BR[1]}"
 
 
 def _delete_tag(path: str) -> str:
@@ -88,7 +88,7 @@ class TestIngestionServiceRejection(unittest.TestCase):
             "```python",
             "x = 1",
             "```",
-            # no matching </create path="src/foo.py">
+            # no matching closing tag
         ])
         result = self.service.apply_file_changes(raw)
 
@@ -113,7 +113,7 @@ class TestIngestionServiceRejection(unittest.TestCase):
             "```python",
             "def new_thing(): pass",
             "```",
-            _create_close("src/calculator.py"),
+            _create_close(),
         ])
         result = self.service.apply_file_changes(raw)
 
@@ -132,7 +132,7 @@ class TestIngestionServiceRejection(unittest.TestCase):
             "```python",
             "def ghost(): pass",
             "```",
-            _update_close("src/ghost.py"),
+            _update_close(),
         ])
         result = self.service.apply_file_changes(raw)
 

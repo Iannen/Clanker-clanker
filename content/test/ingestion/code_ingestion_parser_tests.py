@@ -8,16 +8,16 @@ def _create_open(path: str) -> str:
     return f"{e.Delims.CREATE_FILESET_UL[1]}{path}{e.Delims.FILESET_OPEN_END_TAG[1]}"
 
 
-def _create_close(path: str) -> str:
-    return f"{e.Delims.CREATE_FILESET_BL[1]}{path}{e.Delims.FILESET_OPEN_END_TAG[1]}"
+def _create_close() -> str:
+    return f"{e.Delims.CREATE_FILESET_BL[1]}{e.Delims.FILESET_OPEN_END_TAG_BR[1]}"
 
 
 def _update_open(path: str) -> str:
     return f"{e.Delims.UPDATE_FILESET_UL[1]}{path}{e.Delims.FILESET_OPEN_END_TAG[1]}"
 
 
-def _update_close(path: str) -> str:
-    return f"{e.Delims.UPDATE_FILESET_BL[1]}{path}{e.Delims.FILESET_OPEN_END_TAG[1]}"
+def _update_close() -> str:
+    return f"{e.Delims.UPDATE_FILESET_BL[1]}{e.Delims.FILESET_OPEN_END_TAG_BR[1]}"
 
 
 def _delete_tag(path: str) -> str:
@@ -36,7 +36,7 @@ class TestIngestionParser(unittest.TestCase):
             "def add(a: int, b: int) -> int:",
             "    return a + b",
             "```",
-            _create_close("src/calculator.py"),
+            _create_close(),
         ])
         result = self.parser.parse(raw)
         self.assertEqual(
@@ -54,7 +54,7 @@ class TestIngestionParser(unittest.TestCase):
             "def subtract(a: int, b: int) -> int:",
             "    return a - b",
             "```",
-            _update_close("src/calculator.py"),
+            _update_close(),
         ])
         result = self.parser.parse(raw)
         self.assertEqual(result.creates, [])
@@ -100,7 +100,7 @@ class TestIngestionParser(unittest.TestCase):
             "```python",
             "x = 1",
             "```",
-            _update_close("src/foo.py"),
+            _update_close(),
         ])
         result = self.parser.parse(raw)
         self.assertEqual(result.creates, [])

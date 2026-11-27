@@ -63,6 +63,23 @@ III. Items under development
 ```
 
 Backlog tail, Selected item/items:
+```
+n. Delims: replace concatenation with verb + path f-string composition
+    [ ] 'content/backend/core/core/entities.py': Consolidate fileset delims into a verb-driven helper
+        - Introduce a verb enum (create, update, delete, file, file_meta) with open/close/self-closing methods
+        - Collapse CREATE/UPDATE/READ_FILESET_UL, *_BL, DELETE_FILESET_UL, FILE_META_UL, FILE_META_CLOSE, FILESET_OPEN_END_TAG(_BR) into verb methods
+        - Keep FILELIST and PROMPT delims as-is (single-char, no path)
+    [ ] 'content/backend/render_pipeline/render_service.py': Align multi-doc rendering to the same verb source
+        - `_res_multi_doc` currently hand-assembles `<name>…</name>` bookends via Delims concatenation
+        - Refactor to derive open/close from the shared verb helper so fileset and filelist rendering share one composition path
+    [ ] 'content/backend/asset_ingestion/ingestion_parser.py': Derive regex patterns from verb definitions
+        - `_open_re` and `_close_re` currently embed escaped Delims strings inline
+        - Refactor to build the pattern from the verb set so adding a verb updates the parser automatically
+    [ ] 'content/a_lib/shared-assets/prompt-fragments/output-instructions/code-generation.output-template': Consider composing the example block at render time
+        - Template currently mirrors parser tags by hand
+        - If verbs are the source of truth, the example section could be generated from the verb set rather than maintained as a static file
+        - Token substitution layer (§fsoet§ etc.) becomes optional if display strings are emitted directly
+```
 
 Backlog tail end
 
@@ -148,3 +165,12 @@ VI. finished stuffs
         - Remove //All components inherit BaseComponent...
         - Remove the // --- Prefill/Reasoning/Content segment --- markers in message.js #buildStatsLine
         - Keep the // null | 'prefill' | ... phase spec and // Surface a single prompt_progress tick.
+
+1. Ingestion parser: enforce new closing-tag format (no path in close)
+    [x] 'content/backend/asset_ingestion/ingestion_parser.py': No logic change required
+        - `_close_re` already uses `FILESET_OPEN_END_TAG_BR` (`>`), so expected close is `</create>` / `</update>` — no path in closing tag
+        - Confirmed by live testing: parser accepted that format once backend was restarted
+    [x] 'content/a_lib/shared-assets/prompt-fragments/output-instructions/code-generation.output-template': Closing bookend examples drop path from close tag
+        - `§ufsbl§` → `§fsoetbr§` (i.e. `</update>`)
+        - `§cfsbl§` → `§fsoetbr§` (i.e. `</create>`)
+        - Delete tags unaffected (self-closing, no separate close)

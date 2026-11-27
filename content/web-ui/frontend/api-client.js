@@ -56,8 +56,8 @@ export class ApiClient {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                //model: 'qwen-47k',
-                model: 'CyberTiel-4',
+                model: 'qwen-47k',
+                //model: 'CyberTiel-4',
                 messages,
                 stream: true,
                 return_progress: true,

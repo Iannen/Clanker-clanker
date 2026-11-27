@@ -1,4 +1,3 @@
-
 import re
 from dataclasses import dataclass, field
 
@@ -31,9 +30,9 @@ class IngestionParser:
 
     _close_re = re.compile(
         r"^(?:"
-        + r"(?P<create_close>" + re.escape(e.Delims.CREATE_FILESET_BL[1]) + r")(?P<create_path>.+?)" + re.escape(e.Delims.FILESET_OPEN_END_TAG[1])
+        + r"(?P<create_close>" + re.escape(e.Delims.CREATE_FILESET_BL[1]) + r")" + re.escape(e.Delims.FILESET_OPEN_END_TAG_BR[1])
         + r"|"
-        + r"(?P<update_close>" + re.escape(e.Delims.UPDATE_FILESET_BL[1]) + r")(?P<update_path>.+?)" + re.escape(e.Delims.FILESET_OPEN_END_TAG[1])
+        + r"(?P<update_close>" + re.escape(e.Delims.UPDATE_FILESET_BL[1]) + r")" + re.escape(e.Delims.FILESET_OPEN_END_TAG_BR[1])
         + r")$"
     )
 
@@ -72,12 +71,10 @@ class IngestionParser:
                 action = "create"
                 path = m.group("create_path").strip()
                 close_group = "create_close"
-                close_path_group = "create_path"
             else:
                 action = "update"
                 path = m.group("update_path").strip()
                 close_group = "update_close"
-                close_path_group = "update_path"
 
             # Scan forward for the matching closing bookend.
             j = i + 1
@@ -89,7 +86,6 @@ class IngestionParser:
                 if (
                     cm
                     and cm.group(close_group) is not None
-                    and cm.group(close_path_group).strip() == path
                 ):
                     found = True
                     break

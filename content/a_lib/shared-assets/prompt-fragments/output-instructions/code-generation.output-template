@@ -1,20 +1,20 @@
-§ufsul§path1§fsoet§
+<update path="path1">
 {{ALWAYS USE 'update' TAG FOR EXISTING FILES}}
-§ufsbl§path1§fsoet§
+</update>
 
-§ufsul§path2§fsoet§
+<update path="path2">
 {{ALWAYS COMPLETE_FILE_CONTENTS}}
-§ufsbl§path2§fsoet§
+</update>
 
-§cfsul§path3§fsoet§
+<create path="path3">
 {{ONLY USE 'create' TAG FOR NEW FILES}}
-§cfsbl§path3§fsoet§
+</create>
 
-§cfsul§path4§fsoet§
-{{ALWAYS PROVIDE PATH IN BOTH STARTING **AND** CLOSING BOOKEND}}
-§cfsbl§path4§fsoet§
+<create path="path4">
+{{ALWAYS COMPLETE_FILE_CONTENTS}}
+</create>
 
-§dfsul§path5§fscet§
-§dfsul§path6§fscet§
+<delete path="path5"/>
+<delete path="path6"/>
 
 Use the above to effectuate changes on the codebase

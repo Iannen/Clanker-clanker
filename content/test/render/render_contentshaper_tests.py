@@ -23,9 +23,9 @@ class TestPromptContentShaper(unittest.TestCase):
     def test_template_file_fileset_placeholder_substitution(self):
         content = "\n".join([
             "§cfsul§src/new.py§fsoet§",
-            "§cfsbl§src/new.py§fsoet§",
+            "§cfsbl§§fsoetbr§",
             "§ufsul§src/mod.py§fsoet§",
-            "§ufsbl§src/mod.py§fsoet§",
+            "§ufsbl§§fsoetbr§",
             "§dfsul§src/old.py§fscet§",
         ])
         file = e.File(name="prompt.output-template", truncation_spec=None)
@@ -34,9 +34,9 @@ class TestPromptContentShaper(unittest.TestCase):
             result,
             "\n".join([
                 '<create path="src/new.py">',
-                '</create path="src/new.py">',
+                '</create>',
                 '<update path="src/mod.py">',
-                '</update path="src/mod.py">',
+                '</update>',
                 '<delete path="src/old.py"/>',
             ]),
         )
