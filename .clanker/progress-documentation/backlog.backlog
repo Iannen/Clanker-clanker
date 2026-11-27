@@ -64,46 +64,22 @@ III. Items under development
 
 Backlog tail, Selected item/items:
 ```
-1. Collapse single-entry refs objects to one line
-    [ ] 'content/web-ui/frontend/keyboard-bar.js': Inline refs to single line
-        - change `refs = { ... }` spanning 3 lines to `refs = { statusEl: '#kb-status' };`
-        - remove the `//single line syntax?` comment
-    [ ] 'content/web-ui/frontend/toast.js': Inline refs to single line
-        - change `refs = { ... }` spanning 3 lines to `refs = { toastElement: 'div' };`
-        - remove the `// i prefer single line syntax...` comment
-
-2. Remove redundant setup() in clanker-app
-    [ ] 'content/web-ui/frontend/clanker-app.js': Delete setup() override
-        - remove `setup() { this.keyboardBar.setExpanded(false); }` entirely
-        - remove the associated comment
-        - rationale: initial HTML already has `hidden` on #kb-zone2, glyph is `▸`, `#expanded` defaults to `false` — the call is a no-op
-
-3. Remove reasoning getter/setter from message
-    [ ] 'content/web-ui/frontend/message.js': Strip reasoning accessors
-        - remove `get reasoning()` and `set reasoning(value)`
+1. Collapse lifecycle hooks to single async setup()
+    [ ] 'content/web-ui/frontend/keyboard-bar.js': Delete setup() method entirely
+        - remove the `tabIndex = 0` line (now declarative in parent markup)
+        - remove the `statusEl.textContent` line (no-op — template already renders "Domain → Prompt")
         - remove both associated comments
-        - `updateReasoning(text)` remains as the sole public entry point; no caller reads `.reasoning` as a property
-
-4. Replace imperative button loop with event delegation in sidepanel-left
-    [ ] 'content/web-ui/frontend/sidepanel-left.js': Delegate button clicks to self listener
-        - remove `setup()` method entirely (including its comment)
-        - add a `listeners` array entry: `{ target: 'self', event: 'click', handler: (e) => { const btn = e.target.closest('[data-mode]'); if (btn) this.#switchMode(btn.dataset.mode); } }`
-        - same behaviour, one fewer method, no imperative forEach
-
-5. Replace imperative button loop with event delegation in keyboard-bar
-    [ ] 'content/web-ui/frontend/keyboard-bar.js': Delegate button clicks to self listener
-        - remove `setup()` method entirely (keeping only `this.tabIndex = 0` and `this.statusEl.textContent = 'Domain → Prompt'` inline in a slimmed `setup()`, or fold those two lines into `connectedCallback`-level init)
-        - add a `listeners` array entry: `{ target: 'self', event: 'click', handler: (e) => { const btn = e.target.closest('.kb-btn'); if (!btn) return; const key = btn.dataset.key; if (sharedDomKeys.includes(key) || pudDomKeys.includes(key)) this.#onDomainKey(key); else if (promptKeys.includes(key)) this.#onPromptKey(key); } }`
-        - the existing `listeners` entry for expand-toggle stays as-is
-        - no imperative forEach, no per-button addListener
-
-6. Remove dead addListener / #_trackedListeners from base-component
-    [ ] 'content/web-ui/frontend/base-component.js': Strip unused listener-tracking machinery
-        - remove `addListener()` method
-        - remove `#_trackedListeners` private field
-        - remove the second `for` loop in `disconnectedCallback` that iterates `#_trackedListeners`
-        - rationale: after items 4 and 5, no subclass calls `addListener`; the tracking path is dead
-        - `disconnectedCallback` retains only the `listeners` iteration
+    [ ] 'content/web-ui/frontend/clanker-app.js': Fold onConnect() into setup(), eliminate #bootSystem
+        - delete `onConnect()` override entirely
+        - delete `#bootSystem` private method entirely
+        - move the body of `#bootSystem` directly into `async setup()`
+    [ ] 'content/web-ui/frontend/clanker-app.js': Add tabindex to keyboard-bar element
+        - change `<keyboard-bar></keyboard-bar>` to `<keyboard-bar tabindex="0"></keyboard-bar>` in the html template
+    [ ] 'content/web-ui/frontend/base-component.js': Make connectedCallback async
+        - change `connectedCallback()` to `async connectedCallback()`
+        - change `this.setup()` to `await this.setup()`
+        - move `this.initialized = true` to after the await (post-setup)
+        - remove `onConnect()` method from base class (no longer called)
 ```
 Backlog tail end
 
@@ -356,3 +332,46 @@ n. Delims: replace path-bearing tag constants with verb-injected f-string method
         - Declare `refs = { wrapper: ':scope > div', reasoningElement: '.reasoning-section', contentElement: '.content-section', statsElement: '.stats-footer', reasoningSummary: ... , reasoningBody: ..., contentSummary: ..., contentBody: ... }`.
         - Move `setAttribute('data-index')`, role-conditional class additions, `#renderSummaries()`, `#renderContent()`, `updateReasoning()` into `#setup()`.
         - No listeners to wire, no `disconnectedCallback` needed.
+
+```
+1. Collapse single-entry refs objects to one line
+    [x] 'content/web-ui/frontend/keyboard-bar.js': Inline refs to single line
+        - change `refs = { ... }` spanning 3 lines to `refs = { statusEl: '#kb-status' };`
+        - remove the `//single line syntax?` comment
+    [x] 'content/web-ui/frontend/toast.js': Inline refs to single line
+        - change `refs = { ... }` spanning 3 lines to `refs = { toastElement: 'div' };`
+        - remove the `// i prefer single line syntax...` comment
+
+2. Remove redundant setup() in clanker-app
+    [x] 'content/web-ui/frontend/clanker-app.js': Delete setup() override
+        - remove `setup() { this.keyboardBar.setExpanded(false); }` entirely
+        - remove the associated comment
+        - rationale: initial HTML already has `hidden` on #kb-zone2, glyph is `▸`, `#expanded` defaults to `false` — the call is a no-op
+
+3. Remove reasoning getter/setter from message
+    [x] 'content/web-ui/frontend/message.js': Strip reasoning accessors
+        - remove `get reasoning()` and `set reasoning(value)`
+        - remove both associated comments
+        - `updateReasoning(text)` remains as the sole public entry point; no caller reads `.reasoning` as a property
+
+4. Replace imperative button loop with event delegation in sidepanel-left
+    [x] 'content/web-ui/frontend/sidepanel-left.js': Delegate button clicks to self listener
+        - remove `setup()` method entirely (including its comment)
+        - add a `listeners` array entry: `{ target: 'self', event: 'click', handler: (e) => { const btn = e.target.closest('[data-mode]'); if (btn) this.#switchMode(btn.dataset.mode); } }`
+        - same behaviour, one fewer method, no imperative forEach
+
+5. Replace imperative button loop with event delegation in keyboard-bar
+    [x] 'content/web-ui/frontend/keyboard-bar.js': Delegate button clicks to self listener
+        - remove `setup()` method entirely (keeping only `this.tabIndex = 0` and `this.statusEl.textContent = 'Domain → Prompt'` inline in a slimmed `setup()`, or fold those two lines into `connectedCallback`-level init)
+        - add a `listeners` array entry: `{ target: 'self', event: 'click', handler: (e) => { const btn = e.target.closest('.kb-btn'); if (!btn) return; const key = btn.dataset.key; if (sharedDomKeys.includes(key) || pudDomKeys.includes(key)) this.#onDomainKey(key); else if (promptKeys.includes(key)) this.#onPromptKey(key); } }`
+        - the existing `listeners` entry for expand-toggle stays as-is
+        - no imperative forEach, no per-button addListener
+
+6. Remove dead addListener / #_trackedListeners from base-component
+    [x] 'content/web-ui/frontend/base-component.js': Strip unused listener-tracking machinery
+        - remove `addListener()` method
+        - remove `#_trackedListeners` private field
+        - remove the second `for` loop in `disconnectedCallback` that iterates `#_trackedListeners`
+        - rationale: after items 4 and 5, no subclass calls `addListener`; the tracking path is dead
+        - `disconnectedCallback` retains only the `listeners` iteration
+```

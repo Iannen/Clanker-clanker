@@ -4,7 +4,7 @@ export class BaseComponent extends HTMLElement {
     refs = {};
     listeners = [];
 
-    connectedCallback() {
+    async connectedCallback() {
         if (this.className) this.setAttribute('class', this.className);
         if (this.html) {
             const template = document.createElement('template');
@@ -21,8 +21,7 @@ export class BaseComponent extends HTMLElement {
             t.addEventListener(event, handler);
         }
 
-        this.setup();
-        this.onConnect();
+        await this.setup();
         this.initialized = true;
     }
 
@@ -34,7 +33,6 @@ export class BaseComponent extends HTMLElement {
     }
 
     setup() {}
-    onConnect() {}
 
     #resolveTarget(target) {
         if (typeof target !== 'string') return target;

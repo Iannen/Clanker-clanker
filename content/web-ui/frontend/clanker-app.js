@@ -10,7 +10,7 @@ import './sidepanel-right.js';
 const html = `
     <sidepanel-left></sidepanel-left>
     <div class="flex flex-col h-screen overflow-hidden">
-        <keyboard-bar></keyboard-bar>    
+        <keyboard-bar tabindex="0"></keyboard-bar>
         <messages-box></messages-box>
         <input-box></input-box>
     </div>
@@ -97,25 +97,7 @@ class ClankerApp extends BaseComponent {
         { target: 'document', event: 'keydown', handler: this.#handleGlobalKeydown },
     ];
 
-    #toggleKeyboardBar() {
-        if (this.keyboardBar.isExpanded()) {
-            this.keyboardBar.setExpanded(false);
-            this.messagesBox.classList.remove('hidden');
-            this.inputBox.classList.remove('hidden');
-            this.inputBox.focus();
-        } else {
-            this.keyboardBar.setExpanded(true);
-            this.messagesBox.classList.add('hidden');
-            this.inputBox.classList.add('hidden');
-            this.keyboardBar.focus();
-        }
-    }
-
-    async onConnect() {
-        await this.#bootSystem();
-    }
-
-    async #bootSystem() {
+    async setup() {
         this.inputBox.setDisabled(true);
         try {
             const boot = await apiClient.boot();
@@ -134,6 +116,20 @@ class ClankerApp extends BaseComponent {
         }
         this.inputBox.setDisabled(false);
         this.inputBox.focus();
+    }
+
+    #toggleKeyboardBar() {
+        if (this.keyboardBar.isExpanded()) {
+            this.keyboardBar.setExpanded(false);
+            this.messagesBox.classList.remove('hidden');
+            this.inputBox.classList.remove('hidden');
+            this.inputBox.focus();
+        } else {
+            this.keyboardBar.setExpanded(true);
+            this.messagesBox.classList.add('hidden');
+            this.inputBox.classList.add('hidden');
+            this.keyboardBar.focus();
+        }
     }
 
     async #copySelected() {

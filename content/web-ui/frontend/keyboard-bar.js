@@ -287,13 +287,6 @@ class KeyboardBar extends BaseComponent {
         }
     }
 
-    setup() {
-        // can this not be classvar?
-        this.tabIndex = 0;
-        //can this not be default set in html?
-        this.statusEl.textContent = 'Domain → Prompt';
-    }
-
     #setStateClass(btn, state) {
         btn.classList.remove('kb-active', 'kb-highlighted', 'kb-inactive');
         btn.classList.add(`kb-${state}`);
