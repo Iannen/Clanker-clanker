@@ -5,14 +5,9 @@ const sharedDomKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
 const pudDomKeys = ['q', 'w', 'e', 'r'];
 const promptKeys = ['a', 's', 'd', 'f'];
 
-const boundKeys = new Set([...sharedDomKeys, ...pudDomKeys, ...promptKeys, 'Enter']);
+const SCROLL_KEYS = new Set(['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown']);
 
-const scrollKeyMap = {
-    ArrowUp: -40,
-    ArrowDown: 40,
-    PageUp: 'pageUp',
-    PageDown: 'pageDown',
-};
+const boundKeys = new Set([...sharedDomKeys, ...pudDomKeys, ...promptKeys, 'Enter']);
 
 function buildRow(label, keys) {
     const buttons = keys.map(key =>
@@ -237,7 +232,7 @@ class KeyboardBar extends BaseComponent {
 
         if (event.ctrlKey || event.altKey || event.metaKey) return;
 
-        if (scrollKeyMap[event.key] !== undefined) {
+        if (SCROLL_KEYS.has(event.key)) {
             const pane = this.querySelector('#rendered');
             if (pane) {
                 event.stopPropagation();

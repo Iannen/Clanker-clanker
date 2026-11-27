@@ -226,16 +226,15 @@ class ClankerApp extends BaseComponent {
                 let prevReasoning = '';
                 const fullHistory = [...this.#keyboardBar.getMsgs(), ...this.messagesBox.getHistory()];
                 const totalChars = fullHistory.reduce((sum, m) => sum + (m.content?.length ?? 0), 0);
-                if (!prevContent) {
-                    assistantMsg.sentChars = totalChars;
-                }
+                // Seeds chars-per-prefill-token ratio used by message.js onPrefill for live token estimates.
+                assistantMsg.sentChars = totalChars;
 
                 let reasoningSnapshot = '';
 
                 const result = await apiClient.streamChatCompletion({
                     messages: fullHistory,
                     onToken: (token, fullText) => {
-                        assistantMsg.updateContent(prevContent + fullText);
+                        assistantMsg.content = prevContent + fullText;
                         this.messagesBox.scrollIfLocked();
                     },
                     onReasoning: (reasoningToken, reasoningText) => {

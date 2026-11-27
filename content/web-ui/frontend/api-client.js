@@ -21,21 +21,12 @@ export class ApiClient {
     }
 
     async renderPrompt(domain, prompt) {
-        const response = await fetch('/api/render-prompt', {
-            method: 'POST',
+        return this.#post('/api/render-prompt', {
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ domain, prompt })
         });
-
-        if (!response.ok) {
-            const body = await response.json().catch(() => null);
-            const msg = body?.error?.message ?? body?.error ?? response.statusText;
-            throw new Error(msg);
-        }
-
-        return response.json();
     }
 
     async ingestFileChanges(content) {

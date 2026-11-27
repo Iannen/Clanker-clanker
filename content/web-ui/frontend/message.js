@@ -196,10 +196,6 @@ class Message extends BaseComponent {
         }
     }
 
-    updateContent(text) {
-        this.content = text;
-    }
-
     updateReasoning(text) {
         this.#reasoning = String(text ?? '');
 
@@ -273,7 +269,6 @@ class Message extends BaseComponent {
     #buildStatsLine() {
         const parts = [];
 
-        // --- Prefill segment ---
         if (this.#prefillData) {
             const pd = this.#prefillData;
             const prefillTok = pd.total || pd.processed;
@@ -295,7 +290,6 @@ class Message extends BaseComponent {
                     : '';
                 parts.push(`⏳ Prefill: ${pd.processed}/${pd.total} tok (${pct}%) · ${elapsed}s${tps}${cacheStr}`);
             } else {
-                // frozen prefill (reasoning, content, or final without timings)
                 const elapsed = ((pd.time_ms ?? 0) / 1000).toFixed(1);
                 let tps = '';
                 if (pd.time_ms > 0 && pd.processed > 0) {
@@ -308,7 +302,6 @@ class Message extends BaseComponent {
             }
         }
 
-        // --- Reasoning segment ---
         if (this.#phase === 'final' && this.#timings) {
             const t = this.#timings;
             const totalGen = this.#reasoning.length + this.#content.length;
@@ -331,7 +324,6 @@ class Message extends BaseComponent {
                     : `~${this.#reasoning.length} chars`;
                 parts.push(`Reasoning: ${estTok} (${this.#reasoning.length} chars) · ${elapsed}s`);
             } else {
-                // frozen reasoning in content phase
                 const rElapsed = ((this.#reasoningEnd - this.#reasoningStart) / 1000).toFixed(1);
                 const rTok = this.#charsPerToken
                     ? `~${Math.round(this.#reasoning.length / this.#charsPerToken)}`
@@ -340,7 +332,6 @@ class Message extends BaseComponent {
             }
         }
 
-        // --- Content segment (running) ---
         if (this.#phase === 'content') {
             const elapsed = ((performance.now() - this.#contentStart) / 1000).toFixed(1);
             const estTok = this.#charsPerToken

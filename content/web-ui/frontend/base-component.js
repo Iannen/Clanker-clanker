@@ -1,4 +1,3 @@
-//All components inherit BaseComponent directly or transitively
 export class BaseComponent extends HTMLElement {
     initialized = false;
     connectedCallback() {
