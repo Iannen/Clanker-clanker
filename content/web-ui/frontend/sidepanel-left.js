@@ -64,6 +64,7 @@ class SidepanelLeft extends BaseComponent {
     };
 
     setup() {
+        //are we unable to handle these registrations via the baseclass? lets see about that.
         this.querySelectorAll('[data-mode]').forEach(button => {
             this.addListener(button, 'click', () => {
                 this.#switchMode(button.dataset.mode);

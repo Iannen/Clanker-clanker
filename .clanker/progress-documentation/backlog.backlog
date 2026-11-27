@@ -64,57 +64,47 @@ III. Items under development
 
 Backlog tail, Selected item/items:
 ```
-1. BaseComponent lifecycle machinery: declarative refs, listeners, and symmetric teardown
-    [ ] 'content/web-ui/frontend/base-component.js': Add ref-resolution, listener-wiring, and teardown loops to BaseComponent
-        - Add support for a `refs` declaration: an object of `{ propName: 'cssSelector' }`. In `connectedCallback`, after template inflation, iterate and assign `this[propName] = this.querySelector(selector)`.
-        - Add support for a `listeners` declaration: an array of `{ target, event, handler }` where `target` is either a string (ref prop name or `'self'`) or `'document'`. In `connectedCallback`, resolve target (from refs or `this`/`document`), call `target.addEventListener(event, handler)`.
-        - Add `disconnectedCallback()`: iterate the same `listeners` array and call `target.removeEventListener(event, handler)`. This is the symmetric teardown that eliminates the current per-subclass leak risk.
-        - Add an optional `#setup()` hook (default no-op) called after refs are resolved and listeners are wired, but before `initialized = true`. Subclasses override this for imperative one-liners (set text, set tabIndex, role-conditional classes).
-        - Keep existing `connectedCallback` behavior (className attr, template inflation, `onConnect()` call) intact; the new machinery slots in before the `onConnect()` call.
-        - Handlers in the `listeners` array must be the actual function references (arrow functions / private method refs) so `removeEventListener` can match them. Subclass field initializers can reference their own `#` arrow-function fields.
+1. Collapse single-entry refs objects to one line
+    [ ] 'content/web-ui/frontend/keyboard-bar.js': Inline refs to single line
+        - change `refs = { ... }` spanning 3 lines to `refs = { statusEl: '#kb-status' };`
+        - remove the `//single line syntax?` comment
+    [ ] 'content/web-ui/frontend/toast.js': Inline refs to single line
+        - change `refs = { ... }` spanning 3 lines to `refs = { toastElement: 'div' };`
+        - remove the `// i prefer single line syntax...` comment
 
-2. Refactor subclasses to declarative lifecycle
-    [ ] 'content/web-ui/frontend/input-box.js': Replace onConnect body with refs + listeners declarations
-        - Declare `refs = { promptInput: 'textarea', sendBtn: 'button' }`.
-        - Declare `listeners = [{ target: 'sendBtn', event: 'click', handler: ...#dispatchSubmit }, { target: 'promptInput', event: 'keydown', handler: ...#handleKeydown }]`.
-        - Remove the entire `onConnect()` body (refs and wiring now handled by base).
-        - No `#setup()` needed.
+2. Remove redundant setup() in clanker-app
+    [ ] 'content/web-ui/frontend/clanker-app.js': Delete setup() override
+        - remove `setup() { this.keyboardBar.setExpanded(false); }` entirely
+        - remove the associated comment
+        - rationale: initial HTML already has `hidden` on #kb-zone2, glyph is `▸`, `#expanded` defaults to `false` — the call is a no-op
 
-    [ ] 'content/web-ui/frontend/keyboard-bar.js': Replace onConnect + fix disconnectedCallback leak
-        - Declare `refs = { statusEl: '#kb-status' }`.
-        - Declare `listeners` for: `self→keydown`, `self→click`, and per-`.kb-btn` click listeners (these need a `querySelectorAll` + loop in `#setup()` since they're dynamic, not a single selector).
-        - Move `tabIndex = 0`, `#statusEl.textContent = 'Domain → Prompt'` into `#setup()`.
-        - Remove the current `onConnect()` and `disconnectedCallback()` entirely — base handles teardown symmetrically, fixing the current leak of `click` listeners.
-        - The per-button `.kb-btn` click listeners: handle in `#setup()` by `querySelectorAll` + loop, registering each in a base-managed listener registry (base needs to support registering listeners outside the static `listeners` array, or `#setup()` calls a base helper `this.#addListener(target, event, handler)` that also tracks it for teardown).
+3. Remove reasoning getter/setter from message
+    [ ] 'content/web-ui/frontend/message.js': Strip reasoning accessors
+        - remove `get reasoning()` and `set reasoning(value)`
+        - remove both associated comments
+        - `updateReasoning(text)` remains as the sole public entry point; no caller reads `.reasoning` as a property
 
-    [ ] 'content/web-ui/frontend/messages-box.js': Replace onConnect body with refs + listeners declarations
-        - Declare `refs = { welcomeText: '.welcome-text' }`.
-        - Declare `listeners = [{ target: 'self', event: 'keydown', ... }, { target: 'self', event: 'focusout', ... }, { target: 'self', event: 'focusin', ... }, { target: 'self', event: 'wheel', ... }, { target: 'self', event: 'scroll', ... }]`.
-        - Remove `onConnect()` body and `disconnectedCallback()` (base handles both).
+4. Replace imperative button loop with event delegation in sidepanel-left
+    [ ] 'content/web-ui/frontend/sidepanel-left.js': Delegate button clicks to self listener
+        - remove `setup()` method entirely (including its comment)
+        - add a `listeners` array entry: `{ target: 'self', event: 'click', handler: (e) => { const btn = e.target.closest('[data-mode]'); if (btn) this.#switchMode(btn.dataset.mode); } }`
+        - same behaviour, one fewer method, no imperative forEach
 
-    [ ] 'content/web-ui/frontend/clanker-app.js': Refactor listener wiring to declarative; keep #bootSystem
-        - Declare `refs = { inputBox: 'input-box', messagesBox: 'messages-box', toast: 'toast-notification' }`. (`keyboardBar` is resolved separately since `#keyboardBar` is a private field — either keep it as a ref with a public name, or handle in `#setup()`.)
-        - Declare `listeners` for: `inputBox→submit`, `keyboardBar→prompt-selected`, `keyboardBar→prompt-copied`, `self→toggle-scroll-lock`, `messagesBox→focus-input`, `inputBox→focus-message`, `document→keydown`.
-        - Move `keyboardBar.setExpanded(false)` into `#setup()`.
-        - Keep `#bootSystem()` and `#handleGlobalKeydown` as-is (semantic, async, cross-component orchestration).
-        - Remove the manual listener-wiring lines from `onConnect`; remove the manual `document.addEventListener` (base handles it via the `document` target).
+5. Replace imperative button loop with event delegation in keyboard-bar
+    [ ] 'content/web-ui/frontend/keyboard-bar.js': Delegate button clicks to self listener
+        - remove `setup()` method entirely (keeping only `this.tabIndex = 0` and `this.statusEl.textContent = 'Domain → Prompt'` inline in a slimmed `setup()`, or fold those two lines into `connectedCallback`-level init)
+        - add a `listeners` array entry: `{ target: 'self', event: 'click', handler: (e) => { const btn = e.target.closest('.kb-btn'); if (!btn) return; const key = btn.dataset.key; if (sharedDomKeys.includes(key) || pudDomKeys.includes(key)) this.#onDomainKey(key); else if (promptKeys.includes(key)) this.#onPromptKey(key); } }`
+        - the existing `listeners` entry for expand-toggle stays as-is
+        - no imperative forEach, no per-button addListener
 
-    [ ] 'content/web-ui/frontend/sidepanel-left.js': Replace onConnect body with refs + listeners
-        - Declare `refs = { statusElement: '#status' }`.
-        - Per-`[data-mode]` button click listeners: handle in `#setup()` via `querySelectorAll` + loop (same pattern as keyboard-bar per-button listeners).
-        - Remove `onConnect()` body.
-
-    [ ] 'content/web-ui/frontend/toast.js': Replace onConnect body with refs declaration
-        - Declare `refs = { toastElement: 'div' }`.
-        - Remove `onConnect()` body (no listeners to wire).
-
-    [ ] 'content/web-ui/frontend/message.js': Refactor ref resolution; keep role-conditional styling
-        - Declare `refs = { wrapper: ':scope > div', reasoningElement: '.reasoning-section', contentElement: '.content-section', statsElement: '.stats-footer', reasoningSummary: ... , reasoningBody: ..., contentSummary: ..., contentBody: ... }`.
-        - Move `setAttribute('data-index')`, role-conditional class additions, `#renderSummaries()`, `#renderContent()`, `updateReasoning()` into `#setup()`.
-        - No listeners to wire, no `disconnectedCallback` needed.
+6. Remove dead addListener / #_trackedListeners from base-component
+    [ ] 'content/web-ui/frontend/base-component.js': Strip unused listener-tracking machinery
+        - remove `addListener()` method
+        - remove `#_trackedListeners` private field
+        - remove the second `for` loop in `disconnectedCallback` that iterates `#_trackedListeners`
+        - rationale: after items 4 and 5, no subclass calls `addListener`; the tracking path is dead
+        - `disconnectedCallback` retains only the `listeners` iteration
 ```
-
-
 Backlog tail end
 
 
@@ -317,3 +307,52 @@ n. Delims: replace path-bearing tag constants with verb-injected f-string method
         - the outer `if (data?.expanded?.length)` becomes just `await this.#keyboardBar.expandPaths(data.expanded)`
         - `expandPaths` already self-guards on missing selection
 ```
+
+1. BaseComponent lifecycle machinery: declarative refs, listeners, and symmetric teardown
+    [x] 'content/web-ui/frontend/base-component.js': Add ref-resolution, listener-wiring, and teardown loops to BaseComponent
+        - Add support for a `refs` declaration: an object of `{ propName: 'cssSelector' }`. In `connectedCallback`, after template inflation, iterate and assign `this[propName] = this.querySelector(selector)`.
+        - Add support for a `listeners` declaration: an array of `{ target, event, handler }` where `target` is either a string (ref prop name or `'self'`) or `'document'`. In `connectedCallback`, resolve target (from refs or `this`/`document`), call `target.addEventListener(event, handler)`.
+        - Add `disconnectedCallback()`: iterate the same `listeners` array and call `target.removeEventListener(event, handler)`. This is the symmetric teardown that eliminates the current per-subclass leak risk.
+        - Add an optional `#setup()` hook (default no-op) called after refs are resolved and listeners are wired, but before `initialized = true`. Subclasses override this for imperative one-liners (set text, set tabIndex, role-conditional classes).
+        - Keep existing `connectedCallback` behavior (className attr, template inflation, `onConnect()` call) intact; the new machinery slots in before the `onConnect()` call.
+        - Handlers in the `listeners` array must be the actual function references (arrow functions / private method refs) so `removeEventListener` can match them. Subclass field initializers can reference their own `#` arrow-function fields.
+
+2. Refactor subclasses to declarative lifecycle
+    [x] 'content/web-ui/frontend/input-box.js': Replace onConnect body with refs + listeners declarations
+        - Declare `refs = { promptInput: 'textarea', sendBtn: 'button' }`.
+        - Declare `listeners = [{ target: 'sendBtn', event: 'click', handler: ...#dispatchSubmit }, { target: 'promptInput', event: 'keydown', handler: ...#handleKeydown }]`.
+        - Remove the entire `onConnect()` body (refs and wiring now handled by base).
+        - No `#setup()` needed.
+
+    [x] 'content/web-ui/frontend/keyboard-bar.js': Replace onConnect + fix disconnectedCallback leak
+        - Declare `refs = { statusEl: '#kb-status' }`.
+        - Declare `listeners` for: `self→keydown`, `self→click`, and per-`.kb-btn` click listeners (these need a `querySelectorAll` + loop in `#setup()` since they're dynamic, not a single selector).
+        - Move `tabIndex = 0`, `#statusEl.textContent = 'Domain → Prompt'` into `#setup()`.
+        - Remove the current `onConnect()` and `disconnectedCallback()` entirely — base handles teardown symmetrically, fixing the current leak of `click` listeners.
+        - The per-button `.kb-btn` click listeners: handle in `#setup()` by `querySelectorAll` + loop, registering each in a base-managed listener registry (base needs to support registering listeners outside the static `listeners` array, or `#setup()` calls a base helper `this.#addListener(target, event, handler)` that also tracks it for teardown).
+
+    [x] 'content/web-ui/frontend/messages-box.js': Replace onConnect body with refs + listeners declarations
+        - Declare `refs = { welcomeText: '.welcome-text' }`.
+        - Declare `listeners = [{ target: 'self', event: 'keydown', ... }, { target: 'self', event: 'focusout', ... }, { target: 'self', event: 'focusin', ... }, { target: 'self', event: 'wheel', ... }, { target: 'self', event: 'scroll', ... }]`.
+        - Remove `onConnect()` body and `disconnectedCallback()` (base handles both).
+
+    [x] 'content/web-ui/frontend/clanker-app.js': Refactor listener wiring to declarative; keep #bootSystem
+        - Declare `refs = { inputBox: 'input-box', messagesBox: 'messages-box', toast: 'toast-notification' }`. (`keyboardBar` is resolved separately since `#keyboardBar` is a private field — either keep it as a ref with a public name, or handle in `#setup()`.)
+        - Declare `listeners` for: `inputBox→submit`, `keyboardBar→prompt-selected`, `keyboardBar→prompt-copied`, `self→toggle-scroll-lock`, `messagesBox→focus-input`, `inputBox→focus-message`, `document→keydown`.
+        - Move `keyboardBar.setExpanded(false)` into `#setup()`.
+        - Keep `#bootSystem()` and `#handleGlobalKeydown` as-is (semantic, async, cross-component orchestration).
+        - Remove the manual listener-wiring lines from `onConnect`; remove the manual `document.addEventListener` (base handles it via the `document` target).
+
+    [x] 'content/web-ui/frontend/sidepanel-left.js': Replace onConnect body with refs + listeners
+        - Declare `refs = { statusElement: '#status' }`.
+        - Per-`[data-mode]` button click listeners: handle in `#setup()` via `querySelectorAll` + loop (same pattern as keyboard-bar per-button listeners).
+        - Remove `onConnect()` body.
+
+    [x] 'content/web-ui/frontend/toast.js': Replace onConnect body with refs declaration
+        - Declare `refs = { toastElement: 'div' }`.
+        - Remove `onConnect()` body (no listeners to wire).
+
+    [x] 'content/web-ui/frontend/message.js': Refactor ref resolution; keep role-conditional styling
+        - Declare `refs = { wrapper: ':scope > div', reasoningElement: '.reasoning-section', contentElement: '.content-section', statsElement: '.stats-footer', reasoningSummary: ... , reasoningBody: ..., contentSummary: ..., contentBody: ... }`.
+        - Move `setAttribute('data-index')`, role-conditional class additions, `#renderSummaries()`, `#renderContent()`, `updateReasoning()` into `#setup()`.
+        - No listeners to wire, no `disconnectedCallback` needed.

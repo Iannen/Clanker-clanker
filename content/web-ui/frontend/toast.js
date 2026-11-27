@@ -4,7 +4,7 @@ const html = `<div class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 pointer
 
 class ToastNotification extends BaseComponent {
     html = html;
-
+    // i prefer single line syntax for single item registration
     refs = {
         toastElement: 'div',
     };

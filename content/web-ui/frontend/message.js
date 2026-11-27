@@ -108,11 +108,11 @@ class Message extends BaseComponent {
             this.#maybeAdvancePhase();
         }
     }
-
+    // must we have this?
     get reasoning() {
         return this.#reasoning;
     }
-
+    // must we have this? can caller not use updateReasoning?
     set reasoning(value) {
         this.updateReasoning(value);
     }

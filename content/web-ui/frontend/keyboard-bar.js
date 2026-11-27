@@ -95,7 +95,7 @@ const className = 'w-full bg-[#111827] overflow-hidden';
 class KeyboardBar extends BaseComponent {
     html = html;
     className = className;
-
+    //single line syntax?
     refs = {
         statusEl: '#kb-status',
     };
