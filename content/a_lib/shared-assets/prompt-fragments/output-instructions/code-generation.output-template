@@ -1,20 +1,20 @@
-<update path="path1">
+§update, open, path1§
 {{ALWAYS USE 'update' TAG FOR EXISTING FILES}}
-</update>
+§update, close§
 
-<update path="path2">
+§update, open, path2§
 {{ALWAYS COMPLETE_FILE_CONTENTS}}
-</update>
+§update, close§
 
-<create path="path3">
+§create, open, path3§
 {{ONLY USE 'create' TAG FOR NEW FILES}}
-</create>
+§create, close§
 
-<create path="path4">
+§create, open, path4§
 {{ALWAYS COMPLETE_FILE_CONTENTS}}
-</create>
+§create, close§
 
-<delete path="path5"/>
-<delete path="path6"/>
+§delete, selfclose, path5§
+§delete, selfclose, path6§
 
 Use the above to effectuate changes on the codebase

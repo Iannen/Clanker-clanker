@@ -129,21 +129,41 @@ class Delims:
 
     PROMPT_OPEN = ("§po§", "#")
     PROMPT_CLOSE = ("§pc§", "")
-    CREATE_FILESET_UL = ("§cfsul§", "<create path=\"")
-    READ_FILESET_UL = ("§rfsul§", "<file path=\"")
-    UPDATE_FILESET_UL = ("§ufsul§", "<update path=\"")
-    DELETE_FILESET_UL = ("§dfsul§", "<delete path=\"")
 
-    CREATE_FILESET_BL = ("§cfsbl§", "</create")
-    READ_FILESET_BL = ("§rfsbl§", "</file")
-    UPDATE_FILESET_BL = ("§ufsbl§", "</update")
+    _OPEN_TMPL = '<{verb} path="{path}">'
+    _CLOSE_TMPL = '</{verb}>'
+    _SELF_CLOSE_TMPL = '<{verb} path="{path}"/>'
+    _SELF_CLOSE_LOC_TMPL = '<{verb} path="{path}" loc={loc}/>'
 
-    FILESET_OPEN_END_TAG = ("§fsoet§", "\">")
-    FILESET_CLOSED_END_TAG = ("§fscet§", "\"/>")
-    FILESET_OPEN_END_TAG_BR = ("§fsoetbr§", ">")
+    @staticmethod
+    def open(verb: str, path: str) -> str:
+        return Delims._OPEN_TMPL.format(verb=verb, path=path)
 
-    FILE_META_UL = ("§fmul§", "<file_meta path=\"")
-    FILE_META_CLOSE = ("§fmc§", "\"/>")
+    @staticmethod
+    def close(verb: str) -> str:
+        return Delims._CLOSE_TMPL.format(verb=verb)
+
+    @staticmethod
+    def self_close(verb: str, path: str, loc: int | None = None) -> str:
+        if loc is not None:
+            return Delims._SELF_CLOSE_LOC_TMPL.format(verb=verb, path=path, loc=loc)
+        return Delims._SELF_CLOSE_TMPL.format(verb=verb, path=path)
+
+    @staticmethod
+    def open_prefix(verb: str) -> str:
+        return f'<{verb} path="'
+
+    @staticmethod
+    def open_suffix(verb: str) -> str:
+        return '">'
+
+    @staticmethod
+    def self_close_prefix(verb: str) -> str:
+        return f'<{verb} path="'
+
+    @staticmethod
+    def self_close_suffix(verb: str) -> str:
+        return '"/>'
 
 class PathTokens:
     PUD = "<PUD>"

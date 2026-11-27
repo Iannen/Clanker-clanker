@@ -13,27 +13,39 @@ class IngestionParseResult:
     expanded: list[str] = field(default_factory=list)
 
 
+_OPEN_VERBS = ("create", "update")
+_SELF_CLOSE_VERBS = ("delete",)
+_CLOSE_VERBS = ("create", "update")
+
+
 class IngestionParser:
     _show_re = re.compile(
         r'^<show\s+path="(?P<path>[^"]+)"\s*/>\s*$'
     )
 
     _open_re = re.compile(
-        r"^(?:"
-        + r"(?P<create_open>" + re.escape(e.Delims.CREATE_FILESET_UL[1]) + r")(?P<create_path>.+?)" + re.escape(e.Delims.FILESET_OPEN_END_TAG[1])
-        + r"|"
-        + r"(?P<update_open>" + re.escape(e.Delims.UPDATE_FILESET_UL[1]) + r")(?P<update_path>.+?)" + re.escape(e.Delims.FILESET_OPEN_END_TAG[1])
-        + r"|"
-        + r"(?P<delete_open>" + re.escape(e.Delims.DELETE_FILESET_UL[1]) + r")(?P<delete_path>.+?)" + re.escape(e.Delims.FILESET_CLOSED_END_TAG[1])
-        + r")$"
+        "^(?:"
+        + "|".join(
+            [
+                f"(?P<{v}_open>{re.escape(e.Delims.open_prefix(v))}(?P<{v}_path>.+?){re.escape(e.Delims.open_suffix(v))})"
+                for v in _OPEN_VERBS
+            ]
+            +
+            [
+                f"(?P<{v}_open>{re.escape(e.Delims.self_close_prefix(v))}(?P<{v}_path>.+?){re.escape(e.Delims.self_close_suffix(v))})"
+                for v in _SELF_CLOSE_VERBS
+            ]
+        )
+        + ")$"
     )
 
     _close_re = re.compile(
-        r"^(?:"
-        + r"(?P<create_close>" + re.escape(e.Delims.CREATE_FILESET_BL[1]) + r")" + re.escape(e.Delims.FILESET_OPEN_END_TAG_BR[1])
-        + r"|"
-        + r"(?P<update_close>" + re.escape(e.Delims.UPDATE_FILESET_BL[1]) + r")" + re.escape(e.Delims.FILESET_OPEN_END_TAG_BR[1])
-        + r")$"
+        "^(?:"
+        + "|".join(
+            f"(?P<{v}_close>{re.escape(e.Delims.close(v))})"
+            for v in _CLOSE_VERBS
+        )
+        + ")$"
     )
 
     def parse(self, raw_text: str) -> IngestionParseResult:

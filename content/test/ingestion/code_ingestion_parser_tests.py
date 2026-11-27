@@ -5,23 +5,23 @@ from backend.asset_ingestion.ingestion_parser import IngestionParser
 
 
 def _create_open(path: str) -> str:
-    return f"{e.Delims.CREATE_FILESET_UL[1]}{path}{e.Delims.FILESET_OPEN_END_TAG[1]}"
+    return e.Delims.open("create", path)
 
 
 def _create_close() -> str:
-    return f"{e.Delims.CREATE_FILESET_BL[1]}{e.Delims.FILESET_OPEN_END_TAG_BR[1]}"
+    return e.Delims.close("create")
 
 
 def _update_open(path: str) -> str:
-    return f"{e.Delims.UPDATE_FILESET_UL[1]}{path}{e.Delims.FILESET_OPEN_END_TAG[1]}"
+    return e.Delims.open("update", path)
 
 
 def _update_close() -> str:
-    return f"{e.Delims.UPDATE_FILESET_BL[1]}{e.Delims.FILESET_OPEN_END_TAG_BR[1]}"
+    return e.Delims.close("update")
 
 
 def _delete_tag(path: str) -> str:
-    return f"{e.Delims.DELETE_FILESET_UL[1]}{path}{e.Delims.FILESET_CLOSED_END_TAG[1]}"
+    return e.Delims.self_close("delete", path)
 
 
 class TestIngestionParser(unittest.TestCase):

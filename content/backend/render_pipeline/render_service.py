@@ -137,7 +137,7 @@ class PromptServiceImpl(d.PromptService):
                 content = self.files.get_file_contents(f"{e.PathTokens.PUD}/{p}")
                 line_count = len(content.splitlines())
                 blocks.append(
-                    f"{e.Delims.FILE_META_UL[1]}{p} loc={line_count}{e.Delims.FILE_META_CLOSE[1]}"
+                    e.Delims.self_close("file_meta", p, loc=line_count)
                 )
             except UnicodeDecodeError:
                 pass
@@ -147,7 +147,7 @@ class PromptServiceImpl(d.PromptService):
     @staticmethod
     def _format_full_file(path: str, content: str) -> str:
         return (
-            f"{e.Delims.READ_FILESET_UL[1]}{path}{e.Delims.FILESET_OPEN_END_TAG[1]}\n"
+            f"{e.Delims.open('file', path)}\n"
             f"{content}\n"
-            f"{e.Delims.READ_FILESET_BL[1]}{path}{e.Delims.FILESET_OPEN_END_TAG[1]}"
+            f"{e.Delims.close('file')}"
         )

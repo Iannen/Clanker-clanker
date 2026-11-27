@@ -4,6 +4,8 @@ from backend.core import entities as e
 
 class PromptContentShaper:
 
+    _TOKEN_RE = re.compile(r'§([a-z_]+),\s*([a-z_]+)(?:,\s*([^§]+?))?(?:,\s*([^§]+?))?§')
+
     def process(self, content: str, file: e.File | None) -> str:
         if file is not None and file.name and file.name.endswith(".output-template"):
             content = self._substitute_placeholders(content)
@@ -11,10 +13,26 @@ class PromptContentShaper:
         return self.apply_truncation(content, truncation_spec)
 
     def _substitute_placeholders(self, content: str) -> str:
-        for pair in e.Delims.__dict__.values():
-            if isinstance(pair, tuple) and len(pair) == 2:
-                content = content.replace(pair[0], pair[1])
-        return content
+        def _repl(m: re.Match) -> str:
+            verb = m.group(1)
+            op = m.group(2)
+            arg1 = m.group(3).strip() if m.group(3) else None
+            arg2 = m.group(4).strip() if m.group(4) else None
+
+            if op == "open":
+                if arg1 is None:
+                    return m.group(0)
+                return e.Delims.open(verb, arg1)
+            elif op == "close":
+                return e.Delims.close(verb)
+            elif op == "selfclose":
+                if arg1 is None:
+                    return m.group(0)
+                loc = int(arg2) if arg2 is not None else None
+                return e.Delims.self_close(verb, arg1, loc=loc)
+            return m.group(0)
+
+        return self._TOKEN_RE.sub(_repl, content)
 
     def apply_truncation(self, content: str, spec: e.TruncationSpec | None) -> str:
         if spec is None:

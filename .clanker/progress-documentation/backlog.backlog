@@ -63,23 +63,6 @@ III. Items under development
 ```
 
 Backlog tail, Selected item/items:
-```
-n. Delims: replace concatenation with verb + path f-string composition
-    [ ] 'content/backend/core/core/entities.py': Consolidate fileset delims into a verb-driven helper
-        - Introduce a verb enum (create, update, delete, file, file_meta) with open/close/self-closing methods
-        - Collapse CREATE/UPDATE/READ_FILESET_UL, *_BL, DELETE_FILESET_UL, FILE_META_UL, FILE_META_CLOSE, FILESET_OPEN_END_TAG(_BR) into verb methods
-        - Keep FILELIST and PROMPT delims as-is (single-char, no path)
-    [ ] 'content/backend/render_pipeline/render_service.py': Align multi-doc rendering to the same verb source
-        - `_res_multi_doc` currently hand-assembles `<name>…</name>` bookends via Delims concatenation
-        - Refactor to derive open/close from the shared verb helper so fileset and filelist rendering share one composition path
-    [ ] 'content/backend/asset_ingestion/ingestion_parser.py': Derive regex patterns from verb definitions
-        - `_open_re` and `_close_re` currently embed escaped Delims strings inline
-        - Refactor to build the pattern from the verb set so adding a verb updates the parser automatically
-    [ ] 'content/a_lib/shared-assets/prompt-fragments/output-instructions/code-generation.output-template': Consider composing the example block at render time
-        - Template currently mirrors parser tags by hand
-        - If verbs are the source of truth, the example section could be generated from the verb set rather than maintained as a static file
-        - Token substitution layer (§fsoet§ etc.) becomes optional if display strings are emitted directly
-```
 
 Backlog tail end
 
@@ -174,3 +157,67 @@ VI. finished stuffs
         - `§ufsbl§` → `§fsoetbr§` (i.e. `</update>`)
         - `§cfsbl§` → `§fsoetbr§` (i.e. `</create>`)
         - Delete tags unaffected (self-closing, no separate close)
+
+n. Delims: replace path-bearing tag constants with verb-injected f-string methods and §verb, op, args§ token format
+    [x] 'content/backend/core/core/entities.py': Rewrite Delims as template + static-method source
+        - Remove all path-bearing tuple constants: CREATE_FILESET_UL, UPDATE_FILESET_UL, DELETE_FILESET_UL, READ_FILESET_UL, CREATE_FILESET_BL, UPDATE_FILESET_BL, FILESET_OPEN_END_TAG, FILESET_OPEN_END_TAG_BR, FILESET_CLOSED_END_TAG, FILE_META_UL, FILE_META_CLOSE
+        - Add four private format-string templates (class-level, not per-verb):
+            - _OPEN_TMPL = '<{verb} path="{path}">'
+            - _CLOSE_TMPL = '</{verb}>'
+            - _SELF_CLOSE_TMPL = '<{verb} path="{path}"/>'
+            - _SELF_CLOSE_LOC_TMPL = '<{verb} path="{path}" loc={loc}/>'
+        - Add three public static methods that inject the verb before returning:
+            - open(verb, path) → _OPEN_TMPL.format(verb=verb, path=path)
+            - close(verb) → _CLOSE_TMPL.format(verb=verb)
+            - self_close(verb, path, loc=None) → _SELF_CLOSE_TMPL or _SELF_CLOSE_LOC_TMPL depending on loc
+        - Add four static prefix/suffix methods for parser regex construction:
+            - open_prefix(verb) → '<{verb} path="' (format, no path)
+            - open_suffix(verb) → '">'
+            - self_close_prefix(verb) → '<{verb} path="'
+            - self_close_suffix(verb) → '"/>'
+        - Keep FILELIST_START_OPEN, FILELIST_START_CLOSE, FILELIST_END_OPEN, FILELIST_END_CLOSE, PROMPT_OPEN, PROMPT_CLOSE, MANIFEST_MEMBER as plain string constants, unchanged
+        - Prohibition: no consumer outside Delims may construct a full tag by concatenating raw string fragments
+    [x] 'content/backend/render_pipeline/render_service.py': Align rendering to verb static methods
+        - _format_full_file: replace Delims.READ_FILESET_UL[1] + path + Delims.FILESET_OPEN_END_TAG[1] with Delims.open("file", path); replace Delims.READ_FILESET_BL[1] + path + Delims.FILESET_OPEN_END_TAG[1] with Delims.close("file")
+        - _res_repo_content meta block: replace FILE_META_UL[1] + p + " loc=" + str(line_count) + FILE_META_CLOSE[1] with Delims.self_close("file_meta", p, loc=line_count)
+        - _res_multi_doc: FILELIST constants for name bookends remain unchanged (no path in those tags)
+        - Prohibition: no f-string in render_service may hardcode "<file", "</file", "<create", or any other verb-literal tag fragment
+    [x] 'content/backend/render_pipeline/content_shaper.py': Rewrite _substitute_placeholders to parse §verb, op, args§ tokens
+        - Remove iteration over Delims.__dict__.values() for tuple-based token→display substitution
+        - Introduce a regex to match the new token format: §<verb>, <op>[, <arg1>[, <arg2>]]§
+        - Resolve each match by exact string equality on the verb field, then dispatch on op:
+            - "open" → Delims.open(verb, args[0])
+            - "close" → Delims.close(verb)
+            - "selfclose" → Delims.self_close(verb, args[0], loc=int(args[1]) if len(args) > 1 else None)
+        - Unknown verb or op: leave token in place (pass-through), do not raise
+        - Prohibition: the shaper must not contain any hardcoded "<create path=\" or similar display-string literal
+    [x] 'content/backend/asset_ingestion/ingestion_parser.py': Build regex patterns from Delims prefix/suffix methods
+        - _open_re: build by iterating the verb set, composing re.escape(Delims.open_prefix(verb)) + named-capture-group + re.escape(Delims.open_suffix(verb)) for open-verb tags, and re.escape(Delims.self_close_prefix(verb)) + named-capture-group + re.escape(Delims.self_close_suffix(verb)) for self-close-verb tags (delete)
+        - _close_re: build by iterating the verb set, composing re.escape(Delims.close(verb)) for each verb that has a close tag (create, update)
+        - Remove the inline re.escape(Delims.X[1]) construction; all pattern fragments derive from Delims static methods
+        - Prohibition: no regex fragment may be hand-escaped at the parser call-site outside of re.escape(Delims.method(...))
+    [x] 'content/a_lib/shared-assets/prompt-fragments/output-instructions/code-generation.output-template': Migrate token format to §verb, op, args§
+        - Replace all old tokens (§cfsul§, §fsoet§, §cfsbl§, §fsoetbr§, §ufsul§, §ufsbl§, §dfsul§, §fscet§) with the new format:
+            - §create, open, path3§ / §create, close§ (replaces old create open/close)
+            - §update, open, path1§ / §update, close§ (replaces old update open/close)
+            - §delete, selfclose, path5§ (replaces old delete self-closing)
+        - Expected display output after shaper substitution is identical to before
+        - Prohibition: no old-style §cfsul§, §rfsul§, §fsoet§ etc. token may remain in the file
+    [x] 'content/test/ingestion/code_ingestion_parser_tests.py': Switch helper constructors to Delims static methods
+        - _create_open(path): replace Delims tuple-concatenation with e.Delims.open("create", path)
+        - _create_close(): replace with e.Delims.close("create")
+        - _update_open(path): replace with e.Delims.open("update", path)
+        - _update_close(): replace with e.Delims.close("update")
+        - _delete_tag(path): replace with e.Delims.self_close("delete", path)
+        - All test assertions remain unchanged (same expected display strings)
+        - Prohibition: no test may reference a removed Delims constant
+    [x] 'content/test/ingestion/code_ingestion_service_tests.py': Switch helper constructors to Delims static methods
+        - Same five helper-function replacements as parser tests
+        - Prohibition: no test may reference a removed Delims constant
+    [x] 'content/test/render/render_contentshaper_tests.py': Update input tokens to §verb, op, args§ format
+        - test_template_file_placeholder_substitution: input tokens change from §llul§ path §llur§ style to §file, open, path§ / §file, close§ (note: llul/llur are FILELIST, not fileset — verify these remain unchanged or get their own token treatment)
+        - test_template_file_fileset_placeholder_substitution: input changes from §cfsul§src/new.py§fsoet§ / §cfsbl§§fsoetbr§ etc. to §create, open, src/new.py§ / §create, close§ / §delete, selfclose, src/old.py§
+        - test_template_file_no_placeholder_tokens_remain: input tokens updated to new format; assertion (no § in result) stays the same
+        - test_truncation_applies_after_substitution, test_from_line_on_template, test_up_to_on_template: if they use old § tokens in input, update to new format
+        - Prohibition: no test may hardcode an old-style token (§cfsul§ etc.) as input
+

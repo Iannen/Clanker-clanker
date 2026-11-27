@@ -15,18 +15,18 @@ class TestPromptContentShaper(unittest.TestCase):
         self.assertEqual(result, "hello §llul§ world")
 
     def test_template_file_placeholder_substitution(self):
-        content = "§llul§ path §llur§\n§llel§ path §ller§"
+        content = "§file, open, path§\n§file, close§"
         file = e.File(name="prompt.output-template", truncation_spec=None)
         result = self.shaper.process(content, file)
-        self.assertEqual(result, "< path >\n</ path >")
+        self.assertEqual(result, '<file path="path">\n</file>')
 
     def test_template_file_fileset_placeholder_substitution(self):
         content = "\n".join([
-            "§cfsul§src/new.py§fsoet§",
-            "§cfsbl§§fsoetbr§",
-            "§ufsul§src/mod.py§fsoet§",
-            "§ufsbl§§fsoetbr§",
-            "§dfsul§src/old.py§fscet§",
+            "§create, open, src/new.py§",
+            "§create, close§",
+            "§update, open, src/mod.py§",
+            "§update, close§",
+            "§delete, selfclose, src/old.py§",
         ])
         file = e.File(name="prompt.output-template", truncation_spec=None)
         result = self.shaper.process(content, file)
@@ -42,13 +42,13 @@ class TestPromptContentShaper(unittest.TestCase):
         )
 
     def test_template_file_no_placeholder_tokens_remain(self):
-        content = "§po§ heading §pc§\n§cfsul§ a §fsoet§\n§llul§ b §llur§\n§mm§ tag §mm§"
+        content = "§update, open, b§\n§delete, selfclose, c§"
         file = e.File(name="x.output-template", truncation_spec=None)
         result = self.shaper.process(content, file)
         self.assertNotIn("§", result)
 
     def test_truncation_applies_after_substitution(self):
-        content = "line1\n§llul§ content §llur§\nline3\nline4"
+        content = "line1\n§file, open, content§\nline3\nline4"
         spec = e.TruncationSpec(tail_lines=2, from_line=None, up_to=None)
         file = e.File(name="test.output-template", truncation_spec=spec)
         result = self.shaper.process(content, file)
@@ -60,15 +60,15 @@ class TestPromptContentShaper(unittest.TestCase):
         self.assertEqual(result, "plain text §llul§")
 
     def test_from_line_on_template(self):
-        content = "§llul§ start §llur§\nmiddle\n§llul§ end §llur§"
+        content = "§file, open, start§\nmiddle\n§file, close§"
         spec = e.TruncationSpec(tail_lines=None, from_line=r"^middle", up_to=None)
         file = e.File(name="t.output-template", truncation_spec=spec)
         result = self.shaper.process(content, file)
-        self.assertEqual(result, "middle\n< end >")
+        self.assertEqual(result, "middle\n</file>")
 
     def test_up_to_on_template(self):
-        content = "§llul§ start §llur§\nmiddle\n§llul§ end §llur§"
+        content = "§file, open, start§\nmiddle\n§file, close§"
         spec = e.TruncationSpec(tail_lines=None, from_line=None, up_to=r"^middle")
         file = e.File(name="t.output-template", truncation_spec=spec)
         result = self.shaper.process(content, file)
-        self.assertEqual(result, "< start >")
+        self.assertEqual(result, '<file path="start">')
